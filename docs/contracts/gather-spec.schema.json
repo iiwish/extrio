@@ -1,0 +1,689 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.extrio.dev/gather-spec.v1.schema.json",
+  "title": "Extrio GatherSpec v1",
+  "description": "Immutable deterministic collection rule for Extrio runtime.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "ruleVersionId",
+    "tenantId",
+    "collectorId",
+    "collectionVersionRef",
+    "sourceRevisionRef",
+    "compiler",
+    "runtimeCompatibility",
+    "contract",
+    "sourceContext",
+    "collect",
+    "output",
+    "integrity"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "extrio.gather.v1"},
+    "ruleVersionId": {"$ref": "#/$defs/id"},
+    "tenantId": {"$ref": "#/$defs/id"},
+    "collectorId": {"$ref": "#/$defs/id"},
+    "collectionVersionRef": {"$ref": "#/$defs/collectionVersionRef"},
+    "sourceRevisionRef": {"$ref": "#/$defs/sourceRevisionRef"},
+    "templateRef": {"$ref": "#/$defs/templateRef"},
+    "compiler": {"$ref": "#/$defs/compiler"},
+    "runtimeCompatibility": {"$ref": "#/$defs/runtimeCompatibility"},
+    "contract": {"$ref": "#/$defs/contract"},
+    "sourceContext": {"$ref": "#/$defs/sourceContext"},
+    "collect": {"$ref": "#/$defs/collect"},
+    "output": {"$ref": "#/$defs/output"},
+    "integrity": {"$ref": "#/$defs/integrity"}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "output": {
+            "type": "object",
+            "properties": {
+              "sinks": {
+                "type": "array",
+                "contains": {
+                  "type": "object",
+                  "properties": {
+                    "eventMode": {"const": "upsert_tombstone"}
+                  },
+                  "required": ["eventMode"]
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "contract": {
+            "type": "object",
+            "required": ["tombstonePolicy"],
+            "properties": {
+              "tombstonePolicy": {"$ref": "#/$defs/tombstonePolicy"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "sourceContext": {
+            "type": "object",
+            "properties": {
+              "accessProfileRef": {"$ref": "#/$defs/accessProfileRef"}
+            },
+            "required": ["accessProfileRef"]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "sourceContext": {
+            "type": "object",
+            "properties": {
+              "entrypoints": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^https://"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[a-z][a-z0-9_-]*$"
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"
+    },
+    "versionLabel": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[0-9A-Za-z][0-9A-Za-z._-]*$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "fieldName": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$"
+    },
+    "fieldBinding": {
+      "type": "string",
+      "pattern": "^(list|detail)\\.[A-Za-z][A-Za-z0-9_]{0,63}$"
+    },
+    "hostname": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 253,
+      "pattern": "^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+    },
+    "collectionVersionRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["collectionId", "collectionVersionId", "version"],
+      "properties": {
+        "collectionId": {"$ref": "#/$defs/id"},
+        "collectionVersionId": {"$ref": "#/$defs/id"},
+        "version": {"$ref": "#/$defs/versionLabel"}
+      }
+    },
+    "sourceRevisionRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceId", "sourceRevisionId", "configDigest"],
+      "properties": {
+        "sourceId": {"$ref": "#/$defs/id"},
+        "sourceRevisionId": {"$ref": "#/$defs/id"},
+        "configDigest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "accessProfileRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["accessProfileId", "accessProfileVersionId"],
+      "properties": {
+        "accessProfileId": {"$ref": "#/$defs/id"},
+        "accessProfileVersionId": {"$ref": "#/$defs/id"}
+      }
+    },
+    "templateRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["templateId", "templateVersionId", "version"],
+      "properties": {
+        "templateId": {"$ref": "#/$defs/id"},
+        "templateVersionId": {"$ref": "#/$defs/id"},
+        "version": {"$ref": "#/$defs/versionLabel"}
+      }
+    },
+    "overrideRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["overrideId", "digest"],
+      "properties": {
+        "overrideId": {"$ref": "#/$defs/id"},
+        "digest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "agent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "model", "promptVersion", "toolchainVersion"],
+      "properties": {
+        "provider": {"type": "string", "minLength": 1, "maxLength": 64},
+        "model": {"type": "string", "minLength": 1, "maxLength": 128},
+        "promptVersion": {"$ref": "#/$defs/versionLabel"},
+        "toolchainVersion": {"$ref": "#/$defs/versionLabel"}
+      }
+    },
+    "compiler": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "compiledAt", "inputDigest", "overrideRefs"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1, "maxLength": 64},
+        "version": {"$ref": "#/$defs/semver"},
+        "compiledAt": {"$ref": "#/$defs/timestamp"},
+        "inputDigest": {"$ref": "#/$defs/digest"},
+        "overrideRefs": {
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/overrideRef"}
+        },
+        "agent": {"$ref": "#/$defs/agent"}
+      }
+    },
+    "runtimeCompatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runtimeName", "minVersion", "maxVersionExclusive", "dialectVersion", "parserVersion", "tzdbVersion", "unicodeVersion"],
+      "properties": {
+        "runtimeName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z][a-z0-9_-]*$"
+        },
+        "minVersion": {"$ref": "#/$defs/semver"},
+        "maxVersionExclusive": {"$ref": "#/$defs/semver"},
+        "dialectVersion": {"$ref": "#/$defs/versionLabel"},
+        "parserVersion": {"$ref": "#/$defs/versionLabel"},
+        "tzdbVersion": {
+          "type": "string",
+          "pattern": "^[0-9]{4}[a-z]$"
+        },
+        "unicodeVersion": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+(?:\\.[0-9]+)?$"
+        }
+      }
+    },
+    "quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requiredFieldCompleteness", "maxItemErrorRatio", "emptyResultPolicy"],
+      "properties": {
+        "requiredFieldCompleteness": {"type": "number", "minimum": 0, "maximum": 1},
+        "maxItemErrorRatio": {"type": "number", "minimum": 0, "maximum": 1},
+        "emptyResultPolicy": {"enum": ["allow", "suspect", "fail"]}
+      }
+    },
+    "tombstonePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field", "equalsAny"],
+      "properties": {
+        "field": {"$ref": "#/$defs/fieldName"},
+        "equalsAny": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "anyOf": [
+              {"type": "string"},
+              {"type": "number"},
+              {"type": "boolean"}
+            ]
+          }
+        }
+      }
+    },
+    "contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identityFields", "fingerprintFields", "outputContractDigest", "normalizedItemSchema", "quality"],
+      "properties": {
+        "identityFields": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/fieldName"}
+        },
+        "fingerprintFields": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/fieldName"}
+        },
+        "outputContractDigest": {"$ref": "#/$defs/digest"},
+        "normalizedItemSchema": {
+          "type": "object",
+          "required": ["$schema", "type", "properties", "required", "additionalProperties"],
+          "properties": {
+            "$schema": {"const": "https://json-schema.org/draft/2020-12/schema"},
+            "type": {"const": "object"},
+            "properties": {"type": "object", "minProperties": 1, "additionalProperties": true},
+            "required": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {"$ref": "#/$defs/fieldName"}
+            },
+            "additionalProperties": {"const": false}
+          }
+        },
+        "quality": {"$ref": "#/$defs/quality"},
+        "fieldBindings": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "detailUrl": {"$ref": "#/$defs/fieldBinding"},
+            "listTitle": {"$ref": "#/$defs/fieldBinding"},
+            "listPublishedAt": {"$ref": "#/$defs/fieldBinding"},
+            "title": {"$ref": "#/$defs/fieldBinding"},
+            "publishedAt": {"$ref": "#/$defs/fieldBinding"},
+            "content": {"$ref": "#/$defs/fieldBinding"}
+          }
+        },
+        "tombstonePolicy": {"$ref": "#/$defs/tombstonePolicy"}
+      }
+    },
+    "rateLimit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rps", "burst", "maxConcurrency"],
+      "properties": {
+        "rps": {"type": "number", "exclusiveMinimum": 0, "maximum": 1000},
+        "burst": {"type": "integer", "minimum": 1, "maximum": 10000},
+        "maxConcurrency": {"type": "integer", "minimum": 1, "maximum": 1000}
+      }
+    },
+    "requestPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["userAgent", "timeoutMs", "maxResponseBytes", "maxRedirects"],
+      "properties": {
+        "userAgent": {"type": "string", "minLength": 1, "maxLength": 256},
+        "timeoutMs": {"type": "integer", "minimum": 1000, "maximum": 300000},
+        "maxResponseBytes": {"type": "integer", "minimum": 1024, "maximum": 104857600},
+        "maxRedirects": {"type": "integer", "minimum": 0, "maximum": 10}
+      }
+    },
+    "browserPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["waitUntil", "postLoadDelayMs", "pageLoadTimeoutMs", "downloadsEnabled", "engine", "engineVersion", "viewport", "locale", "timezoneId"],
+      "properties": {
+        "waitUntil": {"enum": ["domcontentloaded", "load", "networkidle"]},
+        "postLoadDelayMs": {"type": "integer", "minimum": 0, "maximum": 30000},
+        "pageLoadTimeoutMs": {"type": "integer", "minimum": 1000, "maximum": 300000},
+        "downloadsEnabled": {"const": false},
+        "engine": {"const": "chromium"},
+        "engineVersion": {"type": "string", "minLength": 1, "maxLength": 64},
+        "viewport": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["width", "height", "deviceScaleFactor"],
+          "properties": {
+            "width": {"type": "integer", "minimum": 320, "maximum": 7680},
+            "height": {"type": "integer", "minimum": 240, "maximum": 4320},
+            "deviceScaleFactor": {"type": "number", "minimum": 1, "maximum": 4}
+          }
+        },
+        "locale": {"type": "string", "pattern": "^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$"},
+        "timezoneId": {"type": "string", "pattern": "^(UTC|[A-Za-z_]+(?:/[A-Za-z0-9_+.-]+)+)$"}
+      }
+    },
+    "sourceContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entrypoints", "allowedHosts", "transport", "rateLimit", "requestPolicy"],
+      "properties": {
+        "entrypoints": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {"type": "string", "format": "uri", "pattern": "^https?://"}
+        },
+        "allowedHosts": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/hostname"}
+        },
+        "transport": {"enum": ["http", "browser"]},
+        "accessProfileRef": {"$ref": "#/$defs/accessProfileRef"},
+        "rateLimit": {"$ref": "#/$defs/rateLimit"},
+        "requestPolicy": {"$ref": "#/$defs/requestPolicy"},
+        "browserPolicy": {"$ref": "#/$defs/browserPolicy"}
+      },
+      "allOf": [
+        {
+          "if": {
+            "type": "object",
+            "properties": {"transport": {"const": "browser"}},
+            "required": ["transport"]
+          },
+          "then": {
+            "required": ["browserPolicy"],
+            "properties": {
+              "browserPolicy": {"$ref": "#/$defs/browserPolicy"}
+            }
+          },
+          "else": {"not": {"required": ["browserPolicy"]}}
+        }
+      ]
+    },
+    "headers": {
+      "type": "object",
+      "maxProperties": 32,
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9!#$%&'*+.^_|~-]+$"
+      },
+      "additionalProperties": {"type": "string", "maxLength": 4096}
+    },
+    "query": {
+      "type": "object",
+      "maxProperties": 64,
+      "additionalProperties": {"type": "string", "maxLength": 4096}
+    },
+    "listRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entrypointIndex", "method", "headers", "query"],
+      "properties": {
+        "entrypointIndex": {"type": "integer", "minimum": 0, "maximum": 31},
+        "method": {"enum": ["GET", "POST"]},
+        "headers": {"$ref": "#/$defs/headers"},
+        "query": {"$ref": "#/$defs/query"},
+        "bodyTemplate": {"type": "string", "maxLength": 65536}
+      }
+    },
+    "detailRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["urlTemplate", "method", "headers"],
+      "properties": {
+        "urlTemplate": {"type": "string", "minLength": 1, "maxLength": 8192},
+        "method": {"enum": ["GET", "POST"]},
+        "headers": {"$ref": "#/$defs/headers"},
+        "bodyTemplate": {"type": "string", "maxLength": 65536}
+      }
+    },
+    "transform": {
+      "enum": [
+        "trim",
+        "collapse_whitespace",
+        "lowercase",
+        "uppercase",
+        "absolute_url",
+        "strip_html"
+      ]
+    },
+    "fieldRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["selector", "valueType", "required", "onError", "multipleMatchPolicy"],
+      "properties": {
+        "selector": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 4096,
+          "pattern": "^(css|jsonpath):"
+        },
+        "valueType": {
+          "enum": ["string", "integer", "number", "boolean", "datetime", "url", "html", "json"]
+        },
+        "required": {"type": "boolean"},
+        "onError": {"enum": ["fail_run", "reject_item", "null"]},
+        "multipleMatchPolicy": {"enum": ["error", "first"]},
+        "transforms": {
+          "type": "array",
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/transform"}
+        },
+        "datetimeFormat": {"enum": ["RFC3339", "ISO8601_DATE", "UNIX_SECONDS", "UNIX_MILLISECONDS"]},
+        "defaultTimezone": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^(UTC|[A-Za-z_]+(?:/[A-Za-z0-9_+.-]+)+)$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "type": "object",
+            "properties": {"required": {"const": true}},
+            "required": ["required"]
+          },
+          "then": {
+            "type": "object",
+            "properties": {
+              "onError": {"enum": ["fail_run", "reject_item"]}
+            }
+          }
+        },
+        {
+          "if": {
+            "type": "object",
+            "properties": {"valueType": {"const": "datetime"}},
+            "required": ["valueType"]
+          },
+          "then": {
+            "required": ["datetimeFormat", "defaultTimezone"],
+            "properties": {
+              "datetimeFormat": {"enum": ["RFC3339", "ISO8601_DATE", "UNIX_SECONDS", "UNIX_MILLISECONDS"]},
+              "defaultTimezone": {"type": "string"}
+            }
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {"required": ["datetimeFormat"], "properties": {"datetimeFormat": {"type": "string"}}},
+                {"required": ["defaultTimezone"], "properties": {"defaultTimezone": {"type": "string"}}}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "fields": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 128,
+      "propertyNames": {"$ref": "#/$defs/fieldName"},
+      "additionalProperties": {"$ref": "#/$defs/fieldRule"}
+    },
+    "paginationNone": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {"type": {"const": "none"}}
+    },
+    "paginationPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "parameter", "location", "start", "step", "maxPages", "stopWhenNoItems"],
+      "properties": {
+        "type": {"const": "page"},
+        "parameter": {"type": "string", "minLength": 1, "maxLength": 128},
+        "location": {"const": "query"},
+        "start": {"type": "integer", "minimum": 0},
+        "step": {"type": "integer", "minimum": 1, "maximum": 1000},
+        "maxPages": {"type": "integer", "minimum": 1, "maximum": 100000},
+        "stopWhenNoItems": {"type": "boolean"}
+      }
+    },
+    "paginationNextLink": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "selector", "maxPages", "allowCrossHost"],
+      "properties": {
+        "type": {"const": "next_link"},
+        "selector": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 4096,
+          "pattern": "^(css|jsonpath):"
+        },
+        "maxPages": {"type": "integer", "minimum": 1, "maximum": 100000},
+        "allowCrossHost": {"type": "boolean"}
+      }
+    },
+    "pagination": {
+      "oneOf": [
+        {"$ref": "#/$defs/paginationNone"},
+        {"$ref": "#/$defs/paginationPage"},
+        {"$ref": "#/$defs/paginationNextLink"}
+      ]
+    },
+    "listStage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["request", "responseType", "itemsSelector", "fields", "pagination"],
+      "properties": {
+        "request": {"$ref": "#/$defs/listRequest"},
+        "responseType": {"enum": ["html", "json"]},
+        "itemsSelector": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 4096,
+          "pattern": "^(css|jsonpath):"
+        },
+        "fields": {"$ref": "#/$defs/fields"},
+        "pagination": {"$ref": "#/$defs/pagination"}
+      }
+    },
+    "detailStage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["request", "responseType", "fields"],
+      "properties": {
+        "request": {"$ref": "#/$defs/detailRequest"},
+        "responseType": {"enum": ["html", "json"]},
+        "fields": {"$ref": "#/$defs/fields"}
+      }
+    },
+    "requestRetry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxAttempts", "initialDelayMs", "maxDelayMs"],
+      "properties": {
+        "maxAttempts": {"type": "integer", "minimum": 1, "maximum": 5},
+        "initialDelayMs": {"type": "integer", "minimum": 0, "maximum": 60000},
+        "maxDelayMs": {"type": "integer", "minimum": 0, "maximum": 300000}
+      }
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxPages", "maxItems", "maxDurationSeconds", "maxTotalBytes", "onExceeded"],
+      "properties": {
+        "maxPages": {"type": "integer", "minimum": 1, "maximum": 100000},
+        "maxItems": {"type": "integer", "minimum": 1, "maximum": 1000000},
+        "maxDurationSeconds": {"type": "integer", "minimum": 1, "maximum": 86400},
+        "maxTotalBytes": {"type": "integer", "minimum": 1024, "maximum": 1099511627776},
+        "onExceeded": {"enum": ["partial", "fail"]}
+      }
+    },
+    "collect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["list", "requestRetry", "budget"],
+      "properties": {
+        "list": {"$ref": "#/$defs/listStage"},
+        "detail": {"$ref": "#/$defs/detailStage"},
+        "requestRetry": {"$ref": "#/$defs/requestRetry"},
+        "budget": {"$ref": "#/$defs/budget"}
+      }
+    },
+    "deliveryPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxAttempts", "initialDelaySeconds", "maxDelaySeconds", "timeoutSeconds", "totalWindowSeconds"],
+      "properties": {
+        "maxAttempts": {"type": "integer", "minimum": 1, "maximum": 20},
+        "initialDelaySeconds": {"type": "integer", "minimum": 0, "maximum": 3600},
+        "maxDelaySeconds": {"type": "integer", "minimum": 1, "maximum": 21600},
+        "timeoutSeconds": {"type": "integer", "minimum": 1, "maximum": 300},
+        "totalWindowSeconds": {"type": "integer", "minimum": 1, "maximum": 604800}
+      }
+    },
+    "sinkBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sinkId", "sinkVersionId", "type", "eventMode", "deliveryPolicy"],
+      "properties": {
+        "sinkId": {"$ref": "#/$defs/id"},
+        "sinkVersionId": {"$ref": "#/$defs/id"},
+        "type": {"enum": ["kafka", "webhook"]},
+        "eventMode": {"enum": ["upsert", "upsert_tombstone"]},
+        "deliveryPolicy": {"$ref": "#/$defs/deliveryPolicy"}
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rawRetentionDays", "emitUnchanged", "sinks"],
+      "properties": {
+        "rawRetentionDays": {"type": "integer", "minimum": 0, "maximum": 90},
+        "emitUnchanged": {"const": false},
+        "sinks": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/sinkBinding"}
+        }
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["digestAlgorithm", "ruleDigest"],
+      "properties": {
+        "digestAlgorithm": {"const": "sha256"},
+        "ruleDigest": {"$ref": "#/$defs/digest"}
+      }
+    }
+  }
+}

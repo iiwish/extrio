@@ -1,0 +1,1611 @@
+openapi: 3.1.0
+info:
+  title: Extrio Control Plane API
+  version: 1.11.0
+  description: Versioned browser-facing control-plane contract for the Extrio v0.2 vertical slice.
+x-contract-id: extrio.control-plane.v1
+servers:
+  - url: /api/v1
+security:
+  - sessionCookie: []
+paths:
+  /settings/models:
+    get:
+      operationId: getModelConfiguration
+      responses:
+        '200':
+          description: Provider and model configurations without secret material.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelConfiguration'
+        default:
+          $ref: '#/components/responses/PlatformError'
+    put:
+      operationId: updateModelConfiguration
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModelConfigurationInput'
+      responses:
+        '200':
+          description: Provider and model configurations saved.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelConfiguration'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /settings/model:
+    get:
+      operationId: getModelSetting
+      responses:
+        '200':
+          description: Model provider configuration without secret material.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelSetting'
+        default:
+          $ref: '#/components/responses/PlatformError'
+    put:
+      operationId: updateModelSetting
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModelSettingInput'
+      responses:
+        '200':
+          description: Model provider configuration saved.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelSetting'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /collectors:
+    get:
+      operationId: listCollectors
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Collector page.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectorPage'
+        default:
+          $ref: '#/components/responses/PlatformError'
+    post:
+      operationId: createCollector
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCollectorInput'
+      responses:
+        '201':
+          description: Collector created.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+            Location:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectorDetail'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /collectors/batch:
+    post:
+      operationId: batchCreateCollectors
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCollectorsInput'
+      responses:
+        '200':
+          description: Per-source result. Item failures do not roll back valid sources.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchCollectorImportResult'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /collectors/{collectorId}:
+    get:
+      operationId: getCollector
+      parameters:
+        - $ref: '#/components/parameters/CollectorId'
+      responses:
+        '200':
+          description: Collector detail.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectorDetail'
+        default:
+          $ref: '#/components/responses/PlatformError'
+    patch:
+      operationId: updateCollectorDefinition
+      description: Updates the editable Collector definition. Changing intent or sourceUrl invalidates the current candidate and requires exploration and publication before another Run.
+      parameters:
+        - $ref: '#/components/parameters/CollectorId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCollectorInput'
+      responses:
+        '200':
+          description: Collector definition updated.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectorDetail'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /collectors/{collectorId}/explorations:
+    post:
+      operationId: startCollectorExploration
+      parameters:
+        - $ref: '#/components/parameters/CollectorId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202':
+          description: Exploration accepted for asynchronous execution.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+            Location:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Operation'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /collectors/{collectorId}/collection-policy:
+    post:
+      operationId: createCollectionPolicyVersion
+      description: Creates an immutable CollectionPolicy version, activates it and resets the mutable checkpoint.
+      parameters:
+        - $ref: '#/components/parameters/CollectorId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectionPolicyInput'
+      responses:
+        '200':
+          description: CollectionPolicy version activated.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectorDetail'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /collectors/{collectorId}/schedule:
+    put:
+      operationId: updateCollectorSchedule
+      description: Creates a new schedule revision and atomically activates it for the Collector.
+      parameters:
+        - $ref: '#/components/parameters/CollectorId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectorScheduleInput'
+      responses:
+        '200':
+          description: Collector schedule updated.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectorDetail'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /collectors/{collectorId}/candidate-rule:
+    patch:
+      operationId: updateCollectorCandidateRule
+      description: Creates a new mutable candidate from direct rule edits. Published RuleVersions remain immutable and execution is blocked until the candidate is reviewed and published.
+      parameters:
+        - $ref: '#/components/parameters/CollectorId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CandidateRuleEditInput'
+      responses:
+        '200':
+          description: Candidate rule updated and ready for review.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectorDetail'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /collectors/{collectorId}/publish:
+    post:
+      operationId: publishCollectorRule
+      parameters:
+        - $ref: '#/components/parameters/CollectorId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishRuleInput'
+      responses:
+        '200':
+          description: RuleVersion published atomically.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectorDetail'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /collectors/{collectorId}/runs:
+    post:
+      operationId: startCollectorRun
+      parameters:
+        - $ref: '#/components/parameters/CollectorId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202':
+          description: Run accepted for asynchronous execution.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+            Location:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Operation'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /operations/{operationId}:
+    get:
+      operationId: getOperation
+      parameters:
+        - $ref: '#/components/parameters/OperationId'
+      responses:
+        '200':
+          description: Durable command progress. Terminal operations never return to a non-terminal state.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+            Retry-After:
+              schema:
+                type: integer
+                minimum: 0
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Operation'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /runs:
+    get:
+      operationId: listRuns
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Run page.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunPage'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /runs/{runId}:
+    get:
+      operationId: getRun
+      parameters:
+        - $ref: '#/components/parameters/RunId'
+      responses:
+        '200':
+          description: Run snapshot.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Run'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /items:
+    get:
+      operationId: listItems
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Accepted items and rejected candidates.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemPage'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /items/{itemId}:
+    get:
+      operationId: getItem
+      parameters:
+        - $ref: '#/components/parameters/ItemId'
+      responses:
+        '200':
+          description: Accepted item or rejected candidate result.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HarvestResult'
+        default:
+          $ref: '#/components/responses/PlatformError'
+components:
+  headers:
+    RequestId:
+      description: Correlation identifier for logs, audit evidence and support.
+      schema:
+        type: string
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: extrio_session
+  parameters:
+    CollectorId:
+      name: collectorId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+    OperationId:
+      name: operationId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+    RunId:
+      name: runId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+    ItemId:
+      name: itemId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Stable UUID or equivalent token for one logical mutation. Retries reuse the same value.
+      schema:
+        type: string
+        minLength: 16
+        maxLength: 128
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      schema:
+        type: string
+        minLength: 1
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+  responses:
+    PlatformError:
+      description: Stable machine-readable API error.
+      headers:
+        X-Request-ID:
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PlatformError'
+  schemas:
+    CollectorStatus:
+      type: string
+      enum: [draft, exploring, ready_review, published]
+    RunStatus:
+      type: string
+      enum: [queued, running, finalizing, succeeded, partially_succeeded, failed, cancelled, timed_out]
+    OperationStatus:
+      type: string
+      enum: [queued, running, succeeded, failed, cancelled, timed_out]
+    OperationKind:
+      type: string
+      enum: [explore, run]
+    OperationPhase:
+      type: string
+      enum: [queued, fetching_list, discovering_details, fetching_details, validating, finalizing, completed]
+    CollectionMode:
+      type: string
+      enum: [single, list_detail]
+    FieldReviewDecision:
+      type: string
+      enum: [approved, risk_accepted, excluded, pending]
+    ItemDecision:
+      type: string
+      enum: [accepted, rejected]
+    ArtifactMode:
+      type: string
+      enum: [metadata_only, sampled, replayable]
+    ModelProvider:
+      type: string
+      enum: [openai, deepseek, qwen, custom]
+    ModelProviderConfigurationInput:
+      type: object
+      additionalProperties: false
+      required: [id, name, provider, baseUrl, enabled]
+      properties:
+        id:
+          type: string
+          pattern: '^[A-Za-z0-9_-]{3,128}$'
+        name:
+          type: string
+          minLength: 1
+        provider:
+          $ref: '#/components/schemas/ModelProvider'
+        baseUrl:
+          type: string
+          format: uri
+          pattern: '^https://'
+        apiKey:
+          type: string
+          minLength: 1
+          writeOnly: true
+          description: Optional replacement credential. Omit it when editing to preserve the stored credential. It is never returned.
+        enabled:
+          type: boolean
+    ModelProviderConfiguration:
+      type: object
+      additionalProperties: false
+      required: [id, name, provider, baseUrl, enabled, credentialConfigured, updatedAt]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        provider:
+          $ref: '#/components/schemas/ModelProvider'
+        baseUrl:
+          type: string
+        enabled:
+          type: boolean
+        credentialConfigured:
+          type: boolean
+        updatedAt:
+          type: [string, 'null']
+          format: date-time
+    ModelConfigurationItemInput:
+      type: object
+      additionalProperties: false
+      required: [id, providerId, modelId, enabled]
+      properties:
+        id:
+          type: string
+          pattern: '^[A-Za-z0-9_-]{3,128}$'
+        providerId:
+          type: string
+        modelId:
+          type: string
+          minLength: 1
+        enabled:
+          type: boolean
+    ModelConfigurationItem:
+      type: object
+      additionalProperties: false
+      required: [id, providerId, modelId, enabled, isDefault, updatedAt]
+      properties:
+        id:
+          type: string
+        providerId:
+          type: string
+        modelId:
+          type: string
+        enabled:
+          type: boolean
+        isDefault:
+          type: boolean
+        updatedAt:
+          type: [string, 'null']
+          format: date-time
+    ModelConfigurationInput:
+      type: object
+      additionalProperties: false
+      required: [providers, models, defaultModelId]
+      properties:
+        providers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModelProviderConfigurationInput'
+        models:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModelConfigurationItemInput'
+        defaultModelId:
+          type: [string, 'null']
+    ModelConfiguration:
+      type: object
+      additionalProperties: false
+      required: [providers, models, defaultModelId, updatedAt]
+      properties:
+        providers:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModelProviderConfiguration'
+        models:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModelConfigurationItem'
+        defaultModelId:
+          type: [string, 'null']
+        updatedAt:
+          type: [string, 'null']
+          format: date-time
+    ModelSettingInput:
+      type: object
+      additionalProperties: false
+      required: [provider, baseUrl, model, secretRef]
+      properties:
+        provider:
+          $ref: '#/components/schemas/ModelProvider'
+        baseUrl:
+          type: string
+          format: uri
+          pattern: '^https://'
+        model:
+          type: string
+          minLength: 1
+        secretRef:
+          type: string
+          pattern: '^env:[A-Z][A-Z0-9_]{2,127}$'
+          description: Server-side environment secret reference. Plaintext credentials are never accepted or returned.
+    ModelSetting:
+      type: object
+      additionalProperties: false
+      required: [provider, baseUrl, model, secretRef, secretConfigured, updatedAt]
+      properties:
+        provider:
+          $ref: '#/components/schemas/ModelProvider'
+        baseUrl:
+          type: string
+          format: uri
+        model:
+          type: string
+        secretRef:
+          type: string
+        secretConfigured:
+          type: boolean
+        updatedAt:
+          type: [string, 'null']
+          format: date-time
+    PageMeta:
+      type: object
+      additionalProperties: false
+      required: [nextCursor]
+      properties:
+        nextCursor:
+          type: [string, 'null']
+    PlatformError:
+      type: object
+      additionalProperties: false
+      required: [code, message, requestId, retryable]
+      properties:
+        code:
+          $ref: '#/components/schemas/ErrorCode'
+        message:
+          type: string
+        requestId:
+          type: string
+        retryable:
+          type: boolean
+        pointer:
+          type: [string, 'null']
+        details:
+          type: object
+          additionalProperties: true
+    ErrorCode:
+      type: string
+      description: Stable v1 error taxonomy. New codes may be added without changing existing meanings.
+      enum:
+        - AUTH_REQUIRED
+        - FORBIDDEN
+        - VALIDATION_FAILED
+        - INVALID_URL
+        - HTTPS_REQUIRED
+        - DUPLICATE_IN_BATCH
+        - SOURCE_ALREADY_EXISTS
+        - SOURCE_UNREACHABLE
+        - COLLECTION_NOT_FOUND
+        - COLLECTOR_NOT_FOUND
+        - OPERATION_NOT_FOUND
+        - RUN_NOT_FOUND
+        - ITEM_NOT_FOUND
+        - IDEMPOTENCY_KEY_REQUIRED
+        - IDEMPOTENCY_KEY_REUSED
+        - OPERATION_ALREADY_ACTIVE
+        - RUN_ALREADY_ACTIVE
+        - RULE_NOT_PUBLISHED
+        - CANDIDATE_RULE_NOT_FOUND
+        - CANDIDATE_VALIDATION_FAILED
+        - RULE_ATTESTATION_INVALID
+        - REVIEW_DECISION_INVALID
+        - OPERATION_CANCELLED
+        - OPERATION_TIMED_OUT
+        - INTERNAL_ERROR
+        - UNEXPECTED_RESPONSE
+    OperationMetrics:
+      type: object
+      additionalProperties: false
+      required: [listPagesFetched, detailUrlsDiscovered, detailPagesFetched, recordsOutsideWindow, duplicateDetailUrls, newItems, updatedItems, unchangedItems, warningCount]
+      properties:
+        listPagesFetched:
+          type: integer
+          minimum: 0
+        detailUrlsDiscovered:
+          type: integer
+          minimum: 0
+        detailPagesFetched:
+          type: integer
+          minimum: 0
+        recordsOutsideWindow:
+          type: integer
+          minimum: 0
+        duplicateDetailUrls:
+          type: integer
+          minimum: 0
+        newItems:
+          type: integer
+          minimum: 0
+        updatedItems:
+          type: integer
+          minimum: 0
+        unchangedItems:
+          type: integer
+          minimum: 0
+        warningCount:
+          type: integer
+          minimum: 0
+    Operation:
+      type: object
+      additionalProperties: false
+      required: [id, kind, status, phase, progress, resourceType, resourceId, statusUrl, pollAfterMs, metrics, error]
+      properties:
+        id:
+          type: string
+        kind:
+          $ref: '#/components/schemas/OperationKind'
+        status:
+          $ref: '#/components/schemas/OperationStatus'
+        phase:
+          $ref: '#/components/schemas/OperationPhase'
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+        resourceType:
+          type: string
+          enum: [collector, run]
+        resourceId:
+          type: string
+        statusUrl:
+          type: string
+        pollAfterMs:
+          type: integer
+          minimum: 100
+          maximum: 10000
+        metrics:
+          $ref: '#/components/schemas/OperationMetrics'
+        error:
+          anyOf:
+            - $ref: '#/components/schemas/PlatformError'
+            - type: 'null'
+      allOf:
+        - if:
+            properties:
+              status:
+                enum: [queued, running]
+          then:
+            properties:
+              error:
+                type: 'null'
+        - if:
+            properties:
+              status:
+                enum: [succeeded, failed, cancelled, timed_out]
+          then:
+            properties:
+              phase:
+                const: completed
+              progress:
+                const: 100
+        - if:
+            properties:
+              status:
+                const: succeeded
+          then:
+            properties:
+              error:
+                type: 'null'
+        - if:
+            properties:
+              status:
+                enum: [failed, cancelled, timed_out]
+          then:
+            properties:
+              error:
+                $ref: '#/components/schemas/PlatformError'
+    CandidateField:
+      type: object
+      additionalProperties: false
+      required: [key, label, selector, required, confidence, sample, evidence, warning]
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        selector:
+          type: string
+        required:
+          type: boolean
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+        sample:
+          type: string
+        evidence:
+          type: string
+        warning:
+          type: [string, 'null']
+    PaginationNone:
+      type: object
+      additionalProperties: false
+      required: [type]
+      properties:
+        type:
+          type: string
+          const: none
+    PaginationPage:
+      type: object
+      additionalProperties: false
+      required: [type, parameter, start, step, maxPages, stopWhenNoItems]
+      properties:
+        type:
+          type: string
+          const: page
+        parameter:
+          type: string
+        start:
+          type: integer
+        step:
+          type: integer
+        maxPages:
+          type: integer
+        stopWhenNoItems:
+          type: boolean
+    PaginationNextLink:
+      type: object
+      additionalProperties: false
+      required: [type, selector, maxPages, allowCrossHost]
+      properties:
+        type:
+          type: string
+          const: next_link
+        selector:
+          type: string
+        maxPages:
+          type: integer
+        allowCrossHost:
+          type: boolean
+          const: false
+    CandidateRule:
+      type: object
+      additionalProperties: false
+      required: [id, digest, mode, listSelector, detailLinkSelector, pagination, discovery, fields, passedChecks, warningChecks, gatherSpec]
+      properties:
+        id:
+          type: string
+        digest:
+          type: string
+        mode:
+          $ref: '#/components/schemas/CollectionMode'
+        listSelector:
+          type: string
+        detailLinkSelector:
+          type: [string, 'null']
+        pagination:
+          oneOf:
+            - $ref: '#/components/schemas/PaginationNone'
+            - $ref: '#/components/schemas/PaginationPage'
+            - $ref: '#/components/schemas/PaginationNextLink'
+        discovery:
+          type: object
+          additionalProperties: false
+          required: [listPagesSampled, detailUrlsDiscovered, detailPagesValidated, detailUrlSamples]
+          properties:
+            listPagesSampled:
+              type: integer
+              minimum: 0
+            detailUrlsDiscovered:
+              type: integer
+              minimum: 0
+            detailPagesValidated:
+              type: integer
+              minimum: 0
+            detailUrlSamples:
+              type: array
+              items:
+                type: string
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CandidateField'
+        passedChecks:
+          type: integer
+        warningChecks:
+          type: integer
+        gatherSpec:
+          $ref: './gather-spec.schema.json'
+      allOf:
+        - if:
+            properties:
+              mode:
+                const: single
+          then:
+            properties:
+              detailLinkSelector:
+                type: 'null'
+              pagination:
+                $ref: '#/components/schemas/PaginationNone'
+              discovery:
+                properties:
+                  detailUrlsDiscovered:
+                    const: 0
+                  detailPagesValidated:
+                    const: 0
+                  detailUrlSamples:
+                    maxItems: 0
+        - if:
+            properties:
+              mode:
+                const: list_detail
+          then:
+            properties:
+              detailLinkSelector:
+                type: string
+                minLength: 1
+    Collector:
+      type: object
+      additionalProperties: false
+      required: [id, name, intent, sourceUrl, sourceHost, status, collectionId, collectionName, collectionVersion, activeRuleVersion, activeCollectionPolicyId, activeOperationId, latestRunId, updatedAt]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        intent:
+          type: string
+        sourceUrl:
+          type: string
+          format: uri
+          description: HTTP(S) Source URL. Anonymous public HTTP requires server-side risk approval; credentials require HTTPS.
+        sourceHost:
+          type: string
+        status:
+          $ref: '#/components/schemas/CollectorStatus'
+        collectionId:
+          type: string
+          description: Stable Collection identity used to group Collectors that share one business requirement.
+        collectionName:
+          type: string
+          minLength: 1
+          description: User-visible name of the shared collection requirement.
+        collectionVersion:
+          type: string
+        activeRuleVersion:
+          type: [string, 'null']
+        activeCollectionPolicyId:
+          type: [string, 'null']
+        activeOperationId:
+          type: [string, 'null']
+        latestRunId:
+          type: [string, 'null']
+        updatedAt:
+          type: string
+    CollectorDetail:
+      allOf:
+        - $ref: '#/components/schemas/Collector'
+        - type: object
+          additionalProperties: false
+          required: [candidate, previewItems, reviewDecisions, collectionPolicy, checkpoint, schedule]
+          properties:
+            candidate:
+              anyOf:
+                - $ref: '#/components/schemas/CandidateRule'
+                - type: 'null'
+            previewItems:
+              type: array
+              items:
+                $ref: '#/components/schemas/HarvestResult'
+            reviewDecisions:
+              anyOf:
+                - type: object
+                  additionalProperties:
+                    $ref: '#/components/schemas/FieldReviewDecision'
+                - type: 'null'
+            collectionPolicy:
+              anyOf:
+                - $ref: '#/components/schemas/CollectionPolicy'
+                - type: 'null'
+            checkpoint:
+              anyOf:
+                - $ref: '#/components/schemas/CollectorCheckpoint'
+                - type: 'null'
+            schedule:
+              $ref: '#/components/schemas/CollectorSchedule'
+    CollectorPage:
+      type: object
+      additionalProperties: false
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CollectorDetail'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+    CreateCollectorInput:
+      type: object
+      additionalProperties: false
+      required: [name, sourceUrl, intent]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        sourceUrl:
+          type: string
+          format: uri
+          description: HTTP(S) Source URL. Anonymous public HTTP requires server-side risk approval; credentials require HTTPS.
+        intent:
+          type: string
+          minLength: 1
+    UpdateCollectorInput:
+      type: object
+      additionalProperties: false
+      required: [name, sourceUrl, intent]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        sourceUrl:
+          type: string
+          format: uri
+          description: HTTP(S) Source URL. Changing it invalidates the current candidate.
+        intent:
+          type: string
+          minLength: 1
+    CandidateRuleEditInput:
+      type: object
+      additionalProperties: false
+      required: [listSelector, detailLinkSelector, pagination, fields]
+      properties:
+        listSelector:
+          type: string
+          pattern: '^(css|jsonpath):'
+          minLength: 5
+          maxLength: 4096
+        detailLinkSelector:
+          type: [string, 'null']
+          pattern: '^(css|jsonpath):'
+          minLength: 5
+          maxLength: 4096
+        pagination:
+          oneOf:
+            - $ref: '#/components/schemas/PaginationNone'
+            - $ref: '#/components/schemas/PaginationPage'
+            - $ref: '#/components/schemas/PaginationNextLink'
+        listFields:
+          type: array
+          minItems: 1
+          maxItems: 128
+          description: Complete list-stage field selector set for list_detail candidates. Optional for backward-compatible clients; when present, detailUrl must match detailLinkSelector.
+          items:
+            $ref: '#/components/schemas/CandidateRuleFieldEditInput'
+        fields:
+          type: array
+          minItems: 1
+          maxItems: 128
+          items:
+            $ref: '#/components/schemas/CandidateRuleFieldEditInput'
+    CandidateRuleFieldEditInput:
+      type: object
+      additionalProperties: false
+      required: [key, selector]
+      properties:
+        key:
+          type: string
+          minLength: 1
+        selector:
+          type: string
+          pattern: '^(css|jsonpath):'
+          minLength: 5
+          maxLength: 4096
+    CreateCollectorsInput:
+      type: object
+      additionalProperties: false
+      required: [collectionName, intent, sourceUrls]
+      properties:
+        collectionId:
+          type: string
+          minLength: 1
+          description: Existing Collection identity to reuse. When present, the server uses its canonical name, intent, and version.
+        collectionName:
+          type: string
+          minLength: 1
+        intent:
+          type: string
+          minLength: 1
+        sourceUrls:
+          type: array
+          minItems: 1
+          maxItems: 1000
+          items:
+            type: string
+            format: uri
+            description: HTTP(S) Source URL. Anonymous public HTTP requires server-side risk approval; credentials require HTTPS.
+    BatchCollectorImportItem:
+      type: object
+      additionalProperties: false
+      required: [sourceUrl, status, collector, error]
+      properties:
+        sourceUrl:
+          type: string
+        status:
+          type: string
+          enum: [created, rejected]
+        collector:
+          anyOf:
+            - $ref: '#/components/schemas/CollectorDetail'
+            - type: 'null'
+        error:
+          anyOf:
+            - $ref: '#/components/schemas/PlatformError'
+            - type: 'null'
+    BatchCollectorImportResult:
+      type: object
+      additionalProperties: false
+      required: [collectionId, collectionName, collectionVersion, total, createdCount, rejectedCount, results]
+      properties:
+        collectionId:
+          type: string
+        collectionName:
+          type: string
+        collectionVersion:
+          type: string
+        total:
+          type: integer
+        createdCount:
+          type: integer
+        rejectedCount:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/BatchCollectorImportItem'
+    PublishRuleInput:
+      type: object
+      additionalProperties: false
+      required: [reviewDecisions]
+      properties:
+        reviewDecisions:
+          type: object
+          minProperties: 1
+          additionalProperties:
+            $ref: '#/components/schemas/FieldReviewDecision'
+    CollectorScheduleInput:
+      type: object
+      additionalProperties: false
+      required: [enabled, cronExpression, timezone, overlapPolicy]
+      properties:
+        enabled:
+          type: boolean
+        cronExpression:
+          type: string
+          minLength: 9
+          maxLength: 120
+          description: Five-field cron expression evaluated in the configured timezone.
+        timezone:
+          type: string
+          const: Asia/Shanghai
+        overlapPolicy:
+          type: string
+          const: forbid
+    CollectorSchedule:
+      type: object
+      additionalProperties: false
+      required: [id, collectorId, revision, enabled, cronExpression, timezone, overlapPolicy, lastTriggeredAt, nextRunAt, updatedAt]
+      properties:
+        id:
+          type: string
+        collectorId:
+          type: string
+        revision:
+          type: integer
+          minimum: 1
+        enabled:
+          type: boolean
+        cronExpression:
+          type: string
+        timezone:
+          type: string
+          const: Asia/Shanghai
+        overlapPolicy:
+          type: string
+          const: forbid
+        lastTriggeredAt:
+          type: [string, 'null']
+          format: date-time
+        nextRunAt:
+          type: [string, 'null']
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    CollectionPolicyInput:
+      type: object
+      additionalProperties: false
+      required: [mode, initialWindowDays, lookbackDays, consecutiveOlderPages, maxPages, maxItems, timezone]
+      properties:
+        mode:
+          type: string
+          const: rolling_incremental
+        initialWindowDays:
+          type: integer
+          minimum: 1
+          maximum: 3650
+        lookbackDays:
+          type: integer
+          minimum: 0
+          maximum: 90
+        consecutiveOlderPages:
+          type: integer
+          minimum: 1
+          maximum: 10
+        maxPages:
+          type: integer
+          minimum: 1
+          maximum: 1000
+        maxItems:
+          type: integer
+          minimum: 1
+          maximum: 100000
+        timezone:
+          type: string
+          const: Asia/Shanghai
+    CollectionPolicy:
+      type: object
+      additionalProperties: false
+      required: [id, collectorId, version, mode, initialWindowDays, lookbackDays, consecutiveOlderPages, maxPages, maxItems, timezone, createdAt, digest]
+      properties:
+        id:
+          type: string
+        collectorId:
+          type: string
+        version:
+          type: integer
+          minimum: 1
+        mode:
+          type: string
+          const: rolling_incremental
+        initialWindowDays:
+          type: integer
+          minimum: 1
+          maximum: 3650
+        lookbackDays:
+          type: integer
+          minimum: 0
+          maximum: 90
+        consecutiveOlderPages:
+          type: integer
+          minimum: 1
+          maximum: 10
+        maxPages:
+          type: integer
+          minimum: 1
+          maximum: 1000
+        maxItems:
+          type: integer
+          minimum: 1
+          maximum: 100000
+        timezone:
+          type: string
+          const: Asia/Shanghai
+        createdAt:
+          type: string
+          format: date-time
+        digest:
+          type: string
+          pattern: '^sha256:[0-9a-f]{64}$'
+    CollectorCheckpoint:
+      type: object
+      additionalProperties: false
+      required: [collectorId, policyVersionId, lastSuccessfulRunId, watermark, advancedAt]
+      properties:
+        collectorId:
+          type: string
+        policyVersionId:
+          type: string
+        lastSuccessfulRunId:
+          type: string
+        watermark:
+          type: string
+          format: date
+        advancedAt:
+          type: string
+          format: date-time
+    ItemLineage:
+      type: object
+      additionalProperties: false
+      required: [sourceRevision, collectionVersion, ruleVersion, runId, observationId, artifactId]
+      properties:
+        sourceRevision:
+          type: string
+        collectionVersion:
+          type: string
+        ruleVersion:
+          type: string
+        runId:
+          type: string
+        observationId:
+          type: [string, 'null']
+        artifactId:
+          type: string
+    HarvestResult:
+      type: object
+      additionalProperties: false
+      required: [id, collectorId, collectorName, sourceHost, listTitle, title, buyer, region, publishedAt, budget, content, sourceUrl, decision, changeType, rejectionReason, entityKey, revision, observedAt, changeSummary, observationHistory, lineage]
+      properties:
+        id:
+          type: string
+        collectorId:
+          type: string
+        collectorName:
+          type: string
+        sourceHost:
+          type: string
+        listTitle:
+          type: string
+          description: Title extracted from the list-stage record that produced the detail URL.
+        title:
+          type: string
+          description: Canonical title extracted from the detail document.
+        buyer:
+          type: string
+        region:
+          type: string
+        publishedAt:
+          type: string
+        budget:
+          type: string
+        content:
+          type: string
+          description: Normalized main content extracted from the detail document.
+        extractedData:
+          type: object
+          description: Complete normalized field map produced by the published GatherSpec. Compatibility display fields remain projections of this map.
+          additionalProperties: true
+        sourceUrl:
+          type: string
+          format: uri
+        decision:
+          $ref: '#/components/schemas/ItemDecision'
+        changeType:
+          type: [string, 'null']
+          enum: [new, updated, unchanged, null]
+        rejectionReason:
+          type: [string, 'null']
+        entityKey:
+          type: string
+        revision:
+          type: [integer, 'null']
+          minimum: 1
+        observedAt:
+          type: string
+          description: Collection time recorded by the Run for this observation.
+        changeSummary:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [field, before, after]
+            properties:
+              field:
+                type: string
+              before:
+                type: string
+              after:
+                type: string
+        observationHistory:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, runId, observedAt, outcome]
+            properties:
+              id:
+                type: string
+              runId:
+                type: string
+              observedAt:
+                type: string
+              outcome:
+                $ref: '#/components/schemas/ItemDecision'
+        lineage:
+          $ref: '#/components/schemas/ItemLineage'
+      allOf:
+        - if:
+            properties:
+              decision:
+                const: accepted
+          then:
+            properties:
+              revision:
+                type: integer
+                minimum: 1
+              rejectionReason:
+                type: 'null'
+              observationHistory:
+                minItems: 1
+              lineage:
+                properties:
+                  observationId:
+                    type: string
+                    minLength: 1
+        - if:
+            properties:
+              decision:
+                const: rejected
+          then:
+            properties:
+              revision:
+                type: 'null'
+              rejectionReason:
+                type: string
+                minLength: 1
+              observationHistory:
+                maxItems: 0
+              lineage:
+                properties:
+                  observationId:
+                    type: 'null'
+    Run:
+      type: object
+      additionalProperties: false
+      required: [id, operationId, collectorId, collectorName, collectionMode, status, startedAt, startedAtIso, duration, acceptedCount, rejectedCount, pagesFetched, listPagesFetched, detailUrlsDiscovered, detailPagesFetched, recordsOutsideWindow, duplicateDetailUrls, newItems, updatedItems, unchangedItems, paginationStopReason, ruleVersion, ruleDigest, ruleAttestationId, signingKeyId, trustRevision, integrityStatus, policyContextStatus, policyVersion, policyDigest, executionMode, windowStart, checkpointBefore, checkpointAfter, artifactMode, summary, recoveryAction, items]
+      properties:
+        id:
+          type: string
+        operationId:
+          type: [string, 'null']
+        collectorId:
+          type: string
+        collectorName:
+          type: string
+        collectionMode:
+          $ref: '#/components/schemas/CollectionMode'
+        status:
+          $ref: '#/components/schemas/RunStatus'
+        startedAt:
+          type: string
+        startedAtIso:
+          type: string
+          format: date-time
+        duration:
+          type: string
+        acceptedCount:
+          type: integer
+        rejectedCount:
+          type: integer
+        pagesFetched:
+          type: integer
+        listPagesFetched:
+          type: integer
+        detailUrlsDiscovered:
+          type: integer
+        detailPagesFetched:
+          type: integer
+        recordsOutsideWindow:
+          type: integer
+          minimum: 0
+        duplicateDetailUrls:
+          type: integer
+          minimum: 0
+        newItems:
+          type: integer
+          minimum: 0
+        updatedItems:
+          type: integer
+          minimum: 0
+        unchangedItems:
+          type: integer
+          minimum: 0
+        paginationStopReason:
+          type: string
+          enum: [not_applicable, empty_page, next_link_exhausted, max_pages, max_items, budget_exhausted, cross_host_blocked, time_window_reached, checkpoint_reached, detail_fetch_incomplete]
+        ruleVersion:
+          type: string
+        ruleDigest:
+          type: string
+          pattern: '^sha256:[0-9a-f]{64}$'
+        ruleAttestationId:
+          type: string
+        signingKeyId:
+          type: string
+        trustRevision:
+          type: integer
+          minimum: 1
+        integrityStatus:
+          type: string
+          enum: [verified, invalid, unavailable]
+        policyContextStatus:
+          type: string
+          enum: [fixed, legacy_unavailable]
+        policyVersion:
+          type: [string, 'null']
+        policyDigest:
+          type: [string, 'null']
+          pattern: '^sha256:[0-9a-f]{64}$'
+        executionMode:
+          type: [string, 'null']
+          enum: [initial, incremental, null]
+        windowStart:
+          type: [string, 'null']
+          format: date
+        checkpointBefore:
+          anyOf:
+            - $ref: '#/components/schemas/CollectorCheckpoint'
+            - type: 'null'
+        checkpointAfter:
+          anyOf:
+            - $ref: '#/components/schemas/CollectorCheckpoint'
+            - type: 'null'
+        artifactMode:
+          $ref: '#/components/schemas/ArtifactMode'
+        summary:
+          type: string
+        recoveryAction:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/HarvestResult'
+      allOf:
+        - if:
+            properties:
+              status:
+                enum: [queued, running, finalizing]
+          then:
+            properties:
+              operationId:
+                type: string
+                minLength: 1
+    RunPage:
+      type: object
+      additionalProperties: false
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Run'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+    ItemPage:
+      type: object
+      additionalProperties: false
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/HarvestResult'
+        page:
+          $ref: '#/components/schemas/PageMeta'

@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.extrio.dev/rule-plan.v1.schema.json",
+  "title": "Extrio LLM RulePlan v1",
+  "description": "Constrained compiler output produced from untrusted website evidence and converted by Extrio into an immutable GatherSpec.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "mode", "transport", "list", "bindings", "identityFields", "fingerprintFields", "rationale"],
+  "properties": {
+    "schemaVersion": {"const": "extrio.rule-plan.v1"},
+    "mode": {"enum": ["single", "list_detail"]},
+    "transport": {"enum": ["http", "browser"]},
+    "list": {"$ref": "#/$defs/listStage"},
+    "detail": {"$ref": "#/$defs/detailStage"},
+    "bindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "detailUrl": {"$ref": "#/$defs/fieldBinding"},
+        "listTitle": {"$ref": "#/$defs/fieldBinding"},
+        "listPublishedAt": {"$ref": "#/$defs/fieldBinding"},
+        "title": {"$ref": "#/$defs/fieldBinding"},
+        "publishedAt": {"$ref": "#/$defs/fieldBinding"},
+        "content": {"$ref": "#/$defs/fieldBinding"}
+      }
+    },
+    "identityFields": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/fieldName"}
+    },
+    "fingerprintFields": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/fieldName"}
+    },
+    "rationale": {"type": "string", "minLength": 1, "maxLength": 1000}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"mode": {"const": "list_detail"}}, "required": ["mode"]},
+      "then": {"required": ["detail"]},
+      "else": {
+        "not": {"required": ["detail"]},
+        "properties": {"list": {"properties": {"pagination": {"properties": {"type": {"const": "none"}}}}}}
+      }
+    }
+  ],
+  "$defs": {
+    "fieldName": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$"},
+    "fieldBinding": {"type": "string", "pattern": "^(list|detail)\\.[A-Za-z][A-Za-z0-9_]{0,63}$"},
+    "selector": {"type": "string", "minLength": 5, "maxLength": 4096, "pattern": "^(css|jsonpath):"},
+    "transform": {"enum": ["trim", "collapse_whitespace", "lowercase", "uppercase", "absolute_url", "strip_html"]},
+    "fieldRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "selector", "valueType", "required", "onError", "multipleMatchPolicy", "transforms"],
+      "properties": {
+        "label": {"type": "string", "minLength": 1, "maxLength": 100},
+        "selector": {"$ref": "#/$defs/selector"},
+        "valueType": {"enum": ["string", "integer", "number", "boolean", "datetime", "url", "html", "json"]},
+        "required": {"type": "boolean"},
+        "onError": {"enum": ["fail_run", "reject_item", "null"]},
+        "multipleMatchPolicy": {"enum": ["error", "first"]},
+        "transforms": {"type": "array", "maxItems": 8, "uniqueItems": true, "items": {"$ref": "#/$defs/transform"}},
+        "datetimeFormat": {"enum": ["RFC3339", "ISO8601_DATE", "UNIX_SECONDS", "UNIX_MILLISECONDS"]},
+        "defaultTimezone": {"type": "string", "minLength": 1, "maxLength": 64}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"valueType": {"const": "datetime"}}, "required": ["valueType"]},
+          "then": {"required": ["datetimeFormat", "defaultTimezone"]},
+          "else": {"not": {"anyOf": [{"required": ["datetimeFormat"]}, {"required": ["defaultTimezone"]}]}}
+        },
+        {
+          "if": {"properties": {"required": {"const": true}}, "required": ["required"]},
+          "then": {"properties": {"onError": {"enum": ["fail_run", "reject_item"]}}}
+        }
+      ]
+    },
+    "fields": {
+      "type": "object",
+      "minProperties": 1,
+      "maxProperties": 128,
+      "propertyNames": {"$ref": "#/$defs/fieldName"},
+      "additionalProperties": {"$ref": "#/$defs/fieldRule"}
+    },
+    "pagination": {
+      "oneOf": [
+        {"type": "object", "additionalProperties": false, "required": ["type"], "properties": {"type": {"const": "none"}}},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "selector", "maxPages", "allowCrossHost"],
+          "properties": {
+            "type": {"const": "next_link"},
+            "selector": {"$ref": "#/$defs/selector"},
+            "maxPages": {"type": "integer", "minimum": 1, "maximum": 100000},
+            "allowCrossHost": {"const": false}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "parameter", "location", "start", "step", "maxPages", "stopWhenNoItems"],
+          "properties": {
+            "type": {"const": "page"},
+            "parameter": {"type": "string", "minLength": 1, "maxLength": 128},
+            "location": {"const": "query"},
+            "start": {"type": "integer", "minimum": 0},
+            "step": {"type": "integer", "minimum": 1, "maximum": 1000},
+            "maxPages": {"type": "integer", "minimum": 1, "maximum": 100000},
+            "stopWhenNoItems": {"type": "boolean"}
+          }
+        }
+      ]
+    },
+    "listStage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["responseType", "itemsSelector", "fields", "pagination"],
+      "properties": {
+        "responseType": {"enum": ["html", "json"]},
+        "itemsSelector": {"$ref": "#/$defs/selector"},
+        "fields": {"$ref": "#/$defs/fields"},
+        "pagination": {"$ref": "#/$defs/pagination"}
+      }
+    },
+    "detailStage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["responseType", "fields"],
+      "properties": {
+        "responseType": {"enum": ["html", "json"]},
+        "fields": {"$ref": "#/$defs/fields"}
+      }
+    }
+  }
+}

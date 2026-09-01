@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.extrio.dev/rule-attestation.v1.schema.json",
+  "title": "Extrio RuleAttestation v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "attestationId",
+    "tenantId",
+    "ruleVersionId",
+    "ruleDigest",
+    "approval",
+    "purpose",
+    "keyId",
+    "algorithm",
+    "signedAt",
+    "signature"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "extrio.rule-attestation.v1"},
+    "attestationId": {"$ref": "#/$defs/id"},
+    "tenantId": {"$ref": "#/$defs/id"},
+    "ruleVersionId": {"$ref": "#/$defs/id"},
+    "ruleDigest": {"$ref": "#/$defs/digest"},
+    "approval": {"$ref": "#/$defs/approval"},
+    "purpose": {"const": "extrio-rule-publish-v1"},
+    "keyId": {"$ref": "#/$defs/id"},
+    "algorithm": {"const": "Ed25519"},
+    "signedAt": {"$ref": "#/$defs/timestamp"},
+    "expiresAt": {"$ref": "#/$defs/timestamp"},
+    "signature": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{86}$"
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 128,
+      "pattern": "^[a-z][a-z0-9_-]*$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decisionId",
+        "decision",
+        "submitterSubjectId",
+        "reviewerSubjectIds",
+        "approvedAt",
+        "reviewPolicyDigest",
+        "evidenceDigest"
+      ],
+      "properties": {
+        "decisionId": {"$ref": "#/$defs/id"},
+        "decision": {"const": "approved"},
+        "submitterSubjectId": {"$ref": "#/$defs/id"},
+        "reviewerSubjectIds": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/id"}
+        },
+        "approvedAt": {"$ref": "#/$defs/timestamp"},
+        "reviewPolicyDigest": {"$ref": "#/$defs/digest"},
+        "evidenceDigest": {"$ref": "#/$defs/digest"}
+      }
+    }
+  }
+}

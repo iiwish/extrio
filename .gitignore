@@ -1,0 +1,41 @@
+# Operating systems and editors
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.sw?
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+
+# Runtime state and logs
+backend/data/
+backend/storage/
+*.db
+*.db-*
+*.log
+*.pid
+
+# Build output
+build/
+site/

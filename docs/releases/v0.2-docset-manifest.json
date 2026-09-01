@@ -1,0 +1,205 @@
+{
+  "schemaVersion": "extrio.docset-manifest.v1",
+  "docsetVersion": "v0.37.0",
+  "productVersion": "v0.2",
+  "status": "Ready_For_User_Review",
+  "generatedAt": "2026-09-01T10:44:17.633Z",
+  "repositoryState": {
+    "kind": "git_repository",
+    "defaultBranch": "main"
+  },
+  "authoritativeFiles": [
+    {
+      "path": "docs/SSOT.md",
+      "version": "v0.37.0",
+      "sha256": "db075e1406e8934693eb1ece3bf76cb4907f0777772fff2f0c77a8650d381e76"
+    },
+    {
+      "path": "docs/product-contract.md",
+      "version": "v0.37.0",
+      "sha256": "fcbe8478f80bcfcb6f6e565d7391d973b59ab0316990d51875a720b7ea522d9c"
+    },
+    {
+      "path": "docs/domain-model.md",
+      "version": "v0.7.0",
+      "sha256": "a04002b2014552c7eb2f2d2afe20a20b910bfa896000b495cf4d2b52d27896cd"
+    },
+    {
+      "path": "docs/contracts/gather-spec.md",
+      "version": "v1.5.0",
+      "sha256": "0a509c3875e985aa3d069a219a39279f17804c4d725ab40669062ddc0cdcd3a5"
+    },
+    {
+      "path": "docs/contracts/gather-spec.schema.json",
+      "version": "extrio.gather.v1",
+      "sha256": "c4a497cb6eade004a2c1aff55ba956bb1ea90fbb3108fabe48afe269b2b481be"
+    },
+    {
+      "path": "docs/contracts/extraction-semantics.md",
+      "version": "v1.1.1",
+      "sha256": "e19c2bea109e11cd2865dcfb02c94f0e56221fe9c835d9ed1343b2cf04891ad7"
+    },
+    {
+      "path": "docs/contracts/rule-attestation.md",
+      "version": "v1.1.0",
+      "sha256": "e0d0ffc49a46d6a6855f12d14dff6691b010bcdd85d441069e20897b040170a7"
+    },
+    {
+      "path": "docs/contracts/rule-attestation.schema.json",
+      "version": "extrio.rule-attestation.v1",
+      "sha256": "b362ebc057d80acb03b183395f09760755d0c211c81e36cf10d7d1dc0525e6f1"
+    },
+    {
+      "path": "docs/contracts/artifact-manifest.md",
+      "version": "v1.1.0",
+      "sha256": "f4fc76af01b3e6d9b476f83b312bb070b90735ebdd3fdb49260a01925f5e3c72"
+    },
+    {
+      "path": "docs/contracts/artifact-manifest.schema.json",
+      "version": "extrio.artifact-manifest.v1",
+      "sha256": "8c0b37f806b797eb21246662436d647280ede08be23714f7686f32802ac5645d"
+    },
+    {
+      "path": "docs/contracts/artifact-manifest-chunk.schema.json",
+      "version": "extrio.artifact-manifest-chunk.v1",
+      "sha256": "9ac40f3486b005c6eb1f70e5bdec1555da80a6c1b53b918428c34024004c184a"
+    },
+    {
+      "path": "docs/contracts/platform-protocol.md",
+      "version": "v1.2.0",
+      "sha256": "99e82bc854226c503bdaea79c687b65d27de7f51cce0389b41cd8364b6964751"
+    },
+    {
+      "path": "docs/contracts/job-envelope.schema.json",
+      "version": "extrio.job-envelope.v1",
+      "sha256": "5534f3c935222550c6aab33340769d6408d20b67792cea480844c4ee07fc3a07"
+    },
+    {
+      "path": "docs/contracts/result-batch.schema.json",
+      "version": "extrio.result-batch.v1",
+      "sha256": "593c5c156fb66d35e6d39f2b1d879b8efaa8c10f1e3a7d5480b0e4b55c31558c"
+    },
+    {
+      "path": "docs/contracts/platform-error.schema.json",
+      "version": "extrio.platform-error.v1",
+      "sha256": "8660d7c7155ff50168dd9c1800b3565c976395d15a1bac14e8cd0451e79895aa"
+    },
+    {
+      "path": "docs/contracts/item-event-envelope.schema.json",
+      "version": "extrio.item-event.v1",
+      "sha256": "c1a47fc498895389fc5fcb1e3c38a5ebd2c6963a11b7b22f85b10fe7cd5845b1"
+    },
+    {
+      "path": "docs/contracts/openapi.yaml",
+      "version": "extrio.control-plane.v1",
+      "sha256": "07d4352f824dc30bdc741af73eb602fb13d30044253dc840c05d1cf253423c13"
+    },
+    {
+      "path": "docs/contracts/api-contract.md",
+      "version": "v1.11.0",
+      "sha256": "ff75c27eb3f4beaaf49bf8f1e314e412644146b6de530b7d7302a9ea3a58a257"
+    },
+    {
+      "path": "docs/runtime-contract.md",
+      "version": "v0.6.0",
+      "sha256": "55b0f94a9902e689f086afcaec65595fe6ffe9ace394f89595ec5acd7aa53fd3"
+    },
+    {
+      "path": "docs/security-compliance.md",
+      "version": "v0.6.0",
+      "sha256": "a98e0807e7a99e5a6a0e435226113c4f7db1ddb6089992970c94dbef04a93a81"
+    },
+    {
+      "path": "docs/architecture/ADR-001-platform-boundaries.md",
+      "version": "v2.0.0",
+      "sha256": "c0f1dc7d4ad3f8b0395200e4de6076d75ece318ec9edf9e19b45bfbaceb12908"
+    },
+    {
+      "path": "docs/architecture/ADR-002-orchestration-storage.md",
+      "version": "v1.2.0",
+      "sha256": "21b6d822ad02c5a42ab3c0562ca25845bb609c09465a55fa3ac8b5dfc9134f8b"
+    },
+    {
+      "path": "docs/architecture/ADR-003-rule-integrity.md",
+      "version": "v1.3.0",
+      "sha256": "96a28c0ed6501f46566732bf069e093a52cc67561e03b6107fe53d72f50beecd"
+    },
+    {
+      "path": "docs/architecture/ADR-004-identity-access.md",
+      "version": "v1.1.0",
+      "sha256": "033b162ea052b790c05b085910f4c4361e2b74862be4027733d4338924c097d7"
+    },
+    {
+      "path": "docs/frontend-prototype.md",
+      "version": "v1.31.0",
+      "sha256": "cc758fad013bc65e7059be72fa5fe5cc30f588968eb56148ab2fc00065fcb31c"
+    },
+    {
+      "path": "docs/backend-vertical-slice.md",
+      "version": "v1.11.0",
+      "sha256": "3b084c303b63d7b9f561b54482f310c533917f56a0b86b6e3e3cc511a1639812"
+    },
+    {
+      "path": "docs/releases/v0.2-acceptance.md",
+      "version": "v0.37.0",
+      "sha256": "7bc78d416d927d627c3d9090da37409db95dbaec473060c70f02e5dd94d1b070"
+    }
+  ],
+  "verificationFixtures": [
+    {
+      "path": "docs/contracts/gather-spec.example.json",
+      "version": "extrio.gather.v1",
+      "sha256": "2527a255f851140f33b415dd46985233eaa5ab5da911e625ebbc580169405f30"
+    },
+    {
+      "path": "docs/contracts/rule-attestation.example.json",
+      "version": "extrio.rule-attestation.v1",
+      "sha256": "2fa382643c528b6f7e3e4f77815780fa2d03f0887955fa51f67646942a93319a"
+    },
+    {
+      "path": "docs/contracts/rule-attestation.example.public-key.pem",
+      "version": "signingkey_demo_2026_01",
+      "sha256": "2b0a4fecc75f4cdfd6bf6c58ab7ec319095fccb0ccd66325b3639f764c466cb5"
+    },
+    {
+      "path": "docs/contracts/artifact-manifest.example.json",
+      "version": "extrio.artifact-manifest.v1",
+      "sha256": "a312d91e56227a4dd721b81adc798f4f1a39d337f6223067bb40e81d98243bc1"
+    },
+    {
+      "path": "docs/contracts/artifact-manifest-chunk.example.json",
+      "version": "extrio.artifact-manifest-chunk.v1",
+      "sha256": "4272fada119c931de72a020d79e4f6408ed3cef5936c1ce2dcb665db038cc44f"
+    },
+    {
+      "path": "docs/contracts/canonicalization-fixtures.json",
+      "version": "extrio.canonicalization-fixtures.v1",
+      "sha256": "9a469b0871d0c2ae9613dee220d8ffc736e08490c7e668de2b87189276f7f168"
+    },
+    {
+      "path": "docs/contracts/job-envelope.example.json",
+      "version": "extrio.job-envelope.v1",
+      "sha256": "bdd0b97a2202dcdbae9008e16a8f032442803268524b8a7e1147e424918866b3"
+    },
+    {
+      "path": "docs/contracts/job-envelope.example.public-key.pem",
+      "version": "job_signing_key_2026_01",
+      "sha256": "68814c95d388423eed19885aed501bf3df633d496323913f80ca6dc7d493eab4"
+    },
+    {
+      "path": "docs/contracts/result-batch.example.json",
+      "version": "extrio.result-batch.v1",
+      "sha256": "eea159d222fbefbf1231545b886158e713d3cdf2d287b79c812865f7e2f25a87"
+    },
+    {
+      "path": "docs/contracts/platform-error.example.json",
+      "version": "extrio.platform-error.v1",
+      "sha256": "f62dc0a391b51ef56d11452c45245fab53cea4b432d9b04d3d318fe7d5c0efe6"
+    },
+    {
+      "path": "docs/contracts/item-event-envelope.example.json",
+      "version": "extrio.item-event.v1",
+      "sha256": "d0016c317592346c661966331c6dc526cebcf4ad860542f65f4e93b6ff104e6e"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "extrio.job-envelope.v1",
+  "messageType": "run",
+  "messageVersion": "1.0.0",
+  "jobId": "job_run_beijing_001",
+  "tenantId": "tenant_demo",
+  "payloadRef": "run_payload_beijing_001",
+  "payloadDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+  "audience": "extrio_python_runtime",
+  "fenceToken": 7,
+  "issuedAt": "2026-08-30T09:00:00Z",
+  "expiresAt": "2026-08-30T09:05:00Z",
+  "nonce": "A1b2C3d4E5f6G7h8I9j0K1",
+  "traceparent": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
+  "attestation": {
+    "purpose": "extrio-job-envelope-v1",
+    "algorithm": "Ed25519",
+    "keyId": "job_signing_key_2026_01",
+    "signerServiceId": "extrio_control_plane",
+    "signedAt": "2026-08-30T09:00:00Z",
+    "envelopeDigest": "sha256:a1f5fd6d0ff9427451056bc0a775df5834add860eab35d2360566835ab57ef2c",
+    "signature": "1bkMnuqlq1wGZchTXu6qMYOO4-VxrUrMngGiLdYrxtj0OdPoCf3g2iBXnOFeMUwN3NUeB4nX6gMuu1huABTzAw"
+  }
+}

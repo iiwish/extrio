@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "extrio.item-event.v1",
+  "messageDigest": "sha256:e1b7800f0ab8ea4bcea724d166658577a00116dc6ddafb78c48e429af72861c1",
+  "eventId": "sha256:d1140f7e2e50b9979f11fbd91918d41cac123b6e9b753ab42f938c0dcf5a6aca",
+  "eventSequence": 1,
+  "previousEventId": null,
+  "eventType": "upsert",
+  "observedAt": "2026-08-30T09:00:02Z",
+  "entityKey": "sha256:88a410a4c30b4cbcdd874c9dabca76d19d31902c4a89df73353010a59b36fa03",
+  "revisionKey": "sha256:c031b63201e66fb511600a6cffeff9fc0a6e2f59d9054e51faf1475d4a91bb96",
+  "outputContractDigest": "sha256:46fcabfb72682c3224ec670149920614a5cb4d901c207b4424acfeb135eb08a9",
+  "payloadDigest": "sha256:d9516df2ed36887c67dfadda2c34dce0cf389c841c719c750454a102e66de844",
+  "payload": {
+    "externalId": "BJ-2026-001",
+    "detailUrl": "https://www.example.gov.cn/tender/BJ-2026-001",
+    "title": "Example Tender",
+    "contentHtml": "<p>Example content</p>",
+    "publishAt": "2026-08-30T01:00:00Z",
+    "updatedAt": null
+  },
+  "lineage": {
+    "tenantId": "tenant_demo",
+    "collectionId": "collection_nationwide_tender",
+    "collectionVersionId": "collection_version_001",
+    "sourceId": "source_beijing_tender",
+    "sourceRevisionId": "source_revision_001",
+    "accessProfileVersionId": "access_version_beijing_tender_001",
+    "collectorId": "collector_beijing_tender",
+    "ruleVersionId": "rv_tender_beijing_001",
+    "ruleDigest": "sha256:044f4112c529cd11f8f7cf6055d8ac31f294bbf789be0540ab6d6e995dba9011",
+    "ruleAttestationId": "attestation_tender_beijing_001",
+    "runId": "run_beijing_001",
+    "runFinalizationId": "run_finalization_beijing_001",
+    "observationId": "observation_beijing_001",
+    "harvestItemId": "harvest_item_beijing_001",
+    "harvestItemRevisionId": "harvest_item_revision_beijing_001",
+    "artifactManifestId": "manifest_run_beijing_001"
+  },
+  "delivery": {
+    "deliveryId": "sha256:5f463218edc67aeb404a65c718b1fdc4aeac223d2d699640c6b5867678c4ec1a",
+    "sinkId": "sink_tender_webhook",
+    "sinkVersionId": "sink_version_webhook_001"
+  }
+}

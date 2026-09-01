@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.extrio.dev/item-event-envelope.v1.schema.json",
+  "title": "Extrio ItemEvent Envelope v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "messageDigest", "eventId", "eventSequence", "previousEventId", "eventType", "observedAt", "entityKey", "revisionKey", "outputContractDigest", "payloadDigest", "payload", "lineage", "delivery"],
+  "properties": {
+    "schemaVersion": {"const": "extrio.item-event.v1"},
+    "messageDigest": {"$ref": "#/$defs/digest"},
+    "eventId": {"$ref": "#/$defs/digest"},
+    "eventSequence": {"type": "integer", "minimum": 1},
+    "previousEventId": {"oneOf": [{"$ref": "#/$defs/digest"}, {"type": "null"}]},
+    "eventType": {"enum": ["upsert", "tombstone"]},
+    "observedAt": {"$ref": "#/$defs/timestamp"},
+    "entityKey": {"$ref": "#/$defs/digest"},
+    "revisionKey": {"$ref": "#/$defs/digest"},
+    "outputContractDigest": {"$ref": "#/$defs/digest"},
+    "payloadDigest": {"$ref": "#/$defs/digest"},
+    "payload": {"type": "object", "minProperties": 1},
+    "lineage": {"$ref": "#/$defs/lineage"},
+    "delivery": {"$ref": "#/$defs/delivery"}
+  },
+  "allOf": [
+    {"if": {"properties": {"eventSequence": {"const": 1}}, "required": ["eventSequence"]}, "then": {"properties": {"previousEventId": {"type": "null"}}}},
+    {"if": {"properties": {"eventSequence": {"type": "integer", "minimum": 2}}, "required": ["eventSequence"]}, "then": {"properties": {"previousEventId": {"$ref": "#/$defs/digest"}}}}
+  ],
+  "$defs": {
+    "id": {"type": "string", "minLength": 3, "maxLength": 128, "pattern": "^[a-z][a-z0-9_-]*$"},
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "timestamp": {"type": "string", "format": "date-time"},
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tenantId", "collectionId", "collectionVersionId", "sourceId", "sourceRevisionId", "accessProfileVersionId", "collectorId", "ruleVersionId", "ruleDigest", "ruleAttestationId", "runId", "runFinalizationId", "observationId", "harvestItemId", "harvestItemRevisionId", "artifactManifestId"],
+      "properties": {
+        "tenantId": {"$ref": "#/$defs/id"}, "collectionId": {"$ref": "#/$defs/id"}, "collectionVersionId": {"$ref": "#/$defs/id"},
+        "sourceId": {"$ref": "#/$defs/id"}, "sourceRevisionId": {"$ref": "#/$defs/id"}, "accessProfileVersionId": {"oneOf": [{"$ref": "#/$defs/id"}, {"type": "null"}]}, "collectorId": {"$ref": "#/$defs/id"},
+        "ruleVersionId": {"$ref": "#/$defs/id"}, "ruleDigest": {"$ref": "#/$defs/digest"}, "ruleAttestationId": {"$ref": "#/$defs/id"}, "runId": {"$ref": "#/$defs/id"},
+        "runFinalizationId": {"$ref": "#/$defs/id"}, "observationId": {"$ref": "#/$defs/id"}, "harvestItemId": {"$ref": "#/$defs/id"},
+        "harvestItemRevisionId": {"$ref": "#/$defs/id"}, "artifactManifestId": {"$ref": "#/$defs/id"}
+      }
+    },
+    "delivery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["deliveryId", "sinkId", "sinkVersionId"],
+      "properties": {"deliveryId": {"$ref": "#/$defs/digest"}, "sinkId": {"$ref": "#/$defs/id"}, "sinkVersionId": {"$ref": "#/$defs/id"}}
+    }
+  }
+}

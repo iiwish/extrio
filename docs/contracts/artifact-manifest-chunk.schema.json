@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.extrio.dev/artifact-manifest-chunk.v1.schema.json",
+  "title": "Extrio ArtifactManifest Chunk v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "chunkId", "manifestId", "tenantId", "sequenceStart", "sequenceEnd", "responses", "chunkDigest"],
+  "properties": {
+    "schemaVersion": {"const": "extrio.artifact-manifest-chunk.v1"},
+    "chunkId": {"$ref": "#/$defs/id"},
+    "manifestId": {"$ref": "#/$defs/id"},
+    "tenantId": {"$ref": "#/$defs/id"},
+    "sequenceStart": {"type": "integer", "minimum": 0},
+    "sequenceEnd": {"type": "integer", "minimum": 0},
+    "responses": {"type": "array", "minItems": 1, "maxItems": 1000, "items": {"$ref": "#/$defs/responseEvidence"}},
+    "chunkDigest": {"$ref": "#/$defs/digest"}
+  },
+  "$defs": {
+    "id": {"type": "string", "minLength": 3, "maxLength": 128, "pattern": "^[a-z][a-z0-9_-]*$"},
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "timestamp": {"type": "string", "format": "date-time"},
+    "url": {"type": "string", "format": "uri", "pattern": "^https?://", "maxLength": 8192},
+    "redirectHop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "url"],
+      "properties": {"status": {"type": "integer", "minimum": 300, "maximum": 399}, "url": {"$ref": "#/$defs/url"}}
+    },
+    "headerEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "representation"],
+      "properties": {
+        "name": {"type": "string", "pattern": "^[a-z0-9!#$%&'*+.^_|~-]+$", "maxLength": 128},
+        "representation": {"enum": ["value", "digest", "redacted"]},
+        "value": {"type": "string", "maxLength": 4096},
+        "valueDigest": {"$ref": "#/$defs/digest"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"representation": {"const": "value"}}, "required": ["representation"]},
+          "then": {"required": ["value"], "properties": {"value": {"type": "string"}, "valueDigest": false}}
+        },
+        {
+          "if": {"properties": {"representation": {"const": "digest"}}, "required": ["representation"]},
+          "then": {"required": ["valueDigest"], "properties": {"valueDigest": {"$ref": "#/$defs/digest"}, "value": false}}
+        },
+        {
+          "if": {"properties": {"representation": {"const": "redacted"}}, "required": ["representation"]},
+          "then": {
+            "not": {
+              "anyOf": [
+                {"required": ["value"], "properties": {"value": {"type": "string"}}},
+                {"required": ["valueDigest"], "properties": {"valueDigest": {"$ref": "#/$defs/digest"}}}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "objectRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifactId", "objectVersion", "digest", "bytes"],
+      "properties": {
+        "artifactId": {"$ref": "#/$defs/id"},
+        "objectVersion": {"type": "string", "minLength": 1, "maxLength": 256},
+        "digest": {"$ref": "#/$defs/digest"},
+        "bytes": {"type": "integer", "minimum": 0, "maximum": 1099511627776}
+      }
+    },
+    "responseEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requestId", "stage", "sequence", "requestPlanDigest", "method", "requestUrl", "redirectChain", "finalUrl", "status", "headers", "mediaType", "contentEncoding", "rawBody", "decodedBody", "truncated", "startedAt", "completedAt"],
+      "properties": {
+        "requestId": {"$ref": "#/$defs/id"},
+        "stage": {"enum": ["list", "detail", "browser_document", "sample"]},
+        "sequence": {"type": "integer", "minimum": 0},
+        "requestPlanDigest": {"$ref": "#/$defs/digest"},
+        "method": {"enum": ["GET", "POST"]},
+        "requestUrl": {"$ref": "#/$defs/url"},
+        "redirectChain": {"type": "array", "maxItems": 10, "items": {"$ref": "#/$defs/redirectHop"}},
+        "finalUrl": {"$ref": "#/$defs/url"},
+        "status": {"type": "integer", "minimum": 100, "maximum": 599},
+        "headers": {"type": "array", "maxItems": 128, "items": {"$ref": "#/$defs/headerEvidence"}},
+        "mediaType": {"type": "string", "minLength": 1, "maxLength": 256},
+        "contentEncoding": {"type": "string", "minLength": 1, "maxLength": 64},
+        "rawBody": {"$ref": "#/$defs/objectRef"},
+        "decodedBody": {"$ref": "#/$defs/objectRef"},
+        "domSnapshot": {"$ref": "#/$defs/objectRef"},
+        "truncated": {"const": false},
+        "startedAt": {"$ref": "#/$defs/timestamp"},
+        "completedAt": {"$ref": "#/$defs/timestamp"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"stage": {"const": "browser_document"}}, "required": ["stage"]},
+          "then": {"required": ["domSnapshot"], "properties": {"domSnapshot": {"$ref": "#/$defs/objectRef"}}}
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,277 @@
+{
+  "schemaVersion": "extrio.gather.v1",
+  "ruleVersionId": "rv_tender_beijing_001",
+  "tenantId": "tenant_demo",
+  "collectorId": "collector_beijing_tender",
+  "collectionVersionRef": {
+    "collectionId": "collection_nationwide_tender",
+    "collectionVersionId": "collection_version_001",
+    "version": "1.0"
+  },
+  "sourceRevisionRef": {
+    "sourceId": "source_beijing_tender",
+    "sourceRevisionId": "source_revision_001",
+    "configDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+  },
+  "templateRef": {
+    "templateId": "template_tender_notice",
+    "templateVersionId": "template_version_001",
+    "version": "1.0"
+  },
+  "compiler": {
+    "name": "extrio-compiler",
+    "version": "0.2.0",
+    "compiledAt": "2026-08-30T08:00:00Z",
+    "inputDigest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "overrideRefs": [
+      {
+        "overrideId": "override_remove_ads_001",
+        "digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+      }
+    ],
+    "agent": {
+      "provider": "example-provider",
+      "model": "example-compiler-model",
+      "promptVersion": "1.0",
+      "toolchainVersion": "1.0"
+    }
+  },
+  "runtimeCompatibility": {
+    "runtimeName": "extrio-python",
+    "minVersion": "0.2.0",
+    "maxVersionExclusive": "0.3.0",
+    "dialectVersion": "1.0",
+    "parserVersion": "1.0",
+    "tzdbVersion": "2026a",
+    "unicodeVersion": "17.0"
+  },
+  "contract": {
+    "identityFields": [
+      "externalId"
+    ],
+    "fingerprintFields": [
+      "title",
+      "contentHtml",
+      "publishAt",
+      "updatedAt"
+    ],
+    "outputContractDigest": "sha256:46fcabfb72682c3224ec670149920614a5cb4d901c207b4424acfeb135eb08a9",
+    "normalizedItemSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "externalId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "detailUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contentHtml": {
+          "type": "string"
+        },
+        "publishAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "externalId",
+        "detailUrl",
+        "title",
+        "contentHtml",
+        "publishAt"
+      ],
+      "additionalProperties": false
+    },
+    "quality": {
+      "requiredFieldCompleteness": 0.95,
+      "maxItemErrorRatio": 0.05,
+      "emptyResultPolicy": "suspect"
+    }
+  },
+  "sourceContext": {
+    "entrypoints": [
+      "https://www.example.gov.cn/tender/list"
+    ],
+    "allowedHosts": [
+      "www.example.gov.cn"
+    ],
+    "transport": "http",
+    "accessProfileRef": {
+      "accessProfileId": "access_beijing_tender",
+      "accessProfileVersionId": "access_version_beijing_tender_001"
+    },
+    "rateLimit": {
+      "rps": 2,
+      "burst": 4,
+      "maxConcurrency": 2
+    },
+    "requestPolicy": {
+      "userAgent": "Extrio/Collector 0.2",
+      "timeoutMs": 30000,
+      "maxResponseBytes": 20971520,
+      "maxRedirects": 3
+    }
+  },
+  "collect": {
+    "list": {
+      "request": {
+        "entrypointIndex": 0,
+        "method": "GET",
+        "headers": {
+          "Accept": "text/html,application/xhtml+xml"
+        },
+        "query": {}
+      },
+      "responseType": "html",
+      "itemsSelector": "css:article.tender-item",
+      "fields": {
+        "externalId": {
+          "selector": "css:[data-id]::attr(data-id)",
+          "valueType": "string",
+          "required": true,
+          "onError": "reject_item",
+          "multipleMatchPolicy": "error",
+          "transforms": [
+            "trim"
+          ]
+        },
+        "detailUrl": {
+          "selector": "css:a.detail::attr(href)",
+          "valueType": "url",
+          "required": true,
+          "onError": "reject_item",
+          "multipleMatchPolicy": "error",
+          "transforms": [
+            "trim",
+            "absolute_url"
+          ]
+        },
+        "updatedAt": {
+          "selector": "css:time.updated::attr(datetime)",
+          "valueType": "datetime",
+          "required": false,
+          "onError": "null",
+          "multipleMatchPolicy": "first",
+          "transforms": [
+            "trim"
+          ],
+          "datetimeFormat": "RFC3339",
+          "defaultTimezone": "Asia/Shanghai"
+        }
+      },
+      "pagination": {
+        "type": "page",
+        "parameter": "page",
+        "location": "query",
+        "start": 1,
+        "step": 1,
+        "maxPages": 100,
+        "stopWhenNoItems": true
+      }
+    },
+    "detail": {
+      "request": {
+        "urlTemplate": "{{detailUrl}}",
+        "method": "GET",
+        "headers": {
+          "Accept": "text/html,application/xhtml+xml"
+        }
+      },
+      "responseType": "html",
+      "fields": {
+        "title": {
+          "selector": "css:h1.title::text",
+          "valueType": "string",
+          "required": true,
+          "onError": "reject_item",
+          "multipleMatchPolicy": "error",
+          "transforms": [
+            "trim",
+            "collapse_whitespace"
+          ]
+        },
+        "contentHtml": {
+          "selector": "css:div.content::html",
+          "valueType": "html",
+          "required": true,
+          "onError": "reject_item",
+          "multipleMatchPolicy": "error"
+        },
+        "publishAt": {
+          "selector": "css:time.published::attr(datetime)",
+          "valueType": "datetime",
+          "required": true,
+          "onError": "reject_item",
+          "multipleMatchPolicy": "error",
+          "transforms": [
+            "trim"
+          ],
+          "datetimeFormat": "RFC3339",
+          "defaultTimezone": "Asia/Shanghai"
+        }
+      }
+    },
+    "requestRetry": {
+      "maxAttempts": 3,
+      "initialDelayMs": 500,
+      "maxDelayMs": 5000
+    },
+    "budget": {
+      "maxPages": 100,
+      "maxItems": 10000,
+      "maxDurationSeconds": 3600,
+      "maxTotalBytes": 1073741824,
+      "onExceeded": "partial"
+    }
+  },
+  "output": {
+    "rawRetentionDays": 30,
+    "emitUnchanged": false,
+    "sinks": [
+      {
+        "sinkId": "sink_tender_kafka",
+        "sinkVersionId": "sink_version_kafka_001",
+        "type": "kafka",
+        "eventMode": "upsert",
+        "deliveryPolicy": {
+          "maxAttempts": 8,
+          "initialDelaySeconds": 5,
+          "maxDelaySeconds": 21600,
+          "timeoutSeconds": 30,
+          "totalWindowSeconds": 172800
+        }
+      },
+      {
+        "sinkId": "sink_tender_webhook",
+        "sinkVersionId": "sink_version_webhook_001",
+        "type": "webhook",
+        "eventMode": "upsert",
+        "deliveryPolicy": {
+          "maxAttempts": 8,
+          "initialDelaySeconds": 5,
+          "maxDelaySeconds": 21600,
+          "timeoutSeconds": 30,
+          "totalWindowSeconds": 172800
+        }
+      }
+    ]
+  },
+  "integrity": {
+    "digestAlgorithm": "sha256",
+    "ruleDigest": "sha256:044f4112c529cd11f8f7cf6055d8ac31f294bbf789be0540ab6d6e995dba9011"
+  }
+}

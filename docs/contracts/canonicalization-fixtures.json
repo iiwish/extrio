@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "extrio.canonicalization-fixtures.v1",
+  "parserVersion": "1.0",
+  "unicodeVersion": "17.0",
+  "cases": [
+    {
+      "caseId": "html_attribute_order_and_nfc",
+      "inputKind": "html_fragment",
+      "inputVariants": [
+        "<article data-z=\"2\" class=\"notice\" data-a=\"1\">Cafe\u0301 &amp; Co</article>",
+        "<article data-a=\"1\" data-z=\"2\" class=\"notice\">Caf\u00e9 &amp; Co</article>"
+      ],
+      "expectedCanonicalHtml": "<article class=\"notice\" data-a=\"1\" data-z=\"2\">Caf\u00e9 &amp; Co</article>",
+      "expectedUtf8Sha256": "sha256:e6f2d5621f7f4295214691db5e4afe79c2543ffc8f1ca1705333fdafa32786f6"
+    },
+    {
+      "caseId": "browser_snapshot_attribute_order",
+      "inputKind": "browser_dom_snapshot",
+      "browserContext": {
+        "engine": "chromium",
+        "engineVersion": "140.0.7339.82",
+        "viewport": {"width": 1440, "height": 900, "deviceScaleFactor": 1},
+        "locale": "zh-CN",
+        "timezoneId": "Asia/Shanghai"
+      },
+      "inputVariants": [
+        "<main data-b=\"2\" data-a=\"1\"><p>Hello</p></main>"
+      ],
+      "expectedCanonicalHtml": "<main data-a=\"1\" data-b=\"2\"><p>Hello</p></main>",
+      "expectedUtf8Sha256": "sha256:95235d2defb5c8e008fc0c813c8a139157523918827ddf99be58e2603265ff7f"
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+name: extrio
+
+x-backend: &backend
+  build:
+    context: .
+    dockerfile: docker/backend.Dockerfile
+  environment:
+    EXTRIO_HOST: 0.0.0.0
+    EXTRIO_DATABASE_PATH: /var/lib/extrio/extrio.db
+    EXTRIO_ARTIFACT_PATH: /var/lib/extrio/artifacts
+    EXTRIO_SIGNING_PRIVATE_KEY_PATH: /var/lib/extrio/keys/dev-rule-signing-key.pem
+    EXTRIO_CREDENTIAL_ENCRYPTION_KEY_PATH: /var/lib/extrio/keys/dev-credential-encryption.key
+    EXTRIO_CORS_ORIGINS: http://127.0.0.1:8080,http://localhost:8080
+    EXTRIO_SEED_DEMO: "false"
+  volumes:
+    - extrio-data:/var/lib/extrio
+  restart: unless-stopped
+
+services:
+  api:
+    <<: *backend
+    command: extrio-api
+    ports:
+      - "127.0.0.1:8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+
+  worker:
+    <<: *backend
+    command: extrio-worker
+    depends_on:
+      api:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:8080"
+    restart: unless-stopped
+
+volumes:
+  extrio-data:

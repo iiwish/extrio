@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "extrio.result-batch.v1",
+  "messageVersion": "1.0.0",
+  "tenantId": "tenant_demo",
+  "jobId": "job_run_beijing_001",
+  "runId": "run_beijing_001",
+  "attemptId": "attempt_beijing_001",
+  "batchId": "batch_beijing_000001",
+  "batchSequence": 0,
+  "previousBatchDigest": null,
+  "fenceToken": 7,
+  "candidateArtifact": {
+    "artifactId": "artifact_candidates_beijing_001",
+    "objectVersion": "v0001",
+    "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "bytes": 4096,
+    "itemCount": 1
+  },
+  "statistics": {"candidateCount": 1, "validCount": 1, "rejectedCount": 0},
+  "isFinal": true,
+  "submittedAt": "2026-08-30T09:00:02Z",
+  "batchDigest": "sha256:51ae7e78ea0412ca26e22f35e56b5b00b8d45c9ef24252be9e6c210461f04308"
+}

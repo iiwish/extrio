@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "extrio.rule-attestation.v1",
+  "attestationId": "attestation_tender_beijing_001",
+  "tenantId": "tenant_demo",
+  "ruleVersionId": "rv_tender_beijing_001",
+  "ruleDigest": "sha256:044f4112c529cd11f8f7cf6055d8ac31f294bbf789be0540ab6d6e995dba9011",
+  "approval": {
+    "decisionId": "approval_tender_beijing_001",
+    "decision": "approved",
+    "submitterSubjectId": "user_collection_editor_001",
+    "reviewerSubjectIds": [
+      "user_rule_reviewer_001"
+    ],
+    "approvedAt": "2026-08-30T08:25:00Z",
+    "reviewPolicyDigest": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+    "evidenceDigest": "sha256:8888888888888888888888888888888888888888888888888888888888888888"
+  },
+  "purpose": "extrio-rule-publish-v1",
+  "keyId": "signingkey_demo_2026_01",
+  "algorithm": "Ed25519",
+  "signedAt": "2026-08-30T08:30:00Z",
+  "signature": "OUpjCoBrdqLNy7TbIPEwIqIXkMcKjTW0En8FseLTJBZ3ja4dy_L6U09J3EbCrFJaep4mMMHQV1lrko9VpB3FCw"
+}

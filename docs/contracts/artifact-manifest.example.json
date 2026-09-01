@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "extrio.artifact-manifest.v1",
+  "manifestId": "manifest_run_beijing_001",
+  "tenantId": "tenant_demo",
+  "classification": "internal",
+  "evidenceMode": "replayable",
+  "executionRef": {
+    "kind": "run",
+    "executionId": "run_beijing_001",
+    "attemptId": "attempt_beijing_001",
+    "ruleVersionId": "rv_tender_beijing_001",
+    "collectionVersionId": "collection_version_001",
+    "sourceRevisionId": "source_revision_001"
+  },
+  "runtime": {
+    "runtimeName": "extrio-python",
+    "runtimeVersion": "0.2.0",
+    "parserVersion": "1.0",
+    "dialectVersion": "1.0",
+    "tzdbVersion": "2026a",
+    "unicodeVersion": "17.0"
+  },
+  "completeness": {
+    "complete": true,
+    "capturedResponseCount": 1,
+    "totalResponseCount": 1
+  },
+  "capturePolicyId": "capture_replayable_30d",
+  "responseChunks": [
+    {
+      "chunkId": "manifest_chunk_beijing_000001",
+      "sequenceStart": 0,
+      "sequenceEnd": 0,
+      "responseCount": 1,
+      "objectVersion": "v0001",
+      "digest": "sha256:54310cb220e34a96563c2513684e8d27f33c7218aa3bd3f5d19788f458e4f0e2",
+      "bytes": 1884
+    }
+  ],
+  "retention": {
+    "retainUntil": "2026-09-29T09:00:02Z",
+    "policyId": "retention_raw_30d",
+    "legalHold": false
+  },
+  "createdAt": "2026-08-30T09:00:02Z",
+  "manifestDigest": "sha256:b1e201b718e83ca41adaee1a28cfde202591164662ab25cc54cb2ca8634e5607"
+}

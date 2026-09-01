@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.extrio.dev/result-batch.v1.schema.json",
+  "title": "Extrio ResultBatch v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "messageVersion", "tenantId", "jobId", "runId", "attemptId", "batchId", "batchSequence", "previousBatchDigest", "fenceToken", "candidateArtifact", "statistics", "isFinal", "submittedAt", "batchDigest"],
+  "properties": {
+    "schemaVersion": {"const": "extrio.result-batch.v1"},
+    "messageVersion": {"$ref": "#/$defs/semver"},
+    "tenantId": {"$ref": "#/$defs/id"},
+    "jobId": {"$ref": "#/$defs/id"},
+    "runId": {"$ref": "#/$defs/id"},
+    "attemptId": {"$ref": "#/$defs/id"},
+    "batchId": {"$ref": "#/$defs/id"},
+    "batchSequence": {"type": "integer", "minimum": 0},
+    "previousBatchDigest": {"oneOf": [{"$ref": "#/$defs/digest"}, {"type": "null"}]},
+    "fenceToken": {"type": "integer", "minimum": 1},
+    "candidateArtifact": {"$ref": "#/$defs/candidateArtifact"},
+    "errorArtifact": {"$ref": "#/$defs/errorArtifact"},
+    "statistics": {"$ref": "#/$defs/statistics"},
+    "isFinal": {"type": "boolean"},
+    "submittedAt": {"$ref": "#/$defs/timestamp"},
+    "batchDigest": {"$ref": "#/$defs/digest"}
+  },
+  "allOf": [
+    {"if": {"properties": {"batchSequence": {"const": 0}}, "required": ["batchSequence"]}, "then": {"properties": {"previousBatchDigest": {"type": "null"}}}},
+    {"if": {"properties": {"batchSequence": {"type": "integer", "minimum": 1}}, "required": ["batchSequence"]}, "then": {"properties": {"previousBatchDigest": {"$ref": "#/$defs/digest"}}}}
+  ],
+  "$defs": {
+    "id": {"type": "string", "minLength": 3, "maxLength": 128, "pattern": "^[a-z][a-z0-9_-]*$"},
+    "semver": {"type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$"},
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "timestamp": {"type": "string", "format": "date-time"},
+    "objectRef": {
+      "type": "object", "additionalProperties": false,
+      "required": ["artifactId", "objectVersion", "digest", "bytes"],
+      "properties": {"artifactId": {"$ref": "#/$defs/id"}, "objectVersion": {"type": "string", "minLength": 1, "maxLength": 256}, "digest": {"$ref": "#/$defs/digest"}, "bytes": {"type": "integer", "minimum": 0, "maximum": 1099511627776}}
+    },
+    "candidateArtifact": {
+      "type": "object", "additionalProperties": false,
+      "required": ["artifactId", "objectVersion", "digest", "bytes", "itemCount"],
+      "properties": {"artifactId": {"$ref": "#/$defs/id"}, "objectVersion": {"type": "string", "minLength": 1, "maxLength": 256}, "digest": {"$ref": "#/$defs/digest"}, "bytes": {"type": "integer", "minimum": 0, "maximum": 1099511627776}, "itemCount": {"type": "integer", "minimum": 0, "maximum": 100000}}
+    },
+    "errorArtifact": {
+      "type": "object", "additionalProperties": false,
+      "required": ["artifactId", "objectVersion", "digest", "bytes", "errorCount"],
+      "properties": {"artifactId": {"$ref": "#/$defs/id"}, "objectVersion": {"type": "string", "minLength": 1, "maxLength": 256}, "digest": {"$ref": "#/$defs/digest"}, "bytes": {"type": "integer", "minimum": 0, "maximum": 1099511627776}, "errorCount": {"type": "integer", "minimum": 1, "maximum": 100000}}
+    },
+    "statistics": {
+      "type": "object", "additionalProperties": false,
+      "required": ["candidateCount", "validCount", "rejectedCount"],
+      "properties": {"candidateCount": {"type": "integer", "minimum": 0}, "validCount": {"type": "integer", "minimum": 0}, "rejectedCount": {"type": "integer", "minimum": 0}}
+    }
+  }
+}

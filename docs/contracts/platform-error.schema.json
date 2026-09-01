@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.extrio.dev/platform-error.v1.schema.json",
+  "title": "Extrio PlatformError v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "tenantId", "code", "category", "retryable", "stage", "requestId", "jobId", "attemptId", "safeDetail", "occurredAt", "errorDigest"],
+  "properties": {
+    "schemaVersion": {"const": "extrio.platform-error.v1"},
+    "tenantId": {"$ref": "#/$defs/id"},
+    "code": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]{2,63}$"},
+    "category": {"enum": ["transport", "infrastructure", "schema", "reference", "semantic", "security", "runtime", "extraction", "quality", "delivery", "internal"]},
+    "retryable": {"type": "boolean"},
+    "stage": {"enum": ["dispatch", "claim", "fetch_payload", "request", "extract", "stage_results", "finalize", "deliver", "replay"]},
+    "requestId": {"$ref": "#/$defs/id"},
+    "jobId": {"$ref": "#/$defs/id"},
+    "attemptId": {"$ref": "#/$defs/id"},
+    "jsonPointer": {"type": "string", "pattern": "^(?:/(?:[^~/]|~[01])*)*$", "maxLength": 1024},
+    "safeDetail": {"type": "string", "minLength": 1, "maxLength": 2048},
+    "evidenceArtifactId": {"$ref": "#/$defs/id"},
+    "occurredAt": {"$ref": "#/$defs/timestamp"},
+    "errorDigest": {"$ref": "#/$defs/digest"}
+  },
+  "$defs": {
+    "id": {"type": "string", "minLength": 3, "maxLength": 128, "pattern": "^[a-z][a-z0-9_-]*$"},
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "timestamp": {"type": "string", "format": "date-time"}
+  }
+}

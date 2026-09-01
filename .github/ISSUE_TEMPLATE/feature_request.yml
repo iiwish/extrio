@@ -1,0 +1,22 @@
+name: Feature request
+description: Propose a focused product or engineering improvement.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: Describe the user problem and the successful outcome, not only a UI or implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Who needs this, how often, and what workaround exists today?
+  - type: textarea
+    id: contract
+    attributes:
+      label: Contract impact
+      description: Note any likely API, schema, runtime, security, or compatibility impact.

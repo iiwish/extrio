@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "extrio.artifact-manifest-chunk.v1",
+  "chunkId": "manifest_chunk_beijing_000001",
+  "manifestId": "manifest_run_beijing_001",
+  "tenantId": "tenant_demo",
+  "sequenceStart": 0,
+  "sequenceEnd": 0,
+  "responses": [
+    {
+      "requestId": "request_beijing_list_001",
+      "stage": "list",
+      "sequence": 0,
+      "requestPlanDigest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "method": "GET",
+      "requestUrl": "https://www.example.gov.cn/tender/list?page=1",
+      "redirectChain": [],
+      "finalUrl": "https://www.example.gov.cn/tender/list?page=1",
+      "status": 200,
+      "headers": [
+        {
+          "name": "content-type",
+          "representation": "value",
+          "value": "text/html; charset=utf-8"
+        },
+        {
+          "name": "etag",
+          "representation": "value",
+          "value": "W/\"sample-list-v1\""
+        },
+        {
+          "name": "x-request-id",
+          "representation": "digest",
+          "valueDigest": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+        }
+      ],
+      "mediaType": "text/html; charset=utf-8",
+      "contentEncoding": "identity",
+      "rawBody": {
+        "artifactId": "artifact_list_raw_001",
+        "objectVersion": "v0001",
+        "digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "bytes": 18432
+      },
+      "decodedBody": {
+        "artifactId": "artifact_list_decoded_001",
+        "objectVersion": "v0001",
+        "digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "bytes": 18432
+      },
+      "truncated": false,
+      "startedAt": "2026-08-30T09:00:00Z",
+      "completedAt": "2026-08-30T09:00:01Z"
+    }
+  ],
+  "chunkDigest": "sha256:54310cb220e34a96563c2513684e8d27f33c7218aa3bd3f5d19788f458e4f0e2"
+}

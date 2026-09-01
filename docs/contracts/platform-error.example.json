@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "extrio.platform-error.v1",
+  "tenantId": "tenant_demo",
+  "code": "SOURCE_TIMEOUT",
+  "category": "transport",
+  "retryable": true,
+  "stage": "request",
+  "requestId": "request_beijing_list_001",
+  "jobId": "job_run_beijing_001",
+  "attemptId": "attempt_beijing_001",
+  "safeDetail": "Source request exceeded the configured deadline.",
+  "evidenceArtifactId": "artifact_timeout_evidence_001",
+  "occurredAt": "2026-08-30T09:00:02Z",
+  "errorDigest": "sha256:4e87c9f88ac8b48f8f9940951adc7fbe112079a6aaafd4c3010c73a8143d690d"
+}
