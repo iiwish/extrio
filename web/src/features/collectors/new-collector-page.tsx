@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, ArrowRight, CheckCircle2, CircleAlert, Globe2, Layers3, ListPlus, XCircle } from 'lucide-react'
-import { useMemo, useState, type FormEvent } from 'react'
+import { ArrowLeft, ArrowRight, CheckCircle2, CircleAlert, FileUp, Globe2, Layers3, ListPlus, XCircle } from 'lucide-react'
+import { useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '@/api/client'
 import type { BatchCollectorImportResult } from '@/api/types'
@@ -51,6 +51,34 @@ export function inspectSourceUrls(value: string): SourceLineInspection[] {
   })
 }
 
+export function parseImportedSourceUrls(fileText: string): string[] {
+  const seen = new Set<string>()
+  const parsed: string[] = []
+  for (const part of fileText.split(/[\r\n;,]+/)) {
+    const line = part.trim()
+    if (!line || seen.has(line)) continue
+    seen.add(line)
+    parsed.push(line)
+  }
+  return parsed
+}
+
+export function mergeSourceLines(existing: string, imported: string[]): { text: string; added: number; skipped: number } {
+  const existingLines = existing.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+  const seen = new Set(existingLines)
+  const added: string[] = []
+  let skipped = 0
+  for (const line of imported) {
+    if (seen.has(line)) {
+      skipped += 1
+      continue
+    }
+    seen.add(line)
+    added.push(line)
+  }
+  return { text: [...existingLines, ...added].join('\n'), added: added.length, skipped }
+}
+
 export function NewCollectorPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -65,6 +93,8 @@ export function NewCollectorPage() {
   const [intent, setIntent] = useState('')
   const [error, setError] = useState('')
   const [importResult, setImportResult] = useState<BatchCollectorImportResult | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [sourceImportFeedback, setSourceImportFeedback] = useState('')
   const sources = useMemo(() => inspectSourceUrls(sourceInput), [sourceInput])
   const collections = useMemo(() => {
     const byId = new Map<string, { id: string; name: string; intent: string; version: string; collectorCount: number }>()
@@ -114,6 +144,25 @@ export function NewCollectorPage() {
     })
   }
 
+  async function importSourceFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file) return
+    event.target.value = ''
+    setSourceImportFeedback('')
+    try {
+      const parsed = parseImportedSourceUrls(await file.text())
+      if (parsed.length === 0) {
+        setSourceImportFeedback('文件中未找到有效网址')
+        return
+      }
+      const merged = mergeSourceLines(sourceInput, parsed)
+      setSourceInput(merged.text)
+      setSourceImportFeedback(`已导入 ${parsed.length} 条，新增 ${merged.added} 条，跳过 ${merged.skipped} 条重复`)
+    } catch {
+      setSourceImportFeedback('文件读取失败，请重试')
+    }
+  }
+
   if (importResult) {
     return <ImportResult result={importResult} onContinue={() => { setImportResult(null); setSourceInput(''); mutation.reset() }} />
   }
@@ -142,7 +191,7 @@ export function NewCollectorPage() {
         </section>
 
         <section className="collector-create-section source-entry-section">
-          <div className="collector-create-heading"><h2>入口网址</h2>{sources.length > 0 && <span>{validCount} 可创建 · {issueCount} 有问题</span>}</div>
+          <div className="collector-create-heading"><h2>入口网址</h2>{sources.length > 0 && <span>{validCount} 可创建 · {issueCount} 有问题</span>}<Button type="button" variant="outline" size="sm" aria-label="从文件导入网址" onClick={() => fileInputRef.current?.click()}><FileUp />导入</Button><input ref={fileInputRef} className="sr-only" type="file" accept=".txt,.csv,text/plain,text/csv" aria-label="从文件导入网址" onChange={(event) => void importSourceFile(event)} />{sourceImportFeedback && <span className="source-import-feedback" role="status">{sourceImportFeedback}</span>}</div>
           <div className="form-fields">
             <div className="field-group">
               <div className="source-batch-input"><Globe2 /><Textarea id="source-urls" value={sourceInput} onChange={(event) => setSourceInput(event.target.value)} placeholder={'http://www.ccgp-beijing.gov.cn/yxgk/sjcgyx/A002003001index_1.htm\nhttps://ggzy.beijing.gov.cn/notices\nhttps://example.gov.cn/tender/list'} rows={7} /></div>

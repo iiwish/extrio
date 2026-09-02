@@ -750,19 +750,30 @@
 
 .collector-create-heading {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 16px;
 }
 
 .collector-create-heading h2 {
+  flex-shrink: 0;
+  margin-right: auto;
   color: #28373e;
   font-size: 14px;
+  white-space: nowrap;
 }
 
 .collector-create-heading > span {
   color: #66757c;
   font-size: 10px;
+  white-space: nowrap;
+}
+
+.collector-create-heading > .source-import-feedback {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .collection-mode-tabs {
