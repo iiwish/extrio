@@ -1,5 +1,8 @@
 # Extrio
 
+[![CI](https://github.com/iiwish/extrio/actions/workflows/ci.yml/badge.svg)](https://github.com/iiwish/extrio/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+
 Extrio turns a collection intent into a reviewable `GatherSpec`, publishes an
 immutable Ed25519-attested rule, and executes that fixed rule as a deterministic
 collection run. It is designed for teams that need to explain not only what was
@@ -17,11 +20,25 @@ and contract-first APIs.
 ## What is included
 
 - Intent-driven collector creation with reusable collection requirements.
+- Batch collector creation from an imported URL list with per-URL validation.
 - Evidence-based rule review and immutable rule publication.
+- Durable AI rule-task history with attempts, model usage, and review status.
 - Two-stage list discovery and detail extraction with deterministic execution.
 - Scheduled and manual runs with incremental checkpoints and quality gates.
 - Item lineage, revisions, rejection evidence, and operational dashboards.
+- Bilingual operations console (中文 / English) with an in-app language switcher.
 - Versioned JSON Schema and OpenAPI contracts under `docs/contracts`.
+
+## Console preview
+
+![Operations dashboard with collection metrics, output trends, run quality, and attention items](docs/reviews/public-alpha-2026-09-02/dashboard-zh-1440x900.png)
+
+![Evidence-based rule review with the deterministic collection flow and validation results](docs/reviews/public-alpha-2026-09-02/collector-rule-zh-1440x900.png)
+
+![The same console in English through the in-app language switcher](docs/reviews/public-alpha-2026-09-02/settings-en-1440x900.png)
+
+The console ships in Chinese and switches to English from Settings → Interface
+language. The choice is remembered per device.
 
 ## Repository layout
 

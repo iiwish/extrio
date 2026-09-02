@@ -3,7 +3,7 @@
   "docsetVersion": "v0.39.0",
   "productVersion": "v0.2",
   "status": "Ready_For_User_Review",
-  "generatedAt": "2026-09-02T07:16:07.225Z",
+  "generatedAt": "2026-09-02T10:53:41.205Z",
   "repositoryState": {
     "kind": "git_repository",
     "defaultBranch": "main"
@@ -132,7 +132,7 @@
     {
       "path": "docs/frontend-prototype.md",
       "version": "v1.33.0",
-      "sha256": "57d1a073d2f15448f308b419f9b615b9a4877f3c6a744e932f3f3dddf6401c10"
+      "sha256": "189a6bf0d6f54d0a0f3c30b31c0403ba0169279ec1a1c5c71fe0a66e0a1a9b3b"
     },
     {
       "path": "docs/backend-vertical-slice.md",
