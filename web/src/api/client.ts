@@ -1,5 +1,8 @@
 import type {
   BatchCollectorImportResult,
+  AuthLoginInput,
+  AuthSetupInput,
+  AuthState,
   CandidateRuleEditInput,
   CollectorDetail,
   CollectorPage,
@@ -65,6 +68,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     })
   }
   if (!response.ok) {
+    if (response.status === 401 && !path.startsWith('/auth/')) {
+      window.dispatchEvent(new Event('extrio:auth-required'))
+    }
     const error = (await response.json().catch(() => null)) as PlatformError | null
     throw new ApiRequestError(error ?? {
       code: 'UNEXPECTED_RESPONSE',
@@ -129,6 +135,10 @@ export async function waitForOperation(
 }
 
 export const api = {
+  authState: () => request<AuthState>('/auth/state'),
+  setupAuth: (input: AuthSetupInput) => request<AuthState>('/auth/setup', { method: 'POST', body: JSON.stringify(input) }),
+  login: (input: AuthLoginInput) => request<AuthState>('/auth/login', { method: 'POST', body: JSON.stringify(input) }),
+  logout: () => request<{ authenticated: false }>('/auth/logout', { method: 'POST' }),
   modelConfiguration: () => request<ModelConfiguration>('/settings/models'),
   updateModelConfiguration: (input: ModelConfigurationInput) =>
     command<ModelConfiguration>('/settings/models', { method: 'PUT', body: JSON.stringify(input) }),

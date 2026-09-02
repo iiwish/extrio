@@ -18,6 +18,16 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from extrio.auth import (
+    allow_login,
+    hash_password,
+    new_session,
+    session_token_hash,
+    validate_display_name,
+    validate_password,
+    validate_username,
+    verify_password,
+)
 from extrio.config import get_settings
 from extrio.contracts import ContractBundle
 from extrio.credentials import CredentialCipher
@@ -33,7 +43,7 @@ from extrio.integrity import (
     verify_rule_attestation,
 )
 from extrio.security import SourceUrlError, normalize_source_url
-from extrio.store import DEFAULT_COLLECTION_ID, DEFAULT_COLLECTION_NAME, IdempotencyConflict, Store, stable_id
+from extrio.store import DEFAULT_COLLECTION_ID, DEFAULT_COLLECTION_NAME, AuthSetupComplete, IdempotencyConflict, Store, stable_id
 
 settings = get_settings()
 store = Store(settings.database_path)
@@ -149,6 +159,7 @@ def persist_published_rule(
     rule_version_id: str,
     review_decisions: dict[str, str],
     request_id: str,
+    actor_id: str,
     action: str = "rule.published",
 ) -> dict[str, Any]:
     rule_version = immutable_rule_version(
@@ -184,7 +195,7 @@ def persist_published_rule(
             "updatedAt": "刚刚",
         },
         audit={
-            "actorId": "user_rule_reviewer_demo",
+            "actorId": actor_id,
             "action": action,
             "requestId": request_id,
             "details": {"attestationId": attestation["attestationId"], "keyId": attestation["keyId"]},
@@ -499,6 +510,7 @@ async def lifespan(_app: FastAPI):
                     rule_version_id=collector["activeRuleVersion"],
                     review_decisions=collector.get("reviewDecisions") or {},
                     request_id="startup_integrity_migration",
+                    actor_id="system_startup",
                     action="rule.integrity_bootstrapped",
                 )
     backfill_v02_response_contract()
@@ -511,7 +523,7 @@ async def lifespan(_app: FastAPI):
             await schedule_task
 
 
-app = FastAPI(title="Extrio Control Plane API", version="1.11.0", lifespan=lifespan)
+app = FastAPI(title="Extrio Control Plane API", version="1.12.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
@@ -527,6 +539,37 @@ app.include_router(demo_router)
 async def request_id_middleware(request: Request, call_next):
     incoming = request.headers.get("X-Request-ID", "")
     request.state.request_id = incoming if re.fullmatch(r"[A-Za-z0-9_.:-]{8,128}", incoming) else f"req_{uuid.uuid4().hex[:20]}"
+
+    request.state.auth_user = None
+    if not settings.auth_enabled:
+        request.state.auth_user = {
+            "id": "user_local_development",
+            "username": "local",
+            "displayName": "Local Administrator",
+            "role": "administrator",
+        }
+    else:
+        token = request.cookies.get(settings.auth_cookie_name, "")
+        if token:
+            request.state.auth_user = store.get_auth_session(session_token_hash(token))
+
+        public_path = (
+            request.url.path == "/healthz"
+            or request.url.path.startswith("/demo/")
+            or request.url.path in {
+                "/api/v1/auth/state",
+                "/api/v1/auth/setup",
+                "/api/v1/auth/login",
+            }
+        )
+        if request.method != "OPTIONS" and not public_path and request.state.auth_user is None:
+            return platform_error(request, "AUTH_REQUIRED", "请先登录", 401)
+
+        if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
+            origin = request.headers.get("Origin")
+            if origin and origin not in settings.cors_origin_list:
+                return platform_error(request, "FORBIDDEN", "请求来源不受信任", 403)
+
     response = await call_next(request)
     response.headers["X-Request-ID"] = request.state.request_id
     return response
@@ -547,6 +590,93 @@ async def internal_error(request: Request, exc: Exception):
 @app.get("/healthz", include_in_schema=False)
 def health() -> dict[str, str]:
     return {"status": "ok", "contract": "extrio.control-plane.v1"}
+
+
+def auth_state_view(request: Request) -> dict[str, Any]:
+    return {
+        "authEnabled": settings.auth_enabled,
+        "setupRequired": settings.auth_enabled and store.auth_setup_required(),
+        "authenticated": request.state.auth_user is not None,
+        "user": request.state.auth_user,
+    }
+
+
+def authenticated_response(request: Request, user: dict[str, Any]) -> JSONResponse:
+    token, token_hash, expires_at = new_session(settings.auth_session_hours)
+    store.create_auth_session(token_hash=token_hash, user_id=user["id"], expires_at=expires_at)
+    response = JSONResponse({**auth_state_view(request), "setupRequired": False, "authenticated": True, "user": user})
+    response.set_cookie(
+        settings.auth_cookie_name,
+        token,
+        max_age=settings.auth_session_hours * 3600,
+        httponly=True,
+        secure=settings.auth_cookie_secure,
+        samesite="strict",
+        path="/",
+    )
+    return response
+
+
+@app.get("/api/v1/auth/state")
+def get_auth_state(request: Request):
+    return auth_state_view(request)
+
+
+@app.post("/api/v1/auth/setup")
+async def setup_auth(request: Request):
+    if not settings.auth_enabled:
+        return platform_error(request, "FORBIDDEN", "当前部署未启用身份认证", 409)
+    body, body_error = await read_contract_body(request, required={"username", "password"}, optional={"displayName"})
+    if body_error:
+        return body_error
+    try:
+        username = validate_username(body["username"])
+        password = validate_password(body["password"])
+        display_name = validate_display_name(body.get("displayName"), username)
+        user = store.create_first_auth_user(
+            username=username,
+            display_name=display_name,
+            password_hash=hash_password(password),
+        )
+    except ValueError as exc:
+        return platform_error(request, "VALIDATION_FAILED", str(exc), 422)
+    except AuthSetupComplete:
+        return platform_error(request, "SETUP_ALREADY_COMPLETED", "管理员初始化已经完成", 409)
+    request.state.auth_user = user
+    return authenticated_response(request, user)
+
+
+@app.post("/api/v1/auth/login")
+async def login(request: Request):
+    if not settings.auth_enabled:
+        return platform_error(request, "FORBIDDEN", "当前部署未启用身份认证", 409)
+    body, body_error = await read_contract_body(request, required={"username", "password"})
+    if body_error:
+        return body_error
+    username = str(body.get("username", "")).strip()
+    client_host = request.client.host if request.client else "unknown"
+    if not allow_login(f"{client_host}:{username.casefold()}", settings.auth_login_limit):
+        response = platform_error(request, "RATE_LIMITED", "登录尝试过于频繁，请稍后再试", 429, retryable=True)
+        response.headers["Retry-After"] = "60"
+        return response
+    credentials = store.get_auth_credentials(username)
+    valid = verify_password(str(body.get("password", "")), credentials.get("passwordHash") if credentials else None)
+    if not valid or credentials is None:
+        return platform_error(request, "INVALID_CREDENTIALS", "用户名或密码不正确", 401)
+    user = {key: value for key, value in credentials.items() if key != "passwordHash"}
+    request.state.auth_user = user
+    return authenticated_response(request, user)
+
+
+@app.post("/api/v1/auth/logout")
+def logout(request: Request):
+    token = request.cookies.get(settings.auth_cookie_name, "")
+    if token:
+        store.delete_auth_session(session_token_hash(token))
+    request.state.auth_user = None
+    response = JSONResponse({"authenticated": False})
+    response.delete_cookie(settings.auth_cookie_name, path="/", samesite="strict", secure=settings.auth_cookie_secure)
+    return response
 
 
 @app.get("/gather-spec.schema.json", include_in_schema=False)
@@ -1243,6 +1373,7 @@ def _publish_rule(collector_id: str, request: Request, idempotency_key: str, bod
             rule_version_id=next_rule_version_id(collector_id, current + 1),
             review_decisions=decisions,
             request_id=request.state.request_id,
+            actor_id=request.state.auth_user["id"],
         )
     except IntegrityError as exc:
         return platform_error(request, exc.code, str(exc), 409)

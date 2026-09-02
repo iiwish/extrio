@@ -10,9 +10,9 @@ The repository contains a desktop React operations console and a Python control
 plane with exploration and execution workers, durable operations, SQLite state,
 and contract-first APIs.
 
-> **Project status:** v0.2 local alpha. Extrio is suitable for evaluation on a
-> trusted machine. It has no user-authentication boundary yet and must not be
-> exposed directly to the public internet. See [SECURITY.md](SECURITY.md).
+> **Project status:** v0.2 self-hosted public-alpha release candidate. Extrio includes first-run local
+> administrator authentication, but it is not a hardened multi-tenant service. Keep the API and
+> worker behind the bundled web proxy and review [SECURITY.md](SECURITY.md) before deployment.
 
 ## What is included
 
@@ -49,7 +49,8 @@ pnpm --dir web install --frozen-lockfile
 ```
 
 Open [http://127.0.0.1:5173](http://127.0.0.1:5173). The API documentation is
-available at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs). A local
+available at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) after login.
+The first page creates the instance administrator; passwords must contain at least 12 characters. A local
 tender source is seeded automatically, so the full workflow can be evaluated
 without scraping a third-party site.
 
@@ -68,6 +69,9 @@ Open [http://127.0.0.1:8080](http://127.0.0.1:8080). Stop the stack with
 `docker compose down`. Add `-v` only when you intentionally want to delete the
 local database, keys, and artifacts.
 
+Production TLS termination must set `EXTRIO_AUTH_COOKIE_SECURE=true`. The default localhost
+configuration intentionally uses a non-secure cookie so HTTP evaluation works.
+
 ## Verification
 
 ```bash
@@ -77,6 +81,7 @@ uv run --project backend python scripts/update-docset-manifest.py --check
 pnpm --dir web test
 pnpm --dir web lint
 pnpm --dir web build
+./scripts/verify-compose.sh
 ```
 
 The backend can also be built as a wheel. Its contract bundle is included in the
@@ -99,3 +104,8 @@ for the API contract.
 Read [CONTRIBUTING.md](CONTRIBUTING.md) before proposing a change and report
 vulnerabilities according to [SECURITY.md](SECURITY.md). Extrio is licensed under
 the [Apache License 2.0](LICENSE).
+
+Project decisions and support boundaries live in [GOVERNANCE.md](GOVERNANCE.md),
+[ROADMAP.md](ROADMAP.md), and [SUPPORT.md](SUPPORT.md). Tagged releases publish
+`linux/amd64` and `linux/arm64` GHCR images with SBOM, provenance, vulnerability gates, and
+keyless signatures.

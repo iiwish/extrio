@@ -5,7 +5,7 @@
 | 字段 | 内容 |
 | --- | --- |
 | 合同 ID | `extrio.control-plane.v1` |
-| 合同版本 | `v1.11.0` |
+| 合同版本 | `v1.12.0` |
 | 对应产品版本 | `v0.2` |
 | 状态 | `Confirmed` |
 | 机器合同 | [`openapi.yaml`](./openapi.yaml) |
@@ -15,6 +15,8 @@
 Web 只访问 `/api/v1`。FastAPI 控制面是领域状态的唯一在线写入者；浏览器不直接访问 Worker、PostgreSQL、Redis 或对象存储内部地址。OpenAPI 是浏览器 API 的机器权威，GatherSpec、平台消息和 Artifact 继续由各自 JSON Schema 管理。
 
 所有响应均返回 `X-Request-ID`。错误使用稳定的 `PlatformError`，至少包含 `code`、`message`、`requestId` 和 `retryable`；字段错误使用 JSON Pointer `pointer`，不得要求前端解析自然语言判断行为。
+
+控制面默认启用身份认证。`/auth/state` 提供首次设置和当前会话状态；`/auth/setup` 只允许原子创建首个管理员；`/auth/login` 创建不透明服务端会话；`/auth/logout` 立即吊销当前会话。除这些引导端点外，`/api/v1` 全部继承 `extrio_session` Cookie 安全要求。密码、密码哈希和会话 token 不进入响应合同。
 
 ## 3. 异步命令
 

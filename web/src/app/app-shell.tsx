@@ -1,7 +1,9 @@
-import { ArrowLeft, Database, Layers3, LayoutDashboard, PlayCircle, Settings2 } from 'lucide-react'
+import { ArrowLeft, Database, Layers3, LayoutDashboard, LogOut, PlayCircle, Settings2 } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { useAuth } from '@/features/auth/auth-gate'
 
 const primaryNavItems = [
   { to: '/', label: '概览', icon: LayoutDashboard },
@@ -26,6 +28,7 @@ function MainNav() {
 }
 
 export function AppShell() {
+  const { user, logout } = useAuth()
   const location = useLocation()
   const currentArea = location.pathname === '/'
     ? '概览'
@@ -60,8 +63,11 @@ export function AppShell() {
             <strong>{currentArea}</strong>
           </div>
           <div className="topbar-actions">
-            <span className="role-pill">RuleReviewer</span>
-            <span className="user-avatar" aria-label="当前用户：林然">林</span>
+            <span className="role-pill">管理员</span>
+            <span className="user-avatar" aria-label={`当前用户：${user.displayName}`}>{user.displayName.slice(0, 1).toUpperCase()}</span>
+            <Button type="button" variant="ghost" size="icon-sm" onClick={logout} title="退出登录" aria-label="退出登录">
+              <LogOut />
+            </Button>
           </div>
         </header>
         <main className="app-main">

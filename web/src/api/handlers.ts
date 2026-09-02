@@ -95,6 +95,7 @@ interface MockOperation {
 }
 
 const operations = new Map<string, MockOperation>()
+const mockAuthUser = { id: 'user_mock_admin', username: 'admin', displayName: '林然', role: 'administrator' as const }
 
 const byId = <T extends { id: string }>(rows: T[], id: string) => rows.find((row) => row.id === id)
 const requestId = () => `req_${crypto.randomUUID().replaceAll('-', '').slice(0, 16)}`
@@ -248,6 +249,25 @@ function advanceOperation(operation: MockOperation) {
 }
 
 export const handlers = [
+  http.get('*/api/v1/auth/state', () => successResponse({
+    authEnabled: true,
+    setupRequired: false,
+    authenticated: true,
+    user: mockAuthUser,
+  })),
+  http.post('*/api/v1/auth/setup', () => successResponse({
+    authEnabled: true,
+    setupRequired: false,
+    authenticated: true,
+    user: mockAuthUser,
+  })),
+  http.post('*/api/v1/auth/login', () => successResponse({
+    authEnabled: true,
+    setupRequired: false,
+    authenticated: true,
+    user: mockAuthUser,
+  })),
+  http.post('*/api/v1/auth/logout', () => successResponse({ authenticated: false })),
   http.get('*/api/v1/settings/models', () => successResponse(modelConfiguration)),
   http.put('*/api/v1/settings/models', async ({ request }) => {
     if (!requireIdempotency(request)) return errorResponse('IDEMPOTENCY_KEY_REQUIRED', '缺少 Idempotency-Key', 400)

@@ -5,10 +5,10 @@
 | 字段 | 内容 |
 | --- | --- |
 | 文档名称 | Extrio 单一事实来源（SSOT） |
-| 文档版本 | `v0.37.0` |
+| 文档版本 | `v0.38.0` |
 | 对应产品版本 | `v0.2` |
 | 状态 | `Confirmed` |
-| 最后更新 | `2026-09-01` |
+| 最后更新 | `2026-09-02` |
 | 维护责任 | 产品负责人 |
 | 审批责任 | 产品负责人、技术负责人 |
 | 文档职责 | 定义 Extrio 的权威事实体系、产品边界、不可违反原则与文档优先级 |
@@ -25,8 +25,8 @@
 
 | 事实领域 | 权威文档 | 版本 | 状态 | 负责内容 |
 | --- | --- | --- | --- | --- |
-| 权威入口与产品原则 | [`SSOT.md`](./SSOT.md) | `v0.37.0` | `Confirmed` | 产品定位、范围、不变量、版本与治理 |
-| 产品需求 | [`product-contract.md`](./product-contract.md) | `v0.37.0` | `Confirmed` | 用户、旅程、功能需求、非功能需求、成功指标 |
+| 权威入口与产品原则 | [`SSOT.md`](./SSOT.md) | `v0.38.0` | `Confirmed` | 产品定位、范围、不变量、版本与治理 |
+| 产品需求 | [`product-contract.md`](./product-contract.md) | `v0.38.0` | `Confirmed` | 用户、旅程、功能需求、非功能需求、成功指标 |
 | 领域语义 | [`domain-model.md`](./domain-model.md) | `v0.7.0` | `Confirmed` | 聚合、关系、状态机、唯一约束、CollectionPolicyVersion 与 Checkpoint 语义 |
 | RulePlan 语义与语法 | [`contracts/rule-plan.md`](./contracts/rule-plan.md)、[`contracts/rule-plan.schema.json`](./contracts/rule-plan.schema.json) | `v1.0.0` / `extrio.rule-plan.v1` | `Confirmed` | LLM 编译中间表示、字段位置、绑定、分页与支持边界 |
 | GatherSpec 语义 | [`contracts/gather-spec.md`](./contracts/gather-spec.md) | `v1.5.0` | `Confirmed` | 规则字段语义、编译边界、完整性、兼容性、安全约束及与运行策略的边界 |
@@ -38,17 +38,18 @@
 | Artifact Manifest 语法 | [`contracts/artifact-manifest.schema.json`](./contracts/artifact-manifest.schema.json)、[`contracts/artifact-manifest-chunk.schema.json`](./contracts/artifact-manifest-chunk.schema.json) | `extrio.artifact-manifest.v1` | `Ready_For_User_Review` | Root 与 Chunk JSON Schema |
 | 平台消息协议 | [`contracts/platform-protocol.md`](./contracts/platform-protocol.md) | `v1.2.0` | `Ready_For_User_Review` | JobEnvelope、ResultBatch、PlatformError 与 ItemEvent Envelope |
 | 平台消息语法 | [`contracts/job-envelope.schema.json`](./contracts/job-envelope.schema.json)、[`contracts/result-batch.schema.json`](./contracts/result-batch.schema.json)、[`contracts/platform-error.schema.json`](./contracts/platform-error.schema.json)、[`contracts/item-event-envelope.schema.json`](./contracts/item-event-envelope.schema.json) | `v1` | `Ready_For_User_Review` | 服务间输入、结果、错误和输出机器合同 |
-| 控制面 API 语义 | [`contracts/api-contract.md`](./contracts/api-contract.md) | `v1.11.0` | `Confirmed` | 浏览器 API 边界、异步命令、幂等、多供应商与多模型设置、Collector 需求归属、Collector 定义与两阶段候选规则编辑、Source 传输策略、公告 Item 语义、增量策略与 Checkpoint、规则完整性证据、错误和兼容规则 |
+| 控制面 API 语义 | [`contracts/api-contract.md`](./contracts/api-contract.md) | `v1.12.0` | `Confirmed` | 浏览器 API 边界、管理员认证、异步命令、幂等、多供应商与多模型设置、Collector 需求归属、Collector 定义与两阶段候选规则编辑、Source 传输策略、公告 Item 语义、增量策略与 Checkpoint、规则完整性证据、错误和兼容规则 |
 | 控制面 API 语法 | [`contracts/openapi.yaml`](./contracts/openapi.yaml) | `extrio.control-plane.v1` | `Confirmed` | `/api/v1` OpenAPI 3.1 机器合同与生成类型来源 |
 | 运行时行为 | [`runtime-contract.md`](./runtime-contract.md) | `v0.6.0` | `Confirmed` | 调度、终结、幂等、重试、时间窗口、Checkpoint、交付、漂移和回放 |
-| 安全与合规 | [`security-compliance.md`](./security-compliance.md) | `v0.6.0` | `Ready_For_User_Review` | 租户隔离、凭据、网络、内容、隐私和审计 |
+| 安全与合规 | [`security-compliance.md`](./security-compliance.md) | `v0.7.0` | `Ready_For_User_Review` | Alpha 管理员认证、租户演进边界、凭据、网络、内容、隐私和审计 |
 | 平台边界 | [`architecture/ADR-001-platform-boundaries.md`](./architecture/ADR-001-platform-boundaries.md) | `v2.0.0` | `Ready_For_User_Review` | Web、FastAPI、编译与执行单元的职责、通信边界和数据所有权 |
 | 调度与存储 | [`architecture/ADR-002-orchestration-storage.md`](./architecture/ADR-002-orchestration-storage.md) | `v1.2.0` | `Confirmed` | PostgreSQL、Redis、对象存储、增量 Checkpoint 和 Temporal 阈值 |
 | 规则完整性 | [`architecture/ADR-003-rule-integrity.md`](./architecture/ADR-003-rule-integrity.md) | `v1.3.0` | `Ready_For_User_Review` | 不可变规则、摘要、证明和运行时固定 |
-| 身份与访问 | [`architecture/ADR-004-identity-access.md`](./architecture/ADR-004-identity-access.md) | `v1.1.0` | `Ready_For_User_Review` | OIDC、会话、服务身份和 Tenant 授权 |
-| 前端原型 | [`frontend-prototype.md`](./frontend-prototype.md) | `v1.31.0` | `Confirmed` | 第一版前端闭环、多供应商与多模型设置、Collector 需求归属与运营列表、Run 与 Item 运营列表、Collector 任务工作区、按需证据、设计合同、技术栈和验收 |
-| 真实纵向闭环 | [`backend-vertical-slice.md`](./backend-vertical-slice.md) | `v1.10.0` | `Confirmed` | FastAPI、Crawl4AI、LLM RulePlan 编译、同域嵌入入口解析、确定性运行、本地持久化、可信发布与受控增量运行 |
-| 发布验收 | [`releases/v0.2-acceptance.md`](./releases/v0.2-acceptance.md) | `v0.37.0` | `Confirmed` | v0.2 范围、退出标准与验收证据 |
+| 身份与访问 | [`architecture/ADR-004-identity-access.md`](./architecture/ADR-004-identity-access.md) | `v1.1.0` | `Proposed_Production_Target` | OIDC、会话、服务身份和 Tenant 授权 |
+| Alpha 管理员认证 | [`architecture/ADR-005-local-authentication.md`](./architecture/ADR-005-local-authentication.md) | `v1.0.0` | `Accepted` | 首次设置、Argon2、本地可撤销会话与登录限流 |
+| 前端原型 | [`frontend-prototype.md`](./frontend-prototype.md) | `v1.32.0` | `Confirmed` | 第一版前端闭环、管理员登录、多供应商与多模型设置、Collector 需求归属与运营列表、Run 与 Item 运营列表、Collector 任务工作区、按需证据、设计合同、技术栈和验收 |
+| 真实纵向闭环 | [`backend-vertical-slice.md`](./backend-vertical-slice.md) | `v1.12.0` | `Confirmed` | FastAPI、管理员会话、Crawl4AI、LLM RulePlan 编译、同域嵌入入口解析、确定性运行、本地持久化、可信发布与受控增量运行 |
+| 发布验收 | [`releases/v0.2-acceptance.md`](./releases/v0.2-acceptance.md) | `v0.38.0` | `Confirmed` | v0.2 范围、退出标准与验收证据 |
 
 ### 2.1 冲突处理
 
@@ -88,7 +89,7 @@ Extrio 是面向授权 Source 的通用结构化采集平台。通用性来自 L
 | `INV-008` | Source 访问必须获得合法授权，并受域名、网络、速率和资源预算约束。 |
 | `INV-009` | Run 必须先冻结 staging、质量决定和 accepted set 再提升并释放 Delivery；失败和部分成功不得被记录为完整成功，不得静默丢弃必填字段错误或交付失败。 |
 | `INV-010` | RuleVersion 回滚只改变 Collector 的活动版本指针，不改变历史 RuleVersion 或运行中的 Run。 |
-| `INV-011` | 所有请求必须先认证再按 Tenant、资源与动作授权；客户端提交的 tenantId、对象 ID 或 trace context 不构成权限依据。 |
+| `INV-011` | 控制面请求必须经过认证；公开 Alpha 使用单实例管理员权限，后续多租户形态再按 Tenant、资源与动作授权。客户端提交的 tenantId、对象 ID 或 trace context 不构成权限依据。 |
 | `INV-012` | 只有 `evidenceMode=replayable` 且响应字节、URL 上下文、连续 chunk 和运行时语义均完整可验证时，执行才可称为历史证据回放。 |
 
 ## 5. v0.2 产品范围
@@ -133,7 +134,7 @@ Extrio 是面向授权 Source 的通用结构化采集平台。通用性来自 L
 - PostgreSQL 是领域状态的系统记录；Redis 只承担可恢复的工作分发与短期协调；S3 兼容对象存储保存 raw 和 Artifact。
 - GatherSpec 统一使用 JSON，并通过 `extrio.gather.v1` Schema、固定提取语义、ruleDigest 和独立 RuleAttestation 校验。
 - v0.2 使用 Cron、PostgreSQL transactional outbox 和 Redis Streams，不引入 Temporal。
-- 人类身份采用 OIDC/OAuth 2.0 授权码 + PKCE，服务采用独立工作负载身份和 mTLS。
+- 公开 Alpha 使用首个本地管理员、Argon2 密码哈希和服务端可撤销会话；外部 OIDC、多用户角色、Tenant 授权和独立工作负载身份属于生产演进边界。
 - 同一 Python 代码库可以承载控制面、编译与执行模块，但部署、数据写入、网络权限和运行生命周期必须保持逻辑隔离。
 - 探索和 Run 通过持久化 Operation 以 `202 Accepted` 启动；阶段、指标和终态由服务端事实驱动，页面刷新通过 `activeOperationId` 或 `operationId` 恢复，不得由客户端定时器伪造。
 - Source 入口只允许 HTTP(S)。公共 HTTP 默认关闭，只能由 TenantAdmin 策略显式开启并在界面标记风险；该策略不放宽 exact allowedHosts、私网/metadata 阻断、DNS 复检、重定向复检、速率或资源预算。

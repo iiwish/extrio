@@ -2,15 +2,20 @@
 
 ## Supported versions
 
-Extrio is a local alpha. Security fixes are applied to the latest commit on the
+Extrio is a public-alpha release candidate. Security fixes are applied to the latest commit on the
 default branch; no older release line is supported yet.
 
 ## Deployment boundary
 
-The current backend does not enforce user authentication and is intended for a
-trusted local machine or an isolated development network. Do not expose the API
-or worker directly to the public internet. Review source allowlists, outbound
-network policy, credential storage, and persistence before production use.
+Extrio requires first-run local administrator setup and uses Argon2 password hashes with
+server-side revocable browser sessions. It does not yet provide password recovery, MFA, external
+OIDC, multiple users, role administration, or tenant isolation. Do not expose the API or worker
+directly to the public internet; route browser traffic through the bundled web proxy.
+
+Public deployments require HTTPS, `EXTRIO_AUTH_COOKIE_SECURE=true`, a restricted listening
+interface, outbound network controls, protected persistent volumes, and backups. Authentication
+can be disabled only for isolated development and automated test environments with
+`EXTRIO_AUTH_ENABLED=false`.
 
 Runtime state under `backend/data`, including generated signing and encryption
 keys, is development-only and must never be committed or reused in production.

@@ -4,12 +4,12 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| 文档版本 | `v1.31.0` |
+| 文档版本 | `v1.32.0` |
 | 对应产品版本 | `v0.2` |
 | 状态 | `Confirmed` |
 | 权威来源 | [`SSOT.md`](./SSOT.md)、[`product-contract.md`](./product-contract.md) |
 | 用户批准 | `2026-08-30`，批准先完成最小前端闭环并采用 Vite + pnpm + React + shadcn/ui |
-| 最后更新 | `2026-09-01` |
+| 最后更新 | `2026-09-02` |
 | 交付责任 | 产品负责人、前端负责人 |
 
 ## 2. 产品简述
@@ -176,7 +176,7 @@ web/src/
 ## 9. 非目标
 
 - 本地闭环由 Crawl4AI 按固定导航条件和异步内容沉降时长固化入口、列表和详情样本，当前默认模型在接入期编译受约束 RulePlan，服务端验证 selector、分页、字段、身份与样本命中后生成候选 GatherSpec 并记录模型谱系；已发布规则的生产 Run 使用同一浏览器 snapshot 时点和确定性运行时，不读取模型设置或调用 LLM。开发持久化使用 SQLite 与本地 sampled Artifact。
-- 不实现真实登录、多 Tenant 切换、MFA、四眼审批和审计导出。
+- 实现首次本地管理员设置、登录与退出；多 Tenant 切换、MFA、四眼审批和审计导出不在公开 Alpha 范围。
 - 不实现独立 Schedule 管理页、Kafka/Webhook、redelivery、漂移恢复和 Artifact 下载；Collector 详情内提供可执行的定时计划配置。
 - 不把 mock 状态或演示签名描述为生产证据。
 

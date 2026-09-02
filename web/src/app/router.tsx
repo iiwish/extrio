@@ -1,6 +1,7 @@
 import { Navigate, createBrowserRouter } from 'react-router-dom'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AppShell } from './app-shell'
+import { AuthGate } from '@/features/auth/auth-gate'
 
 function RouteFallback() {
   return <div className="page-frame" aria-label="页面加载中"><Skeleton className="h-8 w-56" /><Skeleton className="mt-5 h-36 w-full" /></div>
@@ -8,7 +9,7 @@ function RouteFallback() {
 
 export const router = createBrowserRouter([
   {
-    element: <AppShell />,
+    element: <AuthGate><AppShell /></AuthGate>,
     HydrateFallback: RouteFallback,
     children: [
       {

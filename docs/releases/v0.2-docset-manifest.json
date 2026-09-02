@@ -1,9 +1,9 @@
 {
   "schemaVersion": "extrio.docset-manifest.v1",
-  "docsetVersion": "v0.37.0",
+  "docsetVersion": "v0.38.0",
   "productVersion": "v0.2",
   "status": "Ready_For_User_Review",
-  "generatedAt": "2026-09-01T10:44:17.633Z",
+  "generatedAt": "2026-09-02T04:22:23.707Z",
   "repositoryState": {
     "kind": "git_repository",
     "defaultBranch": "main"
@@ -11,13 +11,13 @@
   "authoritativeFiles": [
     {
       "path": "docs/SSOT.md",
-      "version": "v0.37.0",
-      "sha256": "db075e1406e8934693eb1ece3bf76cb4907f0777772fff2f0c77a8650d381e76"
+      "version": "v0.38.0",
+      "sha256": "e3903f6c10887b786fd438651152112c9372966c3b5520e5f5d723f25d111fdb"
     },
     {
       "path": "docs/product-contract.md",
-      "version": "v0.37.0",
-      "sha256": "fcbe8478f80bcfcb6f6e565d7391d973b59ab0316990d51875a720b7ea522d9c"
+      "version": "v0.38.0",
+      "sha256": "4fc22ab44ef9ebda7d113108d0a2630a93f7b77c866d1bcef14a57f922e91984"
     },
     {
       "path": "docs/domain-model.md",
@@ -92,12 +92,12 @@
     {
       "path": "docs/contracts/openapi.yaml",
       "version": "extrio.control-plane.v1",
-      "sha256": "07d4352f824dc30bdc741af73eb602fb13d30044253dc840c05d1cf253423c13"
+      "sha256": "5fea00d8443f8547a72cde0e33d06479bdded1b1a46d55f77007d95177761461"
     },
     {
       "path": "docs/contracts/api-contract.md",
-      "version": "v1.11.0",
-      "sha256": "ff75c27eb3f4beaaf49bf8f1e314e412644146b6de530b7d7302a9ea3a58a257"
+      "version": "v1.12.0",
+      "sha256": "0a8fca486218f37ebada52a3167ecfbcf402a31bab2b2ee56fda10dabe3351e5"
     },
     {
       "path": "docs/runtime-contract.md",
@@ -106,8 +106,8 @@
     },
     {
       "path": "docs/security-compliance.md",
-      "version": "v0.6.0",
-      "sha256": "a98e0807e7a99e5a6a0e435226113c4f7db1ddb6089992970c94dbef04a93a81"
+      "version": "v0.7.0",
+      "sha256": "78782cfd3057a2d9dbf300cc64e377282e7851482c68dead197a65b38c236625"
     },
     {
       "path": "docs/architecture/ADR-001-platform-boundaries.md",
@@ -127,22 +127,32 @@
     {
       "path": "docs/architecture/ADR-004-identity-access.md",
       "version": "v1.1.0",
-      "sha256": "033b162ea052b790c05b085910f4c4361e2b74862be4027733d4338924c097d7"
+      "sha256": "7e70f36a3813982d75dc4a96ad606615fd383a25d110c93e75288db030ee3bf7"
     },
     {
       "path": "docs/frontend-prototype.md",
-      "version": "v1.31.0",
-      "sha256": "cc758fad013bc65e7059be72fa5fe5cc30f588968eb56148ab2fc00065fcb31c"
+      "version": "v1.32.0",
+      "sha256": "1121f245d73a006ae5d492951a4e99f2a91dadc71eeecfcc6acf642cfaaded12"
     },
     {
       "path": "docs/backend-vertical-slice.md",
-      "version": "v1.11.0",
-      "sha256": "3b084c303b63d7b9f561b54482f310c533917f56a0b86b6e3e3cc511a1639812"
+      "version": "v1.12.0",
+      "sha256": "a7c92584602485b3f21b2435890ee1746f32c2d9521038a1e739ebeceb600b91"
+    },
+    {
+      "path": "docs/architecture/ADR-005-local-authentication.md",
+      "version": "v1.0.0",
+      "sha256": "1485e15b71584044b3d979ce67d745976d3d2b42dfb655364010c29304a5795f"
+    },
+    {
+      "path": "docs/releases/v0.2-public-readiness.md",
+      "version": "v1.0.0",
+      "sha256": "fcbb6114af15d1397dae096db3c3abc9d22405a99414fb32ac588341d015b98f"
     },
     {
       "path": "docs/releases/v0.2-acceptance.md",
-      "version": "v0.37.0",
-      "sha256": "7bc78d416d927d627c3d9090da37409db95dbaec473060c70f02e5dd94d1b070"
+      "version": "v0.38.0",
+      "sha256": "bed93e91c5c73eaa5d17d12645ae7e56f646abe1344220eef7a8fe6b7cb79911"
     }
   ],
   "verificationFixtures": [

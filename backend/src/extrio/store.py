@@ -55,6 +55,10 @@ class IdempotencyConflict(Exception):
     pass
 
 
+class AuthSetupComplete(Exception):
+    pass
+
+
 class Store:
     def __init__(self, path: Path):
         self.path = path
@@ -222,6 +226,23 @@ class Store:
                         data TEXT NOT NULL,
                         updated_at TEXT NOT NULL
                     );
+                    CREATE TABLE IF NOT EXISTS auth_users (
+                        id TEXT PRIMARY KEY,
+                        username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                        password_hash TEXT NOT NULL,
+                        role TEXT NOT NULL,
+                        display_name TEXT NOT NULL,
+                        created_at TEXT NOT NULL,
+                        updated_at TEXT NOT NULL
+                    );
+                    CREATE TABLE IF NOT EXISTS auth_sessions (
+                        token_hash TEXT PRIMARY KEY,
+                        user_id TEXT NOT NULL,
+                        expires_at TEXT NOT NULL,
+                        created_at TEXT NOT NULL,
+                        last_seen_at TEXT NOT NULL,
+                        FOREIGN KEY (user_id) REFERENCES auth_users(id) ON DELETE CASCADE
+                    );
                     CREATE INDEX IF NOT EXISTS idx_jobs_claim ON jobs(status, available_at, lease_until);
                     CREATE INDEX IF NOT EXISTS idx_runs_collector ON runs(collector_id, created_at DESC);
                     CREATE INDEX IF NOT EXISTS idx_items_run ON items(run_id);
@@ -231,6 +252,8 @@ class Store:
                     CREATE INDEX IF NOT EXISTS idx_collection_policies_collector ON collection_policies(collector_id, version DESC);
                     CREATE INDEX IF NOT EXISTS idx_collector_schedules_due ON collector_schedules(enabled, next_run_at);
                     CREATE INDEX IF NOT EXISTS idx_schedule_occurrences_collector ON schedule_occurrences(collector_id, scheduled_at DESC);
+                    CREATE INDEX IF NOT EXISTS idx_auth_sessions_user ON auth_sessions(user_id);
+                    CREATE INDEX IF NOT EXISTS idx_auth_sessions_expiry ON auth_sessions(expires_at);
                     CREATE TRIGGER IF NOT EXISTS rule_versions_immutable_update
                     BEFORE UPDATE ON rule_versions BEGIN SELECT RAISE(ABORT, 'rule_versions are immutable'); END;
                     CREATE TRIGGER IF NOT EXISTS rule_versions_immutable_delete
@@ -249,6 +272,87 @@ class Store:
                     BEFORE DELETE ON collection_policies BEGIN SELECT RAISE(ABORT, 'collection_policies are immutable'); END;
                     """
                 )
+
+    @staticmethod
+    def _auth_user(row: sqlite3.Row | None) -> dict[str, Any] | None:
+        if row is None:
+            return None
+        return {
+            "id": row["id"],
+            "username": row["username"],
+            "displayName": row["display_name"],
+            "role": row["role"],
+        }
+
+    def auth_setup_required(self) -> bool:
+        with self.connect() as connection:
+            return connection.execute("SELECT 1 FROM auth_users LIMIT 1").fetchone() is None
+
+    def create_first_auth_user(
+        self,
+        *,
+        username: str,
+        display_name: str,
+        password_hash: str,
+    ) -> dict[str, Any]:
+        now = utc_now()
+        user_id = stable_id("user", uuid.uuid4().hex, 32)
+        with self.transaction() as connection:
+            if connection.execute("SELECT 1 FROM auth_users LIMIT 1").fetchone() is not None:
+                raise AuthSetupComplete
+            connection.execute(
+                """
+                INSERT INTO auth_users(id, username, password_hash, role, display_name, created_at, updated_at)
+                VALUES(?, ?, ?, 'administrator', ?, ?, ?)
+                """,
+                (user_id, username, password_hash, display_name, now, now),
+            )
+            row = connection.execute("SELECT * FROM auth_users WHERE id=?", (user_id,)).fetchone()
+        user = self._auth_user(row)
+        if user is None:
+            raise RuntimeError("created authentication user is unavailable")
+        return user
+
+    def get_auth_credentials(self, username: str) -> dict[str, Any] | None:
+        with self.connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM auth_users WHERE username=? COLLATE NOCASE",
+                (username,),
+            ).fetchone()
+        if row is None:
+            return None
+        user = self._auth_user(row)
+        return {**user, "passwordHash": row["password_hash"]} if user else None
+
+    def create_auth_session(self, *, token_hash: str, user_id: str, expires_at: str) -> None:
+        now = utc_now()
+        with self.transaction() as connection:
+            connection.execute("DELETE FROM auth_sessions WHERE expires_at<=?", (now,))
+            connection.execute(
+                """
+                INSERT INTO auth_sessions(token_hash, user_id, expires_at, created_at, last_seen_at)
+                VALUES(?, ?, ?, ?, ?)
+                """,
+                (token_hash, user_id, expires_at, now, now),
+            )
+
+    def get_auth_session(self, token_hash: str) -> dict[str, Any] | None:
+        now = utc_now()
+        with self.connect() as connection:
+            row = connection.execute(
+                """
+                SELECT u.*
+                FROM auth_sessions s
+                JOIN auth_users u ON u.id=s.user_id
+                WHERE s.token_hash=? AND s.expires_at>?
+                """,
+                (token_hash, now),
+            ).fetchone()
+        return self._auth_user(row)
+
+    def delete_auth_session(self, token_hash: str) -> None:
+        with self.transaction() as connection:
+            connection.execute("DELETE FROM auth_sessions WHERE token_hash=?", (token_hash,))
 
     def get_platform_setting(self, key: str) -> dict[str, Any] | None:
         with self.connect() as connection:

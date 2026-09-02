@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Extrio Control Plane API
-  version: 1.11.0
+  version: 1.12.0
   description: Versioned browser-facing control-plane contract for the Extrio v0.2 vertical slice.
 x-contract-id: extrio.control-plane.v1
 servers:
@@ -9,6 +9,74 @@ servers:
 security:
   - sessionCookie: []
 paths:
+  /auth/state:
+    get:
+      operationId: getAuthState
+      security: []
+      responses:
+        '200':
+          description: Authentication, first-run setup, and current-session state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthState'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /auth/setup:
+    post:
+      operationId: setupAuth
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthSetupInput'
+      responses:
+        '200':
+          description: First administrator created and authenticated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthState'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /auth/login:
+    post:
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthLoginInput'
+      responses:
+        '200':
+          description: Authenticated browser session created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthState'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /auth/logout:
+    post:
+      operationId: logout
+      responses:
+        '200':
+          description: Browser session revoked.
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required: [authenticated]
+                properties:
+                  authenticated:
+                    const: false
+        default:
+          $ref: '#/components/responses/PlatformError'
   /settings/models:
     get:
       operationId: getModelConfiguration
@@ -499,6 +567,60 @@ components:
           schema:
             $ref: '#/components/schemas/PlatformError'
   schemas:
+    AuthUser:
+      type: object
+      additionalProperties: false
+      required: [id, username, displayName, role]
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        displayName:
+          type: string
+        role:
+          type: string
+          enum: [administrator]
+    AuthState:
+      type: object
+      additionalProperties: false
+      required: [authEnabled, setupRequired, authenticated, user]
+      properties:
+        authEnabled:
+          type: boolean
+        setupRequired:
+          type: boolean
+        authenticated:
+          type: boolean
+        user:
+          oneOf:
+            - $ref: '#/components/schemas/AuthUser'
+            - type: 'null'
+    AuthSetupInput:
+      type: object
+      additionalProperties: false
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          pattern: '^[A-Za-z0-9_.-]{3,64}$'
+        password:
+          type: string
+          minLength: 12
+          maxLength: 256
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 64
+    AuthLoginInput:
+      type: object
+      additionalProperties: false
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
     CollectorStatus:
       type: string
       enum: [draft, exploring, ready_review, published]
@@ -706,6 +828,9 @@ components:
       description: Stable v1 error taxonomy. New codes may be added without changing existing meanings.
       enum:
         - AUTH_REQUIRED
+        - INVALID_CREDENTIALS
+        - SETUP_ALREADY_COMPLETED
+        - RATE_LIMITED
         - FORBIDDEN
         - VALIDATION_FAILED
         - INVALID_URL

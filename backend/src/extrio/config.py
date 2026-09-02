@@ -23,6 +23,11 @@ class Settings(BaseSettings):
     worker_poll_seconds: float = 0.25
     worker_lease_seconds: int = 120
     schedule_poll_seconds: float = 30.0
+    auth_enabled: bool = True
+    auth_cookie_name: str = "extrio_session"
+    auth_cookie_secure: bool = False
+    auth_session_hours: int = 12
+    auth_login_limit: str = "5/minute"
     model_provider: str = "openai"
     model_base_url: str = "https://api.openai.com/v1"
     model_name: str = ""

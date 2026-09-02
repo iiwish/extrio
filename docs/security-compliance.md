@@ -4,11 +4,11 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| 文档版本 | `v0.6.0` |
+| 文档版本 | `v0.7.0` |
 | 对应产品版本 | `v0.2` |
 | 状态 | `Ready_For_User_Review` |
 | 权威来源 | [`SSOT.md`](./SSOT.md) 中的 `INV-004`、`INV-005`、`INV-007`、`INV-008` |
-| 最后更新 | `2026-08-30` |
+| 最后更新 | `2026-09-02` |
 | 审批责任 | 技术负责人、安全负责人或承担安全职责的指定人员 |
 
 ## 2. 安全目标
@@ -39,7 +39,7 @@ Extrio 必须保护：
 
 ## 4. 身份与授权
 
-认证、会话、API token、服务身份和 Tenant 授权机制以 [`architecture/ADR-004-identity-access.md`](./architecture/ADR-004-identity-access.md) 为准。v0.2 不保存本地密码；人类用户采用 OIDC/OAuth 2.0 授权码 + PKCE，服务使用独立工作负载身份和 mTLS。
+公开 Alpha 的认证和会话以 [`architecture/ADR-005-local-authentication.md`](./architecture/ADR-005-local-authentication.md) 为准，使用单实例管理员、Argon2 密码哈希和服务端可撤销会话。多用户 OIDC、API token、独立服务身份与 Tenant 授权的生产目标以 [`architecture/ADR-004-identity-access.md`](./architecture/ADR-004-identity-access.md) 为准。
 
 ### 4.1 租户角色
 
