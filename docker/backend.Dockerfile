@@ -22,6 +22,10 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     && CRAWL4AI_MODE=api /opt/extrio/bin/crawl4ai-setup \
     && chmod -R a+rX /ms-playwright
 
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && rm -rf /var/lib/apt/lists/*
+
 ENV PATH="/opt/extrio/bin:${PATH}"
 
 RUN useradd --create-home --uid 10001 extrio \
