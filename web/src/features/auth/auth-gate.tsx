@@ -58,7 +58,7 @@ function AuthForm({ state, onAuthenticated }: { state: AuthState; onAuthenticate
         <form className="auth-form" onSubmit={submit}>
           {setup && <label><span>显示名称</span><Input name="displayName" autoComplete="name" maxLength={64} placeholder="管理员" /></label>}
           <label><span>用户名</span><Input name="username" autoComplete="username" minLength={3} maxLength={64} required autoFocus /></label>
-          <label><span>密码</span><Input name="password" type="password" autoComplete={setup ? 'new-password' : 'current-password'} minLength={setup ? 12 : undefined} maxLength={256} required /></label>
+          <label><span>密码</span><Input name="password" type="password" autoComplete={setup ? 'new-password' : 'current-password'} minLength={setup ? 8 : undefined} maxLength={256} required /></label>
           {error && <div className="auth-error" role="alert"><AlertCircle />{error}</div>}
           <Button type="submit" size="lg" disabled={submitting}>
             {submitting && <LoaderCircle className="animate-spin" />}{setup ? '完成设置' : '登录'}

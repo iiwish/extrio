@@ -38,7 +38,7 @@
 | Artifact Manifest 语法 | [`contracts/artifact-manifest.schema.json`](./contracts/artifact-manifest.schema.json)、[`contracts/artifact-manifest-chunk.schema.json`](./contracts/artifact-manifest-chunk.schema.json) | `extrio.artifact-manifest.v1` | `Ready_For_User_Review` | Root 与 Chunk JSON Schema |
 | 平台消息协议 | [`contracts/platform-protocol.md`](./contracts/platform-protocol.md) | `v1.2.0` | `Ready_For_User_Review` | JobEnvelope、ResultBatch、PlatformError 与 ItemEvent Envelope |
 | 平台消息语法 | [`contracts/job-envelope.schema.json`](./contracts/job-envelope.schema.json)、[`contracts/result-batch.schema.json`](./contracts/result-batch.schema.json)、[`contracts/platform-error.schema.json`](./contracts/platform-error.schema.json)、[`contracts/item-event-envelope.schema.json`](./contracts/item-event-envelope.schema.json) | `v1` | `Ready_For_User_Review` | 服务间输入、结果、错误和输出机器合同 |
-| 控制面 API 语义 | [`contracts/api-contract.md`](./contracts/api-contract.md) | `v1.12.0` | `Confirmed` | 浏览器 API 边界、管理员认证、异步命令、幂等、多供应商与多模型设置、Collector 需求归属、Collector 定义与两阶段候选规则编辑、Source 传输策略、公告 Item 语义、增量策略与 Checkpoint、规则完整性证据、错误和兼容规则 |
+| 控制面 API 语义 | [`contracts/api-contract.md`](./contracts/api-contract.md) | `v1.12.1` | `Confirmed` | 浏览器 API 边界、管理员认证、异步命令、幂等、多供应商与多模型设置、Collector 需求归属、Collector 定义与两阶段候选规则编辑、Source 传输策略、公告 Item 语义、增量策略与 Checkpoint、规则完整性证据、错误和兼容规则 |
 | 控制面 API 语法 | [`contracts/openapi.yaml`](./contracts/openapi.yaml) | `extrio.control-plane.v1` | `Confirmed` | `/api/v1` OpenAPI 3.1 机器合同与生成类型来源 |
 | 运行时行为 | [`runtime-contract.md`](./runtime-contract.md) | `v0.6.0` | `Confirmed` | 调度、终结、幂等、重试、时间窗口、Checkpoint、交付、漂移和回放 |
 | 安全与合规 | [`security-compliance.md`](./security-compliance.md) | `v0.7.0` | `Ready_For_User_Review` | Alpha 管理员认证、租户演进边界、凭据、网络、内容、隐私和审计 |
@@ -47,8 +47,8 @@
 | 规则完整性 | [`architecture/ADR-003-rule-integrity.md`](./architecture/ADR-003-rule-integrity.md) | `v1.3.0` | `Ready_For_User_Review` | 不可变规则、摘要、证明和运行时固定 |
 | 身份与访问 | [`architecture/ADR-004-identity-access.md`](./architecture/ADR-004-identity-access.md) | `v1.1.0` | `Proposed_Production_Target` | OIDC、会话、服务身份和 Tenant 授权 |
 | Alpha 管理员认证 | [`architecture/ADR-005-local-authentication.md`](./architecture/ADR-005-local-authentication.md) | `v1.0.0` | `Accepted` | 首次设置、Argon2、本地可撤销会话与登录限流 |
-| 前端原型 | [`frontend-prototype.md`](./frontend-prototype.md) | `v1.32.0` | `Confirmed` | 第一版前端闭环、管理员登录、多供应商与多模型设置、Collector 需求归属与运营列表、Run 与 Item 运营列表、Collector 任务工作区、按需证据、设计合同、技术栈和验收 |
-| 真实纵向闭环 | [`backend-vertical-slice.md`](./backend-vertical-slice.md) | `v1.12.0` | `Confirmed` | FastAPI、管理员会话、Crawl4AI、LLM RulePlan 编译、同域嵌入入口解析、确定性运行、本地持久化、可信发布与受控增量运行 |
+| 前端原型 | [`frontend-prototype.md`](./frontend-prototype.md) | `v1.32.1` | `Confirmed` | 第一版前端闭环、管理员登录、多供应商与多模型设置、Collector 需求归属与运营列表、Run 与 Item 运营列表、Collector 任务工作区、按需证据、设计合同、技术栈和验收 |
+| 真实纵向闭环 | [`backend-vertical-slice.md`](./backend-vertical-slice.md) | `v1.12.1` | `Confirmed` | FastAPI、管理员会话、Crawl4AI、LLM RulePlan 编译、同域嵌入入口解析、确定性运行、本地持久化、可信发布与受控增量运行 |
 | 发布验收 | [`releases/v0.2-acceptance.md`](./releases/v0.2-acceptance.md) | `v0.38.0` | `Confirmed` | v0.2 范围、退出标准与验收证据 |
 
 ### 2.1 冲突处理

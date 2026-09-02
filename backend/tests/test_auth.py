@@ -1,10 +1,11 @@
 import sqlite3
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 import extrio.app as app_module
-from extrio.auth import reset_login_limits
+from extrio.auth import reset_login_limits, validate_password
 from extrio.store import Store
 
 
@@ -29,6 +30,12 @@ def restore_auth(original_store: Store, original_settings) -> None:
     app_module.store = original_store
     app_module.settings = original_settings
     reset_login_limits()
+
+
+def test_password_length_boundary() -> None:
+    assert validate_password("12345678") == "12345678"
+    with pytest.raises(ValueError, match="8 至 256"):
+        validate_password("1234567")
 
 
 def test_first_run_setup_protects_control_plane_and_logout_revokes_session(tmp_path: Path) -> None:

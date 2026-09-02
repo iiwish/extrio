@@ -50,7 +50,7 @@ pnpm --dir web install --frozen-lockfile
 
 Open [http://127.0.0.1:5173](http://127.0.0.1:5173). The API documentation is
 available at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) after login.
-The first page creates the instance administrator; passwords must contain at least 12 characters. A local
+The first page creates the instance administrator; passwords must contain at least 8 characters. A local
 tender source is seeded automatically, so the full workflow can be evaluated
 without scraping a third-party site.
 

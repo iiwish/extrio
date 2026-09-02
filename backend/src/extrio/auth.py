@@ -9,7 +9,7 @@ from limits.strategies import MovingWindowRateLimiter
 from pwdlib import PasswordHash
 
 USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9_.-]{3,64}$")
-MIN_PASSWORD_LENGTH = 12
+MIN_PASSWORD_LENGTH = 8
 MAX_PASSWORD_LENGTH = 256
 
 password_hash = PasswordHash.recommended()

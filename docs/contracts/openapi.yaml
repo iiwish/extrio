@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Extrio Control Plane API
-  version: 1.12.0
+  version: 1.12.1
   description: Versioned browser-facing control-plane contract for the Extrio v0.2 vertical slice.
 x-contract-id: extrio.control-plane.v1
 servers:
@@ -606,7 +606,7 @@ components:
           pattern: '^[A-Za-z0-9_.-]{3,64}$'
         password:
           type: string
-          minLength: 12
+          minLength: 8
           maxLength: 256
         displayName:
           type: string

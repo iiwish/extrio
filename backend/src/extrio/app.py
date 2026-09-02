@@ -523,7 +523,7 @@ async def lifespan(_app: FastAPI):
             await schedule_task
 
 
-app = FastAPI(title="Extrio Control Plane API", version="1.12.0", lifespan=lifespan)
+app = FastAPI(title="Extrio Control Plane API", version="1.12.1", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
