@@ -117,10 +117,9 @@ export function HomePage() {
     <div className="page-frame dashboard-page overview-dashboard overview-dashboard-board">
       <h1 className="sr-only">概览</h1>
 
-      <header className="overview-board-header">
-        <div><strong>采集运营</strong><p>产出、质量与需要介入的异常</p></div>
+      <div className="overview-board-actions">
         <Button asChild><Link to="/collectors/new"><Plus />新建采集器</Link></Button>
-      </header>
+      </div>
 
       {hasError && <div className="dashboard-error" role="alert"><CircleAlert /><span>部分运营数据加载失败，请刷新后重试。</span></div>}
 

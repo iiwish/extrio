@@ -6250,17 +6250,11 @@
   padding-top: 28px;
 }
 
-.overview-board-header {
-  min-height: 58px;
+.overview-board-actions {
+  min-height: 32px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-}
-
-.overview-board-header > div {
-  display: grid;
-  gap: 2px;
+  justify-content: flex-end;
 }
 
 .overview-period-control {
@@ -6303,16 +6297,6 @@
   z-index: 1;
   outline: 2px solid #7aa2ff;
   outline-offset: -2px;
-}
-
-.overview-board-header strong {
-  color: #1d2d34;
-  font-size: 20px;
-}
-
-.overview-board-header p {
-  color: #718087;
-  font-size: 10px;
 }
 
 .overview-kpi-strip {

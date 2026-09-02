@@ -38,7 +38,9 @@ describe('HomePage operational dashboard', () => {
 
     expect(await screen.findByText('今日采集')).toBeInTheDocument()
     expect(await screen.findByText('1/2')).toBeInTheDocument()
-    expect(screen.getByText('采集运营')).toBeInTheDocument()
+    expect(screen.queryByText('采集运营')).not.toBeInTheDocument()
+    expect(screen.queryByText('产出、质量与需要介入的异常')).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '新建采集器' })).toHaveAttribute('href', '/collectors/new')
     const periodControl = screen.getByRole('group', { name: '趋势聚合口径' })
     expect(within(periodControl).getByRole('button', { name: '按日' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('heading', { name: '概览' })).toHaveClass('sr-only')
