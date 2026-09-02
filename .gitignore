@@ -39,3 +39,6 @@ backend/storage/
 # Build output
 build/
 site/
+
+# OpenCode agent workspace
+.omo/
