@@ -1,0 +1,264 @@
+{
+  "title": "Runs",
+  "tabs": {
+    "viewAria": "Run type",
+    "collection": "Collection runs",
+    "ai": "AI tasks"
+  },
+  "toolbar": {
+    "aria": "Runs toolbar",
+    "filterAria": "Run status filter",
+    "searchLabel": "Search runs",
+    "searchPlaceholder": "Search by collector name or Run ID",
+    "sortHint": "Newest first",
+    "aiAria": "AI tasks toolbar",
+    "aiFilterAria": "AI task status filter",
+    "aiSearchLabel": "Search AI tasks",
+    "aiSearchPlaceholder": "Search by collector or source URL"
+  },
+  "filter": {
+    "all": "All",
+    "attention": "Needs attention",
+    "succeeded": "Fully succeeded",
+    "running": "In progress",
+    "review": "Pending review"
+  },
+  "list": {
+    "aria": "Run list",
+    "colRun": "Run",
+    "colStatus": "Final status",
+    "colAccepted": "Accepted",
+    "colRejected": "Rejected",
+    "colScope": "Scope & stop",
+    "colTime": "Started / Duration",
+    "empty": "No runs match the current filter and search."
+  },
+  "aiList": {
+    "aria": "AI task list",
+    "colCollector": "Collector",
+    "colTask": "Task",
+    "colStatus": "Status",
+    "colResult": "Result",
+    "colModelUsage": "Model usage",
+    "colTime": "Started / Duration",
+    "empty": "No AI tasks match the current filter and search."
+  },
+  "row": {
+    "acceptedUnit": "items",
+    "rejectedUnit": "candidates",
+    "listPages": "{{count}} list pages",
+    "listAndDetailPages": "{{list}} list pages · {{fetched}}/{{discovered}} detail pages",
+    "changeSummary": "{{count}} changes · {{reason}}"
+  },
+  "aiRow": {
+    "kindRuleRepair": "Rule repair",
+    "kindRuleGeneration": "Rule generation",
+    "invocations": "{{count}} invocations"
+  },
+  "trigger": {
+    "initial_generation": "First generation",
+    "regeneration": "Regeneration",
+    "repair": "Post-failure repair"
+  },
+  "result": {
+    "candidate_ready": "Candidate rule generated",
+    "no_candidate": "No candidate rule generated",
+    "pending": "Generating candidate rule"
+  },
+  "phase": {
+    "queued": "Waiting to run",
+    "fetching_list": "Reading source",
+    "discovering_details": "Analyzing pages",
+    "fetching_details": "Collecting samples",
+    "validating": "Validating rule",
+    "finalizing": "Finalizing results",
+    "completed": "Completed"
+  },
+  "aiStatus": {
+    "failed": "Failed",
+    "running": "In progress",
+    "readyReview": "Pending review",
+    "published": "Published",
+    "completed": "Completed"
+  },
+  "mode": {
+    "incremental": "Incremental",
+    "initial": "Initial",
+    "historical": "Historical"
+  },
+  "stopReason": {
+    "not_applicable": "Single page completed",
+    "empty_page": "Stopped on empty page",
+    "next_link_exhausted": "Reached last page",
+    "max_pages": "Page limit reached",
+    "max_items": "Item limit reached",
+    "budget_exhausted": "Request budget exhausted",
+    "cross_host_blocked": "Cross-host blocked",
+    "time_window_reached": "Time window reached",
+    "checkpoint_reached": "Incremental checkpoint reached",
+    "detail_fetch_incomplete": "Some detail pages failed"
+  },
+  "duration": {
+    "running": "Running"
+  },
+  "detail": {
+    "notFound": "Run not found",
+    "backToRuns": "Back to runs",
+    "viewCollector": "View collector",
+    "tabsAria": "Run detail views",
+    "tab": {
+      "results": "Results",
+      "process": "Process",
+      "scope": "Scope & increments",
+      "quality": "Quality & evidence"
+    },
+    "summaryAria": "Run result summary",
+    "headerMeta": "Started {{started}} · {{duration}} · {{mode}}",
+    "facts": {
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "new": "New",
+      "updated": "Updated",
+      "unchanged": "Unchanged",
+      "duration": "Duration"
+    },
+    "outcome": {
+      "failed": "Run failed, {{count}} candidates rejected",
+      "timedOut": "Run timed out; check the budget or collection source",
+      "cancelled": "Run cancelled; results did not enter the delivery set",
+      "detailIncomplete": "{{accepted}} accepted, {{missing}} detail pages not fetched",
+      "partial": "{{accepted}} accepted, {{rejected}} rejected, awaiting handling",
+      "succeeded": "{{count}} items completed quality finalization"
+    },
+    "runningTitle": "Run in progress",
+    "runningDesc": "The same task keeps progressing after you refresh the page.",
+    "progressErrorTitle": "Unable to keep tracking run progress",
+    "partialTitle": "Some results need handling",
+    "viewRejected": "View rejected items",
+    "reviseRule": "Revise collection rule",
+    "terminal": {
+      "succeeded": "Completed",
+      "partially_succeeded": "Partially succeeded",
+      "failed": "Failed",
+      "cancelled": "Cancelled",
+      "timed_out": "Timed out"
+    },
+    "unsuccessfulTitle": "Run {{status}}",
+    "itemsHeading": "Data results",
+    "acceptedRejected": "{{accepted}} accepted · {{rejected}} rejected",
+    "itemMeta": "Published {{published}} · Collected {{observed}}",
+    "noItems": "This run produced no items.",
+    "change": {
+      "new": "New",
+      "updated": "Updated",
+      "unchanged": "Unchanged"
+    },
+    "processHeading": "Execution progress",
+    "progressDone": "{{status}}",
+    "progressCurrent": "Current stage: {{phase}}",
+    "timelineAria": "Run stages",
+    "timeline": {
+      "queued": "Queued",
+      "directFetch": "Direct collection",
+      "listPages": "List pagination",
+      "discoverDetails": "Detail discovery",
+      "fetchDetails": "Detail collection",
+      "finalize": "Quality finalization",
+      "completed": "Completed"
+    },
+    "metrics": {
+      "entryPages": "Entry pages",
+      "detailsDiscovered": "Details discovered",
+      "detailsFetched": "Details fetched",
+      "outsideWindow": "Out-of-window records",
+      "duplicateLinks": "Duplicate links",
+      "stopReason": "Stop reason"
+    },
+    "attemptsHeading": "Stage log",
+    "stage": {
+      "prepare": "Prepare",
+      "prepareDesc": "Verify the rule proof and fix the execution context for this run",
+      "directFetch": "Direct collection",
+      "directFetchDesc": "Fetched {{count}} entry pages and extracted fields",
+      "listPages": "List pagination",
+      "listPagesDesc": "Fetched {{count}} pages, {{reason}}",
+      "discoverDetails": "Detail discovery",
+      "discoverDetailsDesc": "Normalized and deduplicated {{count}} detail links",
+      "fetchDetails": "Detail collection",
+      "fetchDetailsDesc": "Successfully fetched {{fetched}}/{{discovered}} detail pages",
+      "finalize": "Quality finalization",
+      "finalizedDesc": "Accepted and rejected results are frozen",
+      "finalizingDesc": "Waiting for the result set to freeze"
+    },
+    "scopeHeading": "Run scope",
+    "scope": {
+      "executionMode": "Execution mode",
+      "modeInitial": "Initial window",
+      "modeIncremental": "Incremental lookback",
+      "modeLegacy": "Not recorded for legacy runs",
+      "window": "Effective window",
+      "windowFrom": "From {{watermark}}",
+      "notRecorded": "Not recorded for legacy runs",
+      "stopReason": "Stop reason",
+      "checkpointBefore": "Checkpoint before run",
+      "checkpointAfter": "Checkpoint after run",
+      "checkpointNotSet": "Not established",
+      "checkpointNotAdvanced": "Not advanced",
+      "change": "Data changes",
+      "changeValue": "{{added}} added · {{updated}} updated · {{unchanged}} unchanged"
+    },
+    "qualityHeading": "Quality results",
+    "qualitySummary": "{{accepted}} items entered the delivery set, {{rejected}} were rejected",
+    "quality": {
+      "titleCoverage": "Title completeness",
+      "allPass": "All passed",
+      "hasMissing": "Some missing",
+      "entryHomogeneity": "Entry URL same-origin rate",
+      "detailHomogeneity": "Detail link same-origin rate",
+      "networkBoundaryPass": "Network boundary passed",
+      "contentCoverage": "Content completeness"
+    },
+    "evidenceAria": "Run trust evidence",
+    "proofHeading": "Why these results are trustworthy",
+    "proofSub": "Fixed state of rule, collection scope, and result set",
+    "proof": {
+      "integrityVerified": "Rule proof verified",
+      "integrityVerifiedDesc": "Integrity verified before execution",
+      "integrityUnavailable": "Rule proof unavailable",
+      "integrityUnavailableDesc": "Check the rule proof status",
+      "scopeFixed": "Collection scope fixed",
+      "scopeFixedDesc": "Window and increment policy are immutable",
+      "scopeIncomplete": "Scope context incomplete",
+      "scopeIncompleteDesc": "Legacy run without a full policy record",
+      "frozen": "Result set frozen",
+      "finalizing": "Result set finalizing",
+      "artifact": {
+        "metadata_only": "Metadata evidence",
+        "sampled": "Sampled evidence",
+        "replayable": "Replayable evidence"
+      },
+      "artifactModeDesc": "How run evidence is retained"
+    },
+    "technical": {
+      "heading": "Technical information",
+      "sub": "For troubleshooting and audit"
+    },
+    "stopReason": {
+      "not_applicable": "Not applicable",
+      "empty_page": "Stopped on empty page",
+      "next_link_exhausted": "No next-page link",
+      "max_pages": "Page limit reached",
+      "max_items": "Item limit reached",
+      "budget_exhausted": "Request budget exhausted",
+      "cross_host_blocked": "Cross-host link blocked",
+      "time_window_reached": "Passed the first time window",
+      "checkpoint_reached": "Passed the incremental checkpoint",
+      "detail_fetch_incomplete": "Some detail pages failed to fetch"
+    },
+    "mode": {
+      "initial": "Initial run",
+      "incremental": "Incremental run",
+      "historical": "Historical run"
+    }
+  }
+}

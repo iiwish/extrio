@@ -1,0 +1,82 @@
+{
+  "granularity": {
+    "day": "Daily",
+    "week": "Weekly",
+    "month": "Monthly"
+  },
+  "range": {
+    "day": "Last 14 days",
+    "week": "Last 12 weeks",
+    "month": "Last 12 months"
+  },
+  "action": {
+    "newCollector": "New collector"
+  },
+  "error": {
+    "loadFailed": "Some operational data failed to load. Refresh and try again."
+  },
+  "kpi": {
+    "ariaLabel": "Core operational metrics",
+    "todayCollect": "Collected today",
+    "todayCollectDetail": "{{runs}} runs · {{rejected}} rejected",
+    "weekSuccessRate": "Run success rate this week",
+    "weekSuccessRateDetail": "{{success}} succeeded · {{abnormal}} abnormal",
+    "monthValidItems": "Valid data this month",
+    "monthValidDetail": "{{entities}} entities · {{rejected}} rejected",
+    "ruleCoverage": "Rule coverage",
+    "ruleCoverageUnpublished": "{{count}} not yet published",
+    "ruleCoverageAll": "All collectors published"
+  },
+  "trend": {
+    "title": "Collection output trend",
+    "subtitle": "{{range}} · accepted vs rejected data",
+    "periodAria": "Trend aggregation interval",
+    "viewRuns": "View runs",
+    "chartAria": "{{range}}: {{runs}} runs, {{accepted}} accepted, {{rejected}} rejected",
+    "pointTitle": "{{title}}: {{runs}} runs, {{accepted}} accepted, {{rejected}} rejected",
+    "legendAccepted": "Accepted {{count}}",
+    "legendRejected": "Rejected {{count}}",
+    "emptyTitle": "No runs in {{range}}",
+    "emptyDetail": "Switch the aggregation interval to view other time ranges."
+  },
+  "quality": {
+    "title": "Run quality",
+    "barAria": "{{success}} succeeded, {{partial}} partially succeeded, {{failed}} failed",
+    "success": "Succeeded",
+    "partial": "Partial",
+    "failed": "Failed",
+    "dataPassRate": "Data pass rate"
+  },
+  "attention": {
+    "title": "Needs attention",
+    "loading": "Loading",
+    "count_one": "{{count}} item needs manual follow-up",
+    "count_other": "{{count}} items need manual follow-up",
+    "none": "Nothing is currently blocked",
+    "viewAll": "View all",
+    "emptyTitle": "All runs healthy",
+    "emptyDetail": "No items currently require manual handling.",
+    "fixFailedRun": "Fix failed run",
+    "partialRun": "Handle partially succeeded run",
+    "partialDetailFetch": "Detail fetch {{fetched}}/{{discovered}}, {{missing}} incomplete",
+    "partialDetailCounts": "{{accepted}} accepted · {{rejected}} rejected",
+    "reviewRule": "Complete rule review",
+    "reviewRuleDetail": "Candidate rule awaits review and publication",
+    "generateRule": "Generate candidate rule",
+    "generateRuleDetail": "Source exploration not finished yet",
+    "exploreProgress": "Check exploration progress",
+    "exploreProgressDetail": "Candidate rule is being generated",
+    "firstRun": "Run for the first time",
+    "firstRunDetail": "Rule published but not yet validated",
+    "checkRejected": "Review rejected data",
+    "checkRejectedDetail_one": "{{count}} item failed the quality gate",
+    "checkRejectedDetail_other": "{{count}} items failed the quality gate"
+  },
+  "bucket": {
+    "monthLabel": "{{month}}",
+    "dayLabel": "{{month}}/{{day}}",
+    "dayTitle": "{{month}}/{{day}}",
+    "weekTitle": "Week of {{month}}/{{day}}",
+    "monthTitle": "{{month}}/{{year}}"
+  }
+}

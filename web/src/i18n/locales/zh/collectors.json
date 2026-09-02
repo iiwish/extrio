@@ -1,0 +1,125 @@
+{
+  "action": {
+    "backToCollectors": "返回采集器"
+  },
+  "list": {
+    "toolbarAria": "采集器工具栏",
+    "filterGroupAria": "Collector 筛选",
+    "filterAll": "全部",
+    "filterAttention": "需处理",
+    "filterPublished": "已发布",
+    "create": "新建采集器",
+    "aria": "Collector 列表",
+    "empty": "当前筛选下没有采集器。",
+    "columns": {
+      "collector": "采集器",
+      "requirement": "所属需求",
+      "status": "状态",
+      "activeRule": "活动规则",
+      "latestRun": "最近运行",
+      "nextStep": "下一步"
+    },
+    "requirement": {
+      "all": "全部需求",
+      "filterAria": "按采集需求筛选",
+      "searchPlaceholder": "搜索需求名称或版本",
+      "searchAria": "搜索采集需求",
+      "listAria": "采集需求",
+      "empty": "未找到采集需求"
+    },
+    "rule": {
+      "notPublished": "尚未发布",
+      "policyVersion": "策略 v{{version}}",
+      "noPolicy": "等待建立策略"
+    },
+    "run": {
+      "succeeded": "成功",
+      "none": "尚无运行",
+      "awaitingFirst": "等待首次运行",
+      "acceptedRejected": "{{accepted}} 接收 · {{rejected}} 拒绝"
+    },
+    "nextStep": {
+      "startExploration": "开始 Source 探索",
+      "startExplorationDetail": "尚未生成候选规则",
+      "finishReview": "完成字段审核",
+      "finishReviewDetail": "审核决定完成后才能发布",
+      "checkPublish": "检查发布状态",
+      "checkPublishDetail": "当前没有可执行的活动规则",
+      "firstRun": "执行首次运行",
+      "firstRunDetail": "规则已发布，等待真实运行验证",
+      "handleLatestRun": "处理最近运行",
+      "runHealthy": "运行健康",
+      "runHealthyDetail": "{{accepted}} 接收 · {{reason}}"
+    },
+    "stopReason": {
+      "notApplicable": "单页完成",
+      "emptyPage": "空页停止",
+      "nextLinkExhausted": "已到末页",
+      "maxPages": "达到分页上限",
+      "maxItems": "达到明细上限",
+      "budgetExhausted": "请求预算耗尽",
+      "crossHostBlocked": "跨主机已阻断",
+      "timeWindowReached": "已到时间窗口",
+      "checkpointReached": "已到增量检查点",
+      "detailFetchIncomplete": "部分详情抓取失败"
+    }
+  },
+  "create": {
+    "title": "新建采集器",
+    "subtitle": "选择需求并添加一个或多个入口网址。",
+    "creating": "正在创建…",
+    "createCount": "创建 {{count}} 个采集器",
+    "error": {
+      "selectRequirement": "请选择一个已有需求。",
+      "completeNameAndIntent": "请补全需求名称与采集意图。",
+      "enterUrl": "请至少输入一个采集入口 URL。",
+      "noImportableUrls": "当前批次没有可导入的 HTTP(S) URL。"
+    },
+    "validation": {
+      "invalidFormat": "URL 格式无效",
+      "unsupportedProtocol": "仅支持 HTTP 或 HTTPS",
+      "duplicate": "批次内重复",
+      "valid": "可导入",
+      "validHttpRisk": "可导入 · 匿名 HTTP 风险已标记"
+    },
+    "requirement": {
+      "heading": "归属需求",
+      "sourceAria": "需求来源",
+      "existing": "已有需求",
+      "new": "新建需求",
+      "select": "选择需求",
+      "selectExistingAria": "选择已有需求",
+      "intentLabel": "采集意图",
+      "contractLabel": "数据合同",
+      "collectorLabel": "采集器",
+      "nameLabel": "需求名称",
+      "namePlaceholder": "例如：全国公共资源交易标讯",
+      "intentPlaceholder": "描述需要采集的内容与关键字段"
+    },
+    "sources": {
+      "heading": "入口网址",
+      "countSummary": "{{valid}} 可创建 · {{issues}} 有问题",
+      "import": "导入",
+      "importAria": "从文件导入网址",
+      "previewAria": "Source 导入预览",
+      "moreCount": "另有 {{count}} 条 URL，将在提交后逐项处理。",
+      "fileEmpty": "文件中未找到有效网址",
+      "fileResult": "已导入 {{total}} 条，新增 {{added}} 条，跳过 {{skipped}} 条重复",
+      "fileReadFailed": "文件读取失败，请重试"
+    }
+  },
+  "result": {
+    "title": "Source 导入完成",
+    "continue": "继续导入",
+    "contextAria": "采集需求归属",
+    "requirementLabel": "采集需求",
+    "individualCollectors": "独立采集器",
+    "total": "总数",
+    "created": "已创建",
+    "rejected": "已拒绝",
+    "failed": "导入失败",
+    "startExploring": "开始探索",
+    "viewCollectors": "查看此需求的 Collector",
+    "perItemAria": "逐项导入结果"
+  }
+}

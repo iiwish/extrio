@@ -1,0 +1,132 @@
+{
+  "summaryAria": "AI task summary",
+  "summary": {
+    "failed": "Task produced no candidate rule",
+    "readyReview": "Candidate rule awaiting review",
+    "phaseDuration": "{{phase}} · {{duration}}",
+    "facts": {
+      "invocations": "Model invocations",
+      "tokens": "Token",
+      "acceptedSamples": "Samples passed",
+      "rejectedSamples": "Samples rejected",
+      "warnings": "Warnings",
+      "duration": "Duration"
+    }
+  },
+  "result": {
+    "candidate_ready": "Candidate rule generated",
+    "no_candidate": "No candidate rule generated",
+    "pending": "Generating candidate rule"
+  },
+  "resultDesc": {
+    "ready_review": "AI output is a candidate only; it can be published after field and sample review.",
+    "published": "The candidate rule passed manual review and was published.",
+    "superseded": "This candidate has been replaced by a newer generation result.",
+    "default": "The candidate rule and validation results will appear here once execution completes."
+  },
+  "taskKind": {
+    "rule_repair": "Rule repair",
+    "initial_generation": "First rule generation",
+    "regeneration": "Rule regeneration"
+  },
+  "reviewStatus": {
+    "not_ready": "Not yet in review",
+    "ready_review": "Awaiting manual review",
+    "published": "Reviewed and published",
+    "superseded": "Superseded by a newer version"
+  },
+  "phase": {
+    "queued": "Waiting to run",
+    "fetching_list": "Reading source pages",
+    "discovering_details": "Analyzing page structure",
+    "fetching_details": "Collecting validation samples",
+    "validating": "Validating candidate rule",
+    "finalizing": "Finalizing task results",
+    "completed": "Execution completed"
+  },
+  "attemptStatus": {
+    "queued": "Queued",
+    "running": "In progress",
+    "finalizing": "Finalizing",
+    "succeeded": "Succeeded",
+    "failed": "Failed",
+    "cancelled": "Cancelled",
+    "timed_out": "Timed out"
+  },
+  "purpose": {
+    "discover": "Page structure discovery",
+    "compile": "Rule compilation",
+    "repair": "Rule repair"
+  },
+  "state": {
+    "failed": "Failed",
+    "running": "In progress",
+    "readyReview": "Pending review",
+    "published": "Published",
+    "completed": "Completed"
+  },
+  "invocationStatus": {
+    "succeeded": "Succeeded",
+    "failed": "Failed"
+  },
+  "modelTable": {
+    "purpose": "Purpose",
+    "model": "Model",
+    "status": "Status",
+    "token": "Token",
+    "duration": "Duration",
+    "tokens": "{{prompt}} in · {{completion}} out",
+    "empty": "No model invocation records yet."
+  },
+  "duration": {
+    "running": "Running"
+  },
+  "detail": {
+    "notFound": "AI task not found",
+    "backToAiRuns": "Back to AI tasks",
+    "reviewCandidate": "Review candidate rule",
+    "viewCollector": "View collector",
+    "tabsAria": "AI task detail views",
+    "tab": {
+      "result": "Results",
+      "process": "Process",
+      "models": "Model invocations",
+      "evidence": "Evidence"
+    },
+    "headerMeta": "{{kind}} · started {{started}}",
+    "awaitingReview": "Awaiting manual review",
+    "facts": {
+      "sampleValidation": "Sample validation",
+      "sampleValidationValue": "{{accepted}} passed · {{rejected}} rejected",
+      "warnings": "Quality warnings",
+      "attempts": "Execution attempts",
+      "reviewStatus": "Review status"
+    },
+    "noCandidateTitle": "No reviewable candidate rule was produced",
+    "noCandidateFallback": "Check the process and model invocations to locate the failed stage, then regenerate.",
+    "activeHint": "The task runs in the background and is not interrupted by leaving this page.",
+    "attemptsHeading": "Execution attempts",
+    "attemptsSub": "Failed retries never overwrite history; every attempt is recorded independently",
+    "attemptNo": "Attempt {{no}}",
+    "attemptInvocations": "{{count}} model invocations",
+    "noAttempts": "The task has not started yet.",
+    "modelsHeading": "Model invocations",
+    "modelsSub": "Only invocation metadata, usage, and response summaries are kept; raw prompts and response bodies are never stored",
+    "evidenceAria": "AI task audit evidence",
+    "evidenceHeading": "Task evidence",
+    "evidenceSub": "Traceable relationships between execution, models, and the candidate rule",
+    "evidence": {
+      "attempts": "{{count}} execution attempts recorded",
+      "attemptsSub": "Retry history is never overwritten",
+      "invocations": "{{count}} model invocations verifiable",
+      "candidateFixed": "Candidate rule fixed",
+      "noCandidate": "No candidate rule yet",
+      "noSensitive": "Sensitive content is excluded from audit records",
+      "noSensitiveSub": "Only summaries and technical metadata are retained"
+    },
+    "technical": {
+      "heading": "Technical information",
+      "sub": "For troubleshooting and audit"
+    }
+  }
+}

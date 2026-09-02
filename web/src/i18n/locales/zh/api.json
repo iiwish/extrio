@@ -1,0 +1,12 @@
+{
+  "environment": {
+    "mock": "Mock 合同环境",
+    "live": "真实 API 模式"
+  },
+  "error": {
+    "connectionFailed": "无法连接控制面，请确认本地 API 已启动或启用 Mock 合同环境",
+    "controlPlaneUnavailable": "控制面暂不可用，请确认本地 API 已启动或启用 Mock 合同环境",
+    "requestFailed": "请求失败，请稍后重试",
+    "operationTerminal": "异步任务终态：{{status}}"
+  }
+}

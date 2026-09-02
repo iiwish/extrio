@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Bot, Check, ChevronDown, CircleAlert, Eye, EyeOff, KeyRound, MoreHorizontal, Pencil, Plus, Power, Star, Trash2 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { api } from '@/api/client'
 import type {
   ModelConfiguration,
@@ -11,6 +12,7 @@ import type {
   ModelProviderConfiguration,
   ModelProviderConfigurationInput,
 } from '@/api/types'
+import { APP_LANGUAGES, getAppLanguage, setAppLanguage, type AppLanguage } from '@/i18n/language'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -19,11 +21,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
-const providerOptions: Array<{ value: ModelProvider; label: string; baseUrl: string }> = [
-  { value: 'openai', label: 'OpenAI', baseUrl: 'https://api.openai.com/v1' },
-  { value: 'deepseek', label: 'DeepSeek', baseUrl: 'https://api.deepseek.com/v1' },
-  { value: 'qwen', label: '阿里云百炼', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1' },
-  { value: 'custom', label: 'OpenAI 兼容服务', baseUrl: '' },
+const providerOptions: Array<{ value: ModelProvider; labelKey: string; baseUrl: string }> = [
+  { value: 'openai', labelKey: 'provider.typeOpenai', baseUrl: 'https://api.openai.com/v1' },
+  { value: 'deepseek', labelKey: 'provider.typeDeepseek', baseUrl: 'https://api.deepseek.com/v1' },
+  { value: 'qwen', labelKey: 'provider.typeQwen', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1' },
+  { value: 'custom', labelKey: 'provider.typeCustom', baseUrl: '' },
 ]
 
 export function providerPreset(provider: ModelProvider) {
@@ -62,12 +64,14 @@ function validDefaultModelId(providers: ProviderDraft[], models: ModelDraft[], p
 }
 
 function Status({ enabled, ready }: { enabled: boolean; ready?: boolean }) {
-  if (!enabled) return <span className="settings-status muted">已停用</span>
-  if (ready === false) return <span className="settings-status warning"><CircleAlert />等待密钥</span>
-  return <span className="settings-status success"><Check />已启用</span>
+  const { t } = useTranslation('settings')
+  if (!enabled) return <span className="settings-status muted">{t('status.disabled')}</span>
+  if (ready === false) return <span className="settings-status warning"><CircleAlert />{t('status.awaitingKey')}</span>
+  return <span className="settings-status success"><Check />{t('status.enabled')}</span>
 }
 
 export function ModelSettingsPage() {
+  const { t } = useTranslation('settings')
   const queryClient = useQueryClient()
   const query = useQuery({ queryKey: ['model-configuration'], queryFn: api.modelConfiguration })
   const configuration = query.data ?? emptyConfiguration
@@ -93,7 +97,7 @@ export function ModelSettingsPage() {
     setShowApiKey(false)
     setProviderDraft(provider ? providerInput(provider) : {
       id: nextId('provider'),
-      name: preset.label,
+      name: t(preset.labelKey),
       provider: preset.value,
       baseUrl: preset.baseUrl,
       apiKey: '',
@@ -108,7 +112,7 @@ export function ModelSettingsPage() {
     setProviderDraft({
       ...providerDraft,
       provider,
-      name: providerDraft.name === previous.label ? next.label : providerDraft.name,
+      name: providerDraft.name === t(previous.labelKey) ? t(next.labelKey) : providerDraft.name,
       baseUrl: !providerDraft.baseUrl || providerDraft.baseUrl === previous.baseUrl ? next.baseUrl : providerDraft.baseUrl,
     })
   }
@@ -178,11 +182,23 @@ export function ModelSettingsPage() {
   })
 
   return <div className="page-frame settings-page">
-    <div className="settings-ai-toolbar" aria-label="模型配置概况">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <label className="field-group grid-flow-col items-center">
+        <span>{t('language.label')}</span>
+        <Select value={getAppLanguage()} onValueChange={(value) => setAppLanguage(value as AppLanguage)}>
+          <SelectTrigger aria-label={t('language.label')} className="h-7 w-36"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {APP_LANGUAGES.map((language) => <SelectItem key={language.code} value={language.code}>{language.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </label>
+      <small className="credential-help">{t('language.description')}</small>
+    </div>
+    <div className="settings-ai-toolbar" aria-label={t('toolbar.overviewAria')}>
       <div className="settings-default-model">
-        <span><Star />默认模型</span>
+        <span><Star />{t('toolbar.defaultModel')}</span>
         <Select value={configuration.defaultModelId ?? ''} onValueChange={(value) => persist(configurationInput(providers, models, value))} disabled={availableModels.length === 0 || mutation.isPending}>
-          <SelectTrigger aria-label="默认模型"><SelectValue placeholder="尚未配置" /></SelectTrigger>
+          <SelectTrigger aria-label={t('toolbar.defaultModel')}><SelectValue placeholder={t('toolbar.defaultModelPlaceholder')} /></SelectTrigger>
           <SelectContent align="end">
             {availableModels.map((model) => {
               const provider = configuration.providers.find((row) => row.id === model.providerId)
@@ -191,31 +207,31 @@ export function ModelSettingsPage() {
           </SelectContent>
         </Select>
       </div>
-      <Button onClick={() => openProvider()}><Plus />添加供应商</Button>
+      <Button onClick={() => openProvider()}><Plus />{t('provider.add')}</Button>
     </div>
 
     {query.isError && <Alert variant="destructive"><AlertDescription>{query.error.message}</AlertDescription></Alert>}
     {mutation.error && <Alert variant="destructive"><AlertDescription>{mutation.error.message}</AlertDescription></Alert>}
 
-    <div className="settings-provider-list" aria-label="供应商与模型">
+    <div className="settings-provider-list" aria-label={t('toolbar.providerListAria')}>
       {configuration.providers.map((provider) => {
         const providerModels = configuration.models.filter((model) => model.providerId === provider.id)
         const collapsed = collapsedProviderIds.has(provider.id)
-        return <section className={`settings-provider-group${collapsed ? ' is-collapsed' : ''}`} key={provider.id} aria-label={`${provider.name} 供应商`}>
+        return <section className={`settings-provider-group${collapsed ? ' is-collapsed' : ''}`} key={provider.id} aria-label={t('provider.groupAria', { name: provider.name })}>
           <header className="settings-provider-row">
-            <button type="button" className="settings-provider-collapse" aria-label={`${collapsed ? '展开' : '折叠'} ${provider.name} 的模型`} aria-expanded={!collapsed} onClick={() => toggleProviderModels(provider.id)}><ChevronDown /></button>
+            <button type="button" className="settings-provider-collapse" aria-label={collapsed ? t('provider.expandModelsAria', { name: provider.name }) : t('provider.collapseModelsAria', { name: provider.name })} aria-expanded={!collapsed} onClick={() => toggleProviderModels(provider.id)}><ChevronDown /></button>
             <span className="settings-provider-icon"><Bot /></span>
-            <span className="settings-provider-identity"><strong>{provider.name}</strong><small title={provider.baseUrl}>{providerPreset(provider.provider).label} · {provider.baseUrl}</small></span>
+            <span className="settings-provider-identity"><strong>{provider.name}</strong><small title={provider.baseUrl}>{t(providerPreset(provider.provider).labelKey)} · {provider.baseUrl}</small></span>
             <Status enabled={provider.enabled} ready={provider.credentialConfigured} />
-            <span className={`settings-secret${provider.credentialConfigured ? '' : ' warning'}`}><KeyRound />{provider.credentialConfigured ? '密钥已配置' : '未配置密钥'}</span>
-            <span className="settings-provider-count">{providerModels.length} 个模型</span>
-            <Button variant="outline" size="sm" className="settings-provider-add-model" onClick={() => openModel(undefined, provider.id)}><Plus />添加模型</Button>
+            <span className={`settings-secret${provider.credentialConfigured ? '' : ' warning'}`}><KeyRound />{provider.credentialConfigured ? t('provider.credentialConfigured') : t('provider.credentialMissing')}</span>
+            <span className="settings-provider-count">{t('provider.modelCount', { count: providerModels.length })}</span>
+            <Button variant="outline" size="sm" className="settings-provider-add-model" onClick={() => openModel(undefined, provider.id)}><Plus />{t('model.add')}</Button>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`${provider.name} 供应商操作`}><MoreHorizontal /></Button></DropdownMenuTrigger>
+              <DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={t('provider.actionsAria', { name: provider.name })}><MoreHorizontal /></Button></DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={() => openProvider(provider)}><Pencil />编辑供应商</DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => toggleProvider(provider)}><Power />{provider.enabled ? '停用供应商' : '启用供应商'}</DropdownMenuItem>
-                <DropdownMenuItem variant="destructive" onSelect={() => setDeleteTarget({ type: 'provider', id: provider.id, label: provider.name })}><Trash2 />删除供应商</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => openProvider(provider)}><Pencil />{t('provider.edit')}</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => toggleProvider(provider)}><Power />{provider.enabled ? t('provider.disable') : t('provider.enable')}</DropdownMenuItem>
+                <DropdownMenuItem variant="destructive" onSelect={() => setDeleteTarget({ type: 'provider', id: provider.id, label: provider.name })}><Trash2 />{t('provider.delete')}</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </header>
@@ -224,36 +240,36 @@ export function ModelSettingsPage() {
             {providerModels.map((model) => {
               const usable = Boolean(model.enabled && provider.enabled)
               return <div className="settings-model-row" key={model.id}>
-                <button type="button" className={`settings-model-default${model.isDefault ? ' is-active' : ''}`} aria-label={model.isDefault ? `${model.modelId} 当前为默认模型` : `设 ${model.modelId} 为默认模型`} disabled={!usable} onClick={() => persist(configurationInput(providers, models, model.id))}><Star /></button>
-                <span className="settings-model-identity"><strong>{model.modelId}</strong><small>{model.isDefault ? '默认模型' : '模型'}</small></span>
+                <button type="button" className={`settings-model-default${model.isDefault ? ' is-active' : ''}`} aria-label={model.isDefault ? t('model.isDefaultAria', { name: model.modelId }) : t('model.setAsDefaultAria', { name: model.modelId })} disabled={!usable} onClick={() => persist(configurationInput(providers, models, model.id))}><Star /></button>
+                <span className="settings-model-identity"><strong>{model.modelId}</strong><small>{model.isDefault ? t('model.defaultTag') : t('model.tag')}</small></span>
                 <Status enabled={usable} />
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`${model.modelId} 模型操作`}><MoreHorizontal /></Button></DropdownMenuTrigger>
+                  <DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={t('model.actionsAria', { name: model.modelId })}><MoreHorizontal /></Button></DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onSelect={() => openModel(model)}><Pencil />编辑模型</DropdownMenuItem>
-                    {!model.isDefault && <DropdownMenuItem disabled={!usable} onSelect={() => persist(configurationInput(providers, models, model.id))}><Star />设为默认模型</DropdownMenuItem>}
-                    <DropdownMenuItem onSelect={() => toggleModel(model)}><Power />{model.enabled ? '停用模型' : '启用模型'}</DropdownMenuItem>
-                    <DropdownMenuItem variant="destructive" onSelect={() => setDeleteTarget({ type: 'model', id: model.id, label: model.modelId })}><Trash2 />删除模型</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => openModel(model)}><Pencil />{t('model.edit')}</DropdownMenuItem>
+                    {!model.isDefault && <DropdownMenuItem disabled={!usable} onSelect={() => persist(configurationInput(providers, models, model.id))}><Star />{t('model.setAsDefault')}</DropdownMenuItem>}
+                    <DropdownMenuItem onSelect={() => toggleModel(model)}><Power />{model.enabled ? t('model.disable') : t('model.enable')}</DropdownMenuItem>
+                    <DropdownMenuItem variant="destructive" onSelect={() => setDeleteTarget({ type: 'model', id: model.id, label: model.modelId })}><Trash2 />{t('model.delete')}</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
             })}
-            {providerModels.length === 0 && <div className="settings-model-empty"><span>暂无模型</span></div>}
+            {providerModels.length === 0 && <div className="settings-model-empty"><span>{t('model.empty')}</span></div>}
           </div>
         </section>
       })}
-      {!query.isLoading && configuration.providers.length === 0 && <div className="settings-empty"><Bot /><strong>尚未配置供应商</strong><Button onClick={() => openProvider()}><Plus />添加供应商</Button></div>}
+      {!query.isLoading && configuration.providers.length === 0 && <div className="settings-empty"><Bot /><strong>{t('provider.emptyTitle')}</strong><Button onClick={() => openProvider()}><Plus />{t('provider.add')}</Button></div>}
     </div>
 
     <Dialog open={providerDraft !== null} onOpenChange={(open) => { if (!open && !mutation.isPending) setProviderDraft(null) }}>
       <DialogContent className="settings-dialog">
-        <DialogHeader><DialogTitle>{configuration.providers.some((provider) => provider.id === providerDraft?.id) ? '编辑供应商' : '添加供应商'}</DialogTitle><DialogDescription>直接配置供应商凭据。密钥会加密保存，之后不会回显。</DialogDescription></DialogHeader>
+        <DialogHeader><DialogTitle>{configuration.providers.some((provider) => provider.id === providerDraft?.id) ? t('provider.edit') : t('provider.add')}</DialogTitle><DialogDescription>{t('dialog.providerDescription')}</DialogDescription></DialogHeader>
         {providerDraft && <form id="provider-settings-form" className="settings-dialog-form" onSubmit={saveProvider}>
-          <div className="field-group"><label htmlFor="provider-name">配置名称</label><Input id="provider-name" value={providerDraft.name} onChange={(event) => setProviderDraft({ ...providerDraft, name: event.target.value })} required autoFocus /></div>
-          <div className="field-group"><label htmlFor="provider-type">供应商</label><Select value={providerDraft.provider} onValueChange={(value) => changeProviderType(value as ModelProvider)}><SelectTrigger id="provider-type" aria-label="供应商"><SelectValue /></SelectTrigger><SelectContent>{providerOptions.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent></Select></div>
-          <div className="field-group"><label htmlFor="provider-base-url">API 地址</label><Input id="provider-base-url" type="url" value={providerDraft.baseUrl} onChange={(event) => setProviderDraft({ ...providerDraft, baseUrl: event.target.value })} placeholder="https://api.example.com/v1" required /></div>
+          <div className="field-group"><label htmlFor="provider-name">{t('dialog.nameLabel')}</label><Input id="provider-name" value={providerDraft.name} onChange={(event) => setProviderDraft({ ...providerDraft, name: event.target.value })} required autoFocus /></div>
+          <div className="field-group"><label htmlFor="provider-type">{t('dialog.providerLabel')}</label><Select value={providerDraft.provider} onValueChange={(value) => changeProviderType(value as ModelProvider)}><SelectTrigger id="provider-type" aria-label={t('dialog.providerLabel')}><SelectValue /></SelectTrigger><SelectContent>{providerOptions.map((option) => <SelectItem key={option.value} value={option.value}>{t(option.labelKey)}</SelectItem>)}</SelectContent></Select></div>
+          <div className="field-group"><label htmlFor="provider-base-url">{t('dialog.baseUrlLabel')}</label><Input id="provider-base-url" type="url" value={providerDraft.baseUrl} onChange={(event) => setProviderDraft({ ...providerDraft, baseUrl: event.target.value })} placeholder="https://api.example.com/v1" required /></div>
           <div className="field-group">
-            <label htmlFor="provider-api-key">API 密钥</label>
+            <label htmlFor="provider-api-key">{t('dialog.apiKeyLabel')}</label>
             <div className="credential-input">
               <KeyRound />
               <Input
@@ -261,38 +277,38 @@ export function ModelSettingsPage() {
                 type={showApiKey ? 'text' : 'password'}
                 value={providerDraft.apiKey ?? ''}
                 onChange={(event) => setProviderDraft({ ...providerDraft, apiKey: event.target.value })}
-                placeholder={configuration.providers.some((provider) => provider.id === providerDraft.id) ? '留空保持当前密钥' : '输入供应商 API Key'}
+                placeholder={configuration.providers.some((provider) => provider.id === providerDraft.id) ? t('dialog.apiKeyKeepPlaceholder') : t('dialog.apiKeyPlaceholder')}
                 autoComplete="new-password"
                 required={!configuration.providers.some((provider) => provider.id === providerDraft.id)}
               />
-              <Button type="button" variant="ghost" size="icon-sm" title={showApiKey ? '隐藏密钥' : '显示密钥'} aria-label={showApiKey ? '隐藏密钥' : '显示密钥'} onClick={() => setShowApiKey((visible) => !visible)}>
+              <Button type="button" variant="ghost" size="icon-sm" title={showApiKey ? t('dialog.hideApiKey') : t('dialog.showApiKey')} aria-label={showApiKey ? t('dialog.hideApiKey') : t('dialog.showApiKey')} onClick={() => setShowApiKey((visible) => !visible)}>
                 {showApiKey ? <EyeOff /> : <Eye />}
               </Button>
             </div>
-            <small className="credential-help">{configuration.providers.some((provider) => provider.id === providerDraft.id) && configuration.providers.find((provider) => provider.id === providerDraft.id)?.credentialConfigured ? '已配置密钥，留空不会覆盖。' : '密钥仅在保存时提交，读取配置时不会返回。'}</small>
+            <small className="credential-help">{configuration.providers.some((provider) => provider.id === providerDraft.id) && configuration.providers.find((provider) => provider.id === providerDraft.id)?.credentialConfigured ? t('dialog.apiKeyConfiguredHelp') : t('dialog.apiKeyHelp')}</small>
           </div>
-          <label className="settings-checkbox"><Checkbox checked={providerDraft.enabled} onCheckedChange={(checked) => setProviderDraft({ ...providerDraft, enabled: checked === true })} />启用此供应商</label>
+          <label className="settings-checkbox"><Checkbox checked={providerDraft.enabled} onCheckedChange={(checked) => setProviderDraft({ ...providerDraft, enabled: checked === true })} />{t('dialog.enableProvider')}</label>
         </form>}
-        <DialogFooter><Button variant="outline" onClick={() => setProviderDraft(null)} disabled={mutation.isPending}>取消</Button><Button type="submit" form="provider-settings-form" disabled={mutation.isPending}>{mutation.isPending ? '保存中…' : '保存供应商'}</Button></DialogFooter>
+        <DialogFooter><Button variant="outline" onClick={() => setProviderDraft(null)} disabled={mutation.isPending}>{t('common:action.cancel')}</Button><Button type="submit" form="provider-settings-form" disabled={mutation.isPending}>{mutation.isPending ? t('dialog.saving') : t('dialog.saveProvider')}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
 
     <Dialog open={modelDraft !== null} onOpenChange={(open) => { if (!open && !mutation.isPending) setModelDraft(null) }}>
       <DialogContent className="settings-dialog">
-        <DialogHeader><DialogTitle>{configuration.models.some((model) => model.id === modelDraft?.id) ? '编辑模型' : '添加模型'}</DialogTitle><DialogDescription>模型 ID 是发送给供应商的真实标识。</DialogDescription></DialogHeader>
+        <DialogHeader><DialogTitle>{configuration.models.some((model) => model.id === modelDraft?.id) ? t('model.edit') : t('model.add')}</DialogTitle><DialogDescription>{t('dialog.modelDescription')}</DialogDescription></DialogHeader>
         {modelDraft && <form id="model-settings-form" className="settings-dialog-form" onSubmit={saveModel}>
-          <div className="field-group"><label htmlFor="model-provider">供应商</label><Select value={modelDraft.providerId} onValueChange={(value) => setModelDraft({ ...modelDraft, providerId: value })}><SelectTrigger id="model-provider" aria-label="模型供应商"><SelectValue /></SelectTrigger><SelectContent>{configuration.providers.map((provider) => <SelectItem key={provider.id} value={provider.id}>{provider.name}</SelectItem>)}</SelectContent></Select></div>
-          <div className="field-group"><label htmlFor="model-id">模型 ID</label><Input id="model-id" value={modelDraft.modelId} onChange={(event) => setModelDraft({ ...modelDraft, modelId: event.target.value })} placeholder="例如：gpt-4.1-mini" required autoFocus /></div>
-          <label className="settings-checkbox"><Checkbox checked={modelDraft.enabled} onCheckedChange={(checked) => setModelDraft({ ...modelDraft, enabled: checked === true })} />启用此模型</label>
+          <div className="field-group"><label htmlFor="model-provider">{t('dialog.providerLabel')}</label><Select value={modelDraft.providerId} onValueChange={(value) => setModelDraft({ ...modelDraft, providerId: value })}><SelectTrigger id="model-provider" aria-label={t('dialog.modelProviderAria')}><SelectValue /></SelectTrigger><SelectContent>{configuration.providers.map((provider) => <SelectItem key={provider.id} value={provider.id}>{provider.name}</SelectItem>)}</SelectContent></Select></div>
+          <div className="field-group"><label htmlFor="model-id">{t('dialog.modelIdLabel')}</label><Input id="model-id" value={modelDraft.modelId} onChange={(event) => setModelDraft({ ...modelDraft, modelId: event.target.value })} placeholder={t('dialog.modelIdPlaceholder')} required autoFocus /></div>
+          <label className="settings-checkbox"><Checkbox checked={modelDraft.enabled} onCheckedChange={(checked) => setModelDraft({ ...modelDraft, enabled: checked === true })} />{t('dialog.enableModel')}</label>
         </form>}
-        <DialogFooter><Button variant="outline" onClick={() => setModelDraft(null)} disabled={mutation.isPending}>取消</Button><Button type="submit" form="model-settings-form" disabled={mutation.isPending}>{mutation.isPending ? '保存中…' : '保存模型'}</Button></DialogFooter>
+        <DialogFooter><Button variant="outline" onClick={() => setModelDraft(null)} disabled={mutation.isPending}>{t('common:action.cancel')}</Button><Button type="submit" form="model-settings-form" disabled={mutation.isPending}>{mutation.isPending ? t('dialog.saving') : t('dialog.saveModel')}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
 
     <Dialog open={deleteTarget !== null} onOpenChange={(open) => { if (!open && !mutation.isPending) setDeleteTarget(null) }}>
       <DialogContent>
-        <DialogHeader><DialogTitle>确认删除</DialogTitle><DialogDescription>删除“{deleteTarget?.label}”后无法恢复。删除供应商会同时删除它的全部模型。</DialogDescription></DialogHeader>
-        <DialogFooter><Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={mutation.isPending}>取消</Button><Button variant="destructive" onClick={confirmDelete} disabled={mutation.isPending}><Trash2 />删除</Button></DialogFooter>
+        <DialogHeader><DialogTitle>{t('dialog.deleteTitle')}</DialogTitle><DialogDescription>{t('dialog.deleteDescription', { name: deleteTarget?.label ?? '' })}</DialogDescription></DialogHeader>
+        <DialogFooter><Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={mutation.isPending}>{t('common:action.cancel')}</Button><Button variant="destructive" onClick={confirmDelete} disabled={mutation.isPending}><Trash2 />{t('dialog.deleteAction')}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   </div>

@@ -1,0 +1,77 @@
+{
+  "toolbar": {
+    "overviewAria": "Model configuration overview",
+    "defaultModel": "Default model",
+    "defaultModelPlaceholder": "Not configured",
+    "providerListAria": "Providers and models"
+  },
+  "provider": {
+    "add": "Add provider",
+    "typeOpenai": "OpenAI",
+    "typeDeepseek": "DeepSeek",
+    "typeQwen": "Alibaba Cloud Bailian",
+    "typeCustom": "OpenAI-compatible service",
+    "groupAria": "{{name}} provider",
+    "expandModelsAria": "Expand models of {{name}}",
+    "collapseModelsAria": "Collapse models of {{name}}",
+    "credentialConfigured": "API key configured",
+    "credentialMissing": "No API key configured",
+    "modelCount": "{{count}} models",
+    "modelCount_one": "{{count}} model",
+    "modelCount_other": "{{count}} models",
+    "actionsAria": "{{name}} provider actions",
+    "edit": "Edit provider",
+    "enable": "Enable provider",
+    "disable": "Disable provider",
+    "delete": "Delete provider",
+    "emptyTitle": "No providers yet"
+  },
+  "model": {
+    "add": "Add model",
+    "edit": "Edit model",
+    "setAsDefault": "Set as default model",
+    "setAsDefaultAria": "Set {{name}} as the default model",
+    "isDefaultAria": "{{name}} is the default model",
+    "defaultTag": "Default model",
+    "tag": "Model",
+    "actionsAria": "{{name}} model actions",
+    "enable": "Enable model",
+    "disable": "Disable model",
+    "delete": "Delete model",
+    "empty": "No models yet"
+  },
+  "dialog": {
+    "providerDescription": "Configure provider credentials directly. Keys are stored encrypted and never shown again.",
+    "nameLabel": "Configuration name",
+    "providerLabel": "Provider",
+    "baseUrlLabel": "API base URL",
+    "apiKeyLabel": "API key",
+    "apiKeyKeepPlaceholder": "Leave empty to keep the current key",
+    "apiKeyPlaceholder": "Enter the provider API key",
+    "showApiKey": "Show API key",
+    "hideApiKey": "Hide API key",
+    "apiKeyConfiguredHelp": "An API key is configured; leaving this empty keeps it unchanged.",
+    "apiKeyHelp": "The key is submitted only when saving and is never returned when the configuration is read.",
+    "enableProvider": "Enable this provider",
+    "saveProvider": "Save provider",
+    "modelDescription": "The model ID is the real identifier sent to the provider.",
+    "modelProviderAria": "Model provider",
+    "modelIdLabel": "Model ID",
+    "modelIdPlaceholder": "e.g. gpt-4.1-mini",
+    "enableModel": "Enable this model",
+    "saveModel": "Save model",
+    "saving": "Saving…",
+    "deleteTitle": "Confirm deletion",
+    "deleteDescription": "Deleting “{{name}}” cannot be undone. Deleting a provider also deletes all of its models.",
+    "deleteAction": "Delete"
+  },
+  "status": {
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "awaitingKey": "Awaiting API key"
+  },
+  "language": {
+    "label": "Interface language",
+    "description": "Switch the console display language. The choice applies immediately and is remembered on this device."
+  }
+}

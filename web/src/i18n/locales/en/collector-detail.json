@@ -1,0 +1,437 @@
+{
+  "notFound": {
+    "title": "Object unavailable",
+    "backToCollectors": "Back to collectors",
+    "missingCollector": "Collector not found"
+  },
+  "header": {
+    "currentPhase": "Current phase: ",
+    "exploringNow": "Exploring",
+    "generateCandidates": "Generate candidate rules",
+    "exploringInProgress": "Exploration in progress",
+    "runningNow": "Running",
+    "runNow": "Run now",
+    "operationIncomplete": "Operation not completed",
+    "viewsAria": "Collector detail views",
+    "ruleReviewTab": "Rule review",
+    "ruleTab": "Rules",
+    "configTab": "Configuration"
+  },
+  "evidenceSheet": {
+    "title": "Evidence details",
+    "description": "View collection evidence and lineage for the current field, rule, or item."
+  },
+  "overview": {
+    "pagination": {
+      "maxPages": "Up to {{maxPages}} pages",
+      "nextLink": "Continuous paging, up to {{maxPages}} pages",
+      "single": "Single-page direct collection",
+      "listOnePage": "List, 1 page"
+    },
+    "runningTitle": "Collection task in progress",
+    "state": {
+      "published": "Collector is ready",
+      "readyReview": "Candidate rule awaiting review",
+      "exploring": "Generating candidate rules",
+      "draft": "Source definition saved"
+    },
+    "description": {
+      "running": "The pinned active rule is executing; the latest run and checkpoint update on completion.",
+      "published": "The active rule and collection scope are in effect; run now or inspect the latest results.",
+      "readyReview": "Candidate fields and samples are ready; complete manual decisions before publishing.",
+      "exploring": "The system is analyzing the entry, pagination, detail links, and field quality.",
+      "draft": "Confirm the collection brief, entry URL, and run scope, then generate candidate rules."
+    },
+    "aiRun": {
+      "title": "Latest AI task",
+      "invocations": "{{total}} model invocations",
+      "inProgress": "In progress",
+      "notReady": "Completed",
+      "superseded": "Superseded"
+    },
+    "mode": {
+      "single": "Direct collection",
+      "listDetail": "List to detail"
+    },
+    "facts": {
+      "sourceUrl": "Entry URL",
+      "activeRule": "Active rule",
+      "fieldsSummary": "{{total}} fields · {{mode}}",
+      "notPublished": "Not published",
+      "publishedFrozen": "Published and frozen",
+      "awaitingReview": "Review after candidate rules are generated",
+      "runScope": "Run scope",
+      "lookbackSummary": "Look back {{days}} days · cap {{maxItems}} items",
+      "defaultPolicy": "Using the default collection policy",
+      "latestRun": "Latest run",
+      "runDecisions": "{{accepted}} accepted · {{rejected}} rejected",
+      "noRuns": "No runs yet",
+      "runMeta": "{{duration}} · watermark {{watermark}}",
+      "completedDuration": "Completed",
+      "noWatermark": "not established",
+      "publishToRun": "Run immediately after the rule is published"
+    },
+    "empty": {
+      "title": "Run in progress",
+      "description": "Live phases and metrics appear at the top of the page; the latest results update here after completion."
+    },
+    "nextStep": {
+      "readyReviewTitle": "Finish rule review and publish",
+      "readyReviewDescription": "Open \"Rule review\" to resolve pending field decisions; technical evidence expands from the right only when needed.",
+      "designTitle": "Generate and validate candidate rules",
+      "designDescription": "Confirm the source definition and collection scope first, then start rule generation."
+    }
+  },
+  "validation": {
+    "title": {
+      "published": "Rule published and frozen",
+      "candidate": "Candidate rule fully validated"
+    },
+    "description": {
+      "published": "Runs always use this reviewed rule; it never changes automatically.",
+      "candidate": "Publish once field review is complete."
+    },
+    "badgeCandidate": "Candidate",
+    "metrics": {
+      "passed": "Checks passed",
+      "detailSamples": "Detail samples",
+      "outputFields": "Output fields"
+    },
+    "flowLabel": "Collection flow",
+    "flowListDetail": "List discovery → detail collection",
+    "decisionLabel": "Review outcome",
+    "decisionSummary": {
+      "excluded": "{{total}} optional fields excluded; the rest passed",
+      "riskAccepted": "{{total}} fields risk-accepted; the rest passed",
+      "allPassed": "All fields passed review"
+    }
+  },
+  "review": {
+    "blockingTitle": "{{total}} issues blocking publish",
+    "blockingDetail": ": {{warning}}",
+    "warningJoin": ", ",
+    "viewEvidence": "View evidence",
+    "clearTitle": "Field risks resolved",
+    "clearDescription": "All quality warnings have been risk-accepted or the fields excluded; the candidate rule can be published.",
+    "summaryAria": "Review summary",
+    "fieldsLabel": "Fields",
+    "decidedLabel": "Decided",
+    "decidedCount": "{{decided}}/{{total}} decided",
+    "pendingLabel": "Pending",
+    "pendingOption": "Pending decision",
+    "validatedSamples": "Validated samples",
+    "fieldsTab": "Field review",
+    "samplesTab": "Samples",
+    "sectionTitle": "Confirm the output contract field by field",
+    "sectionDescription": "Selectors, DOM snippets, and source evidence open on demand without cluttering the main review table.",
+    "required": "Required",
+    "optional": "Optional",
+    "warningSuffix": " · warning",
+    "decisionAria": "Review decision for {{label}}",
+    "approveOption": "Include",
+    "riskAcceptOption": "Accept risk",
+    "excludeOption": "Exclude field",
+    "viewFieldEvidence": "View evidence for {{label}}",
+    "samplesTitle": "Samples and quality conclusions",
+    "samplesDescription": "Select a sample to view item lineage, detail URL, and collection version."
+  },
+  "flow": {
+    "singleAria": "Single-stage collection flow",
+    "listDetailAria": "Two-stage collection flow",
+    "singleTitle": "Entry fetch and field extraction complete in one stage",
+    "listDetailTitle": "List discovery and detail collection complete in one run",
+    "singleDescription": "A single-page Source extracts fields directly, still bounded by the pinned RuleVersion, request budget, and quality finalization.",
+    "listDetailDescription": "Both stages share the pinned RuleVersion, request budget, and final quality finalization; they are not split into two independent tasks.",
+    "paginationPage": "page · {{parameter}}={{start}}… · up to {{maxPages}} pages",
+    "paginationNextLink": "next_link · {{selector}} · up to {{maxPages}} pages",
+    "paginationNone": "No pagination",
+    "stageDirect": "Direct collection",
+    "stageList": "List discovery",
+    "detailCollection": "Detail collection",
+    "detailLink": "Detail link",
+    "listTime": "List time",
+    "singleQualityNote": "Single-page fields go straight into type, identity, and quality gate checks.",
+    "listSampleNote": "Sampled {{listPages}} list pages and discovered {{detailUrls}} detail links.",
+    "requestInput": "Request input",
+    "requestInputValue": "Detail URLs normalized in Stage 01",
+    "fieldExtraction": "Field extraction",
+    "fieldExtractionValue": "{{total}} fields · detail-first merge",
+    "qualityFinalization": "Quality finalization",
+    "qualityFinalizationValue": "Type conversion → identity → required → accepted/rejected",
+    "validationCoverage": "Validation coverage",
+    "validationCoverageValue": "{{validated}}/{{total}} detail samples passed",
+    "detailBoundaryNote": "Every detail URL re-runs allowedHosts, redirect, and request budget checks.",
+    "detailUrlSamples": "Discovered detail URL samples"
+  },
+  "config": {
+    "gridAria": "Collector definition and rule workspace",
+    "definition": {
+      "title": "Collector definition",
+      "requirement": "Requirement",
+      "intent": "Source collection brief",
+      "dataContract": "Data contract",
+      "edit": "Edit",
+      "dialogTitle": "Edit collector definition",
+      "dialogDescription": "The requirement and data contract stay unchanged; the collector name identifies the source, while the source collection brief and entry URL jointly determine the candidate rule.",
+      "name": "Collector name",
+      "newRuleTitle": "New rule required",
+      "newRuleDescription": "The current candidate becomes invalid; the published rule stays immutable and is kept as historical evidence.",
+      "saveOnly": "Save definition only",
+      "save": "Save details",
+      "saveAndRegenerate": "Save and regenerate"
+    },
+    "ruleState": {
+      "none": "Not generated",
+      "active": "Active rule",
+      "candidate": "Candidate in review"
+    },
+    "pagination": {
+      "nextLink": "next_link · up to {{maxPages}} pages",
+      "pageParam": "{{parameter}} parameter · up to {{maxPages}} pages",
+      "none": "No pagination"
+    },
+    "rule": {
+      "workspaceTitle": "Rule workspace",
+      "statusLabel": "Rule status",
+      "awaitingReview": "Candidate awaiting review",
+      "modeLabel": "Collection mode",
+      "modeSingle": "Single stage",
+      "modeListDetail": "List → detail",
+      "fieldsLabel": "Fields",
+      "fieldsCount": "{{total}}",
+      "listSelector": "List selector",
+      "pagination": "Pagination",
+      "emptyTitle": "Waiting for candidate rule generation",
+      "emptyDescription": "The system will analyze the entry, pagination, detail links, and output fields; results enter manual review.",
+      "rebuildWarning": "The requirement input has changed; historical versions remain traceable but will not run again. Regenerate and publish."
+    },
+    "action": {
+      "generating": "Generating",
+      "regenerate": "Regenerate"
+    },
+    "regenerate": {
+      "dialogTitle": "Regenerate candidate rules?",
+      "dialogDescription": "The system revisits the Source and replaces the current candidate. Published rules and historical runs are unchanged; the new candidate must be reviewed and published again.",
+      "confirm": "Confirm regeneration"
+    },
+    "editor": {
+      "editRule": "Edit rule",
+      "dialogDescription": "Modify selectors and pagination; saving produces a new candidate for review.",
+      "viewsAria": "Rule configuration views",
+      "editTab": "Rule editor",
+      "stageSingleTitle": "Page extraction",
+      "stageListTitle": "List discovery",
+      "listSelectorAria": "List item selector",
+      "listFields": "List fields",
+      "method": "Method",
+      "nextLink": "Next-page link",
+      "pageParam": "Page parameter",
+      "nextLinkSelector": "Next-page selector",
+      "parameterName": "Parameter name",
+      "pageStart": "Start page",
+      "pageStep": "Step",
+      "maxPages": "Max pages",
+      "stopWhenNoItems": "Stop on empty page",
+      "outputFields": "Output fields",
+      "changeCount": "{{total}} changes",
+      "noChanges": "No changes",
+      "saving": "Saving and validating",
+      "saveAsCandidate": "Save as new candidate"
+    },
+    "fieldLabels": {
+      "title": "List title",
+      "publishTime": "Publish time",
+      "listTitle": "List title",
+      "listPublishedAt": "List publish time",
+      "detailUrl": "Detail URL"
+    }
+  },
+  "schedule": {
+    "panelAria": "Scheduled run plan",
+    "title": "Scheduled runs",
+    "description": "Controls when the collector runs automatically; if a previous run is still in progress, this round is skipped and never collected concurrently.",
+    "configure": "Configure plan",
+    "dialogTitle": "Configure scheduled runs",
+    "dialogDescription": "Common frequencies are enough; cron is only needed in custom mode.",
+    "enableAuto": "Enable automatic runs",
+    "enableAutoHint": "\"Run now\" remains available when disabled",
+    "frequency": "Frequency",
+    "every6h": "Every 6 hours",
+    "daily": "Daily",
+    "weekdays": "Weekdays",
+    "weekly": "Weekly",
+    "custom": "Custom cron",
+    "time": "Run time",
+    "weekdayLabel": "Day of week",
+    "weekday": {
+      "0": "Sun",
+      "1": "Mon",
+      "2": "Tue",
+      "3": "Wed",
+      "4": "Thu",
+      "5": "Fri",
+      "6": "Sat"
+    },
+    "cronExpression": "Cron expression",
+    "cronFormatHint": "5 fields: minute hour day month weekday",
+    "timezone": "Time zone",
+    "timezoneValue": "China Standard Time",
+    "conflict": "Run conflicts",
+    "skipConflict": "Skip this round",
+    "actualCron": "Effective cron",
+    "saving": "Saving",
+    "save": "Save plan",
+    "statusLabel": "Status",
+    "autoEnabled": "Automatic runs enabled",
+    "manualOnly": "Manual runs only",
+    "frequencyLabel": "Frequency",
+    "notSet": "Not set",
+    "nextRun": "Next run",
+    "skipWhenRunning": "Skipped while a run is active",
+    "pendingCalculation": "Computed once enabled",
+    "dailyAt": "Daily at {{time}}",
+    "weekdaysAt": "Weekdays at {{time}}",
+    "weekdayAt": "{{weekday}} at {{time}}",
+    "customCron": "Custom cron · {{cron}}"
+  },
+  "policy": {
+    "panelAria": "Collection scope and incremental policy",
+    "title": "Collection scope and increments",
+    "description": "The first run looks back over a time window; later runs look back from the successful checkpoint while pagination stays pinned by the published rule.",
+    "edit": "Edit policy",
+    "dialogTitle": "Edit collection scope and increments",
+    "dialogDescription": "Saved immediately for subsequent runs; historical runs are unchanged.",
+    "initialWindow": "Initial window",
+    "recentDays": "Last {{days}} days",
+    "lookback": "Increment lookback",
+    "stopAfterOldPages": "Stop after old pages",
+    "maxPages": "Page cap",
+    "maxItems": "Item cap",
+    "unit": {
+      "days": "days",
+      "pages": "pages",
+      "items": "items"
+    },
+    "saving": "Saving",
+    "save": "Save policy",
+    "daysValue": "{{days}} days",
+    "stopCondition": "Stop condition",
+    "consecutiveOldPages": "{{total}} consecutive older pages",
+    "runLimit": "Run limits",
+    "runLimitValue": "{{pages}} pages · {{items}} items"
+  },
+  "explore": {
+    "phase": {
+      "queued": {
+        "title": "Exploration task queued",
+        "detail": "Assigning a restricted exploration worker."
+      },
+      "fetchingList": {
+        "titleSingle": "Fetching the collection entry",
+        "titleList": "Fetching the list entry",
+        "detail": "Transport protocol and host boundary confirmed; reading the Source response."
+      },
+      "discoveringDetails": {
+        "title": "Identifying pagination and detail links",
+        "detail": "Generating the list selector, pagination strategy, and detail URL rules."
+      },
+      "fetchingDetails": {
+        "title": "Collecting detail samples",
+        "detail": "Each detail URL re-runs network boundary and request budget checks."
+      },
+      "validating": {
+        "titleSingle": "Validating direct extraction fields",
+        "titleList": "Validating detail fields",
+        "detail": "Candidate fields are passing type, identity, and quality gates."
+      },
+      "finalizing": {
+        "title": "Freezing the candidate rule",
+        "detail": "GatherSpec, evidence summary, and quality warnings are being finalized."
+      },
+      "completed": {
+        "title": "Candidate rule ready",
+        "detail": "Field preview and collection evidence are now in the review area."
+      }
+    },
+    "stage": {
+      "queued": "Queued",
+      "fetch": "Fetch entry",
+      "validate": "Field validation",
+      "finale": "Finalize candidate"
+    },
+    "stageList": {
+      "queued": "Queued",
+      "listPages": "List paging",
+      "detailDiscovery": "Detail discovery",
+      "detailFetch": "Detail collection",
+      "validate": "Field validation",
+      "finale": "Finalize candidate"
+    }
+  },
+  "runs": {
+    "phase": {
+      "queued": {
+        "title": "Run queued",
+        "detail": "Acquiring the execution lease and pinning the active rule."
+      },
+      "fetchingList": {
+        "title": "Executing the published rule",
+        "detail": "Crawlee is fetching entry and pagination responses."
+      },
+      "discoveringDetails": {
+        "title": "Discovering detail URLs",
+        "detail": "Detail links are being normalized, deduplicated, and same-origin checked."
+      },
+      "fetchingDetails": {
+        "title": "Fetching detail pages",
+        "detail": "Detail requests are bounded by budget, retries, and redirect policy."
+      },
+      "validating": {
+        "title": "Running quality checks",
+        "detail": "Extracted results are passing type, identity, and required gates."
+      },
+      "finalizing": {
+        "title": "Finalizing quality decisions",
+        "detail": "The accepted and rejected sets are being frozen; no delivery side effects yet."
+      },
+      "completed": {
+        "title": "Run terminal state recorded",
+        "detail": "Results, evidence, and recovery info are now queryable."
+      }
+    },
+    "metrics": {
+      "listPages": "entry pages",
+      "detailUrls": "detail links",
+      "detailPages": "detail pages"
+    }
+  },
+  "published": {
+    "resultsTitle": "Latest collection results",
+    "resultsDescription": "Only the latest 5 items are shown; full execution evidence and quality stats live in the run details.",
+    "viewFullRun": "View full run",
+    "changeNew": "New",
+    "changeUpdated": "Updated",
+    "changeUnchanged": "Unchanged",
+    "openItemAria": "Open {{title}}",
+    "readyTitle": "Rule is ready",
+    "readyDescription": "Click \"Run now\" to execute one collection with the fixed rule version and inspect the results."
+  },
+  "publish": {
+    "trigger": "Review and publish",
+    "inProgress": "Publishing",
+    "title": "Publish rule?",
+    "description": "Rule content becomes immutable after publishing. Confirm field decisions and quality check results.",
+    "reviewer": "Reviewer",
+    "reviewerName": "Lin Ran",
+    "fieldDecisions": "Field decisions",
+    "decisionSummary": "{{approved}} approved · {{riskAccepted}} risk accepted · {{excluded}} excluded",
+    "qualityChecks": "Quality checks",
+    "qualitySummary": "{{passed}} passed · {{warnings}} warnings resolved",
+    "backToReview": "Back to review",
+    "confirm": "Confirm publish",
+    "confirming": "Publishing…"
+  },
+  "sample": {
+    "publishedObserved": "Published {{publishedAt}} · observed {{observedAt}}"
+  }
+}

@@ -1,3 +1,5 @@
+import i18next from 'i18next'
+
 import type {
   BatchCollectorImportResult,
   AuthLoginInput,
@@ -30,7 +32,9 @@ const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim()
 export const API_BASE_URL = (configuredBaseUrl || '/api/v1').replace(/\/$/, '')
 
 export function apiEnvironmentLabel() {
-  return import.meta.env.VITE_ENABLE_MOCKS === 'true' ? 'Mock 合同环境' : '真实 API 模式'
+  return import.meta.env.VITE_ENABLE_MOCKS === 'true'
+    ? i18next.t('api:environment.mock')
+    : i18next.t('api:environment.live')
 }
 
 export class ApiRequestError extends Error {
@@ -64,7 +68,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   } catch {
     throw new ApiRequestError({
       code: 'UNEXPECTED_RESPONSE',
-      message: '无法连接控制面，请确认本地 API 已启动或启用 Mock 合同环境',
+      message: i18next.t('api:error.connectionFailed'),
       requestId: 'request_id_unavailable',
       retryable: true,
     })
@@ -77,8 +81,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiRequestError(error ?? {
       code: 'UNEXPECTED_RESPONSE',
       message: response.status === 502 || response.status === 503
-        ? '控制面暂不可用，请确认本地 API 已启动或启用 Mock 合同环境'
-        : '请求失败，请稍后重试',
+        ? i18next.t('api:error.controlPlaneUnavailable')
+        : i18next.t('api:error.requestFailed'),
       requestId: response.headers.get('X-Request-ID') ?? 'request_id_unavailable',
       retryable: response.status >= 500,
     })
@@ -128,7 +132,7 @@ export async function waitForOperation(
     const terminalCode = operation.status === 'cancelled' ? 'OPERATION_CANCELLED' : operation.status === 'timed_out' ? 'OPERATION_TIMED_OUT' : 'INTERNAL_ERROR'
     throw new ApiRequestError(operation.error ?? {
       code: terminalCode,
-      message: `异步任务终态：${operation.status}`,
+      message: i18next.t('api:error.operationTerminal', { status: operation.status }),
       requestId: 'operation_request_id_unavailable',
       retryable: false,
     })

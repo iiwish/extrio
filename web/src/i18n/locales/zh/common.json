@@ -1,0 +1,97 @@
+{
+  "nav": {
+    "overview": "概览",
+    "collectors": "采集器",
+    "runs": "运行",
+    "items": "数据",
+    "settings": "设置",
+    "mainNavAria": "主导航"
+  },
+  "action": {
+    "cancel": "取消",
+    "close": "关闭",
+    "refresh": "刷新",
+    "back": "返回",
+    "view": "查看",
+    "open": "打开",
+    "search": "搜索",
+    "confirm": "确认",
+    "retry": "重试",
+    "detailBack": "返回{{target}}列表",
+    "backToRequirement": "返回所属需求"
+  },
+  "state": {
+    "loading": "加载中…",
+    "empty": "暂无数据",
+    "error": "加载失败"
+  },
+  "aria": {
+    "brandHome": "Extrio 首页",
+    "currentPage": "当前页面",
+    "pageLoading": "页面加载中",
+    "currentUser": "当前用户：{{name}}"
+  },
+  "topbar": {
+    "administrator": "管理员",
+    "logout": "退出登录"
+  },
+  "stage": {
+    "railAria": "Collector 阶段",
+    "design": "设计",
+    "explore": "探索",
+    "review": "审核",
+    "publish": "发布",
+    "run": "运行"
+  },
+  "status": {
+    "draft": "待探索",
+    "exploring": "探索中",
+    "ready_review": "待审核",
+    "published": "已发布",
+    "queued": "排队中",
+    "running": "采集中",
+    "finalizing": "终结中",
+    "succeeded": "已成功",
+    "partially_succeeded": "部分成功",
+    "failed": "失败",
+    "cancelled": "已取消",
+    "timed_out": "已超时",
+    "accepted": "已接收",
+    "rejected": "已拒绝"
+  },
+  "decision": {
+    "approved": "已确认纳入",
+    "risk_accepted": "已接受风险",
+    "excluded": "已排除",
+    "pending": "等待决策"
+  },
+  "evidence": {
+    "panelAria": "证据面板",
+    "candidateProofTitle": "候选规则证据",
+    "sourceProofTitle": "Source 证据",
+    "confidence": "置信度",
+    "requiredField": "必填字段",
+    "optionalField": "可选字段",
+    "reviewDecision": "审核决定",
+    "qualityWarning": "质量警告",
+    "extractSample": "提取样本",
+    "domSnippet": "DOM 片段",
+    "allowedHosts": "允许主机",
+    "awaitingSource": "等待 Source",
+    "entryUrl": "采集入口",
+    "paginationStrategy": "分页策略",
+    "collectionMode": "采集模式",
+    "detailDiscovery": "详情发现",
+    "singleModeValue": "single · 单阶段直接提取",
+    "candidateStatus": "候选状态",
+    "candidateStatusValue": "已完成校验，等待审核发布",
+    "networkBoundary": "网络边界",
+    "rejectedEvidence": "拒绝候选证据",
+    "itemLineageEvidence": "Item 谱系证据",
+    "itemLineage": "Item 谱系",
+    "listTitle": "列表标题",
+    "detailUrl": "详情 URL",
+    "observedAt": "采集时间",
+    "lineageChainAria": "谱系链"
+  }
+}

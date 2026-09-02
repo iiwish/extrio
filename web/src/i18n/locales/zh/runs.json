@@ -1,0 +1,264 @@
+{
+  "title": "运行",
+  "tabs": {
+    "viewAria": "运行类型",
+    "collection": "采集运行",
+    "ai": "AI 任务"
+  },
+  "toolbar": {
+    "aria": "运行工具栏",
+    "filterAria": "Run 状态筛选",
+    "searchLabel": "搜索运行",
+    "searchPlaceholder": "搜索采集器名称或 Run ID",
+    "sortHint": "按开始时间倒序",
+    "aiAria": "AI 任务工具栏",
+    "aiFilterAria": "AI 任务状态筛选",
+    "aiSearchLabel": "搜索 AI 任务",
+    "aiSearchPlaceholder": "搜索采集器或来源 URL"
+  },
+  "filter": {
+    "all": "全部",
+    "attention": "需处理",
+    "succeeded": "完整成功",
+    "running": "进行中",
+    "review": "待审核"
+  },
+  "list": {
+    "aria": "Run 列表",
+    "colRun": "运行",
+    "colStatus": "终态",
+    "colAccepted": "接收",
+    "colRejected": "拒绝",
+    "colScope": "范围与停止",
+    "colTime": "开始 / 耗时",
+    "empty": "没有符合当前筛选和搜索的运行。"
+  },
+  "aiList": {
+    "aria": "AI 任务列表",
+    "colCollector": "采集器",
+    "colTask": "任务",
+    "colStatus": "状态",
+    "colResult": "结果",
+    "colModelUsage": "模型消耗",
+    "colTime": "开始 / 耗时",
+    "empty": "没有符合当前筛选和搜索的 AI 任务。"
+  },
+  "row": {
+    "acceptedUnit": "条数据",
+    "rejectedUnit": "条候选",
+    "listPages": "{{count}} 列表页",
+    "listAndDetailPages": "{{list}} 列表页 · {{fetched}}/{{discovered}} 详情页",
+    "changeSummary": "{{count}} 条变更 · {{reason}}"
+  },
+  "aiRow": {
+    "kindRuleRepair": "规则修复",
+    "kindRuleGeneration": "规则生成",
+    "invocations": "{{count}} 次调用"
+  },
+  "trigger": {
+    "initial_generation": "首次生成",
+    "regeneration": "重新生成",
+    "repair": "失败后修复"
+  },
+  "result": {
+    "candidate_ready": "候选规则已生成",
+    "no_candidate": "未生成候选规则",
+    "pending": "正在生成候选规则"
+  },
+  "phase": {
+    "queued": "等待执行",
+    "fetching_list": "读取来源",
+    "discovering_details": "分析页面",
+    "fetching_details": "采集样本",
+    "validating": "验证规则",
+    "finalizing": "整理结果",
+    "completed": "已完成"
+  },
+  "aiStatus": {
+    "failed": "失败",
+    "running": "进行中",
+    "readyReview": "待审核",
+    "published": "已发布",
+    "completed": "已完成"
+  },
+  "mode": {
+    "incremental": "增量",
+    "initial": "首次",
+    "historical": "历史"
+  },
+  "stopReason": {
+    "not_applicable": "单页完成",
+    "empty_page": "空页停止",
+    "next_link_exhausted": "已到末页",
+    "max_pages": "达到分页上限",
+    "max_items": "达到明细上限",
+    "budget_exhausted": "请求预算耗尽",
+    "cross_host_blocked": "跨主机已阻断",
+    "time_window_reached": "时间窗口停止",
+    "checkpoint_reached": "增量检查点停止",
+    "detail_fetch_incomplete": "部分详情抓取失败"
+  },
+  "duration": {
+    "running": "执行中"
+  },
+  "detail": {
+    "notFound": "Run 不存在",
+    "backToRuns": "返回运行",
+    "viewCollector": "查看采集器",
+    "tabsAria": "运行详情视图",
+    "tab": {
+      "results": "结果",
+      "process": "执行过程",
+      "scope": "范围与增量",
+      "quality": "质量与证据"
+    },
+    "summaryAria": "运行结果摘要",
+    "headerMeta": "{{started}} 开始 · {{duration}} · {{mode}}",
+    "facts": {
+      "accepted": "接收",
+      "rejected": "拒绝",
+      "new": "新增",
+      "updated": "更新",
+      "unchanged": "未变化",
+      "duration": "耗时"
+    },
+    "outcome": {
+      "failed": "运行失败，{{count}} 个候选被拒绝",
+      "timedOut": "运行超时，需要检查预算或采集来源",
+      "cancelled": "运行已取消，结果未进入交付集",
+      "detailIncomplete": "{{accepted}} 条接收，{{missing}} 个详情页未抓取",
+      "partial": "{{accepted}} 条接收，{{rejected}} 条拒绝，等待处理",
+      "succeeded": "{{count}} 条数据已完成质量终结"
+    },
+    "runningTitle": "运行正在执行",
+    "runningDesc": "刷新页面后仍会继续读取同一任务的进度。",
+    "progressErrorTitle": "无法继续读取运行进度",
+    "partialTitle": "部分结果需要处理",
+    "viewRejected": "查看拒绝项",
+    "reviseRule": "修订采集规则",
+    "terminal": {
+      "succeeded": "完成",
+      "partially_succeeded": "部分成功",
+      "failed": "失败",
+      "cancelled": "已取消",
+      "timed_out": "已超时"
+    },
+    "unsuccessfulTitle": "运行{{status}}",
+    "itemsHeading": "数据结果",
+    "acceptedRejected": "{{accepted}} 条接收 · {{rejected}} 条拒绝",
+    "itemMeta": "发布时间 {{published}} · 采集时间 {{observed}}",
+    "noItems": "本次运行没有产生 Item。",
+    "change": {
+      "new": "新增",
+      "updated": "更新",
+      "unchanged": "未变化"
+    },
+    "processHeading": "执行进度",
+    "progressDone": "已{{status}}",
+    "progressCurrent": "当前阶段：{{phase}}",
+    "timelineAria": "Run 阶段",
+    "timeline": {
+      "queued": "排队",
+      "directFetch": "直接采集",
+      "listPages": "列表分页",
+      "discoverDetails": "发现详情",
+      "fetchDetails": "详情采集",
+      "finalize": "质量终结",
+      "completed": "完成"
+    },
+    "metrics": {
+      "entryPages": "入口页",
+      "detailsDiscovered": "发现详情",
+      "detailsFetched": "抓取详情",
+      "outsideWindow": "窗口外记录",
+      "duplicateLinks": "重复链接",
+      "stopReason": "停止原因"
+    },
+    "attemptsHeading": "阶段记录",
+    "stage": {
+      "prepare": "准备",
+      "prepareDesc": "验证规则证明并固定本次执行上下文",
+      "directFetch": "直接采集",
+      "directFetchDesc": "抓取 {{count}} 个入口页并提取字段",
+      "listPages": "列表分页",
+      "listPagesDesc": "抓取 {{count}} 页，{{reason}}",
+      "discoverDetails": "发现详情",
+      "discoverDetailsDesc": "规范化并去重 {{count}} 条详情链接",
+      "fetchDetails": "详情采集",
+      "fetchDetailsDesc": "成功抓取 {{fetched}}/{{discovered}} 个详情页",
+      "finalize": "质量终结",
+      "finalizedDesc": "接收与拒绝结果已冻结",
+      "finalizingDesc": "等待结果集冻结"
+    },
+    "scopeHeading": "本次运行范围",
+    "scope": {
+      "executionMode": "执行方式",
+      "modeInitial": "首次窗口",
+      "modeIncremental": "增量回看",
+      "modeLegacy": "旧运行未记录",
+      "window": "有效窗口",
+      "windowFrom": "{{watermark}} 起",
+      "notRecorded": "旧运行未记录",
+      "stopReason": "停止原因",
+      "checkpointBefore": "执行前检查点",
+      "checkpointAfter": "执行后检查点",
+      "checkpointNotSet": "未建立",
+      "checkpointNotAdvanced": "未推进",
+      "change": "数据变化",
+      "changeValue": "{{added}} 新增 · {{updated}} 更新 · {{unchanged}} 未变化"
+    },
+    "qualityHeading": "质量结果",
+    "qualitySummary": "{{accepted}} 条进入交付集，{{rejected}} 条被拒绝",
+    "quality": {
+      "titleCoverage": "标题完整度",
+      "allPass": "全部通过",
+      "hasMissing": "存在缺失",
+      "entryHomogeneity": "采集入口同源率",
+      "detailHomogeneity": "详情链接同源率",
+      "networkBoundaryPass": "网络边界通过",
+      "contentCoverage": "正文完整度"
+    },
+    "evidenceAria": "运行可信证据",
+    "proofHeading": "这次结果为什么可信",
+    "proofSub": "规则、采集范围和结果集的固定状态",
+    "proof": {
+      "integrityVerified": "规则证明已验证",
+      "integrityVerifiedDesc": "执行前完成完整性校验",
+      "integrityUnavailable": "规则证明不可用",
+      "integrityUnavailableDesc": "需要检查规则证明状态",
+      "scopeFixed": "采集范围已固定",
+      "scopeFixedDesc": "窗口与增量策略不可变",
+      "scopeIncomplete": "范围上下文不完整",
+      "scopeIncompleteDesc": "旧运行未记录完整策略",
+      "frozen": "结果集已冻结",
+      "finalizing": "结果集终结中",
+      "artifact": {
+        "metadata_only": "元数据证据",
+        "sampled": "抽样证据",
+        "replayable": "可回放证据"
+      },
+      "artifactModeDesc": "运行证据保留方式"
+    },
+    "technical": {
+      "heading": "技术信息",
+      "sub": "用于排障与审计"
+    },
+    "stopReason": {
+      "not_applicable": "不适用",
+      "empty_page": "空页停止",
+      "next_link_exhausted": "无下一页链接",
+      "max_pages": "达到页数上限",
+      "max_items": "达到明细上限",
+      "budget_exhausted": "请求预算耗尽",
+      "cross_host_blocked": "跨主机链接已阻断",
+      "time_window_reached": "已越过首次时间窗口",
+      "checkpoint_reached": "已越过增量检查点",
+      "detail_fetch_incomplete": "部分详情页抓取失败"
+    },
+    "mode": {
+      "initial": "首次运行",
+      "incremental": "增量运行",
+      "historical": "历史运行"
+    }
+  }
+}

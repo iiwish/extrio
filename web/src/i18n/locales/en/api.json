@@ -1,0 +1,12 @@
+{
+  "environment": {
+    "mock": "Mock contract environment",
+    "live": "Live API mode"
+  },
+  "error": {
+    "connectionFailed": "Cannot reach the control plane. Confirm the local API is running or enable the mock contract environment.",
+    "controlPlaneUnavailable": "The control plane is temporarily unavailable. Confirm the local API is running or enable the mock contract environment.",
+    "requestFailed": "Request failed. Please try again later.",
+    "operationTerminal": "Async task finished with terminal state: {{status}}"
+  }
+}

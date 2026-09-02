@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ArrowRight, FileText, Search } from 'lucide-react'
 import { useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { api } from '@/api/client'
 import type { HarvestItem } from '@/api/types'
 import { StatusBadge } from '@/components/status-badge'
@@ -10,8 +11,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import type { TFunction } from 'i18next'
 
 export function ItemsPage() {
+  const { t } = useTranslation('items')
   const query = useQuery({ queryKey: ['items'], queryFn: api.items })
   const [searchParams, setSearchParams] = useSearchParams()
   const search = searchParams.get('q') ?? ''
@@ -39,40 +42,41 @@ export function ItemsPage() {
 
   return (
     <div className="page-frame entity-page items-page">
-      <h1 className="sr-only">数据</h1>
+      <h1 className="sr-only">{t('common:nav.items')}</h1>
 
-      <div className="filter-card items-filter-card" aria-label="数据工具栏">
+      <div className="filter-card items-filter-card" aria-label={t('toolbar.aria')}>
         <div className="filter-cluster">
-          <Select value={source} onValueChange={(value) => updateParam('source', value)}><SelectTrigger size="sm" aria-label="按 Source 筛选"><SelectValue placeholder="全部 Source" /></SelectTrigger><SelectContent><SelectItem value="all">全部 Source</SelectItem>{sources.map((host) => <SelectItem key={host} value={host}>{host}</SelectItem>)}</SelectContent></Select>
-          <Select value={collector} onValueChange={(value) => updateParam('collector', value)}><SelectTrigger size="sm" aria-label="按 Collector 筛选"><SelectValue placeholder="全部 Collector" /></SelectTrigger><SelectContent><SelectItem value="all">全部 Collector</SelectItem>{collectors.map(([id, name]) => <SelectItem key={id} value={id}>{name}</SelectItem>)}</SelectContent></Select>
-          <div className="segmented" role="group" aria-label="质量决定筛选">
-            <Button variant={decision === 'all' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('decision', 'all')}>全部</Button>
-            <Button variant={decision === 'accepted' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('decision', 'accepted')}>已接收</Button>
-            <Button variant={decision === 'rejected' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('decision', 'rejected')}>已拒绝</Button>
+          <Select value={source} onValueChange={(value) => updateParam('source', value)}><SelectTrigger size="sm" aria-label={t('toolbar.sourceAria')}><SelectValue placeholder={t('toolbar.allSources')} /></SelectTrigger><SelectContent><SelectItem value="all">{t('toolbar.allSources')}</SelectItem>{sources.map((host) => <SelectItem key={host} value={host}>{host}</SelectItem>)}</SelectContent></Select>
+          <Select value={collector} onValueChange={(value) => updateParam('collector', value)}><SelectTrigger size="sm" aria-label={t('toolbar.collectorAria')}><SelectValue placeholder={t('toolbar.allCollectors')} /></SelectTrigger><SelectContent><SelectItem value="all">{t('toolbar.allCollectors')}</SelectItem>{collectors.map(([id, name]) => <SelectItem key={id} value={id}>{name}</SelectItem>)}</SelectContent></Select>
+          <div className="segmented" role="group" aria-label={t('toolbar.decisionAria')}>
+            <Button variant={decision === 'all' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('decision', 'all')}>{t('toolbar.decisionAll')}</Button>
+            <Button variant={decision === 'accepted' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('decision', 'accepted')}>{t('common:status.accepted')}</Button>
+            <Button variant={decision === 'rejected' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('decision', 'rejected')}>{t('common:status.rejected')}</Button>
           </div>
-          <span className="result-count">{items.length} 条</span>
+          <span className="result-count">{t('list.count', { count: items.length })}</span>
         </div>
-        <div className="toolbar-search items-search"><Search /><Input value={search} onChange={(event) => updateParam('q', event.target.value, '')} placeholder="搜索标题、正文、采集器或 entity key" aria-label="搜索 Item" /></div>
+        <div className="toolbar-search items-search"><Search /><Input value={search} onChange={(event) => updateParam('q', event.target.value, '')} placeholder={t('toolbar.searchPlaceholder')} aria-label={t('toolbar.searchAria')} /></div>
       </div>
 
-      <section className="object-list item-object-list" aria-label="Item 列表">
+      <section className="object-list item-object-list" aria-label={t('list.aria')}>
         <div className="object-list-head item-list-grid" aria-hidden="true">
-          <span>数据项</span><span>质量决定</span><span>变化 / Revision</span><span>发布时间</span><span>最近采集</span><span>Entity key</span><span />
+          <span>{t('list.columnItem')}</span><span>{t('list.columnDecision')}</span><span>{t('list.columnChange')}</span><span>{t('list.columnPublished')}</span><span>{t('list.columnObserved')}</span><span>Entity key</span><span />
         </div>
         {query.isLoading && Array.from({ length: 6 }, (_, index) => <Skeleton className="item-list-skeleton" key={index} />)}
         {items.map((item) => <ItemRow item={item} key={`${item.collectorId}:${item.entityKey}`} />)}
-        {!query.isLoading && items.length === 0 && <div className="card-empty item-list-empty">没有符合当前筛选和搜索的数据。</div>}
+        {!query.isLoading && items.length === 0 && <div className="card-empty item-list-empty">{t('list.empty')}</div>}
       </section>
     </div>
   )
 }
 
 function ItemRow({ item }: { item: HarvestItem }) {
+  const { t } = useTranslation('items')
   return (
     <Link className={`object-row item-list-grid item-list-row ${item.decision === 'rejected' ? 'has-error' : ''}`} to={`/items/${item.id}`}>
       <span className="object-primary"><span className="source-icon"><FileText /></span><span><strong>{item.title}</strong><small>{collectorSourceLabel(item.collectorName, item.sourceHost)}</small></span></span>
       <StatusBadge status={item.decision} />
-      <span className="item-change-cell"><strong>{item.changeType ? changeTypeLabel(item.changeType) : '无变化'}</strong><small>{item.revision === null ? '无 Revision' : `Revision ${item.revision}`} · {item.observationHistory.length} 次观察</small></span>
+      <span className="item-change-cell"><strong>{item.changeType ? changeTypeLabel(item.changeType, t) : t('list.noChange')}</strong><small>{item.revision === null ? t('list.noRevision') : t('list.revision', { count: item.revision })} · {t('list.observations', { count: item.observationHistory.length })}</small></span>
       <span className="item-time-cell"><strong>{item.publishedAt}</strong></span>
       <span className="item-time-cell"><strong>{item.observedAt}</strong></span>
       <code className="item-key-cell">{item.entityKey}</code>
@@ -81,8 +85,8 @@ function ItemRow({ item }: { item: HarvestItem }) {
   )
 }
 
-function changeTypeLabel(type: NonNullable<HarvestItem['changeType']>) {
-  return { new: '新增', updated: '已更新', unchanged: '未变化' }[type]
+function changeTypeLabel(type: NonNullable<HarvestItem['changeType']>, t: TFunction) {
+  return { new: t('list.change.new'), updated: t('list.change.updated'), unchanged: t('list.change.unchanged') }[type]
 }
 
 export function latestEntities(items: HarvestItem[]) {

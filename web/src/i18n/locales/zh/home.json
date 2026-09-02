@@ -1,0 +1,80 @@
+{
+  "granularity": {
+    "day": "按日",
+    "week": "按周",
+    "month": "按月"
+  },
+  "range": {
+    "day": "最近 14 天",
+    "week": "最近 12 周",
+    "month": "最近 12 个月"
+  },
+  "action": {
+    "newCollector": "新建采集器"
+  },
+  "error": {
+    "loadFailed": "部分运营数据加载失败，请刷新后重试。"
+  },
+  "kpi": {
+    "ariaLabel": "核心运营指标",
+    "todayCollect": "今日采集",
+    "todayCollectDetail": "{{runs}} 次运行 · {{rejected}} 条拒绝",
+    "weekSuccessRate": "本周运行成功率",
+    "weekSuccessRateDetail": "{{success}} 次成功 · {{abnormal}} 次异常",
+    "monthValidItems": "本月有效数据",
+    "monthValidDetail": "{{entities}} 个实体 · {{rejected}} 条拒绝",
+    "ruleCoverage": "规则覆盖",
+    "ruleCoverageUnpublished": "{{count}} 个尚未发布",
+    "ruleCoverageAll": "所有采集器均已发布"
+  },
+  "trend": {
+    "title": "采集产出趋势",
+    "subtitle": "{{range}} · 接收与拒绝数据",
+    "periodAria": "趋势聚合口径",
+    "viewRuns": "查看运行",
+    "chartAria": "{{range}} {{runs}} 次运行，{{accepted}} 条接收，{{rejected}} 条拒绝",
+    "pointTitle": "{{title}}：{{runs}} 次运行，{{accepted}} 接收，{{rejected}} 拒绝",
+    "legendAccepted": "接收 {{count}}",
+    "legendRejected": "拒绝 {{count}}",
+    "emptyTitle": "{{range}}尚无运行",
+    "emptyDetail": "切换聚合口径可查看其他时间范围。"
+  },
+  "quality": {
+    "title": "运行质量",
+    "barAria": "{{success}} 成功，{{partial}} 部分成功，{{failed}} 失败",
+    "success": "成功",
+    "partial": "部分成功",
+    "failed": "失败",
+    "dataPassRate": "数据通过率"
+  },
+  "attention": {
+    "title": "需要关注",
+    "loading": "正在加载",
+    "count": "{{count}} 项需要人工推进",
+    "none": "当前没有阻断",
+    "viewAll": "查看全部",
+    "emptyTitle": "运行正常",
+    "emptyDetail": "当前没有需要人工处理的事项。",
+    "fixFailedRun": "修复运行失败",
+    "partialRun": "处理部分成功运行",
+    "partialDetailFetch": "详情抓取 {{fetched}}/{{discovered}}，{{missing}} 个未完成",
+    "partialDetailCounts": "{{accepted}} 条接收 · {{rejected}} 条拒绝",
+    "reviewRule": "完成规则审核",
+    "reviewRuleDetail": "候选规则等待审核与发布",
+    "generateRule": "生成候选规则",
+    "generateRuleDetail": "尚未完成来源探索",
+    "exploreProgress": "查看探索进度",
+    "exploreProgressDetail": "候选规则正在生成",
+    "firstRun": "执行首次运行",
+    "firstRunDetail": "规则已发布但尚未验证",
+    "checkRejected": "检查拒绝数据",
+    "checkRejectedDetail": "{{count}} 条数据未通过质量门"
+  },
+  "bucket": {
+    "monthLabel": "{{month}}月",
+    "dayLabel": "{{month}}/{{day}}",
+    "dayTitle": "{{month}}月{{day}}日",
+    "weekTitle": "{{month}}月{{day}}日所在周",
+    "monthTitle": "{{year}}年{{month}}月"
+  }
+}

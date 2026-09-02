@@ -1,10 +1,12 @@
 import { Navigate, createBrowserRouter } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AppShell } from './app-shell'
 import { AuthGate } from '@/features/auth/auth-gate'
 
 function RouteFallback() {
-  return <div className="page-frame" aria-label="页面加载中"><Skeleton className="h-8 w-56" /><Skeleton className="mt-5 h-36 w-full" /></div>
+  const { t } = useTranslation('common')
+  return <div className="page-frame" aria-label={t('aria.pageLoading')}><Skeleton className="h-8 w-56" /><Skeleton className="mt-5 h-36 w-full" /></div>
 }
 
 export const router = createBrowserRouter([

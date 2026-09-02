@@ -6,6 +6,11 @@ All notable changes to Extrio are documented in this file. The project follows
 
 ## Unreleased
 
+- Add bilingual console support (Chinese/English): i18next-based localization
+  across all pages, a settings interface-language switcher persisted per device,
+  and localized API fallback messages.
+- Add file import for collector entry URLs to batch-create collectors from a
+  newline/comma/semicolon-separated URL list with dedup and merge feedback.
 - Add durable AI rule-task history with attempts, model usage metadata, review
   status, migration backfill, and unified collection/AI run workspaces.
 - Set the first-run administrator password minimum to eight characters.

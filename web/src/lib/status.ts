@@ -1,29 +1,32 @@
-import type { CollectorStatus, ItemDecision, RunStatus } from '@/api/types'
+import i18next from 'i18next'
+import type { CollectorStatus } from '@/api/types'
 
 export type StatusTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger'
 
-const labels: Record<CollectorStatus | RunStatus | ItemDecision, string> = {
-  draft: '待探索',
-  exploring: '探索中',
-  ready_review: '待审核',
-  published: '已发布',
-  queued: '排队中',
-  running: '采集中',
-  finalizing: '终结中',
-  succeeded: '已成功',
-  partially_succeeded: '部分成功',
-  failed: '失败',
-  cancelled: '已取消',
-  timed_out: '已超时',
-  accepted: '已接收',
-  rejected: '已拒绝',
+const statusKeys = [
+  'draft',
+  'exploring',
+  'ready_review',
+  'published',
+  'queued',
+  'running',
+  'finalizing',
+  'succeeded',
+  'partially_succeeded',
+  'failed',
+  'cancelled',
+  'timed_out',
+  'accepted',
+  'rejected',
+] as const
+
+export type StatusKey = (typeof statusKeys)[number]
+
+export function statusLabel(status: StatusKey) {
+  return i18next.t(`common:status.${status}`)
 }
 
-export function statusLabel(status: keyof typeof labels) {
-  return labels[status]
-}
-
-export function statusTone(status: keyof typeof labels): StatusTone {
+export function statusTone(status: StatusKey): StatusTone {
   if (['published', 'succeeded', 'accepted'].includes(status)) return 'success'
   if (['ready_review', 'partially_succeeded'].includes(status)) return 'warning'
   if (['failed', 'rejected', 'timed_out'].includes(status)) return 'danger'

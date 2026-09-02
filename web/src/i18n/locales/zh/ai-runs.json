@@ -1,0 +1,132 @@
+{
+  "summaryAria": "AI 任务摘要",
+  "summary": {
+    "failed": "任务未生成候选规则",
+    "readyReview": "候选规则等待审核",
+    "phaseDuration": "{{phase}} · {{duration}}",
+    "facts": {
+      "invocations": "模型调用",
+      "tokens": "Token",
+      "acceptedSamples": "样本通过",
+      "rejectedSamples": "样本拒绝",
+      "warnings": "警告",
+      "duration": "耗时"
+    }
+  },
+  "result": {
+    "candidate_ready": "候选规则已生成",
+    "no_candidate": "未生成候选规则",
+    "pending": "正在生成候选规则"
+  },
+  "resultDesc": {
+    "ready_review": "AI 产出仅作为候选，完成字段与样本审核后才能发布。",
+    "published": "候选规则已完成人工审核并发布。",
+    "superseded": "该候选已被更新的生成结果替代。",
+    "default": "执行完成后将在这里显示候选规则与验证结果。"
+  },
+  "taskKind": {
+    "rule_repair": "规则修复",
+    "initial_generation": "首次规则生成",
+    "regeneration": "规则重新生成"
+  },
+  "reviewStatus": {
+    "not_ready": "尚未进入审核",
+    "ready_review": "等待人工审核",
+    "published": "已审核发布",
+    "superseded": "已被新版本替代"
+  },
+  "phase": {
+    "queued": "等待执行",
+    "fetching_list": "读取来源页面",
+    "discovering_details": "分析页面结构",
+    "fetching_details": "采集验证样本",
+    "validating": "验证候选规则",
+    "finalizing": "整理任务结果",
+    "completed": "执行已完成"
+  },
+  "attemptStatus": {
+    "queued": "等待",
+    "running": "进行中",
+    "finalizing": "收尾中",
+    "succeeded": "成功",
+    "failed": "失败",
+    "cancelled": "已取消",
+    "timed_out": "已超时"
+  },
+  "purpose": {
+    "discover": "页面结构发现",
+    "compile": "规则编译",
+    "repair": "规则修复"
+  },
+  "state": {
+    "failed": "失败",
+    "running": "进行中",
+    "readyReview": "待审核",
+    "published": "已发布",
+    "completed": "已完成"
+  },
+  "invocationStatus": {
+    "succeeded": "成功",
+    "failed": "失败"
+  },
+  "modelTable": {
+    "purpose": "用途",
+    "model": "模型",
+    "status": "状态",
+    "token": "Token",
+    "duration": "耗时",
+    "tokens": "{{prompt}} 输入 · {{completion}} 输出",
+    "empty": "暂无模型调用记录。"
+  },
+  "duration": {
+    "running": "执行中"
+  },
+  "detail": {
+    "notFound": "AI 任务不存在",
+    "backToAiRuns": "返回 AI 任务",
+    "reviewCandidate": "审核候选规则",
+    "viewCollector": "查看采集器",
+    "tabsAria": "AI 任务详情视图",
+    "tab": {
+      "result": "结果",
+      "process": "执行过程",
+      "models": "模型调用",
+      "evidence": "证据"
+    },
+    "headerMeta": "{{kind}} · {{started}} 开始",
+    "awaitingReview": "等待人工审核",
+    "facts": {
+      "sampleValidation": "样本验证",
+      "sampleValidationValue": "{{accepted}} 通过 · {{rejected}} 拒绝",
+      "warnings": "质量警告",
+      "attempts": "执行尝试",
+      "reviewStatus": "审核状态"
+    },
+    "noCandidateTitle": "未产生可审核的候选规则",
+    "noCandidateFallback": "查看执行过程和模型调用，定位失败阶段后重新生成。",
+    "activeHint": "任务在后台执行，离开页面不会中断。",
+    "attemptsHeading": "执行尝试",
+    "attemptsSub": "失败重试不会覆盖历史，每次尝试独立留痕",
+    "attemptNo": "第 {{no}} 次尝试",
+    "attemptInvocations": "{{count}} 次模型调用",
+    "noAttempts": "任务尚未开始执行。",
+    "modelsHeading": "模型调用",
+    "modelsSub": "只保留调用元数据、用量和响应摘要，不保存原始提示词与响应正文",
+    "evidenceAria": "AI 任务审计证据",
+    "evidenceHeading": "任务证据",
+    "evidenceSub": "执行、模型与候选规则之间的可追溯关系",
+    "evidence": {
+      "attempts": "{{count}} 次执行尝试已记录",
+      "attemptsSub": "重试历史不会被覆盖",
+      "invocations": "{{count}} 次模型调用可核对",
+      "candidateFixed": "候选规则已固定",
+      "noCandidate": "尚无候选规则",
+      "noSensitive": "敏感正文未入审计记录",
+      "noSensitiveSub": "仅保留摘要与技术元数据"
+    },
+    "technical": {
+      "heading": "技术信息",
+      "sub": "用于排障与审计"
+    }
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "nav": {
+    "overview": "Overview",
+    "collectors": "Collectors",
+    "runs": "Runs",
+    "items": "Data",
+    "settings": "Settings",
+    "mainNavAria": "Main navigation"
+  },
+  "action": {
+    "cancel": "Cancel",
+    "close": "Close",
+    "refresh": "Refresh",
+    "back": "Back",
+    "view": "View",
+    "open": "Open",
+    "search": "Search",
+    "confirm": "Confirm",
+    "retry": "Retry",
+    "detailBack": "Back to {{target}} list",
+    "backToRequirement": "Back to requirement"
+  },
+  "state": {
+    "loading": "Loading…",
+    "empty": "No data yet",
+    "error": "Failed to load"
+  },
+  "aria": {
+    "brandHome": "Extrio home",
+    "currentPage": "Current page",
+    "pageLoading": "Loading page",
+    "currentUser": "Current user: {{name}}"
+  },
+  "topbar": {
+    "administrator": "Administrator",
+    "logout": "Sign out"
+  },
+  "stage": {
+    "railAria": "Collector stages",
+    "design": "Design",
+    "explore": "Explore",
+    "review": "Review",
+    "publish": "Publish",
+    "run": "Run"
+  },
+  "status": {
+    "draft": "Pending exploration",
+    "exploring": "Exploring",
+    "ready_review": "Pending review",
+    "published": "Published",
+    "queued": "Queued",
+    "running": "Collecting",
+    "finalizing": "Finalizing",
+    "succeeded": "Succeeded",
+    "partially_succeeded": "Partially succeeded",
+    "failed": "Failed",
+    "cancelled": "Cancelled",
+    "timed_out": "Timed out",
+    "accepted": "Accepted",
+    "rejected": "Rejected"
+  },
+  "decision": {
+    "approved": "Approved for inclusion",
+    "risk_accepted": "Risk accepted",
+    "excluded": "Excluded",
+    "pending": "Awaiting decision"
+  },
+  "evidence": {
+    "panelAria": "Evidence panel",
+    "candidateProofTitle": "Candidate rule evidence",
+    "sourceProofTitle": "Source evidence",
+    "confidence": "Confidence",
+    "requiredField": "Required field",
+    "optionalField": "Optional field",
+    "reviewDecision": "Review decision",
+    "qualityWarning": "Quality warning",
+    "extractSample": "Extracted sample",
+    "domSnippet": "DOM snippet",
+    "allowedHosts": "Allowed hosts",
+    "awaitingSource": "Awaiting Source",
+    "entryUrl": "Entry URL",
+    "paginationStrategy": "Pagination strategy",
+    "collectionMode": "Collection mode",
+    "detailDiscovery": "Detail discovery",
+    "singleModeValue": "single · one-stage direct extraction",
+    "candidateStatus": "Candidate status",
+    "candidateStatusValue": "Validated, awaiting review and publication",
+    "networkBoundary": "Network boundary",
+    "rejectedEvidence": "Rejected candidate evidence",
+    "itemLineageEvidence": "Item lineage evidence",
+    "itemLineage": "Item lineage",
+    "listTitle": "List title",
+    "detailUrl": "Detail URL",
+    "observedAt": "Collected at",
+    "lineageChainAria": "Lineage chain"
+  }
+}

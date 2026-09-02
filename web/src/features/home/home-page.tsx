@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
+import type { TFunction } from 'i18next'
 import { ArrowRight, CheckCircle2, CircleAlert, Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { api } from '@/api/client'
 import type { CollectorDetail, HarvestItem, Run } from '@/api/types'
 import { Button } from '@/components/ui/button'
@@ -39,38 +41,41 @@ type TrendBucket = {
   tone: 'succeeded' | 'partially_succeeded' | 'failed' | 'empty'
 }
 
-const trendGranularities: { value: TrendGranularity; label: string; range: string }[] = [
-  { value: 'day', label: '按日', range: '最近 14 天' },
-  { value: 'week', label: '按周', range: '最近 12 周' },
-  { value: 'month', label: '按月', range: '最近 12 个月' },
-]
+function trendGranularityOptions(t: TFunction): { value: TrendGranularity; label: string; range: string }[] {
+  return [
+    { value: 'day', label: t('granularity.day'), range: t('range.day') },
+    { value: 'week', label: t('granularity.week'), range: t('range.week') },
+    { value: 'month', label: t('granularity.month'), range: t('range.month') },
+  ]
+}
 
-function attentionFor(collector: CollectorDetail, latestRun?: Run): AttentionItem | null {
+function attentionFor(collector: CollectorDetail, latestRun: Run | undefined, t: TFunction): AttentionItem | null {
   if (latestRun && ['failed', 'cancelled', 'timed_out'].includes(latestRun.status)) {
-    return { collector, run: latestRun, label: '修复运行失败', detail: latestRun.summary, target: `/runs/${latestRun.id}`, tone: 'danger', rank: 0 }
+    return { collector, run: latestRun, label: t('attention.fixFailedRun'), detail: latestRun.summary, target: `/runs/${latestRun.id}`, tone: 'danger', rank: 0 }
   }
   if (latestRun?.status === 'partially_succeeded') {
-    return { collector, run: latestRun, label: '处理部分成功运行', detail: partialRunDetail(latestRun), target: `/runs/${latestRun.id}`, tone: 'danger', rank: 1 }
+    return { collector, run: latestRun, label: t('attention.partialRun'), detail: partialRunDetail(latestRun, t), target: `/runs/${latestRun.id}`, tone: 'danger', rank: 1 }
   }
   if (collector.status === 'ready_review') {
-    return { collector, label: '完成规则审核', detail: '候选规则等待审核与发布', target: `/collectors/${collector.id}`, tone: 'warning', rank: 2 }
+    return { collector, label: t('attention.reviewRule'), detail: t('attention.reviewRuleDetail'), target: `/collectors/${collector.id}`, tone: 'warning', rank: 2 }
   }
   if (collector.status === 'draft') {
-    return { collector, label: '生成候选规则', detail: '尚未完成来源探索', target: `/collectors/${collector.id}`, tone: 'info', rank: 3 }
+    return { collector, label: t('attention.generateRule'), detail: t('attention.generateRuleDetail'), target: `/collectors/${collector.id}`, tone: 'info', rank: 3 }
   }
   if (collector.status === 'exploring') {
-    return { collector, label: '查看探索进度', detail: '候选规则正在生成', target: `/collectors/${collector.id}`, tone: 'info', rank: 4 }
+    return { collector, label: t('attention.exploreProgress'), detail: t('attention.exploreProgressDetail'), target: `/collectors/${collector.id}`, tone: 'info', rank: 4 }
   }
   if (collector.status === 'published' && !latestRun) {
-    return { collector, label: '执行首次运行', detail: '规则已发布但尚未验证', target: `/collectors/${collector.id}`, tone: 'info', rank: 5 }
+    return { collector, label: t('attention.firstRun'), detail: t('attention.firstRunDetail'), target: `/collectors/${collector.id}`, tone: 'info', rank: 5 }
   }
   if (latestRun && latestRun.rejectedCount > 0) {
-    return { collector, run: latestRun, label: '检查拒绝数据', detail: `${latestRun.rejectedCount} 条数据未通过质量门`, target: `/runs/${latestRun.id}`, tone: 'warning', rank: 6 }
+    return { collector, run: latestRun, label: t('attention.checkRejected'), detail: t('attention.checkRejectedDetail', { count: latestRun.rejectedCount }), target: `/runs/${latestRun.id}`, tone: 'warning', rank: 6 }
   }
   return null
 }
 
 export function HomePage() {
+  const { t } = useTranslation('home')
   const [granularity, setGranularity] = useState<TrendGranularity>('day')
   const collectorsQuery = useQuery({ queryKey: ['collectors'], queryFn: api.collectors })
   const runsQuery = useQuery({ queryKey: ['runs'], queryFn: api.runs })
@@ -80,9 +85,9 @@ export function HomePage() {
   const items = useMemo(() => latestEntities(itemsQuery.data ?? []), [itemsQuery.data])
   const runById = useMemo(() => new Map(runs.map((run) => [run.id, run])), [runs])
   const attentionItems = useMemo(() => collectors
-    .map((collector) => attentionFor(collector, collector.latestRunId ? runById.get(collector.latestRunId) : undefined))
+    .map((collector) => attentionFor(collector, collector.latestRunId ? runById.get(collector.latestRunId) : undefined, t))
     .filter((item): item is AttentionItem => item !== null)
-    .sort((left, right) => left.rank - right.rank), [collectors, runById])
+    .sort((left, right) => left.rank - right.rank), [collectors, runById, t])
 
   const now = new Date()
   const todayRange = dashboardPeriodRange('day', now)
@@ -99,8 +104,9 @@ export function HomePage() {
   const publishedCollectors = collectors.filter((collector) => collector.status === 'published').length
   const monthAccepted = monthItems.filter((item) => item.decision === 'accepted').length
   const monthRejected = monthItems.filter((item) => item.decision === 'rejected').length
-  const trendBuckets = useMemo(() => dashboardTrendBuckets(granularity, new Date(), runs), [granularity, runs])
-  const trendRange = trendGranularities.find((option) => option.value === granularity)?.range ?? '最近 14 天'
+  const granularityOptions = trendGranularityOptions(t)
+  const trendBuckets = useMemo(() => dashboardTrendBuckets(granularity, new Date(), runs, t), [granularity, runs, t])
+  const trendRange = granularityOptions.find((option) => option.value === granularity)?.range ?? t('range.day')
   const trendRuns = trendBuckets.reduce((total, bucket) => total + bucket.runs, 0)
   const successfulRuns = trendBuckets.reduce((total, bucket) => total + bucket.successful, 0)
   const partialRuns = trendBuckets.reduce((total, bucket) => total + bucket.partial, 0)
@@ -115,42 +121,42 @@ export function HomePage() {
 
   return (
     <div className="page-frame dashboard-page overview-dashboard overview-dashboard-board">
-      <h1 className="sr-only">概览</h1>
+      <h1 className="sr-only">{t('common:nav.overview')}</h1>
 
       <div className="overview-board-actions">
-        <Button asChild><Link to="/collectors/new"><Plus />新建采集器</Link></Button>
+        <Button asChild><Link to="/collectors/new"><Plus />{t('action.newCollector')}</Link></Button>
       </div>
 
-      {hasError && <div className="dashboard-error" role="alert"><CircleAlert /><span>部分运营数据加载失败，请刷新后重试。</span></div>}
+      {hasError && <div className="dashboard-error" role="alert"><CircleAlert /><span>{t('error.loadFailed')}</span></div>}
 
-      <section className="overview-kpi-strip" aria-label="核心运营指标">
-        <div className="overview-kpi-primary"><span>今日采集</span><strong>{isLoading ? '—' : todayAccepted}</strong><small>{todayRuns.length} 次运行 · {todayRejected} 条拒绝</small></div>
-        <div><span>本周运行成功率</span><strong>{isLoading || weekSuccessRate === null ? '—' : `${weekSuccessRate}%`}</strong><small>{weekSuccessful} 次成功 · {weekAbnormal} 次异常</small></div>
-        <div><span>本月有效数据</span><strong>{isLoading ? '—' : monthAccepted}</strong><small>{monthItems.length} 个实体 · {monthRejected} 条拒绝</small></div>
-        <div><span>规则覆盖</span><strong>{isLoading ? '—' : `${publishedCollectors}/${collectors.length}`}</strong><small>{collectors.length - publishedCollectors > 0 ? `${collectors.length - publishedCollectors} 个尚未发布` : '所有采集器均已发布'}</small></div>
+      <section className="overview-kpi-strip" aria-label={t('kpi.ariaLabel')}>
+        <div className="overview-kpi-primary"><span>{t('kpi.todayCollect')}</span><strong>{isLoading ? '—' : todayAccepted}</strong><small>{t('kpi.todayCollectDetail', { runs: todayRuns.length, rejected: todayRejected })}</small></div>
+        <div><span>{t('kpi.weekSuccessRate')}</span><strong>{isLoading || weekSuccessRate === null ? '—' : `${weekSuccessRate}%`}</strong><small>{t('kpi.weekSuccessRateDetail', { success: weekSuccessful, abnormal: weekAbnormal })}</small></div>
+        <div><span>{t('kpi.monthValidItems')}</span><strong>{isLoading ? '—' : monthAccepted}</strong><small>{t('kpi.monthValidDetail', { entities: monthItems.length, rejected: monthRejected })}</small></div>
+        <div><span>{t('kpi.ruleCoverage')}</span><strong>{isLoading ? '—' : `${publishedCollectors}/${collectors.length}`}</strong><small>{collectors.length - publishedCollectors > 0 ? t('kpi.ruleCoverageUnpublished', { count: collectors.length - publishedCollectors }) : t('kpi.ruleCoverageAll')}</small></div>
       </section>
 
       <div className="overview-board-grid">
         <section className="overview-panel overview-trend-panel" aria-labelledby="run-trend-heading">
           <header className="overview-panel-header overview-trend-header">
-            <div><h2 id="run-trend-heading">采集产出趋势</h2><p>{trendRange} · 接收与拒绝数据</p></div>
+            <div><h2 id="run-trend-heading">{t('trend.title')}</h2><p>{t('trend.subtitle', { range: trendRange })}</p></div>
             <div className="overview-trend-actions">
-              <div className="overview-period-control" role="group" aria-label="趋势聚合口径">
-                {trendGranularities.map((option) => (
+              <div className="overview-period-control" role="group" aria-label={t('trend.periodAria')}>
+                {granularityOptions.map((option) => (
                   <button aria-pressed={granularity === option.value} className={granularity === option.value ? 'active' : ''} key={option.value} onClick={() => setGranularity(option.value)} type="button">{option.label}</button>
                 ))}
               </div>
-              <Link to="/runs">查看运行 <ArrowRight /></Link>
+              <Link to="/runs">{t('trend.viewRuns')} <ArrowRight /></Link>
             </div>
           </header>
           {runsQuery.isLoading ? <OverviewSkeleton /> : trendRuns > 0 ? (
-            <div className="overview-run-chart" role="group" aria-label={`${trendRange} ${trendRuns} 次运行，${trendAccepted} 条接收，${trendRejected} 条拒绝`}>
+            <div className="overview-run-chart" role="group" aria-label={t('trend.chartAria', { range: trendRange, runs: trendRuns, accepted: trendAccepted, rejected: trendRejected })}>
               <div className={`overview-chart-bars ${granularity}`}>
                 {trendBuckets.map((bucket) => {
                   const height = bucket.volume === 0 ? 0 : Math.max(10, Math.round((bucket.volume / maxRunVolume) * 100))
                   const acceptedShare = bucket.volume ? Math.round((bucket.accepted / bucket.volume) * 100) : 0
                   return (
-                    <div className={`overview-chart-point ${bucket.tone}`} key={bucket.key} title={`${bucket.title}：${bucket.runs} 次运行，${bucket.accepted} 接收，${bucket.rejected} 拒绝`}>
+                    <div className={`overview-chart-point ${bucket.tone}`} key={bucket.key} title={t('trend.pointTitle', { title: bucket.title, runs: bucket.runs, accepted: bucket.accepted, rejected: bucket.rejected })}>
                       <span className="overview-chart-bar" style={{ height: `${height}%` }}>
                         <i className="accepted" style={{ height: `${acceptedShare}%` }} />
                         <i className="rejected" style={{ height: `${100 - acceptedShare}%` }} />
@@ -160,25 +166,25 @@ export function HomePage() {
                   )
                 })}
               </div>
-              <div className="overview-chart-legend"><span className="success"><i />接收 {trendAccepted}</span><span className="danger"><i />拒绝 {trendRejected}</span></div>
+              <div className="overview-chart-legend"><span className="success"><i />{t('trend.legendAccepted', { count: trendAccepted })}</span><span className="danger"><i />{t('trend.legendRejected', { count: trendRejected })}</span></div>
             </div>
-          ) : <OverviewEmpty title={`${trendRange}尚无运行`} detail="切换聚合口径可查看其他时间范围。" />}
+          ) : <OverviewEmpty title={t('trend.emptyTitle', { range: trendRange })} detail={t('trend.emptyDetail')} />}
         </section>
 
         <div className="overview-board-side">
           <section className="overview-panel overview-quality-panel" aria-labelledby="quality-heading">
-            <header className="overview-panel-header"><div><h2 id="quality-heading">运行质量</h2><p>{trendRange}</p></div><strong className={trendSuccessRate !== null && trendSuccessRate < 80 ? 'warning-text' : ''}>{trendSuccessRate === null ? '—' : `${trendSuccessRate}%`}</strong></header>
+            <header className="overview-panel-header"><div><h2 id="quality-heading">{t('quality.title')}</h2><p>{trendRange}</p></div><strong className={trendSuccessRate !== null && trendSuccessRate < 80 ? 'warning-text' : ''}>{trendSuccessRate === null ? '—' : `${trendSuccessRate}%`}</strong></header>
             <div className="overview-quality-body">
-              <div className="overview-quality-bar" aria-label={`${successfulRuns} 成功，${partialRuns} 部分成功，${failedRuns} 失败`}>
+              <div className="overview-quality-bar" aria-label={t('quality.barAria', { success: successfulRuns, partial: partialRuns, failed: failedRuns })}>
                 {trendRuns > 0 && <><i className="success" style={{ width: `${(successfulRuns / trendRuns) * 100}%` }} /><i className="warning" style={{ width: `${(partialRuns / trendRuns) * 100}%` }} /><i className="danger" style={{ width: `${(failedRuns / trendRuns) * 100}%` }} /></>}
               </div>
-              <div className="overview-quality-stats"><span><i className="success" />成功 <strong>{successfulRuns}</strong></span><span><i className="warning" />部分成功 <strong>{partialRuns}</strong></span><span><i className="danger" />失败 <strong>{failedRuns}</strong></span></div>
-              <div className="overview-quality-foot"><span>数据通过率</span><strong>{trendDataPassRate === null ? '—' : `${trendDataPassRate}%`}</strong></div>
+              <div className="overview-quality-stats"><span><i className="success" />{t('quality.success')} <strong>{successfulRuns}</strong></span><span><i className="warning" />{t('quality.partial')} <strong>{partialRuns}</strong></span><span><i className="danger" />{t('quality.failed')} <strong>{failedRuns}</strong></span></div>
+              <div className="overview-quality-foot"><span>{t('quality.dataPassRate')}</span><strong>{trendDataPassRate === null ? '—' : `${trendDataPassRate}%`}</strong></div>
             </div>
           </section>
 
           <section className="overview-panel overview-board-attention" aria-labelledby="attention-heading">
-            <header className="overview-panel-header"><div><h2 id="attention-heading">需要关注</h2><p>{isLoading ? '正在加载' : attentionItems.length > 0 ? `${attentionItems.length} 项需要人工推进` : '当前没有阻断'}</p></div><Link to="/collectors?view=attention">查看全部 <ArrowRight /></Link></header>
+            <header className="overview-panel-header"><div><h2 id="attention-heading">{t('attention.title')}</h2><p>{isLoading ? t('attention.loading') : attentionItems.length > 0 ? t('attention.count', { count: attentionItems.length }) : t('attention.none')}</p></div><Link to="/collectors?view=attention">{t('attention.viewAll')} <ArrowRight /></Link></header>
             <div className="overview-board-alerts">
               {isLoading ? <OverviewSkeleton /> : attentionItems.slice(0, 3).map((item) => (
                 <Link className="overview-board-alert" to={item.target} key={`${item.collector.id}:${item.label}`}>
@@ -187,7 +193,7 @@ export function HomePage() {
                   <ArrowRight />
                 </Link>
               ))}
-              {!isLoading && attentionItems.length === 0 && <OverviewEmpty title="运行正常" detail="当前没有需要人工处理的事项。" />}
+              {!isLoading && attentionItems.length === 0 && <OverviewEmpty title={t('attention.emptyTitle')} detail={t('attention.emptyDetail')} />}
             </div>
           </section>
         </div>
@@ -235,7 +241,7 @@ function isWithinRange(value: string, range: DashboardRange) {
   return date !== null && date >= range.start && date < range.end
 }
 
-function dashboardTrendBuckets(granularity: TrendGranularity, now: Date, runs: Run[]): TrendBucket[] {
+function dashboardTrendBuckets(granularity: TrendGranularity, now: Date, runs: Run[], t: TFunction): TrendBucket[] {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const currentMonday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - ((today.getDay() + 6) % 7))
   const rangeStart = granularity === 'day'
@@ -266,13 +272,13 @@ function dashboardTrendBuckets(granularity: TrendGranularity, now: Date, runs: R
     const rejected = bucketRuns.reduce((total, run) => total + run.rejectedCount, 0)
     const volume = accepted + rejected
     const label = granularity === 'month'
-      ? `${start.getMonth() + 1}月`
-      : `${start.getMonth() + 1}/${start.getDate()}`
+      ? t('bucket.monthLabel', { month: start.getMonth() + 1 })
+      : t('bucket.dayLabel', { month: start.getMonth() + 1, day: start.getDate() })
     const title = granularity === 'day'
-      ? `${start.getMonth() + 1}月${start.getDate()}日`
+      ? t('bucket.dayTitle', { month: start.getMonth() + 1, day: start.getDate() })
       : granularity === 'week'
-        ? `${start.getMonth() + 1}月${start.getDate()}日所在周`
-        : `${start.getFullYear()}年${start.getMonth() + 1}月`
+        ? t('bucket.weekTitle', { month: start.getMonth() + 1, day: start.getDate() })
+        : t('bucket.monthTitle', { year: start.getFullYear(), month: start.getMonth() + 1 })
 
     return {
       key: start.toISOString(),
@@ -290,10 +296,10 @@ function dashboardTrendBuckets(granularity: TrendGranularity, now: Date, runs: R
   })
 }
 
-function partialRunDetail(run: Run) {
+function partialRunDetail(run: Run, t: TFunction) {
   const missingDetails = run.detailUrlsDiscovered - run.detailPagesFetched
-  if (missingDetails > 0) return `详情抓取 ${run.detailPagesFetched}/${run.detailUrlsDiscovered}，${missingDetails} 个未完成`
-  if (run.rejectedCount > 0) return `${run.acceptedCount} 条接收 · ${run.rejectedCount} 条拒绝`
+  if (missingDetails > 0) return t('attention.partialDetailFetch', { fetched: run.detailPagesFetched, discovered: run.detailUrlsDiscovered, missing: missingDetails })
+  if (run.rejectedCount > 0) return t('attention.partialDetailCounts', { accepted: run.acceptedCount, rejected: run.rejectedCount })
   return run.recoveryAction
 }
 

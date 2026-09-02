@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import i18next from 'i18next'
 import { ArrowLeft, ArrowRight, CheckCircle2, CircleAlert, FileUp, Globe2, Layers3, ListPlus, XCircle } from 'lucide-react'
 import { useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { api } from '@/api/client'
 import type { BatchCollectorImportResult } from '@/api/types'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -35,18 +37,18 @@ export function inspectSourceUrls(value: string): SourceLineInspection[] {
     try {
       url = new URL(raw)
     } catch {
-      return { raw, status: 'invalid', message: 'URL 格式无效' }
+      return { raw, status: 'invalid', message: i18next.t('collectors:create.validation.invalidFormat') }
     }
-    if (!['http:', 'https:'].includes(url.protocol)) return { raw, status: 'invalid', message: '仅支持 HTTP 或 HTTPS' }
+    if (!['http:', 'https:'].includes(url.protocol)) return { raw, status: 'invalid', message: i18next.t('collectors:create.validation.unsupportedProtocol') }
     const normalized = url.toString()
-    if (seen.has(normalized)) return { raw, normalized, host: url.host, status: 'duplicate', message: '批次内重复' }
+    if (seen.has(normalized)) return { raw, normalized, host: url.host, status: 'duplicate', message: i18next.t('collectors:create.validation.duplicate') }
     seen.add(normalized)
     return {
       raw,
       normalized,
       host: url.host,
       status: 'valid',
-      message: url.protocol === 'http:' ? '可导入 · 匿名 HTTP 风险已标记' : '可导入',
+      message: url.protocol === 'http:' ? i18next.t('collectors:create.validation.validHttpRisk') : i18next.t('collectors:create.validation.valid'),
     }
   })
 }
@@ -80,6 +82,7 @@ export function mergeSourceLines(existing: string, imported: string[]): { text: 
 }
 
 export function NewCollectorPage() {
+  const { t } = useTranslation('collectors')
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [searchParams] = useSearchParams()
@@ -132,10 +135,10 @@ export function NewCollectorPage() {
   function submit(event: FormEvent) {
     event.preventDefault()
     setError('')
-    if (activeCollectionMode === 'existing' && !selectedCollection) return setError('请选择一个已有需求。')
-    if (!useExistingCollection && (!collectionName.trim() || !intent.trim())) return setError('请补全需求名称与采集意图。')
-    if (sources.length === 0) return setError('请至少输入一个采集入口 URL。')
-    if (validCount === 0) return setError('当前批次没有可导入的 HTTP(S) URL。')
+    if (activeCollectionMode === 'existing' && !selectedCollection) return setError(t('create.error.selectRequirement'))
+    if (!useExistingCollection && (!collectionName.trim() || !intent.trim())) return setError(t('create.error.completeNameAndIntent'))
+    if (sources.length === 0) return setError(t('create.error.enterUrl'))
+    if (validCount === 0) return setError(t('create.error.noImportableUrls'))
     mutation.mutate({
       ...(useExistingCollection ? { collectionId: selectedCollection!.id } : {}),
       collectionName: useExistingCollection ? selectedCollection!.name : collectionName.trim(),
@@ -152,14 +155,14 @@ export function NewCollectorPage() {
     try {
       const parsed = parseImportedSourceUrls(await file.text())
       if (parsed.length === 0) {
-        setSourceImportFeedback('文件中未找到有效网址')
+        setSourceImportFeedback(t('create.sources.fileEmpty'))
         return
       }
       const merged = mergeSourceLines(sourceInput, parsed)
       setSourceInput(merged.text)
-      setSourceImportFeedback(`已导入 ${parsed.length} 条，新增 ${merged.added} 条，跳过 ${merged.skipped} 条重复`)
+      setSourceImportFeedback(t('create.sources.fileResult', { total: parsed.length, added: merged.added, skipped: merged.skipped }))
     } catch {
-      setSourceImportFeedback('文件读取失败，请重试')
+      setSourceImportFeedback(t('create.sources.fileReadFailed'))
     }
   }
 
@@ -169,41 +172,41 @@ export function NewCollectorPage() {
 
   return (
     <div className="page-frame narrow-page">
-      <Link className="back-link" to={creationContext.returnPath}><ArrowLeft />返回采集器</Link>
+      <Link className="back-link" to={creationContext.returnPath}><ArrowLeft />{t('action.backToCollectors')}</Link>
       <header className="page-header form-header">
-        <div><h1>新建采集器</h1><p>选择需求并添加一个或多个入口网址。</p></div>
+        <div><h1>{t('create.title')}</h1><p>{t('create.subtitle')}</p></div>
       </header>
 
       <form className="collector-form collector-create-form" onSubmit={submit} noValidate>
         <section className="collector-create-section">
-          <div className="collector-create-heading"><h2>归属需求</h2></div>
+          <div className="collector-create-heading"><h2>{t('create.requirement.heading')}</h2></div>
           <Tabs value={activeCollectionMode} onValueChange={(value) => setCollectionMode(value as 'existing' | 'new')} className="collection-mode-tabs">
-            <TabsList aria-label="需求来源"><TabsTrigger value="existing" disabled={!collectorsQuery.isLoading && collections.length === 0}>已有需求</TabsTrigger><TabsTrigger value="new">新建需求</TabsTrigger></TabsList>
+            <TabsList aria-label={t('create.requirement.sourceAria')}><TabsTrigger value="existing" disabled={!collectorsQuery.isLoading && collections.length === 0}>{t('create.requirement.existing')}</TabsTrigger><TabsTrigger value="new">{t('create.requirement.new')}</TabsTrigger></TabsList>
             <TabsContent value="existing" className="collection-mode-panel">
-              <label className="field-group"><span>选择需求</span><Select value={selectedCollection?.id ?? ''} onValueChange={setSelectedCollectionId}><SelectTrigger aria-label="选择已有需求"><SelectValue placeholder={collectorsQuery.isLoading ? '加载中…' : '选择需求'} /></SelectTrigger><SelectContent>{collections.map((collection) => <SelectItem key={collection.id} value={collection.id}>{collection.name}</SelectItem>)}</SelectContent></Select></label>
-              {selectedCollection && <div className="existing-collection-summary"><span><small>采集意图</small><p>{selectedCollection.intent}</p></span><span><small>数据合同</small><code>{selectedCollection.version}</code></span><span><small>采集器</small><strong>{selectedCollection.collectorCount}</strong></span></div>}
+              <label className="field-group"><span>{t('create.requirement.select')}</span><Select value={selectedCollection?.id ?? ''} onValueChange={setSelectedCollectionId}><SelectTrigger aria-label={t('create.requirement.selectExistingAria')}><SelectValue placeholder={collectorsQuery.isLoading ? t('common:state.loading') : t('create.requirement.select')} /></SelectTrigger><SelectContent>{collections.map((collection) => <SelectItem key={collection.id} value={collection.id}>{collection.name}</SelectItem>)}</SelectContent></Select></label>
+              {selectedCollection && <div className="existing-collection-summary"><span><small>{t('create.requirement.intentLabel')}</small><p>{selectedCollection.intent}</p></span><span><small>{t('create.requirement.contractLabel')}</small><code>{selectedCollection.version}</code></span><span><small>{t('create.requirement.collectorLabel')}</small><strong>{selectedCollection.collectorCount}</strong></span></div>}
             </TabsContent>
             <TabsContent value="new" className="collection-mode-panel new-collection-fields">
-              <label className="field-group" htmlFor="collection-name"><span>需求名称</span><Input id="collection-name" value={collectionName} onChange={(event) => setCollectionName(event.target.value)} placeholder="例如：全国公共资源交易标讯" /></label>
-              <label className="field-group" htmlFor="intent"><span>采集意图</span><Textarea id="intent" value={intent} onChange={(event) => setIntent(event.target.value)} placeholder="描述需要采集的内容与关键字段" rows={4} /></label>
+              <label className="field-group" htmlFor="collection-name"><span>{t('create.requirement.nameLabel')}</span><Input id="collection-name" value={collectionName} onChange={(event) => setCollectionName(event.target.value)} placeholder={t('create.requirement.namePlaceholder')} /></label>
+              <label className="field-group" htmlFor="intent"><span>{t('create.requirement.intentLabel')}</span><Textarea id="intent" value={intent} onChange={(event) => setIntent(event.target.value)} placeholder={t('create.requirement.intentPlaceholder')} rows={4} /></label>
             </TabsContent>
           </Tabs>
         </section>
 
         <section className="collector-create-section source-entry-section">
-          <div className="collector-create-heading"><h2>入口网址</h2>{sources.length > 0 && <span>{validCount} 可创建 · {issueCount} 有问题</span>}<Button type="button" variant="outline" size="sm" aria-label="从文件导入网址" onClick={() => fileInputRef.current?.click()}><FileUp />导入</Button><input ref={fileInputRef} className="sr-only" type="file" accept=".txt,.csv,text/plain,text/csv" aria-label="从文件导入网址" onChange={(event) => void importSourceFile(event)} />{sourceImportFeedback && <span className="source-import-feedback" role="status">{sourceImportFeedback}</span>}</div>
+          <div className="collector-create-heading"><h2>{t('create.sources.heading')}</h2>{sources.length > 0 && <span>{t('create.sources.countSummary', { valid: validCount, issues: issueCount })}</span>}<Button type="button" variant="outline" size="sm" aria-label={t('create.sources.importAria')} onClick={() => fileInputRef.current?.click()}><FileUp />{t('create.sources.import')}</Button><input ref={fileInputRef} className="sr-only" type="file" accept=".txt,.csv,text/plain,text/csv" aria-label={t('create.sources.importAria')} onChange={(event) => void importSourceFile(event)} />{sourceImportFeedback && <span className="source-import-feedback" role="status">{sourceImportFeedback}</span>}</div>
           <div className="form-fields">
             <div className="field-group">
               <div className="source-batch-input"><Globe2 /><Textarea id="source-urls" value={sourceInput} onChange={(event) => setSourceInput(event.target.value)} placeholder={'http://www.ccgp-beijing.gov.cn/yxgk/sjcgyx/A002003001index_1.htm\nhttps://ggzy.beijing.gov.cn/notices\nhttps://example.gov.cn/tender/list'} rows={7} /></div>
             </div>
 
-            {sources.length > 0 && <div className="source-import-preview" aria-label="Source 导入预览">
+            {sources.length > 0 && <div className="source-import-preview" aria-label={t('create.sources.previewAria')}>
               {sources.slice(0, 8).map((source, index) => <div className={source.status} key={`${source.raw}-${index}`}>
                 <span>{source.status === 'valid' ? <CheckCircle2 /> : source.status === 'duplicate' ? <CircleAlert /> : <XCircle />}</span>
                 <code>{source.raw}</code>
                 <small>{source.message}</small>
               </div>)}
-              {sources.length > 8 && <p>另有 {sources.length - 8} 条 URL，将在提交后逐项处理。</p>}
+              {sources.length > 8 && <p>{t('create.sources.moreCount', { count: sources.length - 8 })}</p>}
             </div>}
           </div>
         </section>
@@ -211,9 +214,9 @@ export function NewCollectorPage() {
         {(error || mutation.error) && <Alert variant="destructive"><AlertDescription>{error || mutation.error?.message}</AlertDescription></Alert>}
 
         <div className="form-actions">
-          <Button asChild variant="ghost"><Link to={creationContext.returnPath}>取消</Link></Button>
+          <Button asChild variant="ghost"><Link to={creationContext.returnPath}>{t('common:action.cancel')}</Link></Button>
           <Button type="submit" size="lg" disabled={mutation.isPending}>
-            {mutation.isPending ? '正在创建…' : <><ListPlus />创建 {validCount || 0} 个采集器<ArrowRight /></>}
+            {mutation.isPending ? t('create.creating') : <><ListPlus />{t('create.createCount', { count: validCount || 0 })}<ArrowRight /></>}
           </Button>
         </div>
       </form>
@@ -222,19 +225,20 @@ export function NewCollectorPage() {
 }
 
 function ImportResult({ result, onContinue }: { result: BatchCollectorImportResult; onContinue: () => void }) {
+  const { t } = useTranslation('collectors')
   return <div className="page-frame narrow-page">
-    <Link className="back-link" to="/collectors"><ArrowLeft />返回采集器</Link>
-    <header className="page-header"><div><span className="eyebrow">BATCH IMPORT RESULT</span><h1>Source 导入完成</h1><p>{result.collectionName} · {result.collectionVersion}</p></div><Button variant="outline" onClick={onContinue}><ListPlus />继续导入</Button></header>
-    <section className="import-collection-context" aria-label="采集需求归属"><span className="collection-mark"><Layers3 /></span><div><small>采集需求</small><strong>{result.collectionName}</strong><code>{result.collectionVersion}</code></div><span><small>独立采集器</small><strong>{result.createdCount}</strong></span></section>
-    <div className="import-result-summary"><span><small>总数</small><strong>{result.total}</strong></span><span className="success"><small>已创建</small><strong>{result.createdCount}</strong></span><span className={result.rejectedCount > 0 ? 'danger' : ''}><small>已拒绝</small><strong>{result.rejectedCount}</strong></span></div>
-    <section className="import-result-card" aria-label="逐项导入结果">
+    <Link className="back-link" to="/collectors"><ArrowLeft />{t('action.backToCollectors')}</Link>
+    <header className="page-header"><div><span className="eyebrow">BATCH IMPORT RESULT</span><h1>{t('result.title')}</h1><p>{result.collectionName} · {result.collectionVersion}</p></div><Button variant="outline" onClick={onContinue}><ListPlus />{t('result.continue')}</Button></header>
+    <section className="import-collection-context" aria-label={t('result.contextAria')}><span className="collection-mark"><Layers3 /></span><div><small>{t('result.requirementLabel')}</small><strong>{result.collectionName}</strong><code>{result.collectionVersion}</code></div><span><small>{t('result.individualCollectors')}</small><strong>{result.createdCount}</strong></span></section>
+    <div className="import-result-summary"><span><small>{t('result.total')}</small><strong>{result.total}</strong></span><span className="success"><small>{t('result.created')}</small><strong>{result.createdCount}</strong></span><span className={result.rejectedCount > 0 ? 'danger' : ''}><small>{t('result.rejected')}</small><strong>{result.rejectedCount}</strong></span></div>
+    <section className="import-result-card" aria-label={t('result.perItemAria')}>
       {result.results.map((item, index) => <div className="import-result-row" key={`${item.sourceUrl}-${index}`}>
         <span className={item.status === 'created' ? 'import-status success' : 'import-status danger'}>{item.status === 'created' ? <CheckCircle2 /> : <XCircle />}</span>
-        <span><strong>{item.collector?.name ?? item.sourceUrl}</strong><small>{item.collector?.sourceHost ?? item.error?.message ?? '导入失败'}</small></span>
-        <span className={item.status === 'created' ? 'result-label success' : 'result-label danger'}>{item.status === 'created' ? '已创建' : item.error?.message ?? '导入失败'}</span>
-        {item.collector ? <Button asChild size="sm" variant="outline"><Link to={`/collectors/${item.collector.id}`}>开始探索<ArrowRight /></Link></Button> : <span />}
+        <span><strong>{item.collector?.name ?? item.sourceUrl}</strong><small>{item.collector?.sourceHost ?? item.error?.message ?? t('result.failed')}</small></span>
+        <span className={item.status === 'created' ? 'result-label success' : 'result-label danger'}>{item.status === 'created' ? t('result.created') : item.error?.message ?? t('result.failed')}</span>
+        {item.collector ? <Button asChild size="sm" variant="outline"><Link to={`/collectors/${item.collector.id}`}>{t('result.startExploring')}<ArrowRight /></Link></Button> : <span />}
       </div>)}
     </section>
-    <div className="form-actions"><Button asChild><Link to={`/collectors?collection=${encodeURIComponent(result.collectionId)}`}>查看此需求的 Collector<ArrowRight /></Link></Button></div>
+    <div className="form-actions"><Button asChild><Link to={`/collectors?collection=${encodeURIComponent(result.collectionId)}`}>{t('result.viewCollectors')}<ArrowRight /></Link></Button></div>
   </div>
 }

@@ -1,0 +1,125 @@
+{
+  "action": {
+    "backToCollectors": "Back to collectors"
+  },
+  "list": {
+    "toolbarAria": "Collector toolbar",
+    "filterGroupAria": "Collector filters",
+    "filterAll": "All",
+    "filterAttention": "Needs attention",
+    "filterPublished": "Published",
+    "create": "New collector",
+    "aria": "Collector list",
+    "empty": "No collectors match the current filters.",
+    "columns": {
+      "collector": "Collector",
+      "requirement": "Requirement",
+      "status": "Status",
+      "activeRule": "Active rule",
+      "latestRun": "Latest run",
+      "nextStep": "Next step"
+    },
+    "requirement": {
+      "all": "All requirements",
+      "filterAria": "Filter by collection requirement",
+      "searchPlaceholder": "Search requirement name or version",
+      "searchAria": "Search collection requirements",
+      "listAria": "Collection requirements",
+      "empty": "No collection requirements found"
+    },
+    "rule": {
+      "notPublished": "Not published",
+      "policyVersion": "Policy v{{version}}",
+      "noPolicy": "Awaiting policy setup"
+    },
+    "run": {
+      "succeeded": "Succeeded",
+      "none": "No runs yet",
+      "awaitingFirst": "Awaiting first run",
+      "acceptedRejected": "{{accepted}} accepted · {{rejected}} rejected"
+    },
+    "nextStep": {
+      "startExploration": "Start Source exploration",
+      "startExplorationDetail": "No candidate rule generated yet",
+      "finishReview": "Finish field review",
+      "finishReviewDetail": "Publishing requires a completed review decision",
+      "checkPublish": "Check publication status",
+      "checkPublishDetail": "No executable active rule right now",
+      "firstRun": "Run for the first time",
+      "firstRunDetail": "Rule published, awaiting validation from a real run",
+      "handleLatestRun": "Handle the latest run",
+      "runHealthy": "Run healthy",
+      "runHealthyDetail": "{{accepted}} accepted · {{reason}}"
+    },
+    "stopReason": {
+      "notApplicable": "Single page completed",
+      "emptyPage": "Stopped on an empty page",
+      "nextLinkExhausted": "Reached the last page",
+      "maxPages": "Reached the page limit",
+      "maxItems": "Reached the item limit",
+      "budgetExhausted": "Request budget exhausted",
+      "crossHostBlocked": "Cross-host requests blocked",
+      "timeWindowReached": "Reached the time window",
+      "checkpointReached": "Reached the incremental checkpoint",
+      "detailFetchIncomplete": "Some detail pages failed to fetch"
+    }
+  },
+  "create": {
+    "title": "New collector",
+    "subtitle": "Choose a requirement and add one or more entry URLs.",
+    "creating": "Creating…",
+    "createCount": "Create {{count}} collectors",
+    "error": {
+      "selectRequirement": "Select an existing requirement.",
+      "completeNameAndIntent": "Complete the requirement name and collection intent.",
+      "enterUrl": "Enter at least one entry URL.",
+      "noImportableUrls": "No importable HTTP(S) URLs in this batch."
+    },
+    "validation": {
+      "invalidFormat": "Invalid URL format",
+      "unsupportedProtocol": "Only HTTP or HTTPS is supported",
+      "duplicate": "Duplicate within the batch",
+      "valid": "Importable",
+      "validHttpRisk": "Importable · anonymous HTTP risk flagged"
+    },
+    "requirement": {
+      "heading": "Requirement",
+      "sourceAria": "Requirement source",
+      "existing": "Existing requirement",
+      "new": "New requirement",
+      "select": "Select requirement",
+      "selectExistingAria": "Select existing requirement",
+      "intentLabel": "Collection intent",
+      "contractLabel": "Data contract",
+      "collectorLabel": "Collectors",
+      "nameLabel": "Requirement name",
+      "namePlaceholder": "e.g. National public resource trading notices",
+      "intentPlaceholder": "Describe the content to collect and the key fields"
+    },
+    "sources": {
+      "heading": "Entry URLs",
+      "countSummary": "{{valid}} ready · {{issues}} with issues",
+      "import": "Import",
+      "importAria": "Import URLs from file",
+      "previewAria": "Source import preview",
+      "moreCount": "{{count}} more URLs will be processed one by one after submission.",
+      "fileEmpty": "No valid URLs found in the file",
+      "fileResult": "Imported {{total}} URLs, added {{added}}, skipped {{skipped}} duplicates",
+      "fileReadFailed": "Failed to read the file, please try again"
+    }
+  },
+  "result": {
+    "title": "Source import complete",
+    "continue": "Import more",
+    "contextAria": "Collection requirement",
+    "requirementLabel": "Requirement",
+    "individualCollectors": "Individual collectors",
+    "total": "Total",
+    "created": "Created",
+    "rejected": "Rejected",
+    "failed": "Import failed",
+    "startExploring": "Start exploration",
+    "viewCollectors": "View this requirement's collectors",
+    "perItemAria": "Per-item import results"
+  }
+}
