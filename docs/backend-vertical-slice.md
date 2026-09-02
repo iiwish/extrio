@@ -4,7 +4,7 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| 文档版本 | `v1.12.1` |
+| 文档版本 | `v1.13.0` |
 | 对应产品版本 | `v0.2` |
 | 状态 | `Confirmed` |
 | 权威来源 | [`SSOT.md`](./SSOT.md) |
@@ -12,13 +12,13 @@
 
 ## 2. 闭环范围
 
-本地纵向闭环覆盖需求与 URL 批量导入、Collector 创建和定义编辑、Crawl4AI Source 探索、同域 iframe 列表入口解析、默认模型两阶段 RulePlan 编译、候选规则 Override 与最近探索样本验证、GatherSpec Schema 校验、字段风险审核、RuleVersion 发布、CollectorSchedule、稳定 occurrence 去重与禁止重叠调度、CollectionPolicyVersion、首次时间窗口、增量 Checkpoint、确定性运行、分页与详情发现、HTML CSS/JSON JSONPath 字段提取、new/updated/unchanged 分类、accepted/rejected 质量终结、Item 谱系查看和刷新后状态恢复。
+本地纵向闭环覆盖需求与 URL 批量导入、Collector 创建和定义编辑、Crawl4AI Source 探索、同域 iframe 列表入口解析、默认模型两阶段 RulePlan 编译、AiRun/AiAttempt/ModelInvocation 审计、候选规则 Override 与最近探索样本验证、GatherSpec Schema 校验、字段风险审核、RuleVersion 发布、CollectorSchedule、稳定 occurrence 去重与禁止重叠调度、CollectionPolicyVersion、首次时间窗口、增量 Checkpoint、确定性运行、分页与详情发现、HTML CSS/JSON JSONPath 字段提取、new/updated/unchanged 分类、accepted/rejected 质量终结、Item 谱系查看和刷新后状态恢复。
 
 公告类两阶段采集以列表记录作为 Item 边界：列表阶段提取 `listTitle + detailUrl`，详情阶段提取 `title + publishedAt + content`，运行时写入 `observedAt` 采集时间。详情正文中的内部表格属于公告内容，不自动展开成新的 HarvestItem。
 
 本地 TenantAdmin 策略通过 `EXTRIO_ALLOW_HTTP_PUBLIC=true` 显式允许匿名公共 HTTP Source。该开关默认关闭，不适用于 AccessProfile 或凭据请求，也不改变 allowedHosts、私网/metadata、DNS、redirect 与资源预算边界。开发启动脚本显式启用该策略，以覆盖仍只提供 HTTP 的政府公开站点。
 
-控制面、探索和运行分别由 FastAPI API 进程与独立 Worker 进程承担。API 请求只持久化命令并返回 `202 Accepted` Operation；Worker 通过 SQLite 租约队列领取任务，阶段、指标、错误和终态全部写回持久化 Operation。API 进程重启不会丢失 Collector、Run、Item、幂等记录或已排队任务。
+控制面、探索和运行分别由 FastAPI API 进程与独立 Worker 进程承担。API 请求只持久化命令并返回 `202 Accepted` Operation；规则探索同时建立 AiRun，Worker 的每次尝试和模型调用分别追加 AiAttempt 与 ModelInvocation。Operation 负责轮询进度，AiRun 负责长期查询、候选结果、审核状态和用量审计。模型记录不保存原始提示词、Source 样本或响应正文。API 进程重启不会丢失 Collector、AiRun、Run、Item、幂等记录或已排队任务；升级时历史 explore Operation 自动回填为不伪造模型用量的 AiRun。
 
 ## 3. 组件合同
 
@@ -28,7 +28,7 @@
 | FastAPI | OpenAPI v1、URL 校验、幂等、状态机入口、查询与本地演示 Source | 不在请求生命周期执行 Crawl4AI 或 Crawlee |
 | Crawl4AI + Rule Compiler | 获取入口样本并解析同域嵌入入口；默认模型先编译列表发现计划，再结合详情样本编译 RulePlan；服务端验证并转换为 GatherSpec | 不发布规则，不参与已发布规则的运行，不接受模型生成代码 |
 | Deterministic Runtime | 解释已发布 GatherSpec，执行其中冻结的 HTTP/browser transport、CSS/JSONPath selector、query page/next_link 分页、详情请求、字段提取和质量终结 | 不调用 LLM，不隐式修改规则 |
-| SQLite Store | 本地领域状态、不可变 RuleVersion/RuleAttestation/AuditEvent、Operation、leased job 与幂等持久化 | 不作为生产高可用数据层 |
+| SQLite Store | 本地领域状态、不可变 RuleVersion/RuleAttestation/AuditEvent、Operation、AiRun/AiAttempt/ModelInvocation、leased job 与幂等持久化 | 不作为生产高可用数据层 |
 
 ## 4. Phase 状态
 

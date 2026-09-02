@@ -11,12 +11,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 COPY backend/pyproject.toml backend/uv.lock backend/README.md backend/
-COPY LICENSE NOTICE ./
-COPY docs/contracts docs/contracts
-COPY backend/src backend/src
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --project backend --frozen --no-dev \
+    uv sync --project backend --frozen --no-dev --no-install-project \
     && mkdir -p /ms-playwright \
     && /opt/extrio/bin/python -m playwright install --with-deps chromium \
     && CRAWL4AI_MODE=api /opt/extrio/bin/crawl4ai-setup \
@@ -25,6 +22,13 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 RUN apt-get update \
     && apt-get upgrade -y \
     && rm -rf /var/lib/apt/lists/*
+
+COPY LICENSE NOTICE ./
+COPY docs/contracts docs/contracts
+COPY backend/src backend/src
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --project backend --frozen --no-dev
 
 ENV PATH="/opt/extrio/bin:${PATH}"
 

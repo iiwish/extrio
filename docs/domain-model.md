@@ -4,7 +4,7 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| 文档版本 | `v0.7.0` |
+| 文档版本 | `v0.8.0` |
 | 对应产品版本 | `v0.2` |
 | 状态 | `Confirmed` |
 | 权威来源 | [`SSOT.md`](./SSOT.md) |
@@ -86,12 +86,17 @@ AccessProfile 与 Source 分离。Secret material 轮换不要求新建 RuleVers
 | RuleAttestation | 不可变实体 | 对 RuleVersion digest 与审批决定的发布证明 | 追加式；绑定 Tenant、RuleVersion、approval、purpose、keyId 和 signedAt |
 | SigningKey | 聚合根 | 发布证明密钥的身份与信任状态 | 私钥不进入数据库；状态变化必须审计并触发影响分析 |
 | Schedule | 实体 | Collector 的 Cron 触发配置 | 每次变更增加 `revision`；Run 固定触发时的配置摘要 |
+| AiRun | 聚合根 | 一次规则生成或修复任务的稳定审计记录 | 固定 Collector、Source URL、触发原因和发起人；执行终态与审核终态分离 |
+| AiAttempt | 实体 | AiRun 的一次 Worker 尝试 | `(aiRunId, attemptNumber)` 唯一；重试只追加，不覆盖历史 |
+| ModelInvocation | 不可变实体 | 一次受控模型调用的用量与响应摘要 | 固定 purpose、provider、model、promptVersion、Token 和耗时；不保存原始提示词、样本或响应正文 |
 
 Collector 持有 `activeRuleVersionId` 与 `activeCollectionPolicyVersionId`。发布或回滚通过同一数据库事务原子修改规则指针并写入 AuditEvent；RuleVersion 本身的状态和内容不回退。活动 RuleVersion 至少需要一个由当前可信 SigningKey 产生、未被撤销的 RuleAttestation。创建新的 CollectionPolicyVersion 原子切换策略指针并清空旧策略 Checkpoint。
 
 Collector 对外投影必须携带稳定 `collectionId` 与 `collectionName`，使运营界面能够跨需求平铺处理异常，也能够按业务 Collection 筛选和分组。文件夹、收藏夹或标签不替代 Collection 归属；这类组织能力不改变规则、Run、Checkpoint 或谱系边界。
 
 CollectorOverride 仅是编译输入。GatherSpec 保存 Override ID 与摘要作为谱系，并保存展开后的确定性行为；运行时不得读取可变 Override 来改变规则。
+
+Operation 是异步命令的短期进度信封，不替代 AiRun。AiRun 的 `resultStatus` 表达是否生成候选规则，`reviewStatus` 独立表达尚未审核、待审核、已发布或已被替代。规则发布事务把最新待审核 AiRun 关联到 `publishedRuleVersionId`，并将更早待审核结果标记为 `superseded`。ModelInvocation 只记录排障、用量和审计所需元数据，敏感上下文留在受控 Artifact 边界而不进入任务列表投影。
 
 ### 3.5 执行与证据聚合
 

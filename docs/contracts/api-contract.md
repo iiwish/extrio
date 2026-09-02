@@ -5,7 +5,7 @@
 | 字段 | 内容 |
 | --- | --- |
 | 合同 ID | `extrio.control-plane.v1` |
-| 合同版本 | `v1.12.1` |
+| 合同版本 | `v1.13.0` |
 | 对应产品版本 | `v0.2` |
 | 状态 | `Confirmed` |
 | 机器合同 | [`openapi.yaml`](./openapi.yaml) |
@@ -33,6 +33,10 @@ Source 探索和 Run 是异步命令：
 非终态 Operation 的 `error` 必须为空；所有终态的 `phase=completed` 且 `progress=100`。失败、取消和超时终态必须携带稳定 PlatformError，成功终态的 `error` 必须为空。
 
 Run 仍是领域聚合，并固化 `collectionMode` 与 `operationId`；Operation 只表示创建/执行命令的可观察进度，不替代 Run、RunAttempt 或 RunFinalization。
+
+规则生成与修复同时建立独立 `AiRun`。`GET /ai-runs` 返回按创建时间倒序的任务投影，并可通过 `collectorId` 限定单个采集器；`GET /ai-runs/{aiRunId}` 追加全部 `AiAttempt` 与 `ModelInvocation`。AiRun 固定 Collector 名称、Source URL、任务类型、触发原因和发起人；`resultStatus` 表达候选是否生成，`reviewStatus` 独立表达 `not_ready`、`ready_review`、`published` 或 `superseded`。新的候选规则进入待审核时，更早的待审核任务标记为 `superseded`；发布事务把当前待审核 AiRun 关联至 `publishedRuleVersionId`。
+
+每次 Worker 重试追加 AiAttempt；每次模型调用追加 purpose、provider、model、promptVersion、开始/结束时间、Token 用量、可空成本、响应摘要和归一化错误。AiRun 审计数据不得包含原始提示词、Source HTML/JSON 样本、模型响应正文、API Key 或可用凭据。升级已有本地数据库时，历史 explore Operation 必须回填为 AiRun；无法恢复的模型用量保持零，不得推断伪造。
 
 ## 4. 幂等与并发
 

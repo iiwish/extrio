@@ -29,6 +29,134 @@ def test_async_command_is_durable_and_activates_collector(tmp_path: Path) -> Non
     assert Store(store.path).get_operation(operation["id"])["status"] == "queued"
 
 
+def test_initialize_backfills_ai_history_and_repairs_queued_exploration_payload(tmp_path: Path) -> None:
+    store = make_store(tmp_path)
+    collector = store.create_collector("Demo", "Collect notices", "https://example.com/list", "example.com")
+    operation = store.create_async_command(
+        kind="explore",
+        collector_id=collector["id"],
+        resource_type="collector",
+        resource_id=collector["id"],
+        job_payload={"collectorId": collector["id"]},
+        collector_changes={"status": "exploring"},
+    )
+
+    store.initialize()
+
+    ai_run = store.list_ai_runs()[0]
+    assert ai_run["operationId"] == operation["id"]
+    assert ai_run["status"] == "queued"
+    job = store.claim_job(60)
+    assert job is not None
+    assert job["payload"]["aiRunId"] == ai_run["id"]
+
+
+def test_ai_run_keeps_attempts_and_model_invocations_as_auditable_history(tmp_path: Path) -> None:
+    store = make_store(tmp_path)
+    collector = store.create_collector("Demo", "Collect notices", "https://example.com/list", "example.com")
+    operation = store.create_async_command(
+        kind="explore",
+        collector_id=collector["id"],
+        resource_type="collector",
+        resource_id=collector["id"],
+        job_payload={"collectorId": collector["id"], "aiRunId": "ai_run_demo"},
+        collector_changes={"status": "exploring"},
+        ai_run={
+            "id": "ai_run_demo",
+            "collectorId": collector["id"],
+            "collectorName": collector["name"],
+            "sourceUrl": collector["sourceUrl"],
+            "kind": "rule_generation",
+            "trigger": "initial_generation",
+            "initiatedBy": "user_demo",
+        },
+    )
+
+    queued = store.get_ai_run("ai_run_demo")
+    assert queued is not None
+    assert queued["operationId"] == operation["id"]
+    assert queued["status"] == "queued"
+    assert queued["reviewStatus"] == "not_ready"
+    assert queued["attempts"] == []
+
+    attempt = store.start_ai_attempt("ai_run_demo")
+    invocation = store.record_model_invocation(
+        ai_run_id="ai_run_demo",
+        attempt_id=attempt["id"],
+        purpose="discover",
+        provider="openai",
+        model="gpt-4.1-mini",
+        prompt_version="2.0",
+        status="succeeded",
+        started_at="2026-09-02T00:00:00Z",
+        finished_at="2026-09-02T00:00:01Z",
+        duration_ms=1000,
+        prompt_tokens=120,
+        completion_tokens=30,
+        response_digest="sha256:" + "a" * 64,
+        error=None,
+    )
+    assert invocation["totalTokens"] == 150
+    store.finish_ai_attempt(attempt["id"], status="succeeded", error=None)
+    store.update_ai_run(
+        "ai_run_demo",
+        status="succeeded",
+        phase="completed",
+        progress=100,
+        resultStatus="candidate_ready",
+        reviewStatus="ready_review",
+        finishedAt="2026-09-02T00:00:02Z",
+        durationMs=2000,
+    )
+
+    detail = store.get_ai_run("ai_run_demo")
+    assert detail is not None
+    assert detail["modelSummary"] == {
+        "invocationCount": 1,
+        "promptTokens": 120,
+        "completionTokens": 30,
+        "totalTokens": 150,
+        "estimatedCost": None,
+    }
+    assert detail["attempts"][0]["modelInvocations"][0]["purpose"] == "discover"
+    assert store.list_ai_runs()[0]["id"] == "ai_run_demo"
+
+    store.mark_latest_ai_run_published(collector["id"], "rule_demo_v1")
+    published = store.get_ai_run("ai_run_demo")
+    assert published is not None
+    assert published["reviewStatus"] == "published"
+    assert published["publishedRuleVersionId"] == "rule_demo_v1"
+
+
+def test_new_ai_candidate_supersedes_previous_pending_review(tmp_path: Path) -> None:
+    store = make_store(tmp_path)
+    collector = store.create_collector("Demo", "Collect notices", "https://example.com/list", "example.com")
+
+    for ai_run_id in ("ai_run_first", "ai_run_second"):
+        store.create_async_command(
+            kind="explore",
+            collector_id=collector["id"],
+            resource_type="collector",
+            resource_id=collector["id"],
+            job_payload={"collectorId": collector["id"], "aiRunId": ai_run_id},
+            ai_run={
+                "id": ai_run_id,
+                "collectorId": collector["id"],
+                "collectorName": collector["name"],
+                "sourceUrl": collector["sourceUrl"],
+                "kind": "rule_generation",
+                "trigger": "regeneration",
+                "initiatedBy": "user_demo",
+            },
+        )
+
+    store.update_ai_run("ai_run_first", reviewStatus="ready_review")
+    store.update_ai_run("ai_run_second", reviewStatus="ready_review")
+
+    assert store.get_ai_run("ai_run_first")["reviewStatus"] == "superseded"
+    assert store.get_ai_run("ai_run_second")["reviewStatus"] == "ready_review"
+
+
 def test_run_reads_expose_stable_creation_timestamp(tmp_path: Path) -> None:
     store = make_store(tmp_path)
     collector = store.create_collector("Demo", "Collect notices", "https://example.com/list", "example.com")

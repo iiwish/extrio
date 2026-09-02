@@ -3,7 +3,7 @@ import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { seedRuns } from '@/api/fixtures'
+import { seedAiRuns, seedRuns } from '@/api/fixtures'
 import type { Run } from '@/api/types'
 import { RunsPage } from './runs-page'
 
@@ -16,11 +16,11 @@ const runs: Run[] = [
   { ...seedRuns[0], id: 'run_shanghai', collectorName: '上海政府采购公告', status: 'partially_succeeded', acceptedCount: 3, rejectedCount: 1 },
 ]
 
-function renderPage() {
+function renderPage(initialEntry = '/') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[initialEntry]}>
         <RunsPage />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -62,5 +62,21 @@ describe('RunsPage operational list', () => {
     await user.click(screen.getByRole('button', { name: /完整成功/ }))
     expect(within(list).getByText('没有符合当前筛选和搜索的运行。')).toBeInTheDocument()
     expect(screen.getByRole('textbox', { name: '搜索运行' })).toHaveValue('上海')
+  })
+
+  it('switches to durable AI task history without adding another sidebar area', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const url = input instanceof Request ? input.url : String(input)
+      return url.includes('/ai-runs')
+        ? json({ items: seedAiRuns.map(({ attempts: _attempts, ...run }) => run), page: { nextCursor: null } })
+        : json({ items: runs, page: { nextCursor: null } })
+    }))
+    renderPage('/?view=ai')
+
+    const list = await screen.findByLabelText('AI 任务列表')
+    expect(screen.getByRole('tab', { name: 'AI 任务' })).toHaveAttribute('aria-selected', 'true')
+    expect(await within(list).findByText('候选规则已生成')).toBeInTheDocument()
+    expect(within(list).getByText('10.3k')).toBeInTheDocument()
+    expect(within(list).queryByText('op_ai_shanghai_0901')).not.toBeInTheDocument()
   })
 })

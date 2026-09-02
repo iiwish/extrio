@@ -12,6 +12,8 @@ import type {
   CreateCollectorsInput,
   FieldReviewDecision,
   HarvestItem,
+  AiRunDetail,
+  AiRunPage,
   ItemPage,
   ModelConfiguration,
   ModelConfigurationInput,
@@ -166,6 +168,8 @@ export const api = {
   startRun: (id: string) => command<Operation>(`/collectors/${id}/runs`),
   runs: () => request<RunPage>('/runs?limit=200').then((result) => result.items),
   runDetail: (id: string) => request<Run>(`/runs/${id}`),
+  aiRuns: (collectorId?: string) => request<AiRunPage>(`/ai-runs?limit=200${collectorId ? `&collectorId=${encodeURIComponent(collectorId)}` : ''}`).then((result) => result.items),
+  aiRunDetail: (id: string) => request<AiRunDetail>(`/ai-runs/${id}`),
   items: () => request<ItemPage>('/items?limit=200').then((result) => result.items),
   item: (id: string) => request<HarvestItem>(`/items/${id}`),
 }

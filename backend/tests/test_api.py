@@ -59,6 +59,20 @@ def test_create_explore_command_and_idempotent_replay(tmp_path: Path) -> None:
             operation = client.get(accepted.json()["statusUrl"])
             assert operation.json()["status"] == "queued"
             assert client.get(f"/api/v1/collectors/{collector['id']}").json()["status"] == "exploring"
+
+            ai_runs = client.get("/api/v1/ai-runs?limit=50")
+            assert ai_runs.status_code == 200
+            assert ai_runs.json()["items"][0]["collectorId"] == collector["id"]
+            assert ai_runs.json()["items"][0]["status"] == "queued"
+            assert ai_runs.json()["items"][0]["reviewStatus"] == "not_ready"
+            assert len(client.get(f"/api/v1/ai-runs?collectorId={collector['id']}").json()["items"]) == 1
+            assert client.get("/api/v1/ai-runs?collectorId=collector_missing").json()["items"] == []
+
+            ai_run_id = ai_runs.json()["items"][0]["id"]
+            ai_run = client.get(f"/api/v1/ai-runs/{ai_run_id}")
+            assert ai_run.status_code == 200
+            assert ai_run.json()["sourceUrl"] == "https://example.com/list"
+            assert ai_run.json()["attempts"] == []
     finally:
         app_module.store = original
 

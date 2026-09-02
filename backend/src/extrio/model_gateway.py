@@ -1,7 +1,10 @@
+import hashlib
 import json
 import os
 import re
 from dataclasses import dataclass
+from datetime import UTC, datetime
+from time import perf_counter
 from typing import Any
 
 import httpx
@@ -322,7 +325,17 @@ class ModelRuleCompiler:
             raise ModelCompileError("尚未配置默认模型。请先在设置中配置供应商、API Key 和默认模型。")
         return model
 
-    async def _complete_json(self, model: ActiveModel, system: str, evidence: dict[str, Any]) -> dict[str, Any]:
+    async def _complete_json(
+        self,
+        model: ActiveModel,
+        system: str,
+        evidence: dict[str, Any],
+        *,
+        ai_run_id: str | None = None,
+        attempt_id: str | None = None,
+        purpose: str = "compile",
+        prompt_version: str = "2.0",
+    ) -> dict[str, Any]:
         payload: dict[str, Any] = {
             "model": model.model,
             "messages": [
@@ -334,6 +347,12 @@ class ModelRuleCompiler:
         }
         if "open.bigmodel.cn" in model.base_url:
             payload["reasoning_effort"] = "low"
+        started_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+        started_clock = perf_counter()
+        prompt_tokens = 0
+        completion_tokens = 0
+        response_digest = None
+        invocation_error = None
         try:
             async with httpx.AsyncClient(timeout=90) as client:
                 response = await client.post(
@@ -342,9 +361,36 @@ class ModelRuleCompiler:
                     json=payload,
                 )
                 response.raise_for_status()
-            return _json_content(response.json()["choices"][0]["message"]["content"])
+            response_data = response.json()
+            content = response_data["choices"][0]["message"]["content"]
+            usage = response_data.get("usage") if isinstance(response_data, dict) else None
+            if isinstance(usage, dict):
+                prompt_tokens = int(usage.get("prompt_tokens") or 0)
+                completion_tokens = int(usage.get("completion_tokens") or 0)
+            response_digest = f"sha256:{hashlib.sha256(str(content).encode()).hexdigest()}"
+            return _json_content(content)
         except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError, json.JSONDecodeError) as exc:
+            invocation_error = {"code": "MODEL_CALL_FAILED", "message": "模型未返回可用的结构化结果"}
             raise ModelCompileError("模型未能生成有效规则，请检查供应商、模型与网络配置后重试。") from exc
+        finally:
+            if ai_run_id and attempt_id:
+                finished_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+                self.store.record_model_invocation(
+                    ai_run_id=ai_run_id,
+                    attempt_id=attempt_id,
+                    purpose=purpose,
+                    provider=model.provider,
+                    model=model.model,
+                    prompt_version=prompt_version,
+                    status="failed" if invocation_error else "succeeded",
+                    started_at=started_at,
+                    finished_at=finished_at,
+                    duration_ms=max(0, int((perf_counter() - started_clock) * 1000)),
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
+                    response_digest=response_digest,
+                    error=invocation_error,
+                )
 
     async def discover(
         self,
@@ -352,6 +398,9 @@ class ModelRuleCompiler:
         source_url: str,
         list_html: str,
         validation_feedback: str | None = None,
+        *,
+        ai_run_id: str | None = None,
+        attempt_id: str | None = None,
     ) -> dict[str, Any]:
         model = self._model()
         system = """You are the compilation front-end for a deterministic web collection runtime.
@@ -372,6 +421,10 @@ Do not invent selectors that are absent from the supplied DOM."""
                 "validationFeedback": validation_feedback,
                 "domEvidence": _dom_evidence(list_html),
             },
+            ai_run_id=ai_run_id,
+            attempt_id=attempt_id,
+            purpose="discover",
+            prompt_version="2.0",
         )
         return normalize_discovery_plan(raw)
 
@@ -382,6 +435,9 @@ Do not invent selectors that are absent from the supplied DOM."""
         list_html: str,
         detail_samples: list[tuple[str, str]],
         discovery: dict[str, Any],
+        *,
+        ai_run_id: str | None = None,
+        attempt_id: str | None = None,
     ) -> CompiledRulePlan:
         model = self._model()
         system = """You compile sampled, untrusted website evidence into Extrio RulePlan v1.
@@ -406,6 +462,10 @@ The runtime will reject any rule outside this constrained dialect and will never
                     {"url": url, "domEvidence": _dom_evidence(html, limit=14_000)} for url, html in detail_samples[:3]
                 ],
             },
+            ai_run_id=ai_run_id,
+            attempt_id=attempt_id,
+            purpose="compile",
+            prompt_version="2.0",
         )
         return CompiledRulePlan(
             plan=normalize_rule_plan(raw, discovery),

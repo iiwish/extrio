@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo
 
 import uvicorn
 from bs4 import BeautifulSoup
-from fastapi import FastAPI, Header, Request, Response
+from fastapi import FastAPI, Header, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -523,7 +523,7 @@ async def lifespan(_app: FastAPI):
             await schedule_task
 
 
-app = FastAPI(title="Extrio Control Plane API", version="1.12.1", lifespan=lifespan)
+app = FastAPI(title="Extrio Control Plane API", version="1.13.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
@@ -1307,13 +1307,24 @@ def _start_exploration(collector_id: str, request: Request, response: Response, 
         active = store.get_operation(collector["activeOperationId"])
         if active and active["status"] not in TERMINAL:
             return platform_error(request, "OPERATION_ALREADY_ACTIVE", "Collector 已有进行中的异步任务", 409)
+    ai_run_id = stable_id("ai_run", uuid.uuid4().hex, 32)
+    trigger = "regeneration" if collector.get("activeRuleVersion") or collector.get("candidate") else "initial_generation"
     operation = store.create_async_command(
         kind="explore",
         collector_id=collector_id,
         resource_type="collector",
         resource_id=collector_id,
-        job_payload={"collectorId": collector_id, "previousStatus": collector["status"]},
+        job_payload={"collectorId": collector_id, "previousStatus": collector["status"], "aiRunId": ai_run_id},
         collector_changes={"status": "exploring", "updatedAt": "刚刚"},
+        ai_run={
+            "id": ai_run_id,
+            "collectorId": collector_id,
+            "collectorName": collector["name"],
+            "sourceUrl": collector["sourceUrl"],
+            "kind": "rule_generation",
+            "trigger": trigger,
+            "initiatedBy": request.state.auth_user["id"] if request.state.auth_user else "system",
+        },
     )
     response.headers["Location"] = operation["statusUrl"]
     remember(scope, idempotency_key, body, 202, operation)
@@ -1327,6 +1338,17 @@ def get_operation(operation_id: str, request: Request, response: Response):
         return platform_error(request, "OPERATION_NOT_FOUND", "Operation 不存在", 404)
     response.headers["Retry-After"] = str(max(0, operation["pollAfterMs"] // 1000))
     return operation
+
+
+@app.get("/api/v1/ai-runs")
+def list_ai_runs(limit: int = 50, collector_id: str | None = Query(None, alias="collectorId")):
+    return page(store.list_ai_runs(collector_id), limit)
+
+
+@app.get("/api/v1/ai-runs/{ai_run_id}")
+def get_ai_run(ai_run_id: str, request: Request):
+    ai_run = store.get_ai_run(ai_run_id)
+    return ai_run if ai_run else platform_error(request, "AI_RUN_NOT_FOUND", "AI 任务不存在", 404)
 
 
 @app.post("/api/v1/collectors/{collector_id}/publish")

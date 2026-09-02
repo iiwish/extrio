@@ -113,6 +113,36 @@ class Store:
                         updated_at TEXT NOT NULL,
                         FOREIGN KEY (collector_id) REFERENCES collectors(id)
                     );
+                    CREATE TABLE IF NOT EXISTS ai_runs (
+                        id TEXT PRIMARY KEY,
+                        operation_id TEXT NOT NULL UNIQUE,
+                        collector_id TEXT NOT NULL,
+                        data TEXT NOT NULL,
+                        created_at TEXT NOT NULL,
+                        updated_at TEXT NOT NULL,
+                        FOREIGN KEY (operation_id) REFERENCES operations(id),
+                        FOREIGN KEY (collector_id) REFERENCES collectors(id)
+                    );
+                    CREATE TABLE IF NOT EXISTS ai_attempts (
+                        id TEXT PRIMARY KEY,
+                        ai_run_id TEXT NOT NULL,
+                        attempt_no INTEGER NOT NULL,
+                        data TEXT NOT NULL,
+                        created_at TEXT NOT NULL,
+                        updated_at TEXT NOT NULL,
+                        UNIQUE(ai_run_id, attempt_no),
+                        FOREIGN KEY (ai_run_id) REFERENCES ai_runs(id)
+                    );
+                    CREATE TABLE IF NOT EXISTS model_invocations (
+                        id TEXT PRIMARY KEY,
+                        ai_run_id TEXT NOT NULL,
+                        ai_attempt_id TEXT NOT NULL,
+                        data TEXT NOT NULL,
+                        created_at TEXT NOT NULL,
+                        updated_at TEXT NOT NULL,
+                        FOREIGN KEY (ai_run_id) REFERENCES ai_runs(id),
+                        FOREIGN KEY (ai_attempt_id) REFERENCES ai_attempts(id)
+                    );
                     CREATE TABLE IF NOT EXISTS items (
                         id TEXT PRIMARY KEY,
                         run_id TEXT NOT NULL,
@@ -245,6 +275,9 @@ class Store:
                     );
                     CREATE INDEX IF NOT EXISTS idx_jobs_claim ON jobs(status, available_at, lease_until);
                     CREATE INDEX IF NOT EXISTS idx_runs_collector ON runs(collector_id, created_at DESC);
+                    CREATE INDEX IF NOT EXISTS idx_ai_runs_collector ON ai_runs(collector_id, created_at DESC);
+                    CREATE INDEX IF NOT EXISTS idx_ai_attempts_run ON ai_attempts(ai_run_id, attempt_no DESC);
+                    CREATE INDEX IF NOT EXISTS idx_model_invocations_attempt ON model_invocations(ai_attempt_id, created_at);
                     CREATE INDEX IF NOT EXISTS idx_items_run ON items(run_id);
                     CREATE INDEX IF NOT EXISTS idx_rule_versions_collector ON rule_versions(collector_id, created_at DESC);
                     CREATE INDEX IF NOT EXISTS idx_rule_attestations_rule ON rule_attestations(rule_version_id, created_at DESC);
@@ -272,6 +305,95 @@ class Store:
                     BEFORE DELETE ON collection_policies BEGIN SELECT RAISE(ABORT, 'collection_policies are immutable'); END;
                     """
                 )
+                self._backfill_ai_runs(connection)
+
+    def _backfill_ai_runs(self, connection: sqlite3.Connection) -> None:
+        rows = connection.execute(
+            """
+            SELECT operations.id AS operation_id, operations.collector_id, operations.data AS operation_data,
+                   operations.created_at, operations.updated_at, collectors.data AS collector_data,
+                   jobs.payload AS job_payload
+            FROM operations
+            JOIN collectors ON collectors.id = operations.collector_id
+            LEFT JOIN ai_runs ON ai_runs.operation_id = operations.id
+            LEFT JOIN jobs ON jobs.operation_id = operations.id
+            WHERE ai_runs.id IS NULL
+            ORDER BY operations.created_at DESC
+            """
+        ).fetchall()
+        seen_collectors: set[str] = set()
+        for row in rows:
+            operation = json.loads(row["operation_data"])
+            if operation.get("kind") != "explore":
+                continue
+            collector = json.loads(row["collector_data"])
+            status = operation.get("status", "queued")
+            terminal = status in TERMINAL_OPERATION_STATUSES
+            is_latest = str(row["collector_id"]) not in seen_collectors
+            seen_collectors.add(str(row["collector_id"]))
+            has_candidate = bool(collector.get("candidate"))
+            if status == "succeeded":
+                result_status = "candidate_ready" if has_candidate or not is_latest else "no_candidate"
+                if not is_latest:
+                    review_status = "superseded"
+                elif collector.get("status") == "published":
+                    review_status = "published"
+                elif collector.get("status") == "ready_review" and has_candidate:
+                    review_status = "ready_review"
+                else:
+                    review_status = "superseded"
+            elif terminal:
+                result_status = "no_candidate"
+                review_status = "not_ready"
+            else:
+                result_status = "pending"
+                review_status = "not_ready"
+            created_at = str(row["created_at"])
+            updated_at = str(row["updated_at"])
+            duration_ms = None
+            if terminal:
+                started = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                finished = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
+                duration_ms = max(0, int((finished - started).total_seconds() * 1000))
+            ai_run_id = stable_id("ai_run", str(row["operation_id"]), 120)
+            metrics = operation.get("metrics") or {}
+            ai_run = {
+                "id": ai_run_id,
+                "operationId": row["operation_id"],
+                "collectorId": row["collector_id"],
+                "collectorName": collector.get("name", row["collector_id"]),
+                "sourceUrl": collector.get("sourceUrl", ""),
+                "kind": "rule_repair" if collector.get("activeRuleVersion") else "rule_generation",
+                "trigger": "regeneration" if collector.get("activeRuleVersion") or collector.get("candidate") else "initial_generation",
+                "initiatedBy": "system:migration",
+                "status": status,
+                "phase": operation.get("phase", "queued"),
+                "progress": operation.get("progress", 0),
+                "resultStatus": result_status,
+                "reviewStatus": review_status,
+                "attemptCount": 0,
+                "modelSummary": {"invocationCount": 0, "promptTokens": 0, "completionTokens": 0, "totalTokens": 0, "estimatedCost": None},
+                "validationSummary": {"acceptedSamples": 0, "rejectedSamples": 0, "warningCount": int(metrics.get("warningCount", 0))},
+                "candidateRuleDigest": collector.get("candidate", {}).get("digest") if is_latest and has_candidate else None,
+                "publishedRuleVersionId": collector.get("activeRuleVersion") if review_status == "published" else None,
+                "createdAt": created_at,
+                "startedAt": created_at if status != "queued" else None,
+                "finishedAt": updated_at if terminal else None,
+                "durationMs": duration_ms,
+                "error": operation.get("error"),
+            }
+            connection.execute(
+                "INSERT OR IGNORE INTO ai_runs(id, operation_id, collector_id, data, created_at, updated_at) VALUES(?, ?, ?, ?, ?, ?)",
+                (ai_run_id, row["operation_id"], row["collector_id"], json.dumps(ai_run, ensure_ascii=False), created_at, updated_at),
+            )
+            if row["job_payload"]:
+                payload = json.loads(row["job_payload"])
+                if not payload.get("aiRunId"):
+                    payload["aiRunId"] = ai_run_id
+                    connection.execute(
+                        "UPDATE jobs SET payload=? WHERE operation_id=?",
+                        (json.dumps(payload, ensure_ascii=False), row["operation_id"]),
+                    )
 
     @staticmethod
     def _auth_user(row: sqlite3.Row | None) -> dict[str, Any] | None:
@@ -727,6 +849,259 @@ class Store:
             rows = connection.execute("SELECT data FROM operations ORDER BY created_at DESC").fetchall()
         return [json.loads(row["data"]) for row in rows]
 
+    def list_ai_runs(self, collector_id: str | None = None) -> list[dict[str, Any]]:
+        with self.connect() as connection:
+            if collector_id:
+                rows = connection.execute(
+                    "SELECT data FROM ai_runs WHERE collector_id=? ORDER BY created_at DESC",
+                    (collector_id,),
+                ).fetchall()
+            else:
+                rows = connection.execute("SELECT data FROM ai_runs ORDER BY created_at DESC").fetchall()
+        return [{"publishedRuleVersionId": None, **json.loads(row["data"])} for row in rows]
+
+    def get_ai_run(self, ai_run_id: str, connection: sqlite3.Connection | None = None) -> dict[str, Any] | None:
+        if connection is not None:
+            ai_run = self._decode(connection.execute("SELECT data FROM ai_runs WHERE id=?", (ai_run_id,)).fetchone())
+            if ai_run is None:
+                return None
+            return {"publishedRuleVersionId": None, **ai_run, "attempts": self.list_ai_attempts(ai_run_id, connection)}
+        with self.connect() as own:
+            ai_run = self._decode(own.execute("SELECT data FROM ai_runs WHERE id=?", (ai_run_id,)).fetchone())
+            if ai_run is None:
+                return None
+            return {"publishedRuleVersionId": None, **ai_run, "attempts": self.list_ai_attempts(ai_run_id, own)}
+
+    def save_ai_run(
+        self,
+        ai_run: dict[str, Any],
+        collector_id: str,
+        operation_id: str,
+        connection: sqlite3.Connection | None = None,
+    ) -> None:
+        now = utc_now()
+        sql = """
+            INSERT INTO ai_runs(id, operation_id, collector_id, data, created_at, updated_at) VALUES(?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at
+        """
+        params = (ai_run["id"], operation_id, collector_id, json.dumps(ai_run, ensure_ascii=False), now, now)
+        if connection is not None:
+            connection.execute(sql, params)
+            return
+        with self.transaction() as own:
+            own.execute(sql, params)
+
+    def update_ai_run(self, ai_run_id: str, **changes: Any) -> dict[str, Any]:
+        with self.transaction() as connection:
+            row = connection.execute(
+                "SELECT operation_id, collector_id, data FROM ai_runs WHERE id=?",
+                (ai_run_id,),
+            ).fetchone()
+            if row is None:
+                raise KeyError(ai_run_id)
+            ai_run = json.loads(row["data"])
+            ai_run.update(changes)
+            if changes.get("reviewStatus") == "ready_review":
+                older_rows = connection.execute(
+                    "SELECT operation_id, data FROM ai_runs WHERE collector_id=? AND id<>?",
+                    (row["collector_id"], ai_run_id),
+                ).fetchall()
+                for older_row in older_rows:
+                    older_ai_run = json.loads(older_row["data"])
+                    if older_ai_run.get("reviewStatus") != "ready_review":
+                        continue
+                    older_ai_run.update(reviewStatus="superseded", publishedRuleVersionId=None)
+                    self.save_ai_run(
+                        older_ai_run,
+                        str(row["collector_id"]),
+                        str(older_row["operation_id"]),
+                        connection,
+                    )
+            self.save_ai_run(ai_run, str(row["collector_id"]), str(row["operation_id"]), connection)
+            return ai_run
+
+    def mark_latest_ai_run_published(
+        self,
+        collector_id: str,
+        rule_version_id: str,
+        connection: sqlite3.Connection | None = None,
+    ) -> None:
+        own_connection = connection is None
+        target = connection or self.connect()
+        try:
+            if own_connection:
+                target.execute("BEGIN IMMEDIATE")
+            rows = target.execute(
+                "SELECT operation_id, data FROM ai_runs WHERE collector_id=? ORDER BY created_at DESC",
+                (collector_id,),
+            ).fetchall()
+            published = False
+            for row in rows:
+                ai_run = json.loads(row["data"])
+                if ai_run.get("reviewStatus") != "ready_review":
+                    continue
+                if not published:
+                    ai_run.update(reviewStatus="published", publishedRuleVersionId=rule_version_id)
+                    published = True
+                else:
+                    ai_run.update(reviewStatus="superseded", publishedRuleVersionId=None)
+                self.save_ai_run(ai_run, collector_id, str(row["operation_id"]), target)
+            if own_connection:
+                target.commit()
+        except Exception:
+            if own_connection:
+                target.rollback()
+            raise
+        finally:
+            if own_connection:
+                target.close()
+
+    def list_ai_attempts(
+        self,
+        ai_run_id: str,
+        connection: sqlite3.Connection | None = None,
+    ) -> list[dict[str, Any]]:
+        query = "SELECT data FROM ai_attempts WHERE ai_run_id=? ORDER BY attempt_no DESC"
+        if connection is not None:
+            rows = connection.execute(query, (ai_run_id,)).fetchall()
+            attempts = [json.loads(row["data"]) for row in rows]
+            return [{**attempt, "modelInvocations": self.list_model_invocations(attempt["id"], connection)} for attempt in attempts]
+        with self.connect() as own:
+            rows = own.execute(query, (ai_run_id,)).fetchall()
+            attempts = [json.loads(row["data"]) for row in rows]
+            return [{**attempt, "modelInvocations": self.list_model_invocations(attempt["id"], own)} for attempt in attempts]
+
+    def start_ai_attempt(self, ai_run_id: str) -> dict[str, Any]:
+        with self.transaction() as connection:
+            row = connection.execute(
+                "SELECT operation_id, collector_id, data FROM ai_runs WHERE id=?",
+                (ai_run_id,),
+            ).fetchone()
+            if row is None:
+                raise KeyError(ai_run_id)
+            attempt_row = connection.execute(
+                "SELECT COALESCE(MAX(attempt_no), 0) AS attempt_no FROM ai_attempts WHERE ai_run_id=?",
+                (ai_run_id,),
+            ).fetchone()
+            attempt_no = int(attempt_row["attempt_no"]) + 1
+            now = utc_now()
+            attempt = {
+                "id": stable_id("ai_attempt", f"{ai_run_id}_{attempt_no}", 120),
+                "aiRunId": ai_run_id,
+                "attemptNo": attempt_no,
+                "status": "running",
+                "startedAt": now,
+                "finishedAt": None,
+                "durationMs": None,
+                "error": None,
+            }
+            connection.execute(
+                "INSERT INTO ai_attempts(id, ai_run_id, attempt_no, data, created_at, updated_at) VALUES(?, ?, ?, ?, ?, ?)",
+                (attempt["id"], ai_run_id, attempt_no, json.dumps(attempt, ensure_ascii=False), now, now),
+            )
+            ai_run = json.loads(row["data"])
+            ai_run.update(status="running", startedAt=ai_run.get("startedAt") or now, attemptCount=attempt_no)
+            self.save_ai_run(ai_run, str(row["collector_id"]), str(row["operation_id"]), connection)
+            return attempt
+
+    def finish_ai_attempt(self, attempt_id: str, *, status: str, error: dict[str, Any] | None) -> dict[str, Any]:
+        with self.transaction() as connection:
+            row = connection.execute("SELECT data FROM ai_attempts WHERE id=?", (attempt_id,)).fetchone()
+            if row is None:
+                raise KeyError(attempt_id)
+            attempt = json.loads(row["data"])
+            finished_at = utc_now()
+            started_at = datetime.fromisoformat(attempt["startedAt"].replace("Z", "+00:00"))
+            finished = datetime.fromisoformat(finished_at.replace("Z", "+00:00"))
+            attempt.update(
+                status=status,
+                finishedAt=finished_at,
+                durationMs=max(0, int((finished - started_at).total_seconds() * 1000)),
+                error=error,
+            )
+            connection.execute(
+                "UPDATE ai_attempts SET data=?, updated_at=? WHERE id=?",
+                (json.dumps(attempt, ensure_ascii=False), finished_at, attempt_id),
+            )
+            return attempt
+
+    def list_model_invocations(
+        self,
+        attempt_id: str,
+        connection: sqlite3.Connection | None = None,
+    ) -> list[dict[str, Any]]:
+        query = "SELECT data FROM model_invocations WHERE ai_attempt_id=? ORDER BY created_at"
+        if connection is not None:
+            rows = connection.execute(query, (attempt_id,)).fetchall()
+            return [json.loads(row["data"]) for row in rows]
+        with self.connect() as own:
+            rows = own.execute(query, (attempt_id,)).fetchall()
+            return [json.loads(row["data"]) for row in rows]
+
+    def record_model_invocation(
+        self,
+        *,
+        ai_run_id: str,
+        attempt_id: str,
+        purpose: str,
+        provider: str,
+        model: str,
+        prompt_version: str,
+        status: str,
+        started_at: str,
+        finished_at: str,
+        duration_ms: int,
+        prompt_tokens: int,
+        completion_tokens: int,
+        response_digest: str | None,
+        error: dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        invocation = {
+            "id": stable_id("model_call", uuid.uuid4().hex, 32),
+            "aiRunId": ai_run_id,
+            "aiAttemptId": attempt_id,
+            "purpose": purpose,
+            "provider": provider,
+            "model": model,
+            "promptVersion": prompt_version,
+            "status": status,
+            "startedAt": started_at,
+            "finishedAt": finished_at,
+            "durationMs": duration_ms,
+            "promptTokens": max(0, prompt_tokens),
+            "completionTokens": max(0, completion_tokens),
+            "totalTokens": max(0, prompt_tokens) + max(0, completion_tokens),
+            "estimatedCost": None,
+            "responseDigest": response_digest,
+            "error": error,
+        }
+        with self.transaction() as connection:
+            connection.execute(
+                """
+                INSERT INTO model_invocations(id, ai_run_id, ai_attempt_id, data, created_at, updated_at)
+                VALUES(?, ?, ?, ?, ?, ?)
+                """,
+                (invocation["id"], ai_run_id, attempt_id, json.dumps(invocation, ensure_ascii=False), started_at, finished_at),
+            )
+            row = connection.execute(
+                "SELECT operation_id, collector_id, data FROM ai_runs WHERE id=?",
+                (ai_run_id,),
+            ).fetchone()
+            if row is None:
+                raise KeyError(ai_run_id)
+            ai_run = json.loads(row["data"])
+            summary = dict(ai_run.get("modelSummary") or {})
+            summary.update(
+                invocationCount=int(summary.get("invocationCount", 0)) + 1,
+                promptTokens=int(summary.get("promptTokens", 0)) + invocation["promptTokens"],
+                completionTokens=int(summary.get("completionTokens", 0)) + invocation["completionTokens"],
+                totalTokens=int(summary.get("totalTokens", 0)) + invocation["totalTokens"],
+                estimatedCost=None,
+            )
+            ai_run["modelSummary"] = summary
+            self.save_ai_run(ai_run, str(row["collector_id"]), str(row["operation_id"]), connection)
+        return invocation
+
     def save_operation(self, operation: dict[str, Any], collector_id: str, connection: sqlite3.Connection | None = None) -> None:
         now = utc_now()
         sql = """
@@ -766,6 +1141,7 @@ class Store:
         job_payload: dict[str, Any],
         collector_changes: dict[str, Any] | None = None,
         run: dict[str, Any] | None = None,
+        ai_run: dict[str, Any] | None = None,
         activate_collector: bool = True,
     ) -> dict[str, Any]:
         operation_id = stable_id("op", uuid.uuid4().hex)
@@ -805,6 +1181,34 @@ class Store:
                 run["operationId"] = operation_id
                 self.save_run(run, connection)
             self.save_operation(operation, collector_id, connection)
+            if ai_run is not None:
+                now = utc_now()
+                ai_run = {
+                    **ai_run,
+                    "operationId": operation_id,
+                    "status": "queued",
+                    "phase": "queued",
+                    "progress": 0,
+                    "resultStatus": "pending",
+                    "reviewStatus": "not_ready",
+                    "attemptCount": 0,
+                    "modelSummary": {
+                        "invocationCount": 0,
+                        "promptTokens": 0,
+                        "completionTokens": 0,
+                        "totalTokens": 0,
+                        "estimatedCost": None,
+                    },
+                    "validationSummary": {"acceptedSamples": 0, "rejectedSamples": 0, "warningCount": 0},
+                    "candidateRuleDigest": None,
+                    "publishedRuleVersionId": None,
+                    "createdAt": now,
+                    "startedAt": None,
+                    "finishedAt": None,
+                    "durationMs": None,
+                    "error": None,
+                }
+                self.save_ai_run(ai_run, collector_id, operation_id, connection)
             connection.execute(
                 "INSERT INTO jobs(operation_id, kind, payload, status, available_at) VALUES(?, ?, ?, 'queued', ?)",
                 (operation_id, kind, json.dumps(job_payload, ensure_ascii=False), utc_now()),
@@ -1094,6 +1498,7 @@ class Store:
             )
             collector.update(collector_changes)
             self.save_collector(collector, connection)
+            self.mark_latest_ai_run_published(collector_id, rule_version["id"], connection)
             return collector
 
     def list_audit_events(self, limit: int = 100) -> list[dict[str, Any]]:

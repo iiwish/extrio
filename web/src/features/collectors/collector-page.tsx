@@ -30,7 +30,7 @@ import {
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom'
 import { api, waitForOperation } from '@/api/client'
-import type { CandidateField, CandidateRule, CandidateRuleEditInput, CollectionPolicy, CollectionPolicyInput, CollectorDetail, CollectorSchedule, CollectorScheduleInput, FieldReviewDecision, HarvestItem, Operation, UpdateCollectorInput } from '@/api/types'
+import type { AiRun, CandidateField, CandidateRule, CandidateRuleEditInput, CollectionPolicy, CollectionPolicyInput, CollectorDetail, CollectorSchedule, CollectorScheduleInput, FieldReviewDecision, HarvestItem, Operation, UpdateCollectorInput } from '@/api/types'
 import { EvidenceRail } from '@/components/evidence-rail'
 import { StatusBadge } from '@/components/status-badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -68,6 +68,7 @@ export function CollectorPage() {
     queryFn: () => api.runDetail(query.data!.latestRunId!),
     enabled: Boolean(query.data?.latestRunId),
   })
+  const aiRunsQuery = useQuery({ queryKey: ['ai-runs', { collectorId }], queryFn: () => api.aiRuns(collectorId) })
   const [selectedField, setSelectedField] = useState<CandidateField | undefined>()
   const [selectedItem, setSelectedItem] = useState<HarvestItem | undefined>()
   const [evidenceOpen, setEvidenceOpen] = useState(false)
@@ -94,6 +95,7 @@ export function CollectorPage() {
     onSuccess: (data) => {
       queryClient.setQueryData(['collector', collectorId], data)
       queryClient.invalidateQueries({ queryKey: ['collectors'] })
+      queryClient.invalidateQueries({ queryKey: ['ai-runs'] })
     },
   })
   const publish = useMutation({
@@ -104,6 +106,7 @@ export function CollectorPage() {
       setEvidenceOpen(false)
       queryClient.setQueryData(['collector', collectorId], data)
       queryClient.invalidateQueries({ queryKey: ['collectors'] })
+      queryClient.invalidateQueries({ queryKey: ['ai-runs'] })
     },
   })
   const savePolicy = useMutation({
@@ -204,6 +207,7 @@ export function CollectorPage() {
   }
 
   const latestRun = run.data ?? latestRunQuery.data
+  const latestAiRun = aiRunsQuery.data?.find((aiRun) => aiRun.collectorId === collector.id)
   const persistedRunPending = collector.status === 'published' && Boolean(collector.activeOperationId)
   const runPending = run.isPending || persistedRunPending
   const hasPendingDecision = candidate?.fields.some((field) => (reviewDecisions[field.key] ?? 'pending') === 'pending') ?? true
@@ -269,6 +273,7 @@ export function CollectorPage() {
             <CollectorOverview
               collector={collector}
               latestRun={latestRun}
+              latestAiRun={latestAiRun}
               runPending={runPending}
               onSelectItem={openItemEvidence}
               onOpenRun={(id) => navigate(`/runs/${id}`)}
@@ -356,9 +361,10 @@ function WorkspaceEmpty({ icon: Icon, title, description }: { icon: typeof Clipb
   return <section className="collector-workspace-empty"><span><Icon /></span><div><h2>{title}</h2><p>{description}</p></div></section>
 }
 
-function CollectorOverview({ collector, latestRun, runPending, onSelectItem, onOpenRun }: {
+function CollectorOverview({ collector, latestRun, latestAiRun, runPending, onSelectItem, onOpenRun }: {
   collector: CollectorDetail
   latestRun: Awaited<ReturnType<typeof api.runDetail>> | undefined
+  latestAiRun: AiRun | undefined
   runPending: boolean
   onSelectItem: (item: HarvestItem) => void
   onOpenRun: (id: string) => void
@@ -379,6 +385,7 @@ function CollectorOverview({ collector, latestRun, runPending, onSelectItem, onO
       <div className="overview-state">
         <span className={`overview-state-icon ${collector.status === 'published' ? 'success' : ''}`}>{collector.status === 'published' ? <ShieldCheck /> : <Route />}</span>
         <div><span className="eyebrow">CURRENT STATE</span><h2>{runPending ? '正在执行采集任务' : overviewTitle(collector.status)}</h2><p>{overviewDescription(collector.status, runPending)}</p></div>
+        {latestAiRun && <Link className="overview-ai-run" to={`/ai-runs/${latestAiRun.id}`}><WandSparkles /><span><strong>最近 AI 任务</strong><small>{aiRunReviewLabel(latestAiRun)} · {latestAiRun.modelSummary.invocationCount} 次模型调用</small></span><ChevronRight /></Link>}
       </div>
       <dl className="overview-facts">
         <div><dt>入口网址</dt><dd><code className="overview-source-url" title={collector.sourceUrl}>{collector.sourceUrl}</code></dd></div>
@@ -389,6 +396,12 @@ function CollectorOverview({ collector, latestRun, runPending, onSelectItem, onO
     </section>
     {runPending ? <WorkspaceEmpty icon={Play} title="运行正在进行" description="实时阶段和指标显示在页面顶部，完成后最近结果会在这里更新。" /> : collector.status === 'published' ? <PublishedView items={items} runId={runId} onSelectItem={onSelectItem} onOpenRun={onOpenRun} /> : <section className="overview-guidance"><div><span className="eyebrow">NEXT STEP</span><h2>{collector.status === 'ready_review' ? '完成规则审核并发布' : '生成并验证候选规则'}</h2><p>{collector.status === 'ready_review' ? '进入“规则审核”处理待决策字段；技术证据只在需要时从右侧展开。' : '先确认来源定义和采集范围，再启动规则生成。'}</p></div></section>}
   </div>
+}
+
+function aiRunReviewLabel(run: AiRun) {
+  if (['queued', 'running', 'finalizing'].includes(run.status)) return '进行中'
+  if (run.status === 'failed') return '失败'
+  return { not_ready: '已完成', ready_review: '待审核', published: '已发布', superseded: '已被替代' }[run.reviewStatus]
 }
 
 function overviewTitle(status: CollectorDetail['status']) {

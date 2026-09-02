@@ -94,8 +94,32 @@ class Worker:
         self.runtime = CrawleeRuntime(self.settings.artifact_path)
         self.stop_event = asyncio.Event()
 
-    async def _progress(self, operation_id: str, phase: str, progress: int, metrics: dict[str, int]) -> None:
+    async def _progress(
+        self,
+        operation_id: str,
+        phase: str,
+        progress: int,
+        metrics: dict[str, int],
+        ai_run_id: str | None = None,
+    ) -> None:
         self.store.update_operation(operation_id, status="running", phase=phase, progress=progress, metrics=metrics, error=None)
+        if ai_run_id:
+            self.store.update_ai_run(ai_run_id, status="running", phase=phase, progress=progress, error=None)
+
+    def _complete_ai_run(self, ai_run_id: str, **changes: Any) -> dict[str, Any]:
+        ai_run = self.store.get_ai_run(ai_run_id)
+        if ai_run is None:
+            raise RuntimeError(f"AI run {ai_run_id} not found")
+        finished_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
+        started_at = ai_run.get("startedAt") or ai_run["createdAt"]
+        started = datetime.fromisoformat(started_at.replace("Z", "+00:00"))
+        finished = datetime.fromisoformat(finished_at.replace("Z", "+00:00"))
+        return self.store.update_ai_run(
+            ai_run_id,
+            finishedAt=finished_at,
+            durationMs=max(0, int((finished - started).total_seconds() * 1000)),
+            **changes,
+        )
 
     async def process(self, job: dict[str, Any]) -> None:
         operation_id = job["operationId"]
@@ -104,11 +128,17 @@ class Worker:
         if collector is None:
             raise RuntimeError(f"Collector {collector_id} not found")
 
+        ai_run_id = job["payload"].get("aiRunId")
+
         async def progress(phase: str, value: int, metrics: dict[str, int]) -> None:
-            await self._progress(operation_id, phase, value, metrics)
+            await self._progress(operation_id, phase, value, metrics, ai_run_id)
 
         if job["kind"] == "explore":
-            result = await self.explorer.explore(collector, operation_id, progress)
+            if not ai_run_id:
+                raise RuntimeError("exploration job is missing its AI run")
+            attempt = self.store.start_ai_attempt(ai_run_id)
+            job["payload"]["aiAttemptId"] = attempt["id"]
+            result = await self.explorer.explore(collector, operation_id, progress, ai_run_id, attempt["id"])
             collector.update(
                 status="ready_review",
                 activeOperationId=None,
@@ -120,6 +150,24 @@ class Worker:
             self.store.save_collector(collector)
             self.store.update_operation(
                 operation_id, status="succeeded", phase="completed", progress=100, metrics=result.metrics, error=None
+            )
+            accepted_samples = sum(item.get("decision") == "accepted" for item in result.preview_items)
+            rejected_samples = sum(item.get("decision") == "rejected" for item in result.preview_items)
+            self.store.finish_ai_attempt(attempt["id"], status="succeeded", error=None)
+            self._complete_ai_run(
+                ai_run_id,
+                status="succeeded",
+                phase="completed",
+                progress=100,
+                resultStatus="candidate_ready",
+                reviewStatus="ready_review",
+                candidateRuleDigest=result.candidate.get("digest"),
+                validationSummary={
+                    "acceptedSamples": accepted_samples,
+                    "rejectedSamples": rejected_samples,
+                    "warningCount": int(result.metrics.get("warningCount", 0)),
+                },
+                error=None,
             )
             return
 
@@ -236,6 +284,20 @@ class Worker:
         }
         try:
             self.store.update_operation(operation_id, status="failed", phase="completed", progress=100, error=error)
+            ai_run_id = job["payload"].get("aiRunId")
+            ai_attempt_id = job["payload"].get("aiAttemptId")
+            if ai_attempt_id:
+                self.store.finish_ai_attempt(ai_attempt_id, status="failed", error=error)
+            if ai_run_id:
+                self._complete_ai_run(
+                    ai_run_id,
+                    status="failed",
+                    phase="completed",
+                    progress=100,
+                    resultStatus="no_candidate",
+                    reviewStatus="not_ready",
+                    error=error,
+                )
             collector = self.store.get_collector(collector_id) if collector_id else None
             if collector:
                 collector["activeOperationId"] = None

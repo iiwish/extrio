@@ -37,6 +37,10 @@ export const router = createBrowserRouter([
         lazy: async () => ({ Component: (await import('@/features/runs/run-page')).RunPage }),
       },
       {
+        path: '/ai-runs/:aiRunId',
+        lazy: async () => ({ Component: (await import('@/features/runs/ai-run-page')).AiRunPage }),
+      },
+      {
         path: '/items',
         lazy: async () => ({ Component: (await import('@/features/items/items-page')).ItemsPage }),
       },

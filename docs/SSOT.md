@@ -5,7 +5,7 @@
 | 字段 | 内容 |
 | --- | --- |
 | 文档名称 | Extrio 单一事实来源（SSOT） |
-| 文档版本 | `v0.38.0` |
+| 文档版本 | `v0.39.0` |
 | 对应产品版本 | `v0.2` |
 | 状态 | `Confirmed` |
 | 最后更新 | `2026-09-02` |
@@ -25,9 +25,9 @@
 
 | 事实领域 | 权威文档 | 版本 | 状态 | 负责内容 |
 | --- | --- | --- | --- | --- |
-| 权威入口与产品原则 | [`SSOT.md`](./SSOT.md) | `v0.38.0` | `Confirmed` | 产品定位、范围、不变量、版本与治理 |
-| 产品需求 | [`product-contract.md`](./product-contract.md) | `v0.38.0` | `Confirmed` | 用户、旅程、功能需求、非功能需求、成功指标 |
-| 领域语义 | [`domain-model.md`](./domain-model.md) | `v0.7.0` | `Confirmed` | 聚合、关系、状态机、唯一约束、CollectionPolicyVersion 与 Checkpoint 语义 |
+| 权威入口与产品原则 | [`SSOT.md`](./SSOT.md) | `v0.39.0` | `Confirmed` | 产品定位、范围、不变量、版本与治理 |
+| 产品需求 | [`product-contract.md`](./product-contract.md) | `v0.39.0` | `Confirmed` | 用户、旅程、功能需求、非功能需求、成功指标 |
+| 领域语义 | [`domain-model.md`](./domain-model.md) | `v0.8.0` | `Confirmed` | 聚合、关系、状态机、唯一约束、AI 任务、CollectionPolicyVersion 与 Checkpoint 语义 |
 | RulePlan 语义与语法 | [`contracts/rule-plan.md`](./contracts/rule-plan.md)、[`contracts/rule-plan.schema.json`](./contracts/rule-plan.schema.json) | `v1.0.0` / `extrio.rule-plan.v1` | `Confirmed` | LLM 编译中间表示、字段位置、绑定、分页与支持边界 |
 | GatherSpec 语义 | [`contracts/gather-spec.md`](./contracts/gather-spec.md) | `v1.5.0` | `Confirmed` | 规则字段语义、编译边界、完整性、兼容性、安全约束及与运行策略的边界 |
 | GatherSpec 语法 | [`contracts/gather-spec.schema.json`](./contracts/gather-spec.schema.json) | `extrio.gather.v1` | `Ready_For_User_Review` | 可执行 JSON Schema |
@@ -38,7 +38,7 @@
 | Artifact Manifest 语法 | [`contracts/artifact-manifest.schema.json`](./contracts/artifact-manifest.schema.json)、[`contracts/artifact-manifest-chunk.schema.json`](./contracts/artifact-manifest-chunk.schema.json) | `extrio.artifact-manifest.v1` | `Ready_For_User_Review` | Root 与 Chunk JSON Schema |
 | 平台消息协议 | [`contracts/platform-protocol.md`](./contracts/platform-protocol.md) | `v1.2.0` | `Ready_For_User_Review` | JobEnvelope、ResultBatch、PlatformError 与 ItemEvent Envelope |
 | 平台消息语法 | [`contracts/job-envelope.schema.json`](./contracts/job-envelope.schema.json)、[`contracts/result-batch.schema.json`](./contracts/result-batch.schema.json)、[`contracts/platform-error.schema.json`](./contracts/platform-error.schema.json)、[`contracts/item-event-envelope.schema.json`](./contracts/item-event-envelope.schema.json) | `v1` | `Ready_For_User_Review` | 服务间输入、结果、错误和输出机器合同 |
-| 控制面 API 语义 | [`contracts/api-contract.md`](./contracts/api-contract.md) | `v1.12.1` | `Confirmed` | 浏览器 API 边界、管理员认证、异步命令、幂等、多供应商与多模型设置、Collector 需求归属、Collector 定义与两阶段候选规则编辑、Source 传输策略、公告 Item 语义、增量策略与 Checkpoint、规则完整性证据、错误和兼容规则 |
+| 控制面 API 语义 | [`contracts/api-contract.md`](./contracts/api-contract.md) | `v1.13.0` | `Confirmed` | 浏览器 API 边界、管理员认证、异步命令、AI 任务审计、幂等、多供应商与多模型设置、Collector 需求归属、Collector 定义与两阶段候选规则编辑、Source 传输策略、公告 Item 语义、增量策略与 Checkpoint、规则完整性证据、错误和兼容规则 |
 | 控制面 API 语法 | [`contracts/openapi.yaml`](./contracts/openapi.yaml) | `extrio.control-plane.v1` | `Confirmed` | `/api/v1` OpenAPI 3.1 机器合同与生成类型来源 |
 | 运行时行为 | [`runtime-contract.md`](./runtime-contract.md) | `v0.6.0` | `Confirmed` | 调度、终结、幂等、重试、时间窗口、Checkpoint、交付、漂移和回放 |
 | 安全与合规 | [`security-compliance.md`](./security-compliance.md) | `v0.7.0` | `Ready_For_User_Review` | Alpha 管理员认证、租户演进边界、凭据、网络、内容、隐私和审计 |
@@ -47,9 +47,9 @@
 | 规则完整性 | [`architecture/ADR-003-rule-integrity.md`](./architecture/ADR-003-rule-integrity.md) | `v1.3.0` | `Ready_For_User_Review` | 不可变规则、摘要、证明和运行时固定 |
 | 身份与访问 | [`architecture/ADR-004-identity-access.md`](./architecture/ADR-004-identity-access.md) | `v1.1.0` | `Proposed_Production_Target` | OIDC、会话、服务身份和 Tenant 授权 |
 | Alpha 管理员认证 | [`architecture/ADR-005-local-authentication.md`](./architecture/ADR-005-local-authentication.md) | `v1.0.0` | `Accepted` | 首次设置、Argon2、本地可撤销会话与登录限流 |
-| 前端原型 | [`frontend-prototype.md`](./frontend-prototype.md) | `v1.32.1` | `Confirmed` | 第一版前端闭环、管理员登录、多供应商与多模型设置、Collector 需求归属与运营列表、Run 与 Item 运营列表、Collector 任务工作区、按需证据、设计合同、技术栈和验收 |
-| 真实纵向闭环 | [`backend-vertical-slice.md`](./backend-vertical-slice.md) | `v1.12.1` | `Confirmed` | FastAPI、管理员会话、Crawl4AI、LLM RulePlan 编译、同域嵌入入口解析、确定性运行、本地持久化、可信发布与受控增量运行 |
-| 发布验收 | [`releases/v0.2-acceptance.md`](./releases/v0.2-acceptance.md) | `v0.38.0` | `Confirmed` | v0.2 范围、退出标准与验收证据 |
+| 前端原型 | [`frontend-prototype.md`](./frontend-prototype.md) | `v1.33.0` | `Confirmed` | 第一版前端闭环、管理员登录、多供应商与多模型设置、Collector 需求归属与运营列表、采集 Run、AI 任务与 Item 运营列表、Collector 任务工作区、按需证据、设计合同、技术栈和验收 |
+| 真实纵向闭环 | [`backend-vertical-slice.md`](./backend-vertical-slice.md) | `v1.13.0` | `Confirmed` | FastAPI、管理员会话、Crawl4AI、可审计 LLM RulePlan 编译、同域嵌入入口解析、确定性运行、本地持久化、可信发布与受控增量运行 |
+| 发布验收 | [`releases/v0.2-acceptance.md`](./releases/v0.2-acceptance.md) | `v0.39.0` | `Confirmed` | v0.2 范围、退出标准与验收证据 |
 
 ### 2.1 冲突处理
 
@@ -91,6 +91,7 @@ Extrio 是面向授权 Source 的通用结构化采集平台。通用性来自 L
 | `INV-010` | RuleVersion 回滚只改变 Collector 的活动版本指针，不改变历史 RuleVersion 或运行中的 Run。 |
 | `INV-011` | 控制面请求必须经过认证；公开 Alpha 使用单实例管理员权限，后续多租户形态再按 Tenant、资源与动作授权。客户端提交的 tenantId、对象 ID 或 trace context 不构成权限依据。 |
 | `INV-012` | 只有 `evidenceMode=replayable` 且响应字节、URL 上下文、连续 chunk 和运行时语义均完整可验证时，执行才可称为历史证据回放。 |
+| `INV-013` | 每次异步规则生成或修复必须建立独立 AiRun；重试追加 AiAttempt，模型调用追加 ModelInvocation，不得用 Operation 或日志替代可查询历史。 |
 
 ## 5. v0.2 产品范围
 
@@ -103,7 +104,7 @@ Extrio 是面向授权 Source 的通用结构化采集平台。通用性来自 L
 5. 编译、Schema/语义校验、样本测试、人工审核、RuleAttestation、发布和回滚 RuleVersion。
 6. `single` 单阶段直接采集与 `list_detail` 两阶段采集；HTML 使用 CSS Selector，JSON 使用 JSONPath，列表阶段支持 `none`、query `page` 与 `next_link` 分页。Source 入口是同域 iframe 外壳且外壳本身不产生记录时，探索解析同域嵌入入口并把有效入口冻结进 GatherSpec。Item 边界、身份字段、指纹字段和业务输出字段由 RulePlan 明确表达，Run 只执行规则并写入采集时间。
 7. HTTP 采集和受限浏览器采集；浏览器规则固定导航完成条件与异步内容沉降时长，运行时按规则生成可重放 DOM snapshot，不允许任意脚本或代码插件。
-8. Cron Schedule、Run、RunAttempt、取消、暂停、失败重试和运行历史。
+8. Cron Schedule、确定性采集 Run、AiRun、各自的 Attempt、取消、失败重试和可查询运行历史。
 9. HarvestItem、Revision 与 Observation、稳定事件键、Webhook/Kafka 交付和受控 redelivery。
 10. ArtifactManifest、原始响应采样、失败证据、证据等价回放和受控重新处理。
 11. Tenant RBAC、不可变审计、基础 SLO、告警和 Source 漂移检测。

@@ -32,13 +32,16 @@ export function AppShell() {
   const location = useLocation()
   const currentArea = location.pathname === '/'
     ? '概览'
+    : location.pathname.startsWith('/ai-runs/')
+      ? '运行'
     : navItems.find((item) => item.to !== '/' && location.pathname.startsWith(item.to))?.label ?? '工作台'
   const collectorDetail = location.pathname.startsWith('/collectors/') && location.pathname !== '/collectors/new'
   const runDetail = location.pathname.startsWith('/runs/')
+  const aiRunDetail = location.pathname.startsWith('/ai-runs/')
   const itemDetail = location.pathname.startsWith('/items/')
   const [detailBackTarget, setTopbarBackTarget] = useState<string | null>(null)
-  const topbarBackTarget = collectorDetail ? detailBackTarget ?? '/collectors' : runDetail ? '/runs' : itemDetail ? '/items' : null
-  const topbarBackLabel = runDetail ? '返回运行列表' : itemDetail ? '返回数据列表' : '返回所属需求'
+  const topbarBackTarget = collectorDetail ? detailBackTarget ?? '/collectors' : runDetail ? '/runs' : aiRunDetail ? '/runs?view=ai' : itemDetail ? '/items' : null
+  const topbarBackLabel = runDetail || aiRunDetail ? '返回运行列表' : itemDetail ? '返回数据列表' : '返回所属需求'
 
   return (
     <div className="app-shell">

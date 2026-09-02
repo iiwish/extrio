@@ -64,7 +64,14 @@ class Crawl4AIExplorer:
         self.artifact_path = artifact_path
         self.model_compiler = model_compiler
 
-    async def explore(self, collector: dict[str, Any], operation_id: str, progress: ProgressCallback) -> ExplorationResult:
+    async def explore(
+        self,
+        collector: dict[str, Any],
+        operation_id: str,
+        progress: ProgressCallback,
+        ai_run_id: str | None = None,
+        attempt_id: str | None = None,
+    ) -> ExplorationResult:
         artifact_dir = self.artifact_path / operation_id
         artifact_dir.mkdir(parents=True, exist_ok=True)
         metrics = {
@@ -115,7 +122,14 @@ class Crawl4AIExplorer:
             if self.model_compiler:
                 feedback = None
                 for _attempt in range(2):
-                    discovery_plan = await self.model_compiler.discover(rule_collector, effective_url, list_html, feedback)
+                    discovery_plan = await self.model_compiler.discover(
+                        rule_collector,
+                        effective_url,
+                        list_html,
+                        feedback,
+                        ai_run_id=ai_run_id,
+                        attempt_id=attempt_id,
+                    )
                     if requires_browser:
                         discovery_plan["transport"] = "browser"
                     if discovery_plan["mode"] != "list_detail":
@@ -155,7 +169,15 @@ class Crawl4AIExplorer:
 
         rule_collector = {**collector, "sourceUrl": effective_url}
         if self.model_compiler and discovery_plan:
-            compiled = await self.model_compiler.compile(rule_collector, effective_url, list_html, samples, discovery_plan)
+            compiled = await self.model_compiler.compile(
+                rule_collector,
+                effective_url,
+                list_html,
+                samples,
+                discovery_plan,
+                ai_run_id=ai_run_id,
+                attempt_id=attempt_id,
+            )
             self.contracts.validate_rule_plan(compiled.plan)
             if compiled.plan["mode"] == "list_detail" and compiled.plan["list"]["pagination"]["type"] == "next_link":
                 _compiled_records, compiled_next_url = discover_records_from_spec(list_html, effective_url, compiled.plan["list"])

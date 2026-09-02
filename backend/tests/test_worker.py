@@ -96,6 +96,66 @@ def test_final_run_status_requires_a_normal_stop_reason(accepted: int, rejected:
 
 
 @pytest.mark.asyncio
+async def test_exploration_worker_finalizes_ai_run_without_marking_rule_published(tmp_path: Path) -> None:
+    class FakeExplorer:
+        async def explore(self, collector, _operation_id, progress, _ai_run_id=None, _attempt_id=None):
+            await progress("fetching_list", 20, {"listPagesFetched": 1})
+            candidate = build_candidate(
+                collector,
+                app_module.contracts,
+                '<ul><li><a href="/detail/a">A</a></li></ul>',
+                [("https://example.com/detail/a", '<h1 class="notice-title">A</h1>')],
+            )
+            return type(
+                "ExplorationResult",
+                (),
+                {
+                    "candidate": candidate,
+                    "preview_items": [{"decision": "accepted"}, {"decision": "rejected"}],
+                    "metrics": {"listPagesFetched": 1, "warningCount": 1},
+                },
+            )()
+
+    store = Store(tmp_path / "ai-worker.db")
+    store.initialize()
+    collector = store.create_collector("Demo", "Collect notices", "https://example.com/list", "example.com")
+    store.create_async_command(
+        kind="explore",
+        collector_id=collector["id"],
+        resource_type="collector",
+        resource_id=collector["id"],
+        job_payload={"collectorId": collector["id"], "previousStatus": "draft", "aiRunId": "ai_run_worker"},
+        collector_changes={"status": "exploring"},
+        ai_run={
+            "id": "ai_run_worker",
+            "collectorId": collector["id"],
+            "collectorName": collector["name"],
+            "sourceUrl": collector["sourceUrl"],
+            "kind": "rule_generation",
+            "trigger": "initial_generation",
+            "initiatedBy": "user_demo",
+        },
+    )
+    job = store.claim_job(60)
+    assert job is not None
+    worker = Worker.__new__(Worker)
+    worker.store = store
+    worker.explorer = FakeExplorer()
+
+    await worker.process(job)
+
+    ai_run = store.get_ai_run("ai_run_worker")
+    assert ai_run is not None
+    assert ai_run["status"] == "succeeded"
+    assert ai_run["resultStatus"] == "candidate_ready"
+    assert ai_run["reviewStatus"] == "ready_review"
+    assert ai_run["validationSummary"] == {"acceptedSamples": 1, "rejectedSamples": 1, "warningCount": 1}
+    assert ai_run["candidateRuleDigest"]
+    assert ai_run["attempts"][0]["status"] == "succeeded"
+    assert store.get_collector(collector["id"])["status"] == "ready_review"
+
+
+@pytest.mark.asyncio
 async def test_worker_advances_checkpoint_only_after_successful_finalization(tmp_path: Path) -> None:
     class FakeRuntime:
         async def run(self, _collector, run, _progress):

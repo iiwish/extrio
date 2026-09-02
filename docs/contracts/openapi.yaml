@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Extrio Control Plane API
-  version: 1.12.1
+  version: 1.13.0
   description: Versioned browser-facing control-plane contract for the Extrio v0.2 vertical slice.
 x-contract-id: extrio.control-plane.v1
 servers:
@@ -420,6 +420,47 @@ paths:
                 $ref: '#/components/schemas/Operation'
         default:
           $ref: '#/components/responses/PlatformError'
+  /ai-runs:
+    get:
+      operationId: listAiRuns
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - name: collectorId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Restrict history to one collector.
+      responses:
+        '200':
+          description: AI task history ordered by creation time.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiRunPage'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /ai-runs/{aiRunId}:
+    get:
+      operationId: getAiRun
+      parameters:
+        - $ref: '#/components/parameters/AiRunId'
+      responses:
+        '200':
+          description: AI task result, attempts, and model-call evidence.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiRunDetail'
+        default:
+          $ref: '#/components/responses/PlatformError'
   /runs:
     get:
       operationId: listRuns
@@ -511,6 +552,12 @@ components:
         minLength: 1
     OperationId:
       name: operationId
+      in: path
+      required: true
+      schema:
+        type: string
+    AiRunId:
+      name: aiRunId
       in: path
       required: true
       schema:
@@ -841,6 +888,7 @@ components:
         - COLLECTION_NOT_FOUND
         - COLLECTOR_NOT_FOUND
         - OPERATION_NOT_FOUND
+        - AI_RUN_NOT_FOUND
         - RUN_NOT_FOUND
         - ITEM_NOT_FOUND
         - IDEMPOTENCY_KEY_REQUIRED
@@ -957,6 +1005,214 @@ components:
             properties:
               error:
                 $ref: '#/components/schemas/PlatformError'
+    AiRunKind:
+      type: string
+      enum: [rule_generation, rule_repair]
+    AiRunTrigger:
+      type: string
+      enum: [initial_generation, regeneration, repair]
+    AiRunResultStatus:
+      type: string
+      enum: [pending, candidate_ready, no_candidate]
+    AiRunReviewStatus:
+      type: string
+      enum: [not_ready, ready_review, published, superseded]
+    AiModelSummary:
+      type: object
+      additionalProperties: false
+      required: [invocationCount, promptTokens, completionTokens, totalTokens, estimatedCost]
+      properties:
+        invocationCount:
+          type: integer
+          minimum: 0
+        promptTokens:
+          type: integer
+          minimum: 0
+        completionTokens:
+          type: integer
+          minimum: 0
+        totalTokens:
+          type: integer
+          minimum: 0
+        estimatedCost:
+          type: [number, 'null']
+          minimum: 0
+    AiValidationSummary:
+      type: object
+      additionalProperties: false
+      required: [acceptedSamples, rejectedSamples, warningCount]
+      properties:
+        acceptedSamples:
+          type: integer
+          minimum: 0
+        rejectedSamples:
+          type: integer
+          minimum: 0
+        warningCount:
+          type: integer
+          minimum: 0
+    ModelInvocationError:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+    ModelInvocation:
+      type: object
+      additionalProperties: false
+      required: [id, aiRunId, aiAttemptId, purpose, provider, model, promptVersion, status, startedAt, finishedAt, durationMs, promptTokens, completionTokens, totalTokens, estimatedCost, responseDigest, error]
+      properties:
+        id:
+          type: string
+        aiRunId:
+          type: string
+        aiAttemptId:
+          type: string
+        purpose:
+          type: string
+          enum: [discover, compile, repair]
+        provider:
+          type: string
+        model:
+          type: string
+        promptVersion:
+          type: string
+        status:
+          type: string
+          enum: [succeeded, failed]
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+        durationMs:
+          type: integer
+          minimum: 0
+        promptTokens:
+          type: integer
+          minimum: 0
+        completionTokens:
+          type: integer
+          minimum: 0
+        totalTokens:
+          type: integer
+          minimum: 0
+        estimatedCost:
+          type: [number, 'null']
+          minimum: 0
+        responseDigest:
+          type: [string, 'null']
+        error:
+          anyOf:
+            - $ref: '#/components/schemas/ModelInvocationError'
+            - type: 'null'
+    AiAttempt:
+      type: object
+      additionalProperties: false
+      required: [id, aiRunId, attemptNo, status, startedAt, finishedAt, durationMs, error, modelInvocations]
+      properties:
+        id:
+          type: string
+        aiRunId:
+          type: string
+        attemptNo:
+          type: integer
+          minimum: 1
+        status:
+          $ref: '#/components/schemas/OperationStatus'
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: [string, 'null']
+          format: date-time
+        durationMs:
+          type: [integer, 'null']
+          minimum: 0
+        error:
+          anyOf:
+            - $ref: '#/components/schemas/PlatformError'
+            - type: 'null'
+        modelInvocations:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModelInvocation'
+    AiRun:
+      type: object
+      additionalProperties: false
+      required: [id, operationId, collectorId, collectorName, sourceUrl, kind, trigger, initiatedBy, status, phase, progress, resultStatus, reviewStatus, attemptCount, modelSummary, validationSummary, candidateRuleDigest, publishedRuleVersionId, createdAt, startedAt, finishedAt, durationMs, error]
+      properties:
+        id:
+          type: string
+        operationId:
+          type: string
+        collectorId:
+          type: string
+        collectorName:
+          type: string
+        sourceUrl:
+          type: string
+          format: uri
+        kind:
+          $ref: '#/components/schemas/AiRunKind'
+        trigger:
+          $ref: '#/components/schemas/AiRunTrigger'
+        initiatedBy:
+          type: string
+        status:
+          $ref: '#/components/schemas/OperationStatus'
+        phase:
+          $ref: '#/components/schemas/OperationPhase'
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+        resultStatus:
+          $ref: '#/components/schemas/AiRunResultStatus'
+        reviewStatus:
+          $ref: '#/components/schemas/AiRunReviewStatus'
+        attemptCount:
+          type: integer
+          minimum: 0
+        modelSummary:
+          $ref: '#/components/schemas/AiModelSummary'
+        validationSummary:
+          $ref: '#/components/schemas/AiValidationSummary'
+        candidateRuleDigest:
+          type: [string, 'null']
+        publishedRuleVersionId:
+          type: [string, 'null']
+        createdAt:
+          type: string
+          format: date-time
+        startedAt:
+          type: [string, 'null']
+          format: date-time
+        finishedAt:
+          type: [string, 'null']
+          format: date-time
+        durationMs:
+          type: [integer, 'null']
+          minimum: 0
+        error:
+          anyOf:
+            - $ref: '#/components/schemas/PlatformError'
+            - type: 'null'
+    AiRunDetail:
+      allOf:
+        - $ref: '#/components/schemas/AiRun'
+        - type: object
+          additionalProperties: false
+          required: [attempts]
+          properties:
+            attempts:
+              type: array
+              items:
+                $ref: '#/components/schemas/AiAttempt'
     CandidateField:
       type: object
       additionalProperties: false
@@ -1721,6 +1977,17 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Run'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+    AiRunPage:
+      type: object
+      additionalProperties: false
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AiRun'
         page:
           $ref: '#/components/schemas/PageMeta'
     ItemPage:

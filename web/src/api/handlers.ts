@@ -1,6 +1,7 @@
 import { delay, http, HttpResponse } from 'msw'
-import { collectionPolicyFor, createCandidateRule, createItemsForCollector, scheduleFor, seedCollectors, seedRuns } from './fixtures'
+import { collectionPolicyFor, createCandidateRule, createItemsForCollector, scheduleFor, seedAiRuns, seedCollectors, seedRuns } from './fixtures'
 import type {
+  AiRunDetail,
   BatchCollectorImportItem,
   CandidateRuleEditInput,
   CollectorDetail,
@@ -21,6 +22,7 @@ import type {
 
 const collectors = structuredClone(seedCollectors)
 const runs = structuredClone(seedRuns)
+const aiRuns = structuredClone(seedAiRuns)
 const defaultModelSetting: ModelSetting = {
   provider: 'openai',
   baseUrl: 'https://api.openai.com/v1',
@@ -207,6 +209,17 @@ function advanceOperation(operation: MockOperation) {
     metrics: { ...emptyMetrics(), listPagesFetched, detailUrlsDiscovered, detailPagesFetched, warningCount },
   }
 
+  if (operation.value.kind === 'explore') {
+    const aiRun = aiRuns.find((row) => row.operationId === operation.value.id)
+    if (aiRun && snapshot.phase !== 'completed') {
+      aiRun.status = 'running'
+      aiRun.phase = snapshot.phase
+      aiRun.progress = snapshot.progress
+      aiRun.startedAt ??= new Date().toISOString()
+      aiRun.attemptCount = 1
+    }
+  }
+
   if (operation.value.kind === 'run' && snapshot.phase !== 'completed') {
     const activeRun = byId(runs, operation.value.resourceId)
     if (activeRun) activeRun.status = snapshot.phase === 'finalizing' ? 'finalizing' : 'running'
@@ -215,6 +228,18 @@ function advanceOperation(operation: MockOperation) {
   if (snapshot.phase !== 'completed' || operation.finalized) return
   operation.finalized = true
   if (operation.value.kind === 'explore') {
+    const aiRun = aiRuns.find((row) => row.operationId === operation.value.id)
+    if (aiRun) {
+      aiRun.status = 'succeeded'
+      aiRun.phase = 'completed'
+      aiRun.progress = 100
+      aiRun.resultStatus = 'candidate_ready'
+      aiRun.reviewStatus = 'ready_review'
+      aiRun.finishedAt = new Date().toISOString()
+      aiRun.durationMs = 24000
+      aiRun.validationSummary = { acceptedSamples: 3, rejectedSamples: 0, warningCount: 0 }
+      aiRun.candidateRuleDigest = createCandidateRule(collector).digest
+    }
     collector.status = 'ready_review'
     collector.activeOperationId = null
     collector.candidate = createCandidateRule(collector)
@@ -477,6 +502,34 @@ export const handlers = [
     }
     collector.status = 'exploring'
     const operation = createOperation('explore', collector.id, collector.id)
+    const aiRunId = `ai_run_${crypto.randomUUID().replaceAll('-', '').slice(0, 12)}`
+    const aiRun: AiRunDetail = {
+      id: aiRunId,
+      operationId: operation.value.id,
+      collectorId: collector.id,
+      collectorName: collector.name,
+      sourceUrl: collector.sourceUrl,
+      kind: collector.activeRuleVersion || collector.candidate ? 'rule_repair' : 'rule_generation',
+      trigger: collector.activeRuleVersion || collector.candidate ? 'regeneration' : 'initial_generation',
+      initiatedBy: mockAuthUser.id,
+      status: 'queued',
+      phase: 'queued',
+      progress: 0,
+      resultStatus: 'pending',
+      reviewStatus: 'not_ready',
+      attemptCount: 0,
+      modelSummary: { invocationCount: 0, promptTokens: 0, completionTokens: 0, totalTokens: 0, estimatedCost: null },
+      validationSummary: { acceptedSamples: 0, rejectedSamples: 0, warningCount: 0 },
+      candidateRuleDigest: null,
+      publishedRuleVersionId: null,
+      createdAt: new Date().toISOString(),
+      startedAt: null,
+      finishedAt: null,
+      durationMs: null,
+      error: null,
+      attempts: [],
+    }
+    aiRuns.unshift(aiRun)
     collector.activeOperationId = operation.value.id
     return successResponse(operation.value, 202, { Location: operation.value.statusUrl })
   }),
@@ -579,6 +632,11 @@ export const handlers = [
     collector.activeRuleVersion = `rule_v${currentVersion + 1}`
     collector.reviewDecisions = reviewDecisions
     collector.updatedAt = '刚刚'
+    const latestAiRun = aiRuns.find((run) => run.collectorId === collector.id && run.reviewStatus === 'ready_review')
+    if (latestAiRun) {
+      latestAiRun.reviewStatus = 'published'
+      latestAiRun.publishedRuleVersionId = collector.activeRuleVersion
+    }
     return successResponse(collector)
   }),
   http.post('*/api/v1/collectors/:id/runs', async ({ params, request }) => {
@@ -638,6 +696,15 @@ export const handlers = [
   http.get('*/api/v1/runs/:id', ({ params }) => {
     const run = byId(runs, String(params.id))
     return run ? successResponse(run) : errorResponse('RUN_NOT_FOUND', 'Run 不存在', 404)
+  }),
+  http.get('*/api/v1/ai-runs', ({ request }) => {
+    const collectorId = new URL(request.url).searchParams.get('collectorId')
+    const matches = collectorId ? aiRuns.filter((run) => run.collectorId === collectorId) : aiRuns
+    return successResponse(page(matches.map(({ attempts: _attempts, ...run }) => run)))
+  }),
+  http.get('*/api/v1/ai-runs/:id', ({ params }) => {
+    const aiRun = byId(aiRuns, String(params.id))
+    return aiRun ? successResponse(aiRun) : errorResponse('AI_RUN_NOT_FOUND', 'AI 任务不存在', 404)
   }),
   http.get('*/api/v1/items', () => successResponse(page(runs.flatMap((run) => run.items)))),
   http.get('*/api/v1/items/:id', ({ params }) => {

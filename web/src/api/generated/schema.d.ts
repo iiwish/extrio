@@ -264,6 +264,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/ai-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listAiRuns"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ai-runs/{aiRunId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getAiRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/runs": {
         parameters: {
             query?: never;
@@ -456,7 +488,7 @@ export interface components {
          * @description Stable v1 error taxonomy. New codes may be added without changing existing meanings.
          * @enum {string}
          */
-        ErrorCode: "AUTH_REQUIRED" | "INVALID_CREDENTIALS" | "SETUP_ALREADY_COMPLETED" | "RATE_LIMITED" | "FORBIDDEN" | "VALIDATION_FAILED" | "INVALID_URL" | "HTTPS_REQUIRED" | "DUPLICATE_IN_BATCH" | "SOURCE_ALREADY_EXISTS" | "SOURCE_UNREACHABLE" | "COLLECTION_NOT_FOUND" | "COLLECTOR_NOT_FOUND" | "OPERATION_NOT_FOUND" | "RUN_NOT_FOUND" | "ITEM_NOT_FOUND" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "OPERATION_ALREADY_ACTIVE" | "RUN_ALREADY_ACTIVE" | "RULE_NOT_PUBLISHED" | "CANDIDATE_RULE_NOT_FOUND" | "CANDIDATE_VALIDATION_FAILED" | "RULE_ATTESTATION_INVALID" | "REVIEW_DECISION_INVALID" | "OPERATION_CANCELLED" | "OPERATION_TIMED_OUT" | "INTERNAL_ERROR" | "UNEXPECTED_RESPONSE";
+        ErrorCode: "AUTH_REQUIRED" | "INVALID_CREDENTIALS" | "SETUP_ALREADY_COMPLETED" | "RATE_LIMITED" | "FORBIDDEN" | "VALIDATION_FAILED" | "INVALID_URL" | "HTTPS_REQUIRED" | "DUPLICATE_IN_BATCH" | "SOURCE_ALREADY_EXISTS" | "SOURCE_UNREACHABLE" | "COLLECTION_NOT_FOUND" | "COLLECTOR_NOT_FOUND" | "OPERATION_NOT_FOUND" | "AI_RUN_NOT_FOUND" | "RUN_NOT_FOUND" | "ITEM_NOT_FOUND" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "OPERATION_ALREADY_ACTIVE" | "RUN_ALREADY_ACTIVE" | "RULE_NOT_PUBLISHED" | "CANDIDATE_RULE_NOT_FOUND" | "CANDIDATE_VALIDATION_FAILED" | "RULE_ATTESTATION_INVALID" | "REVIEW_DECISION_INVALID" | "OPERATION_CANCELLED" | "OPERATION_TIMED_OUT" | "INTERNAL_ERROR" | "UNEXPECTED_RESPONSE";
         OperationMetrics: {
             listPagesFetched: number;
             detailUrlsDiscovered: number;
@@ -482,6 +514,98 @@ export interface components {
             metrics: components["schemas"]["OperationMetrics"];
             error: components["schemas"]["PlatformError"] | null;
         } & (unknown & unknown & unknown & unknown);
+        /** @enum {string} */
+        AiRunKind: "rule_generation" | "rule_repair";
+        /** @enum {string} */
+        AiRunTrigger: "initial_generation" | "regeneration" | "repair";
+        /** @enum {string} */
+        AiRunResultStatus: "pending" | "candidate_ready" | "no_candidate";
+        /** @enum {string} */
+        AiRunReviewStatus: "not_ready" | "ready_review" | "published" | "superseded";
+        AiModelSummary: {
+            invocationCount: number;
+            promptTokens: number;
+            completionTokens: number;
+            totalTokens: number;
+            estimatedCost: number | null;
+        };
+        AiValidationSummary: {
+            acceptedSamples: number;
+            rejectedSamples: number;
+            warningCount: number;
+        };
+        ModelInvocationError: {
+            code: string;
+            message: string;
+        };
+        ModelInvocation: {
+            id: string;
+            aiRunId: string;
+            aiAttemptId: string;
+            /** @enum {string} */
+            purpose: "discover" | "compile" | "repair";
+            provider: string;
+            model: string;
+            promptVersion: string;
+            /** @enum {string} */
+            status: "succeeded" | "failed";
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            finishedAt: string;
+            durationMs: number;
+            promptTokens: number;
+            completionTokens: number;
+            totalTokens: number;
+            estimatedCost: number | null;
+            responseDigest: string | null;
+            error: components["schemas"]["ModelInvocationError"] | null;
+        };
+        AiAttempt: {
+            id: string;
+            aiRunId: string;
+            attemptNo: number;
+            status: components["schemas"]["OperationStatus"];
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            finishedAt: string | null;
+            durationMs: number | null;
+            error: components["schemas"]["PlatformError"] | null;
+            modelInvocations: components["schemas"]["ModelInvocation"][];
+        };
+        AiRun: {
+            id: string;
+            operationId: string;
+            collectorId: string;
+            collectorName: string;
+            /** Format: uri */
+            sourceUrl: string;
+            kind: components["schemas"]["AiRunKind"];
+            trigger: components["schemas"]["AiRunTrigger"];
+            initiatedBy: string;
+            status: components["schemas"]["OperationStatus"];
+            phase: components["schemas"]["OperationPhase"];
+            progress: number;
+            resultStatus: components["schemas"]["AiRunResultStatus"];
+            reviewStatus: components["schemas"]["AiRunReviewStatus"];
+            attemptCount: number;
+            modelSummary: components["schemas"]["AiModelSummary"];
+            validationSummary: components["schemas"]["AiValidationSummary"];
+            candidateRuleDigest: string | null;
+            publishedRuleVersionId: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            startedAt: string | null;
+            /** Format: date-time */
+            finishedAt: string | null;
+            durationMs: number | null;
+            error: components["schemas"]["PlatformError"] | null;
+        };
+        AiRunDetail: components["schemas"]["AiRun"] & {
+            attempts: components["schemas"]["AiAttempt"][];
+        };
         CandidateField: {
             key: string;
             label: string;
@@ -786,6 +910,10 @@ export interface components {
         } & unknown;
         RunPage: {
             items: components["schemas"]["Run"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        AiRunPage: {
+            items: components["schemas"]["AiRun"][];
             page: components["schemas"]["PageMeta"];
         };
         ItemPage: {
@@ -1339,6 +1467,7 @@ export interface components {
     parameters: {
         CollectorId: string;
         OperationId: string;
+        AiRunId: string;
         RunId: string;
         ItemId: string;
         /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
@@ -1891,6 +2020,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Operation"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    listAiRuns: {
+        parameters: {
+            query?: {
+                cursor?: components["parameters"]["Cursor"];
+                limit?: components["parameters"]["Limit"];
+                /** @description Restrict history to one collector. */
+                collectorId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description AI task history ordered by creation time. */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiRunPage"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    getAiRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                aiRunId: components["parameters"]["AiRunId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description AI task result, attempts, and model-call evidence. */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiRunDetail"];
                 };
             };
             default: components["responses"]["PlatformError"];
