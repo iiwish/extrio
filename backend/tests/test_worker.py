@@ -126,7 +126,8 @@ def test_enqueue_run_deliveries_targets_only_accepted_new_updated_items_and_enab
 @pytest.mark.asyncio
 async def test_exploration_worker_finalizes_ai_run_without_marking_rule_published(tmp_path: Path) -> None:
     class FakeExplorer:
-        async def explore(self, collector, _operation_id, progress, _ai_run_id=None, _attempt_id=None):
+        async def explore(self, collector, _operation_id, progress, _ai_run_id=None, _attempt_id=None, *, repair_spec=None):
+            assert repair_spec is None
             await progress("fetching_list", 20, {"listPagesFetched": 1})
             candidate = build_candidate(
                 collector,

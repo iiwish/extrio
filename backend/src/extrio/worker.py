@@ -11,7 +11,7 @@ from extrio.credentials import CredentialCipher
 from extrio.delivery import OUTCOME_DELIVERED, WebhookDispatcher
 from extrio.explorer import Crawl4AIExplorer
 from extrio.integrity import IntegrityError, verify_rule_attestation
-from extrio.model_gateway import ModelRuleCompiler
+from extrio.model_gateway import ModelRepairNotApplicableError, ModelRuleCompiler
 from extrio.runtime import CrawleeRuntime
 from extrio.store import DEFAULT_COLLECTOR_SCHEDULE, Store
 
@@ -142,9 +142,19 @@ class Worker:
         if job["kind"] == "explore":
             if not ai_run_id:
                 raise RuntimeError("exploration job is missing its AI run")
+            # Repairs reuse the exploration pipeline end to end; the old
+            # GatherSpec is read at processing time so the frozen contract
+            # always comes from the collector's current published/candidate rule.
+            repair_spec = None
+            if job["payload"].get("repair"):
+                repair_spec = (collector.get("candidate") or {}).get("gatherSpec")
+                if not isinstance(repair_spec, dict) or not repair_spec:
+                    raise ModelRepairNotApplicableError("Collector 没有可修复的已发布规则或候选规则。")
             attempt = self.store.start_ai_attempt(ai_run_id)
             job["payload"]["aiAttemptId"] = attempt["id"]
-            result = await self.explorer.explore(collector, operation_id, progress, ai_run_id, attempt["id"])
+            result = await self.explorer.explore(
+                collector, operation_id, progress, ai_run_id, attempt["id"], repair_spec=repair_spec
+            )
             collector.update(
                 status="ready_review",
                 activeOperationId=None,

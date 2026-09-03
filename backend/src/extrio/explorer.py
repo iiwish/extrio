@@ -1,4 +1,6 @@
+import copy
 import json
+import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,6 +13,7 @@ from extrio.contracts import ContractBundle, sha256_digest
 from extrio.harvest import (
     build_candidate,
     build_candidate_from_plan,
+    contract_field_values,
     discover,
     discover_records_from_spec,
     embedded_list_url,
@@ -18,7 +21,14 @@ from extrio.harvest import (
     make_item,
 )
 from extrio.integrity import calculate_rule_digest
-from extrio.model_gateway import ModelCompileError, ModelRuleCompiler
+from extrio.model_gateway import (
+    ModelCompileError,
+    ModelRepairNotApplicableError,
+    ModelRepairValidationError,
+    ModelRuleCompiler,
+)
+
+logger = logging.getLogger("extrio.explorer")
 
 ProgressCallback = Callable[[str, int, dict[str, int]], Awaitable[None]]
 
@@ -53,6 +63,86 @@ class ExplorationResult:
     metrics: dict[str, int]
 
 
+def _apply_repair_contract(candidate: dict[str, Any], old_gather_spec: dict[str, Any]) -> None:
+    """Governance invariant: the repaired rule keeps the old rule's data contract verbatim.
+
+    The LLM only fixes selectors, pagination, and transport. The contract sub-object
+    (identityFields, fingerprintFields, normalizedItemSchema, fieldBindings, quality,
+    tombstonePolicy) is copied from the old GatherSpec — never taken from the model —
+    derived digests are recomputed, and any drift the model proposed is logged.
+    """
+    spec = candidate["gatherSpec"]
+    old_contract = copy.deepcopy(old_gather_spec.get("contract") or {})
+    if not old_contract:
+        raise ModelRepairNotApplicableError("旧规则缺少输出合同，无法执行修复。")
+    proposed = spec.get("contract") or {}
+    drift = sorted(key for key in set(proposed) | set(old_contract) if proposed.get(key) != old_contract.get(key))
+    if drift:
+        logger.warning("repair compilation proposed a different contract; forced the previous contract keys=%s", drift)
+    spec["contract"] = old_contract
+    spec["contract"]["outputContractDigest"] = sha256_digest(spec["contract"].get("normalizedItemSchema") or {})
+
+
+def _extractable(html: str, source_url: str, key: str, field: dict[str, Any]) -> bool:
+    try:
+        value = contract_field_values(html, source_url, {key: field}).get(key)
+    except Exception:  # noqa: BLE001 - an unevaluable selector means the value cannot be extracted
+        return False
+    return bool(str(value if value is not None else "").strip())
+
+
+def _repair_identity_failures(
+    gather_spec: dict[str, Any],
+    list_html: str,
+    effective_url: str,
+    detail_samples: list[tuple[str, str]],
+) -> list[str]:
+    """Return identity fields whose values cannot be extracted from the fresh snapshots."""
+    contract = gather_spec.get("contract") or {}
+    collect = gather_spec.get("collect") or {}
+    list_fields = collect.get("list", {}).get("fields") or {}
+    detail_fields = (collect.get("detail") or {}).get("fields") or {}
+    list_records: list[dict[str, str]] = []
+    if "detail" in collect:
+        try:
+            list_records, _next_url = discover_records_from_spec(list_html, effective_url, collect["list"])
+        except Exception:  # noqa: BLE001 - a stale selector must surface as a field failure, not a crash
+            list_records = []
+    failures = []
+    for field in contract.get("identityFields") or []:
+        field = str(field)
+        if field in list_fields:
+            if "detail" in collect:
+                ok = any(str(record.get(field) or "").strip() for record in list_records)
+            else:
+                ok = _extractable(list_html, effective_url, field, list_fields[field])
+        elif field in detail_fields:
+            ok = any(_extractable(html, url, field, detail_fields[field]) for url, html in detail_samples)
+        else:
+            ok = False
+        if not ok:
+            failures.append(field)
+    return failures
+
+
+def _repair_detail_urls(
+    list_html: str,
+    effective_url: str,
+    old_gather_spec: dict[str, Any],
+    fallback_urls: list[str],
+) -> list[str]:
+    """Locate detail samples for a repair using the old rule's list selectors first."""
+    collect = old_gather_spec.get("collect") or {}
+    if "detail" not in collect:
+        return []
+    try:
+        records, _next_url = discover_records_from_spec(list_html, effective_url, collect["list"] or {})
+    except Exception:  # noqa: BLE001 - a stale selector must not abort the re-exploration
+        return fallback_urls
+    urls = [str(record["detailUrl"]) for record in records if record.get("detailUrl")]
+    return urls or fallback_urls
+
+
 class Crawl4AIExplorer:
     def __init__(
         self,
@@ -71,9 +161,13 @@ class Crawl4AIExplorer:
         progress: ProgressCallback,
         ai_run_id: str | None = None,
         attempt_id: str | None = None,
+        *,
+        repair_spec: dict[str, Any] | None = None,
     ) -> ExplorationResult:
         artifact_dir = self.artifact_path / operation_id
         artifact_dir.mkdir(parents=True, exist_ok=True)
+        if repair_spec is not None and self.model_compiler is None:
+            raise ModelCompileError("修复编译需要已配置的默认模型，请先在设置中配置供应商与默认模型。")
         metrics = {
             "listPagesFetched": 0,
             "detailUrlsDiscovered": 0,
@@ -119,7 +213,7 @@ class Crawl4AIExplorer:
             metrics["listPagesFetched"] = 1
             rule_collector = {**collector, "sourceUrl": effective_url}
             discovery_plan = None
-            if self.model_compiler:
+            if self.model_compiler and repair_spec is None:
                 feedback = None
                 for _attempt in range(2):
                     discovery_plan = await self.model_compiler.discover(
@@ -152,6 +246,8 @@ class Crawl4AIExplorer:
                 detail_urls = [record["detailUrl"] for record in discovered_records]
             elif discovery_plan:
                 detail_urls = []
+            elif repair_spec is not None:
+                detail_urls = _repair_detail_urls(list_html, effective_url, repair_spec, detail_urls)
             source_host = urlsplit(collector["sourceUrl"]).hostname
             detail_urls = [url for url in detail_urls if urlsplit(url).hostname == source_host][:4]
             metrics["detailUrlsDiscovered"] = len(detail_urls)
@@ -168,6 +264,7 @@ class Crawl4AIExplorer:
             await progress("fetching_details", 70, metrics)
 
         rule_collector = {**collector, "sourceUrl": effective_url}
+        compiled = None
         if self.model_compiler and discovery_plan:
             compiled = await self.model_compiler.compile(
                 rule_collector,
@@ -178,6 +275,19 @@ class Crawl4AIExplorer:
                 ai_run_id=ai_run_id,
                 attempt_id=attempt_id,
             )
+        elif self.model_compiler and repair_spec is not None:
+            compiled = await self.model_compiler.compile_repair_rule_plan(
+                rule_collector,
+                effective_url,
+                list_html,
+                samples,
+                repair_spec,
+                ai_run_id=ai_run_id,
+                attempt_id=attempt_id,
+            )
+            if requires_browser:
+                compiled.plan["transport"] = "browser"
+        if compiled is not None:
             self.contracts.validate_rule_plan(compiled.plan)
             if compiled.plan["mode"] == "list_detail" and compiled.plan["list"]["pagination"]["type"] == "next_link":
                 _compiled_records, compiled_next_url = discover_records_from_spec(list_html, effective_url, compiled.plan["list"])
@@ -189,11 +299,19 @@ class Crawl4AIExplorer:
             )
             candidate = build_candidate_from_plan(rule_collector, self.contracts, compiled.plan, list_html, samples)
             candidate["gatherSpec"]["compiler"]["agent"] = compiled.agent
+            if repair_spec is not None:
+                _apply_repair_contract(candidate, repair_spec)
             candidate["gatherSpec"]["integrity"]["ruleDigest"] = calculate_rule_digest(candidate["gatherSpec"])
             candidate["digest"] = sha256_digest(candidate["gatherSpec"])
             self.contracts.validate_gather_spec(candidate["gatherSpec"])
         else:
             candidate = build_candidate(rule_collector, self.contracts, list_html, samples)
+        if repair_spec is not None:
+            failures = _repair_identity_failures(candidate["gatherSpec"], list_html, effective_url, samples)
+            if failures:
+                raise ModelRepairValidationError(
+                    "修复编译未能从新页面提取身份字段：" + "、".join(failures) + "。请检查站点结构变化后重试。"
+                )
         metrics["warningCount"] = candidate["warningChecks"]
         preview_run = {"id": f"preview_{operation_id}", "ruleVersion": "candidate"}
         preview_samples = samples if candidate["mode"] == "list_detail" else [(collector["sourceUrl"], list_html)]
