@@ -1,0 +1,272 @@
+-- Extrio baseline schema (SQLite dialect).
+-- Captures every table, index, and trigger of the v0.2 store plus the
+-- v0.3 output-loop tables (sinks, deliveries, delivery_attempts).
+-- All timestamps are ISO-8601 UTC strings; JSON payloads live in TEXT columns
+-- and are read through the sqlite json1 extension.
+
+CREATE TABLE IF NOT EXISTS collectors (
+    id TEXT PRIMARY KEY,
+    data TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS operations (
+    id TEXT PRIMARY KEY,
+    collector_id TEXT NOT NULL,
+    data TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (collector_id) REFERENCES collectors(id)
+);
+CREATE TABLE IF NOT EXISTS runs (
+    id TEXT PRIMARY KEY,
+    collector_id TEXT NOT NULL,
+    data TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (collector_id) REFERENCES collectors(id)
+);
+CREATE TABLE IF NOT EXISTS ai_runs (
+    id TEXT PRIMARY KEY,
+    operation_id TEXT NOT NULL UNIQUE,
+    collector_id TEXT NOT NULL,
+    data TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (operation_id) REFERENCES operations(id),
+    FOREIGN KEY (collector_id) REFERENCES collectors(id)
+);
+CREATE TABLE IF NOT EXISTS ai_attempts (
+    id TEXT PRIMARY KEY,
+    ai_run_id TEXT NOT NULL,
+    attempt_no INTEGER NOT NULL,
+    data TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    UNIQUE(ai_run_id, attempt_no),
+    FOREIGN KEY (ai_run_id) REFERENCES ai_runs(id)
+);
+CREATE TABLE IF NOT EXISTS model_invocations (
+    id TEXT PRIMARY KEY,
+    ai_run_id TEXT NOT NULL,
+    ai_attempt_id TEXT NOT NULL,
+    data TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (ai_run_id) REFERENCES ai_runs(id),
+    FOREIGN KEY (ai_attempt_id) REFERENCES ai_attempts(id)
+);
+CREATE TABLE IF NOT EXISTS items (
+    id TEXT PRIMARY KEY,
+    run_id TEXT NOT NULL,
+    data TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (run_id) REFERENCES runs(id)
+);
+CREATE TABLE IF NOT EXISTS jobs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    operation_id TEXT NOT NULL UNIQUE,
+    kind TEXT NOT NULL,
+    payload TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'queued',
+    attempts INTEGER NOT NULL DEFAULT 0,
+    available_at TEXT NOT NULL,
+    lease_until TEXT,
+    last_error TEXT,
+    FOREIGN KEY (operation_id) REFERENCES operations(id)
+);
+CREATE TABLE IF NOT EXISTS idempotency (
+    scope TEXT NOT NULL,
+    key TEXT NOT NULL,
+    request_hash TEXT NOT NULL,
+    status_code INTEGER NOT NULL,
+    response TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (scope, key)
+);
+CREATE TABLE IF NOT EXISTS signing_keys (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    status TEXT NOT NULL,
+    revision INTEGER NOT NULL,
+    data TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS rule_versions (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    collector_id TEXT NOT NULL,
+    rule_digest TEXT NOT NULL,
+    data TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (collector_id) REFERENCES collectors(id)
+);
+CREATE TABLE IF NOT EXISTS rule_attestations (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL,
+    rule_version_id TEXT NOT NULL,
+    rule_digest TEXT NOT NULL,
+    key_id TEXT NOT NULL,
+    data TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (rule_version_id) REFERENCES rule_versions(id),
+    FOREIGN KEY (key_id) REFERENCES signing_keys(id)
+);
+CREATE TABLE IF NOT EXISTS audit_events (
+    sequence INTEGER PRIMARY KEY AUTOINCREMENT,
+    id TEXT NOT NULL UNIQUE,
+    tenant_id TEXT NOT NULL,
+    event_hash TEXT NOT NULL,
+    data TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS collection_policies (
+    id TEXT PRIMARY KEY,
+    collector_id TEXT NOT NULL,
+    version INTEGER NOT NULL,
+    policy_digest TEXT NOT NULL,
+    data TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE(collector_id, version),
+    FOREIGN KEY (collector_id) REFERENCES collectors(id)
+);
+CREATE TABLE IF NOT EXISTS collector_checkpoints (
+    collector_id TEXT PRIMARY KEY,
+    policy_version_id TEXT NOT NULL,
+    data TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (collector_id) REFERENCES collectors(id),
+    FOREIGN KEY (policy_version_id) REFERENCES collection_policies(id)
+);
+CREATE TABLE IF NOT EXISTS collector_schedules (
+    id TEXT PRIMARY KEY,
+    collector_id TEXT NOT NULL UNIQUE,
+    revision INTEGER NOT NULL,
+    enabled INTEGER NOT NULL,
+    next_run_at TEXT,
+    last_triggered_at TEXT,
+    data TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (collector_id) REFERENCES collectors(id)
+);
+CREATE TABLE IF NOT EXISTS schedule_occurrences (
+    occurrence_key TEXT PRIMARY KEY,
+    schedule_id TEXT NOT NULL,
+    collector_id TEXT NOT NULL,
+    scheduled_at TEXT NOT NULL,
+    status TEXT NOT NULL,
+    run_id TEXT,
+    reason TEXT,
+    data TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (schedule_id) REFERENCES collector_schedules(id),
+    FOREIGN KEY (collector_id) REFERENCES collectors(id)
+);
+CREATE TABLE IF NOT EXISTS platform_settings (
+    key TEXT PRIMARY KEY,
+    data TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS auth_users (
+    id TEXT PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    password_hash TEXT NOT NULL,
+    role TEXT NOT NULL,
+    display_name TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS auth_sessions (
+    token_hash TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    last_seen_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES auth_users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS sinks (
+    id TEXT PRIMARY KEY,
+    collector_id TEXT NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('webhook')),
+    url TEXT NOT NULL,
+    secret_encrypted TEXT,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    version INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (collector_id) REFERENCES collectors(id)
+);
+CREATE TABLE IF NOT EXISTS deliveries (
+    id TEXT PRIMARY KEY,
+    collector_id TEXT NOT NULL,
+    sink_id TEXT NOT NULL,
+    sink_version_id TEXT,
+    item_event_id TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'delivering', 'delivered', 'failed', 'dead_lettered')),
+    attempt_count INTEGER NOT NULL DEFAULT 0,
+    next_attempt_at TEXT,
+    lease_until TEXT,
+    last_status_code INTEGER,
+    last_error TEXT,
+    redelivery_count INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    UNIQUE (item_event_id, sink_id),
+    FOREIGN KEY (collector_id) REFERENCES collectors(id),
+    FOREIGN KEY (sink_id) REFERENCES sinks(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS delivery_attempts (
+    id TEXT PRIMARY KEY,
+    delivery_id TEXT NOT NULL,
+    attempt_no INTEGER NOT NULL,
+    started_at TEXT,
+    finished_at TEXT,
+    status_code INTEGER,
+    error TEXT,
+    UNIQUE (delivery_id, attempt_no),
+    FOREIGN KEY (delivery_id) REFERENCES deliveries(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_jobs_claim ON jobs(status, available_at, lease_until);
+CREATE INDEX IF NOT EXISTS idx_runs_collector ON runs(collector_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ai_runs_collector ON ai_runs(collector_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ai_attempts_run ON ai_attempts(ai_run_id, attempt_no DESC);
+CREATE INDEX IF NOT EXISTS idx_model_invocations_attempt ON model_invocations(ai_attempt_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_items_run ON items(run_id);
+CREATE INDEX IF NOT EXISTS idx_items_cursor ON items(
+    json_extract(data, '$.observedAt') DESC,
+    json_extract(data, '$.entityKey') DESC,
+    id DESC
+);
+CREATE INDEX IF NOT EXISTS idx_rule_versions_collector ON rule_versions(collector_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_rule_attestations_rule ON rule_attestations(rule_version_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_events_tenant ON audit_events(tenant_id, sequence DESC);
+CREATE INDEX IF NOT EXISTS idx_collection_policies_collector ON collection_policies(collector_id, version DESC);
+CREATE INDEX IF NOT EXISTS idx_collector_schedules_due ON collector_schedules(enabled, next_run_at);
+CREATE INDEX IF NOT EXISTS idx_schedule_occurrences_collector ON schedule_occurrences(collector_id, scheduled_at DESC);
+CREATE INDEX IF NOT EXISTS idx_auth_sessions_user ON auth_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_auth_sessions_expiry ON auth_sessions(expires_at);
+CREATE INDEX IF NOT EXISTS idx_sinks_collector ON sinks(collector_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_deliveries_collector ON deliveries(collector_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_deliveries_due ON deliveries(status, next_attempt_at);
+CREATE INDEX IF NOT EXISTS idx_delivery_attempts_delivery ON delivery_attempts(delivery_id, attempt_no);
+
+CREATE TRIGGER IF NOT EXISTS rule_versions_immutable_update
+BEFORE UPDATE ON rule_versions BEGIN SELECT RAISE(ABORT, 'rule_versions are immutable'); END;
+CREATE TRIGGER IF NOT EXISTS rule_versions_immutable_delete
+BEFORE DELETE ON rule_versions BEGIN SELECT RAISE(ABORT, 'rule_versions are immutable'); END;
+CREATE TRIGGER IF NOT EXISTS rule_attestations_immutable_update
+BEFORE UPDATE ON rule_attestations BEGIN SELECT RAISE(ABORT, 'rule_attestations are immutable'); END;
+CREATE TRIGGER IF NOT EXISTS rule_attestations_immutable_delete
+BEFORE DELETE ON rule_attestations BEGIN SELECT RAISE(ABORT, 'rule_attestations are immutable'); END;
+CREATE TRIGGER IF NOT EXISTS audit_events_immutable_update
+BEFORE UPDATE ON audit_events BEGIN SELECT RAISE(ABORT, 'audit_events are immutable'); END;
+CREATE TRIGGER IF NOT EXISTS audit_events_immutable_delete
+BEFORE DELETE ON audit_events BEGIN SELECT RAISE(ABORT, 'audit_events are immutable'); END;
+CREATE TRIGGER IF NOT EXISTS collection_policies_immutable_update
+BEFORE UPDATE ON collection_policies BEGIN SELECT RAISE(ABORT, 'collection_policies are immutable'); END;
+CREATE TRIGGER IF NOT EXISTS collection_policies_immutable_delete
+BEFORE DELETE ON collection_policies BEGIN SELECT RAISE(ABORT, 'collection_policies are immutable'); END;

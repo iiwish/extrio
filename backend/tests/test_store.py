@@ -1,15 +1,46 @@
-from datetime import UTC, datetime
+import base64
+import json
+import sqlite3
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
 
-from extrio.store import DEFAULT_COLLECTION_POLICY, DEFAULT_COLLECTOR_SCHEDULE, IdempotencyConflict, Store
+from extrio.cli import create_backup, restore_backup
+from extrio.credentials import CredentialCipher
+from extrio.store import (
+    DEFAULT_COLLECTION_POLICY,
+    DEFAULT_COLLECTOR_SCHEDULE,
+    IdempotencyConflict,
+    InvalidCursor,
+    Store,
+)
+from extrio.store_dialect import PostgresDialect, SQLiteDialect, resolve_database
 
 
 def make_store(tmp_path: Path) -> Store:
     store = Store(tmp_path / "extrio.db")
     store.initialize()
     return store
+
+
+def make_item(
+    item_id: str,
+    collector_id: str,
+    run_id: str,
+    observed_at: str,
+    entity_key: str,
+    decision: str = "accepted",
+) -> dict:
+    return {
+        "id": item_id,
+        "collectorId": collector_id,
+        "runId": run_id,
+        "decision": decision,
+        "entityKey": entity_key,
+        "observedAt": observed_at,
+        "lineage": {"runId": run_id},
+    }
 
 
 def test_async_command_is_durable_and_activates_collector(tmp_path: Path) -> None:
@@ -320,3 +351,244 @@ def test_published_rule_attestation_and_audit_are_atomic_and_immutable(tmp_path:
             actor_id="security_officer",
             request_id="req_retrust",
         )
+
+
+def test_initialize_records_baseline_migration_and_replays_idempotently(tmp_path: Path) -> None:
+    store = make_store(tmp_path)
+    store.initialize()
+    with store.connect() as connection:
+        applied = [str(row["id"]) for row in connection.execute("SELECT id FROM schema_migrations").fetchall()]
+    assert applied == ["000_baseline"]
+
+
+def test_initialize_applies_baseline_to_legacy_pre_migration_database(tmp_path: Path) -> None:
+    database = tmp_path / "legacy.db"
+    legacy = sqlite3.connect(database)
+    legacy.execute(
+        "CREATE TABLE collectors (id TEXT PRIMARY KEY, data TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)"
+    )
+    legacy.commit()
+    legacy.close()
+
+    store = Store(database)
+    store.initialize()
+    with store.connect() as connection:
+        tables = {str(row["name"]) for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+    assert {"deliveries", "delivery_attempts", "sinks", "schema_migrations"}.issubset(tables)
+
+
+def test_resolve_database_selects_dialect_from_url(tmp_path: Path) -> None:
+    fallback = tmp_path / "fallback.db"
+    dialect, path = resolve_database(None, fallback)
+    assert isinstance(dialect, SQLiteDialect) and path == fallback
+
+    dialect, path = resolve_database("sqlite:///data/x.db", fallback)
+    assert isinstance(dialect, SQLiteDialect) and path == Path("data/x.db")
+
+    dialect, path = resolve_database("sqlite:////abs/x.db", fallback)
+    assert isinstance(dialect, SQLiteDialect) and path == Path("/abs/x.db")
+
+    dialect, path = resolve_database("postgresql://u:p@h:5432/extrio", fallback)
+    assert isinstance(dialect, PostgresDialect) and path == fallback
+
+    with pytest.raises(ValueError, match="unsupported EXTRIO_DATABASE_URL scheme"):
+        resolve_database("mysql://u:p@h/db", fallback)
+
+
+def test_items_cursor_pagination_walks_deterministic_order(tmp_path: Path) -> None:
+    store = make_store(tmp_path)
+    collector = store.create_collector("Demo", "Collect notices", "https://example.com/list", "example.com")
+    other = store.create_collector("Other", "Collect notices", "https://other.example.com/list", "other.example.com")
+    for run_id in ("run_one", "run_two"):
+        store.save_run({"id": run_id, "collectorId": collector["id"], "status": "succeeded"})
+    store.save_run({"id": "run_other", "collectorId": other["id"], "status": "succeeded"})
+
+    store.save_items("run_one", [
+        make_item("item_a1", collector["id"], "run_one", "2026-09-01 10:00", "e1"),
+        make_item("item_a2", collector["id"], "run_one", "2026-09-01 10:00", "e2"),
+        make_item("item_a3", collector["id"], "run_one", "2026-09-01 09:00", "e3"),
+    ])
+    store.save_items("run_two", [make_item("item_b1", collector["id"], "run_two", "2026-09-02 10:00", "e1")])
+    store.save_items("run_other", [make_item("item_o1", other["id"], "run_other", "2026-09-03 10:00", "e9")])
+
+    expected_order = ["item_b1", "item_a2", "item_a1", "item_a3"]
+    first_page = store.list_items_cursor(collector_id=collector["id"], limit=2)
+    assert [item["id"] for item in first_page["items"]] == expected_order[:2]
+    assert first_page["nextCursor"] is not None
+
+    second_page = store.list_items_cursor(collector_id=collector["id"], limit=2, cursor=first_page["nextCursor"])
+    assert [item["id"] for item in second_page["items"]] == expected_order[2:]
+    assert second_page["nextCursor"] is None
+
+    walked = []
+    cursor = None
+    while True:
+        page = store.list_items_cursor(collector_id=collector["id"], limit=1, cursor=cursor)
+        walked.extend(item["id"] for item in page["items"])
+        if page["nextCursor"] is None:
+            break
+        cursor = page["nextCursor"]
+    assert walked == expected_order
+
+    assert [item["id"] for item in store.list_items_cursor(decision="accepted", limit=10)["items"]].index("item_o1") == 0
+    assert store.list_items_cursor(collector_id=collector["id"], decision="rejected", limit=10)["items"] == []
+    assert [item["id"] for item in store.list_items_cursor(entity_key="e3", limit=10)["items"]] == ["item_a3"]
+    assert [item["id"] for item in store.list_items_cursor(run_id="run_two", limit=10)["items"]] == ["item_b1"]
+
+
+def test_items_cursor_rejects_invalid_cursor_and_sort_key(tmp_path: Path) -> None:
+    store = make_store(tmp_path)
+    with pytest.raises(InvalidCursor) as invalid:
+        store.list_items_cursor(limit=2, cursor="!!!not-a-cursor!!!")
+    assert invalid.value.code == "INVALID_CURSOR"
+    with pytest.raises(InvalidCursor):
+        store.list_items_cursor(limit=2, cursor=base64.urlsafe_b64encode(json.dumps(["2026-09-01", "e1"]).encode()).decode())
+    with pytest.raises(ValueError, match="sort key"):
+        store.list_items_cursor(sort_key="entity_key")
+
+
+def test_iter_items_export_streams_same_stable_order(tmp_path: Path) -> None:
+    store = make_store(tmp_path)
+    collector = store.create_collector("Demo", "Collect notices", "https://example.com/list", "example.com")
+    store.save_run({"id": "run_one", "collectorId": collector["id"], "status": "succeeded"})
+    store.save_items("run_one", [
+        make_item("item_a1", collector["id"], "run_one", "2026-09-01 10:00", "e1"),
+        make_item("item_a2", collector["id"], "run_one", "2026-09-01 10:00", "e2"),
+        make_item("item_a3", collector["id"], "run_one", "2026-09-01 09:00", "e3"),
+    ])
+
+    exported = list(store.iter_items_export(collector_id=collector["id"]))
+    assert [item["id"] for item in exported] == ["item_a2", "item_a1", "item_a3"]
+
+    walked = []
+    cursor = None
+    while True:
+        page = store.list_items_cursor(collector_id=collector["id"], limit=2, cursor=cursor)
+        walked.extend(item["id"] for item in page["items"])
+        if page["nextCursor"] is None:
+            break
+        cursor = page["nextCursor"]
+    assert walked == [item["id"] for item in exported]
+
+
+def test_sink_crud_bumps_version_and_encrypts_secret(tmp_path: Path) -> None:
+    store = make_store(tmp_path)
+    collector = store.create_collector("Demo", "Collect notices", "https://example.com/list", "example.com")
+    cipher = CredentialCipher(tmp_path / "keys" / "cipher.key")
+
+    sink = store.create_sink(collector["id"], cipher=cipher, url="https://hooks.example.com/extrio", secret="s3cret")
+    assert sink["version"] == 1 and sink["enabled"] is True and sink["secretConfigured"] is True
+    assert store.get_sink(sink["id"], cipher=cipher)["secret"] == "s3cret"
+    assert store.get_sink(sink["id"])["secretConfigured"] is True and "secret" not in store.get_sink(sink["id"])
+
+    updated = store.update_sink(sink["id"], enabled=False)
+    assert updated["version"] == 2 and updated["enabled"] is False
+    rekeyed = store.update_sink(sink["id"], cipher=cipher, secret="n3w-s3cret")
+    assert rekeyed["version"] == 3
+    assert store.get_sink(sink["id"], cipher=cipher)["secret"] == "n3w-s3cret"
+
+    assert [s["id"] for s in store.list_sinks_for_collector(collector["id"])] == [sink["id"]]
+    with pytest.raises(ValueError, match="unsupported sink type"):
+        store.create_sink(collector["id"], cipher=cipher, url="https://hooks.example.com/x", sink_type="email")
+    with pytest.raises(ValueError, match="credential cipher"):
+        store.update_sink(sink["id"], secret="orphan")
+    with pytest.raises(KeyError):
+        store.update_sink("sink_missing", url="https://hooks.example.com/y")
+
+    store.delete_sink(sink["id"])
+    assert store.list_sinks_for_collector(collector["id"]) == []
+    with pytest.raises(KeyError):
+        store.delete_sink(sink["id"])
+
+
+def test_delivery_state_machine_claims_retries_and_redelivers(tmp_path: Path) -> None:
+    store = make_store(tmp_path)
+    collector = store.create_collector("Demo", "Collect notices", "https://example.com/list", "example.com")
+    cipher = CredentialCipher(tmp_path / "keys" / "cipher.key")
+    sink = store.create_sink(collector["id"], cipher=cipher, url="https://hooks.example.com/extrio", secret="s3cret")
+
+    delivery = store.enqueue_delivery(collector_id=collector["id"], sink_id=sink["id"], item_event_id="obs_1")
+    assert delivery["status"] == "pending" and delivery["attemptCount"] == 0
+    assert delivery["sinkVersionId"] == f"{sink['id']}#v1"
+    duplicate = store.enqueue_delivery(collector_id=collector["id"], sink_id=sink["id"], item_event_id="obs_1")
+    assert duplicate["id"] == delivery["id"]
+
+    base = datetime(2030, 1, 1, tzinfo=UTC)
+    claimed = store.claim_due_deliveries(10, now=base, lease_seconds=60)
+    assert len(claimed) == 1
+    assert claimed[0]["id"] == delivery["id"]
+    assert claimed[0]["status"] == "delivering"
+    assert claimed[0]["sinkUrl"] == sink["url"]
+    assert claimed[0]["leaseUntil"] is not None
+    assert store.claim_due_deliveries(10, now=base) == []
+
+    failed = store.record_delivery_attempt(
+        delivery["id"],
+        status_code=500,
+        error="upstream exploded",
+        started_at="2030-01-01T00:00:01Z",
+        finished_at="2030-01-01T00:00:02Z",
+        next_attempt_at="2030-01-01T01:00:00Z",
+    )
+    assert failed["attemptCount"] == 1 and failed["status"] == "failed"
+    assert failed["lastStatusCode"] == 500 and failed["lastError"] == "upstream exploded"
+    attempts = store.list_delivery_attempts(delivery["id"])
+    assert [attempt["attemptNo"] for attempt in attempts] == [1]
+
+    retried = store.claim_due_deliveries(10, now=base + timedelta(hours=1))
+    assert [row["id"] for row in retried] == [delivery["id"]]
+    store.record_delivery_attempt(delivery["id"], status_code=200)
+
+    delivered = store.mark_delivery_delivered(delivery["id"])
+    assert delivered["status"] == "delivered" and delivered["nextAttemptAt"] is None
+    assert store.claim_due_deliveries(10, now=base + timedelta(hours=2)) == []
+
+    stale = store.enqueue_delivery(collector_id=collector["id"], sink_id=sink["id"], item_event_id="obs_2")
+    assert [row["id"] for row in store.claim_due_deliveries(10, now=base + timedelta(hours=3))] == [stale["id"]]
+    # An expired lease makes the stuck delivering row claimable again.
+    recovered = store.claim_due_deliveries(10, now=base + timedelta(hours=4))
+    assert [row["id"] for row in recovered] == [stale["id"]]
+    dead = store.record_delivery_attempt(stale["id"], status_code=410, error="gone")
+    dead = store.mark_delivery_dead_lettered(stale["id"], error="gone")
+    assert dead["status"] == "dead_lettered" and dead["lastError"] == "gone"
+
+    redelivered = store.redeliver_delivery(stale["id"])
+    assert redelivered["id"] == stale["id"]
+    assert redelivered["status"] == "pending" and redelivered["redeliveryCount"] == 1
+    assert redelivered["attemptCount"] == 1
+    assert [attempt["attemptNo"] for attempt in store.list_delivery_attempts(stale["id"])] == [1]
+    assert [row["id"] for row in store.claim_due_deliveries(10, now=base + timedelta(hours=5))] == [stale["id"]]
+
+    listed = store.list_deliveries_for_collector(collector["id"])
+    assert {row["id"] for row in listed} == {delivery["id"], stale["id"]}
+    with pytest.raises(KeyError):
+        store.record_delivery_attempt("delivery_missing", status_code=200)
+    with pytest.raises(ValueError, match="actively being delivered"):
+        store.redeliver_delivery(stale["id"])
+
+
+def test_backup_and_restore_roundtrip_sqlite(tmp_path: Path) -> None:
+    store = make_store(tmp_path / "live")
+    collector = store.create_collector("Demo", "Collect notices", "https://example.com/list", "example.com")
+    store.save_run({"id": "run_one", "collectorId": collector["id"], "status": "succeeded"})
+    store.save_items("run_one", [make_item("item_a1", collector["id"], "run_one", "2026-09-01 10:00", "e1")])
+
+    archive = create_backup(tmp_path / "backup", database_path=store.path)
+    assert {path.name for path in archive.iterdir()} == {"backup_manifest.json", "SHA256SUMS", "database.snapshot"}
+    manifest = json.loads((archive / "backup_manifest.json").read_text(encoding="utf-8"))
+    assert manifest["dialect"] == "sqlite"
+
+    restored_path = tmp_path / "restored" / "extrio.db"
+    restore_backup(archive, database_path=restored_path)
+    restored = Store(restored_path)
+    assert restored.get_collector(collector["id"])["name"] == "Demo"
+    assert restored.get_item("item_a1")["entityKey"] == "e1"
+
+
+def test_backup_restore_rejects_tampered_archive(tmp_path: Path) -> None:
+    store = make_store(tmp_path / "live")
+    archive = create_backup(tmp_path / "backup", database_path=store.path)
+    snapshot = archive / "database.snapshot"
+    snapshot.write_bytes(snapshot.read_bytes() + b"tampered")
+    with pytest.raises(RuntimeError, match="checksum mismatch"):
+        restore_backup(archive, database_path=tmp_path / "restored" / "extrio.db")

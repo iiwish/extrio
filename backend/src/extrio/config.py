@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     host: str = "127.0.0.1"
     port: int = 8000
     database_path: Path = Path("data/extrio.db")
+    database_url: str | None = None
     artifact_path: Path = Path("data/artifacts")
     signing_private_key_path: Path = Path("data/keys/dev-rule-signing-key.pem")
     credential_encryption_key_path: Path = Path("data/keys/dev-credential-encryption.key")

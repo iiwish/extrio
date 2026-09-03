@@ -26,6 +26,7 @@ RUN apt-get update \
 COPY LICENSE NOTICE ./
 COPY docs/contracts docs/contracts
 COPY backend/src backend/src
+COPY backend/migrations backend/migrations
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --project backend --frozen --no-dev

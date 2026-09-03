@@ -15,6 +15,7 @@ dependencies = [
   "httpx>=0.28,<1",
   "jsonschema[format]>=4.25,<5",
   "jsonpath-ng>=1.7,<2",
+  "psycopg[binary]>=3.2,<4",
   "pydantic-settings>=2.10,<3",
   "pwdlib[argon2]>=0.3,<1",
   "pyyaml>=6.0,<7",
@@ -34,6 +35,8 @@ dev = [
 [project.scripts]
 extrio-api = "extrio.app:run"
 extrio-worker = "extrio.worker:run"
+extrio-backup = "extrio.cli:run_backup"
+extrio-restore = "extrio.cli:run_restore"
 
 [project.urls]
 Homepage = "https://github.com/iiwish/extrio"
@@ -49,6 +52,7 @@ packages = ["src/extrio"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "../docs/contracts" = "extrio/contracts_data"
+"migrations" = "extrio/migrations"
 "../LICENSE" = "extrio/LICENSE"
 "../NOTICE" = "extrio/NOTICE"
 

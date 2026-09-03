@@ -1,17 +1,21 @@
+import base64
 import hashlib
 import json
 import re
-import sqlite3
 import threading
 import uuid
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import AbstractContextManager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
 from croniter import croniter
+
+from extrio.config import get_settings
+from extrio.credentials import CredentialCipher
+from extrio.store_dialect import MIGRATION_ID_PATTERN, DialectConnection, resolve_database
 
 TERMINAL_OPERATION_STATUSES = {"succeeded", "failed", "cancelled", "timed_out"}
 NONTERMINAL_RUN_STATUSES = {"queued", "running", "finalizing"}
@@ -32,6 +36,9 @@ DEFAULT_COLLECTOR_SCHEDULE = {
 }
 DEFAULT_COLLECTION_ID = "collection_nationwide_tender"
 DEFAULT_COLLECTION_NAME = "全国公共资源交易标讯"
+SINK_TYPES = ("webhook",)
+DELIVERY_STATUSES = ("pending", "delivering", "delivered", "failed", "dead_lettered")
+EXPORT_ITEMS_CAP = 100_000
 
 
 def utc_now() -> str:
@@ -51,6 +58,21 @@ def payload_hash(payload: Any) -> str:
     return hashlib.sha256(canonical.encode()).hexdigest()
 
 
+def encode_item_cursor(observed_at: str, entity_key: str, item_id: str) -> str:
+    payload = json.dumps([observed_at, entity_key, item_id], separators=(",", ":"))
+    return base64.urlsafe_b64encode(payload.encode()).decode()
+
+
+def decode_item_cursor(cursor: str) -> tuple[str, str, str]:
+    try:
+        payload = json.loads(base64.b64decode(cursor, altchars=b"-_", validate=True).decode())
+    except (ValueError, UnicodeDecodeError) as exc:
+        raise InvalidCursor("item pagination cursor is invalid") from exc
+    if not isinstance(payload, list) or len(payload) != 3 or not all(isinstance(part, str) for part in payload):
+        raise InvalidCursor("item pagination cursor is invalid")
+    return payload[0], payload[1], payload[2]
+
+
 class IdempotencyConflict(Exception):
     pass
 
@@ -59,255 +81,62 @@ class AuthSetupComplete(Exception):
     pass
 
 
+class InvalidCursor(Exception):
+    """Raised when a pagination cursor cannot be decoded or validated."""
+
+    code = "INVALID_CURSOR"
+
+
 class Store:
-    def __init__(self, path: Path):
-        self.path = path
+    def __init__(self, path: Path, *, database_url: str | None = None):
         self._init_lock = threading.Lock()
+        effective_url = database_url if database_url is not None else get_settings().database_url
+        self.dialect, sqlite_path = resolve_database(effective_url, path)
+        self.database_url = effective_url or None
+        self.path = sqlite_path
 
-    def connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self.path, timeout=30, isolation_level=None)
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA journal_mode=WAL")
-        connection.execute("PRAGMA foreign_keys=ON")
-        connection.execute("PRAGMA busy_timeout=30000")
-        return connection
+    def connect(self) -> DialectConnection:
+        return self.dialect.connect(self.database_url, self.path)
 
-    @contextmanager
-    def transaction(self) -> Iterator[sqlite3.Connection]:
-        connection = self.connect()
-        try:
-            connection.execute("BEGIN IMMEDIATE")
-            yield connection
-            connection.commit()
-        except Exception:
-            connection.rollback()
-            raise
-        finally:
-            connection.close()
+    def transaction(self) -> AbstractContextManager[DialectConnection]:
+        return self.dialect.transaction(self.database_url, self.path)
 
     def initialize(self) -> None:
         with self._init_lock:
-            self.path.parent.mkdir(parents=True, exist_ok=True)
+            if self.dialect.name == "sqlite":
+                self.path.parent.mkdir(parents=True, exist_ok=True)
             with self.connect() as connection:
-                connection.executescript(
-                    """
-                    CREATE TABLE IF NOT EXISTS collectors (
-                        id TEXT PRIMARY KEY,
-                        data TEXT NOT NULL,
-                        created_at TEXT NOT NULL,
-                        updated_at TEXT NOT NULL
-                    );
-                    CREATE TABLE IF NOT EXISTS operations (
-                        id TEXT PRIMARY KEY,
-                        collector_id TEXT NOT NULL,
-                        data TEXT NOT NULL,
-                        created_at TEXT NOT NULL,
-                        updated_at TEXT NOT NULL,
-                        FOREIGN KEY (collector_id) REFERENCES collectors(id)
-                    );
-                    CREATE TABLE IF NOT EXISTS runs (
-                        id TEXT PRIMARY KEY,
-                        collector_id TEXT NOT NULL,
-                        data TEXT NOT NULL,
-                        created_at TEXT NOT NULL,
-                        updated_at TEXT NOT NULL,
-                        FOREIGN KEY (collector_id) REFERENCES collectors(id)
-                    );
-                    CREATE TABLE IF NOT EXISTS ai_runs (
-                        id TEXT PRIMARY KEY,
-                        operation_id TEXT NOT NULL UNIQUE,
-                        collector_id TEXT NOT NULL,
-                        data TEXT NOT NULL,
-                        created_at TEXT NOT NULL,
-                        updated_at TEXT NOT NULL,
-                        FOREIGN KEY (operation_id) REFERENCES operations(id),
-                        FOREIGN KEY (collector_id) REFERENCES collectors(id)
-                    );
-                    CREATE TABLE IF NOT EXISTS ai_attempts (
-                        id TEXT PRIMARY KEY,
-                        ai_run_id TEXT NOT NULL,
-                        attempt_no INTEGER NOT NULL,
-                        data TEXT NOT NULL,
-                        created_at TEXT NOT NULL,
-                        updated_at TEXT NOT NULL,
-                        UNIQUE(ai_run_id, attempt_no),
-                        FOREIGN KEY (ai_run_id) REFERENCES ai_runs(id)
-                    );
-                    CREATE TABLE IF NOT EXISTS model_invocations (
-                        id TEXT PRIMARY KEY,
-                        ai_run_id TEXT NOT NULL,
-                        ai_attempt_id TEXT NOT NULL,
-                        data TEXT NOT NULL,
-                        created_at TEXT NOT NULL,
-                        updated_at TEXT NOT NULL,
-                        FOREIGN KEY (ai_run_id) REFERENCES ai_runs(id),
-                        FOREIGN KEY (ai_attempt_id) REFERENCES ai_attempts(id)
-                    );
-                    CREATE TABLE IF NOT EXISTS items (
-                        id TEXT PRIMARY KEY,
-                        run_id TEXT NOT NULL,
-                        data TEXT NOT NULL,
-                        created_at TEXT NOT NULL,
-                        FOREIGN KEY (run_id) REFERENCES runs(id)
-                    );
-                    CREATE TABLE IF NOT EXISTS jobs (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        operation_id TEXT NOT NULL UNIQUE,
-                        kind TEXT NOT NULL,
-                        payload TEXT NOT NULL,
-                        status TEXT NOT NULL DEFAULT 'queued',
-                        attempts INTEGER NOT NULL DEFAULT 0,
-                        available_at TEXT NOT NULL,
-                        lease_until TEXT,
-                        last_error TEXT,
-                        FOREIGN KEY (operation_id) REFERENCES operations(id)
-                    );
-                    CREATE TABLE IF NOT EXISTS idempotency (
-                        scope TEXT NOT NULL,
-                        key TEXT NOT NULL,
-                        request_hash TEXT NOT NULL,
-                        status_code INTEGER NOT NULL,
-                        response TEXT NOT NULL,
-                        created_at TEXT NOT NULL,
-                        PRIMARY KEY (scope, key)
-                    );
-                    CREATE TABLE IF NOT EXISTS signing_keys (
-                        id TEXT PRIMARY KEY,
-                        tenant_id TEXT NOT NULL,
-                        status TEXT NOT NULL,
-                        revision INTEGER NOT NULL,
-                        data TEXT NOT NULL,
-                        created_at TEXT NOT NULL,
-                        updated_at TEXT NOT NULL
-                    );
-                    CREATE TABLE IF NOT EXISTS rule_versions (
-                        id TEXT PRIMARY KEY,
-                        tenant_id TEXT NOT NULL,
-                        collector_id TEXT NOT NULL,
-                        rule_digest TEXT NOT NULL,
-                        data TEXT NOT NULL,
-                        created_at TEXT NOT NULL,
-                        FOREIGN KEY (collector_id) REFERENCES collectors(id)
-                    );
-                    CREATE TABLE IF NOT EXISTS rule_attestations (
-                        id TEXT PRIMARY KEY,
-                        tenant_id TEXT NOT NULL,
-                        rule_version_id TEXT NOT NULL,
-                        rule_digest TEXT NOT NULL,
-                        key_id TEXT NOT NULL,
-                        data TEXT NOT NULL,
-                        created_at TEXT NOT NULL,
-                        FOREIGN KEY (rule_version_id) REFERENCES rule_versions(id),
-                        FOREIGN KEY (key_id) REFERENCES signing_keys(id)
-                    );
-                    CREATE TABLE IF NOT EXISTS audit_events (
-                        sequence INTEGER PRIMARY KEY AUTOINCREMENT,
-                        id TEXT NOT NULL UNIQUE,
-                        tenant_id TEXT NOT NULL,
-                        event_hash TEXT NOT NULL,
-                        data TEXT NOT NULL,
-                        created_at TEXT NOT NULL
-                    );
-                    CREATE TABLE IF NOT EXISTS collection_policies (
-                        id TEXT PRIMARY KEY,
-                        collector_id TEXT NOT NULL,
-                        version INTEGER NOT NULL,
-                        policy_digest TEXT NOT NULL,
-                        data TEXT NOT NULL,
-                        created_at TEXT NOT NULL,
-                        UNIQUE(collector_id, version),
-                        FOREIGN KEY (collector_id) REFERENCES collectors(id)
-                    );
-                    CREATE TABLE IF NOT EXISTS collector_checkpoints (
-                        collector_id TEXT PRIMARY KEY,
-                        policy_version_id TEXT NOT NULL,
-                        data TEXT NOT NULL,
-                        updated_at TEXT NOT NULL,
-                        FOREIGN KEY (collector_id) REFERENCES collectors(id),
-                        FOREIGN KEY (policy_version_id) REFERENCES collection_policies(id)
-                    );
-                    CREATE TABLE IF NOT EXISTS collector_schedules (
-                        id TEXT PRIMARY KEY,
-                        collector_id TEXT NOT NULL UNIQUE,
-                        revision INTEGER NOT NULL,
-                        enabled INTEGER NOT NULL,
-                        next_run_at TEXT,
-                        last_triggered_at TEXT,
-                        data TEXT NOT NULL,
-                        updated_at TEXT NOT NULL,
-                        FOREIGN KEY (collector_id) REFERENCES collectors(id)
-                    );
-                    CREATE TABLE IF NOT EXISTS schedule_occurrences (
-                        occurrence_key TEXT PRIMARY KEY,
-                        schedule_id TEXT NOT NULL,
-                        collector_id TEXT NOT NULL,
-                        scheduled_at TEXT NOT NULL,
-                        status TEXT NOT NULL,
-                        run_id TEXT,
-                        reason TEXT,
-                        data TEXT NOT NULL,
-                        created_at TEXT NOT NULL,
-                        updated_at TEXT NOT NULL,
-                        FOREIGN KEY (schedule_id) REFERENCES collector_schedules(id),
-                        FOREIGN KEY (collector_id) REFERENCES collectors(id)
-                    );
-                    CREATE TABLE IF NOT EXISTS platform_settings (
-                        key TEXT PRIMARY KEY,
-                        data TEXT NOT NULL,
-                        updated_at TEXT NOT NULL
-                    );
-                    CREATE TABLE IF NOT EXISTS auth_users (
-                        id TEXT PRIMARY KEY,
-                        username TEXT NOT NULL UNIQUE COLLATE NOCASE,
-                        password_hash TEXT NOT NULL,
-                        role TEXT NOT NULL,
-                        display_name TEXT NOT NULL,
-                        created_at TEXT NOT NULL,
-                        updated_at TEXT NOT NULL
-                    );
-                    CREATE TABLE IF NOT EXISTS auth_sessions (
-                        token_hash TEXT PRIMARY KEY,
-                        user_id TEXT NOT NULL,
-                        expires_at TEXT NOT NULL,
-                        created_at TEXT NOT NULL,
-                        last_seen_at TEXT NOT NULL,
-                        FOREIGN KEY (user_id) REFERENCES auth_users(id) ON DELETE CASCADE
-                    );
-                    CREATE INDEX IF NOT EXISTS idx_jobs_claim ON jobs(status, available_at, lease_until);
-                    CREATE INDEX IF NOT EXISTS idx_runs_collector ON runs(collector_id, created_at DESC);
-                    CREATE INDEX IF NOT EXISTS idx_ai_runs_collector ON ai_runs(collector_id, created_at DESC);
-                    CREATE INDEX IF NOT EXISTS idx_ai_attempts_run ON ai_attempts(ai_run_id, attempt_no DESC);
-                    CREATE INDEX IF NOT EXISTS idx_model_invocations_attempt ON model_invocations(ai_attempt_id, created_at);
-                    CREATE INDEX IF NOT EXISTS idx_items_run ON items(run_id);
-                    CREATE INDEX IF NOT EXISTS idx_rule_versions_collector ON rule_versions(collector_id, created_at DESC);
-                    CREATE INDEX IF NOT EXISTS idx_rule_attestations_rule ON rule_attestations(rule_version_id, created_at DESC);
-                    CREATE INDEX IF NOT EXISTS idx_audit_events_tenant ON audit_events(tenant_id, sequence DESC);
-                    CREATE INDEX IF NOT EXISTS idx_collection_policies_collector ON collection_policies(collector_id, version DESC);
-                    CREATE INDEX IF NOT EXISTS idx_collector_schedules_due ON collector_schedules(enabled, next_run_at);
-                    CREATE INDEX IF NOT EXISTS idx_schedule_occurrences_collector ON schedule_occurrences(collector_id, scheduled_at DESC);
-                    CREATE INDEX IF NOT EXISTS idx_auth_sessions_user ON auth_sessions(user_id);
-                    CREATE INDEX IF NOT EXISTS idx_auth_sessions_expiry ON auth_sessions(expires_at);
-                    CREATE TRIGGER IF NOT EXISTS rule_versions_immutable_update
-                    BEFORE UPDATE ON rule_versions BEGIN SELECT RAISE(ABORT, 'rule_versions are immutable'); END;
-                    CREATE TRIGGER IF NOT EXISTS rule_versions_immutable_delete
-                    BEFORE DELETE ON rule_versions BEGIN SELECT RAISE(ABORT, 'rule_versions are immutable'); END;
-                    CREATE TRIGGER IF NOT EXISTS rule_attestations_immutable_update
-                    BEFORE UPDATE ON rule_attestations BEGIN SELECT RAISE(ABORT, 'rule_attestations are immutable'); END;
-                    CREATE TRIGGER IF NOT EXISTS rule_attestations_immutable_delete
-                    BEFORE DELETE ON rule_attestations BEGIN SELECT RAISE(ABORT, 'rule_attestations are immutable'); END;
-                    CREATE TRIGGER IF NOT EXISTS audit_events_immutable_update
-                    BEFORE UPDATE ON audit_events BEGIN SELECT RAISE(ABORT, 'audit_events are immutable'); END;
-                    CREATE TRIGGER IF NOT EXISTS audit_events_immutable_delete
-                    BEFORE DELETE ON audit_events BEGIN SELECT RAISE(ABORT, 'audit_events are immutable'); END;
-                    CREATE TRIGGER IF NOT EXISTS collection_policies_immutable_update
-                    BEFORE UPDATE ON collection_policies BEGIN SELECT RAISE(ABORT, 'collection_policies are immutable'); END;
-                    CREATE TRIGGER IF NOT EXISTS collection_policies_immutable_delete
-                    BEFORE DELETE ON collection_policies BEGIN SELECT RAISE(ABORT, 'collection_policies are immutable'); END;
-                    """
-                )
-                self._backfill_ai_runs(connection)
+                self._run_migrations(connection)
+            if self.dialect.name == "sqlite":
+                with self.connect() as connection:
+                    self._backfill_ai_runs(connection)
 
-    def _backfill_ai_runs(self, connection: sqlite3.Connection) -> None:
+    def _migration_dir(self) -> Path:
+        packaged = Path(__file__).resolve().parent / "migrations"
+        if packaged.is_dir():
+            return packaged
+        repository = Path(__file__).resolve().parents[2] / "migrations"
+        if repository.is_dir():
+            return repository
+        raise RuntimeError("extrio database migrations directory was not found")
+
+    def _run_migrations(self, connection: DialectConnection) -> None:
+        suffix = ".sqlite.sql" if self.dialect.name == "sqlite" else ".pg.sql"
+        connection.execute("CREATE TABLE IF NOT EXISTS schema_migrations(id TEXT PRIMARY KEY, applied_at TEXT NOT NULL)")
+        applied = {str(row["id"]) for row in connection.execute("SELECT id FROM schema_migrations").fetchall()}
+        for file_path in sorted(self._migration_dir().glob(f"*{suffix}")):
+            migration_id = file_path.name.removesuffix(suffix)
+            if not MIGRATION_ID_PATTERN.fullmatch(migration_id):
+                raise RuntimeError(f"migration id {migration_id!r} is invalid")
+            if migration_id in applied:
+                continue
+            record = f"INSERT INTO schema_migrations(id, applied_at) VALUES('{migration_id}', '{utc_now()}');"
+            try:
+                self.dialect.run_script(connection, f"{file_path.read_text(encoding='utf-8')}\n{record}")
+            except Exception as exc:
+                raise RuntimeError(f"database migration {migration_id!r} failed: {exc}") from exc
+
+    def _backfill_ai_runs(self, connection: DialectConnection) -> None:
         rows = connection.execute(
             """
             SELECT operations.id AS operation_id, operations.collector_id, operations.data AS operation_data,
@@ -323,10 +152,10 @@ class Store:
         ).fetchall()
         seen_collectors: set[str] = set()
         for row in rows:
-            operation = json.loads(row["operation_data"])
+            operation = self.dialect.decode_json(row["operation_data"])
             if operation.get("kind") != "explore":
                 continue
-            collector = json.loads(row["collector_data"])
+            collector = self.dialect.decode_json(row["collector_data"])
             status = operation.get("status", "queued")
             terminal = status in TERMINAL_OPERATION_STATUSES
             is_latest = str(row["collector_id"]) not in seen_collectors
@@ -383,20 +212,29 @@ class Store:
                 "error": operation.get("error"),
             }
             connection.execute(
-                "INSERT OR IGNORE INTO ai_runs(id, operation_id, collector_id, data, created_at, updated_at) VALUES(?, ?, ?, ?, ?, ?)",
-                (ai_run_id, row["operation_id"], row["collector_id"], json.dumps(ai_run, ensure_ascii=False), created_at, updated_at),
+                self.dialect.insert_or_ignore(
+                    "INSERT INTO ai_runs(id, operation_id, collector_id, data, created_at, updated_at) VALUES(?, ?, ?, ?, ?, ?)"
+                ),
+                (
+                    ai_run_id,
+                    row["operation_id"],
+                    row["collector_id"],
+                    self.dialect.json_param(ai_run),
+                    created_at,
+                    updated_at,
+                ),
             )
             if row["job_payload"]:
-                payload = json.loads(row["job_payload"])
+                payload = self.dialect.decode_json(row["job_payload"])
                 if not payload.get("aiRunId"):
                     payload["aiRunId"] = ai_run_id
                     connection.execute(
                         "UPDATE jobs SET payload=? WHERE operation_id=?",
-                        (json.dumps(payload, ensure_ascii=False), row["operation_id"]),
+                        (self.dialect.json_param(payload), row["operation_id"]),
                     )
 
     @staticmethod
-    def _auth_user(row: sqlite3.Row | None) -> dict[str, Any] | None:
+    def _auth_user(row: Any) -> dict[str, Any] | None:
         if row is None:
             return None
         return {
@@ -438,7 +276,7 @@ class Store:
     def get_auth_credentials(self, username: str) -> dict[str, Any] | None:
         with self.connect() as connection:
             row = connection.execute(
-                "SELECT * FROM auth_users WHERE username=? COLLATE NOCASE",
+                f"SELECT * FROM auth_users WHERE {self.dialect.nocase_equality('username')}",
                 (username,),
             ).fetchone()
         if row is None:
@@ -479,7 +317,7 @@ class Store:
     def get_platform_setting(self, key: str) -> dict[str, Any] | None:
         with self.connect() as connection:
             row = connection.execute("SELECT data FROM platform_settings WHERE key=?", (key,)).fetchone()
-        return json.loads(row["data"]) if row else None
+        return self._decode(row)
 
     def save_platform_setting(self, key: str, value: dict[str, Any]) -> dict[str, Any]:
         now = utc_now()
@@ -490,41 +328,38 @@ class Store:
                 INSERT INTO platform_settings(key, data, updated_at) VALUES(?, ?, ?)
                 ON CONFLICT(key) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at
                 """,
-                (key, json.dumps(payload, ensure_ascii=False), now),
+                (key, self.dialect.json_param(payload), now),
             )
         return payload
 
-    @staticmethod
-    def _decode(row: sqlite3.Row | None) -> dict[str, Any] | None:
-        return json.loads(row["data"]) if row else None
+    def _decode(self, row: Any) -> dict[str, Any] | None:
+        return self.dialect.decode_json(row["data"]) if row else None
 
-    @staticmethod
-    def _decode_run(row: sqlite3.Row | None) -> dict[str, Any] | None:
+    def _decode_run(self, row: Any) -> dict[str, Any] | None:
         if not row:
             return None
-        run = json.loads(row["data"])
+        run = self.dialect.decode_json(row["data"])
         run["startedAtIso"] = row["created_at"]
         return run
 
     def list_collectors(self) -> list[dict[str, Any]]:
         with self.connect() as connection:
             rows = connection.execute("SELECT data FROM collectors ORDER BY created_at DESC").fetchall()
-        return [json.loads(row["data"]) for row in rows]
+        return [self.dialect.decode_json(row["data"]) for row in rows]
 
-    def get_collector(self, collector_id: str, connection: sqlite3.Connection | None = None) -> dict[str, Any] | None:
+    def get_collector(self, collector_id: str, connection: DialectConnection | None = None) -> dict[str, Any] | None:
         if connection is not None:
             return self._decode(connection.execute("SELECT data FROM collectors WHERE id=?", (collector_id,)).fetchone())
         with self.connect() as own:
             return self._decode(own.execute("SELECT data FROM collectors WHERE id=?", (collector_id,)).fetchone())
 
-    def save_collector(self, collector: dict[str, Any], connection: sqlite3.Connection | None = None) -> None:
+    def save_collector(self, collector: dict[str, Any], connection: DialectConnection | None = None) -> None:
         now = utc_now()
-        payload = json.dumps(collector, ensure_ascii=False)
         sql = """
             INSERT INTO collectors(id, data, created_at, updated_at) VALUES(?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at
         """
-        params = (collector["id"], payload, now, now)
+        params = (collector["id"], self.dialect.json_param(collector), now, now)
         if connection is not None:
             connection.execute(sql, params)
             return
@@ -534,11 +369,12 @@ class Store:
     def source_exists(
         self,
         source_url: str,
-        connection: sqlite3.Connection | None = None,
+        connection: DialectConnection | None = None,
         *,
         exclude_collector_id: str | None = None,
     ) -> bool:
-        query = "SELECT 1 FROM collectors WHERE json_extract(data, '$.sourceUrl')=?"
+        source_url_expression = self.dialect.json_extract_text("data", "sourceUrl")
+        query = f"SELECT 1 FROM collectors WHERE {source_url_expression}=?"
         params: tuple[str, ...] = (source_url,)
         if exclude_collector_id:
             query += " AND id<>?"
@@ -626,7 +462,7 @@ class Store:
             policy["digest"] = f"sha256:{payload_hash(policy)}"
             connection.execute(
                 "INSERT INTO collection_policies(id, collector_id, version, policy_digest, data, created_at) VALUES(?, ?, ?, ?, ?, ?)",
-                (policy_id, collector_id, version, policy["digest"], json.dumps(policy, ensure_ascii=False), created_at),
+                (policy_id, collector_id, version, policy["digest"], self.dialect.json_param(policy), created_at),
             )
             connection.execute("DELETE FROM collector_checkpoints WHERE collector_id=?", (collector_id,))
             collector.update(activeCollectionPolicyId=policy_id, collectionPolicy=policy, checkpoint=None, updatedAt="刚刚")
@@ -641,14 +477,14 @@ class Store:
             return collector
         return self.create_collection_policy(collector_id, DEFAULT_COLLECTION_POLICY)
 
-    def get_collection_policy(self, policy_id: str, connection: sqlite3.Connection | None = None) -> dict[str, Any] | None:
+    def get_collection_policy(self, policy_id: str, connection: DialectConnection | None = None) -> dict[str, Any] | None:
         query = "SELECT data FROM collection_policies WHERE id=?"
         if connection is not None:
             return self._decode(connection.execute(query, (policy_id,)).fetchone())
         with self.connect() as own:
             return self._decode(own.execute(query, (policy_id,)).fetchone())
 
-    def get_checkpoint(self, collector_id: str, connection: sqlite3.Connection | None = None) -> dict[str, Any] | None:
+    def get_checkpoint(self, collector_id: str, connection: DialectConnection | None = None) -> dict[str, Any] | None:
         query = "SELECT data FROM collector_checkpoints WHERE collector_id=?"
         if connection is not None:
             return self._decode(connection.execute(query, (collector_id,)).fetchone())
@@ -711,10 +547,10 @@ class Store:
                     schedule_id,
                     collector_id,
                     revision,
-                    int(schedule["enabled"]),
+                    self.dialect.bool_param(schedule["enabled"]),
                     schedule["nextRunAt"],
                     schedule["lastTriggeredAt"],
-                    json.dumps(schedule, ensure_ascii=False),
+                    self.dialect.json_param(schedule),
                     updated_at,
                 ),
             )
@@ -742,7 +578,8 @@ class Store:
         claimed: list[dict[str, Any]] = []
         with self.transaction() as connection:
             rows = connection.execute(
-                "SELECT data FROM collector_schedules WHERE enabled=1 AND next_run_at IS NOT NULL AND next_run_at<=? ORDER BY next_run_at",
+                f"SELECT data FROM collector_schedules WHERE enabled={self.dialect.bool_true()} "
+                "AND next_run_at IS NOT NULL AND next_run_at<=? ORDER BY next_run_at",
                 (instant_iso,),
             ).fetchall()
             for row in rows:
@@ -761,11 +598,13 @@ class Store:
                     "reason": None,
                 }
                 inserted = connection.execute(
-                    """
-                    INSERT OR IGNORE INTO schedule_occurrences(
-                        occurrence_key, schedule_id, collector_id, scheduled_at, status, run_id, reason, data, created_at, updated_at
-                    ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
+                    self.dialect.insert_or_ignore(
+                        """
+                        INSERT INTO schedule_occurrences(
+                            occurrence_key, schedule_id, collector_id, scheduled_at, status, run_id, reason, data, created_at, updated_at
+                        ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """
+                    ),
                     (
                         occurrence_key,
                         schedule["id"],
@@ -774,7 +613,7 @@ class Store:
                         "claimed",
                         None,
                         None,
-                        json.dumps(occurrence, ensure_ascii=False),
+                        self.dialect.json_param(occurrence),
                         created_at,
                         created_at,
                     ),
@@ -787,7 +626,7 @@ class Store:
                 schedule.update(lastTriggeredAt=scheduled_at, nextRunAt=next_run_at, updatedAt=created_at)
                 connection.execute(
                     "UPDATE collector_schedules SET next_run_at=?, last_triggered_at=?, data=?, updated_at=? WHERE id=?",
-                    (next_run_at, scheduled_at, json.dumps(schedule, ensure_ascii=False), created_at, schedule["id"]),
+                    (next_run_at, scheduled_at, self.dialect.json_param(schedule), created_at, schedule["id"]),
                 )
                 collector = self.get_collector(schedule["collectorId"], connection)
                 if collector:
@@ -806,39 +645,32 @@ class Store:
             occurrence.update(status=status, runId=run_id, reason=reason)
             connection.execute(
                 "UPDATE schedule_occurrences SET status=?, run_id=?, reason=?, data=?, updated_at=? WHERE occurrence_key=?",
-                (status, run_id, reason, json.dumps(occurrence, ensure_ascii=False), utc_now(), occurrence_key),
+                (status, run_id, reason, self.dialect.json_param(occurrence), utc_now(), occurrence_key),
             )
 
-    def save_checkpoint(self, checkpoint: dict[str, Any], connection: sqlite3.Connection | None = None) -> None:
-        own_connection = connection is None
-        target = connection or self.connect()
-        try:
-            if own_connection:
-                target.execute("BEGIN IMMEDIATE")
-            target.execute(
-                """
-                INSERT INTO collector_checkpoints(collector_id, policy_version_id, data, updated_at) VALUES(?, ?, ?, ?)
-                ON CONFLICT(collector_id) DO UPDATE SET
-                    policy_version_id=excluded.policy_version_id, data=excluded.data, updated_at=excluded.updated_at
-                """,
-                (checkpoint["collectorId"], checkpoint["policyVersionId"], json.dumps(checkpoint, ensure_ascii=False), utc_now()),
-            )
-            collector = self.get_collector(checkpoint["collectorId"], target)
-            if collector is None:
-                raise KeyError(checkpoint["collectorId"])
-            collector["checkpoint"] = checkpoint
-            self.save_collector(collector, target)
-            if own_connection:
-                target.commit()
-        except Exception:
-            if own_connection:
-                target.rollback()
-            raise
-        finally:
-            if own_connection:
-                target.close()
+    def save_checkpoint(self, checkpoint: dict[str, Any], connection: DialectConnection | None = None) -> None:
+        if connection is not None:
+            self._write_checkpoint(connection, checkpoint)
+            return
+        with self.transaction() as target:
+            self._write_checkpoint(target, checkpoint)
 
-    def get_operation(self, operation_id: str, connection: sqlite3.Connection | None = None) -> dict[str, Any] | None:
+    def _write_checkpoint(self, connection: DialectConnection, checkpoint: dict[str, Any]) -> None:
+        connection.execute(
+            """
+            INSERT INTO collector_checkpoints(collector_id, policy_version_id, data, updated_at) VALUES(?, ?, ?, ?)
+            ON CONFLICT(collector_id) DO UPDATE SET
+                policy_version_id=excluded.policy_version_id, data=excluded.data, updated_at=excluded.updated_at
+            """,
+            (checkpoint["collectorId"], checkpoint["policyVersionId"], self.dialect.json_param(checkpoint), utc_now()),
+        )
+        collector = self.get_collector(checkpoint["collectorId"], connection)
+        if collector is None:
+            raise KeyError(checkpoint["collectorId"])
+        collector["checkpoint"] = checkpoint
+        self.save_collector(collector, connection)
+
+    def get_operation(self, operation_id: str, connection: DialectConnection | None = None) -> dict[str, Any] | None:
         if connection is not None:
             return self._decode(connection.execute("SELECT data FROM operations WHERE id=?", (operation_id,)).fetchone())
         with self.connect() as own:
@@ -847,7 +679,7 @@ class Store:
     def list_operations(self) -> list[dict[str, Any]]:
         with self.connect() as connection:
             rows = connection.execute("SELECT data FROM operations ORDER BY created_at DESC").fetchall()
-        return [json.loads(row["data"]) for row in rows]
+        return [self.dialect.decode_json(row["data"]) for row in rows]
 
     def list_ai_runs(self, collector_id: str | None = None) -> list[dict[str, Any]]:
         with self.connect() as connection:
@@ -858,9 +690,9 @@ class Store:
                 ).fetchall()
             else:
                 rows = connection.execute("SELECT data FROM ai_runs ORDER BY created_at DESC").fetchall()
-        return [{"publishedRuleVersionId": None, **json.loads(row["data"])} for row in rows]
+        return [{"publishedRuleVersionId": None, **self.dialect.decode_json(row["data"])} for row in rows]
 
-    def get_ai_run(self, ai_run_id: str, connection: sqlite3.Connection | None = None) -> dict[str, Any] | None:
+    def get_ai_run(self, ai_run_id: str, connection: DialectConnection | None = None) -> dict[str, Any] | None:
         if connection is not None:
             ai_run = self._decode(connection.execute("SELECT data FROM ai_runs WHERE id=?", (ai_run_id,)).fetchone())
             if ai_run is None:
@@ -877,14 +709,14 @@ class Store:
         ai_run: dict[str, Any],
         collector_id: str,
         operation_id: str,
-        connection: sqlite3.Connection | None = None,
+        connection: DialectConnection | None = None,
     ) -> None:
         now = utc_now()
         sql = """
             INSERT INTO ai_runs(id, operation_id, collector_id, data, created_at, updated_at) VALUES(?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at
         """
-        params = (ai_run["id"], operation_id, collector_id, json.dumps(ai_run, ensure_ascii=False), now, now)
+        params = (ai_run["id"], operation_id, collector_id, self.dialect.json_param(ai_run), now, now)
         if connection is not None:
             connection.execute(sql, params)
             return
@@ -899,7 +731,7 @@ class Store:
             ).fetchone()
             if row is None:
                 raise KeyError(ai_run_id)
-            ai_run = json.loads(row["data"])
+            ai_run = self.dialect.decode_json(row["data"])
             ai_run.update(changes)
             if changes.get("reviewStatus") == "ready_review":
                 older_rows = connection.execute(
@@ -907,7 +739,7 @@ class Store:
                     (row["collector_id"], ai_run_id),
                 ).fetchall()
                 for older_row in older_rows:
-                    older_ai_run = json.loads(older_row["data"])
+                    older_ai_run = self.dialect.decode_json(older_row["data"])
                     if older_ai_run.get("reviewStatus") != "ready_review":
                         continue
                     older_ai_run.update(reviewStatus="superseded", publishedRuleVersionId=None)
@@ -924,51 +756,44 @@ class Store:
         self,
         collector_id: str,
         rule_version_id: str,
-        connection: sqlite3.Connection | None = None,
+        connection: DialectConnection | None = None,
     ) -> None:
-        own_connection = connection is None
-        target = connection or self.connect()
-        try:
-            if own_connection:
-                target.execute("BEGIN IMMEDIATE")
-            rows = target.execute(
-                "SELECT operation_id, data FROM ai_runs WHERE collector_id=? ORDER BY created_at DESC",
-                (collector_id,),
-            ).fetchall()
-            published = False
-            for row in rows:
-                ai_run = json.loads(row["data"])
-                if ai_run.get("reviewStatus") != "ready_review":
-                    continue
-                if not published:
-                    ai_run.update(reviewStatus="published", publishedRuleVersionId=rule_version_id)
-                    published = True
-                else:
-                    ai_run.update(reviewStatus="superseded", publishedRuleVersionId=None)
-                self.save_ai_run(ai_run, collector_id, str(row["operation_id"]), target)
-            if own_connection:
-                target.commit()
-        except Exception:
-            if own_connection:
-                target.rollback()
-            raise
-        finally:
-            if own_connection:
-                target.close()
+        if connection is not None:
+            self._publish_latest_ai_run(connection, collector_id, rule_version_id)
+            return
+        with self.transaction() as target:
+            self._publish_latest_ai_run(target, collector_id, rule_version_id)
+
+    def _publish_latest_ai_run(self, connection: DialectConnection, collector_id: str, rule_version_id: str) -> None:
+        rows = connection.execute(
+            "SELECT operation_id, data FROM ai_runs WHERE collector_id=? ORDER BY created_at DESC",
+            (collector_id,),
+        ).fetchall()
+        published = False
+        for row in rows:
+            ai_run = self.dialect.decode_json(row["data"])
+            if ai_run.get("reviewStatus") != "ready_review":
+                continue
+            if not published:
+                ai_run.update(reviewStatus="published", publishedRuleVersionId=rule_version_id)
+                published = True
+            else:
+                ai_run.update(reviewStatus="superseded", publishedRuleVersionId=None)
+            self.save_ai_run(ai_run, collector_id, str(row["operation_id"]), connection)
 
     def list_ai_attempts(
         self,
         ai_run_id: str,
-        connection: sqlite3.Connection | None = None,
+        connection: DialectConnection | None = None,
     ) -> list[dict[str, Any]]:
         query = "SELECT data FROM ai_attempts WHERE ai_run_id=? ORDER BY attempt_no DESC"
         if connection is not None:
             rows = connection.execute(query, (ai_run_id,)).fetchall()
-            attempts = [json.loads(row["data"]) for row in rows]
+            attempts = [self.dialect.decode_json(row["data"]) for row in rows]
             return [{**attempt, "modelInvocations": self.list_model_invocations(attempt["id"], connection)} for attempt in attempts]
         with self.connect() as own:
             rows = own.execute(query, (ai_run_id,)).fetchall()
-            attempts = [json.loads(row["data"]) for row in rows]
+            attempts = [self.dialect.decode_json(row["data"]) for row in rows]
             return [{**attempt, "modelInvocations": self.list_model_invocations(attempt["id"], own)} for attempt in attempts]
 
     def start_ai_attempt(self, ai_run_id: str) -> dict[str, Any]:
@@ -997,9 +822,9 @@ class Store:
             }
             connection.execute(
                 "INSERT INTO ai_attempts(id, ai_run_id, attempt_no, data, created_at, updated_at) VALUES(?, ?, ?, ?, ?, ?)",
-                (attempt["id"], ai_run_id, attempt_no, json.dumps(attempt, ensure_ascii=False), now, now),
+                (attempt["id"], ai_run_id, attempt_no, self.dialect.json_param(attempt), now, now),
             )
-            ai_run = json.loads(row["data"])
+            ai_run = self.dialect.decode_json(row["data"])
             ai_run.update(status="running", startedAt=ai_run.get("startedAt") or now, attemptCount=attempt_no)
             self.save_ai_run(ai_run, str(row["collector_id"]), str(row["operation_id"]), connection)
             return attempt
@@ -1009,7 +834,7 @@ class Store:
             row = connection.execute("SELECT data FROM ai_attempts WHERE id=?", (attempt_id,)).fetchone()
             if row is None:
                 raise KeyError(attempt_id)
-            attempt = json.loads(row["data"])
+            attempt = self.dialect.decode_json(row["data"])
             finished_at = utc_now()
             started_at = datetime.fromisoformat(attempt["startedAt"].replace("Z", "+00:00"))
             finished = datetime.fromisoformat(finished_at.replace("Z", "+00:00"))
@@ -1021,22 +846,22 @@ class Store:
             )
             connection.execute(
                 "UPDATE ai_attempts SET data=?, updated_at=? WHERE id=?",
-                (json.dumps(attempt, ensure_ascii=False), finished_at, attempt_id),
+                (self.dialect.json_param(attempt), finished_at, attempt_id),
             )
             return attempt
 
     def list_model_invocations(
         self,
         attempt_id: str,
-        connection: sqlite3.Connection | None = None,
+        connection: DialectConnection | None = None,
     ) -> list[dict[str, Any]]:
         query = "SELECT data FROM model_invocations WHERE ai_attempt_id=? ORDER BY created_at"
         if connection is not None:
             rows = connection.execute(query, (attempt_id,)).fetchall()
-            return [json.loads(row["data"]) for row in rows]
+            return [self.dialect.decode_json(row["data"]) for row in rows]
         with self.connect() as own:
             rows = own.execute(query, (attempt_id,)).fetchall()
-            return [json.loads(row["data"]) for row in rows]
+            return [self.dialect.decode_json(row["data"]) for row in rows]
 
     def record_model_invocation(
         self,
@@ -1081,7 +906,7 @@ class Store:
                 INSERT INTO model_invocations(id, ai_run_id, ai_attempt_id, data, created_at, updated_at)
                 VALUES(?, ?, ?, ?, ?, ?)
                 """,
-                (invocation["id"], ai_run_id, attempt_id, json.dumps(invocation, ensure_ascii=False), started_at, finished_at),
+                (invocation["id"], ai_run_id, attempt_id, self.dialect.json_param(invocation), started_at, finished_at),
             )
             row = connection.execute(
                 "SELECT operation_id, collector_id, data FROM ai_runs WHERE id=?",
@@ -1089,7 +914,7 @@ class Store:
             ).fetchone()
             if row is None:
                 raise KeyError(ai_run_id)
-            ai_run = json.loads(row["data"])
+            ai_run = self.dialect.decode_json(row["data"])
             summary = dict(ai_run.get("modelSummary") or {})
             summary.update(
                 invocationCount=int(summary.get("invocationCount", 0)) + 1,
@@ -1102,13 +927,13 @@ class Store:
             self.save_ai_run(ai_run, str(row["collector_id"]), str(row["operation_id"]), connection)
         return invocation
 
-    def save_operation(self, operation: dict[str, Any], collector_id: str, connection: sqlite3.Connection | None = None) -> None:
+    def save_operation(self, operation: dict[str, Any], collector_id: str, connection: DialectConnection | None = None) -> None:
         now = utc_now()
         sql = """
             INSERT INTO operations(id, collector_id, data, created_at, updated_at) VALUES(?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at
         """
-        params = (operation["id"], collector_id, json.dumps(operation, ensure_ascii=False), now, now)
+        params = (operation["id"], collector_id, self.dialect.json_param(operation), now, now)
         if connection is not None:
             connection.execute(sql, params)
             return
@@ -1125,7 +950,7 @@ class Store:
             return operation
 
     @staticmethod
-    def operation_collector_id(operation_id: str, connection: sqlite3.Connection) -> str:
+    def operation_collector_id(operation_id: str, connection: DialectConnection) -> str:
         row = connection.execute("SELECT collector_id FROM operations WHERE id=?", (operation_id,)).fetchone()
         if not row:
             raise KeyError(operation_id)
@@ -1211,7 +1036,7 @@ class Store:
                 self.save_ai_run(ai_run, collector_id, operation_id, connection)
             connection.execute(
                 "INSERT INTO jobs(operation_id, kind, payload, status, available_at) VALUES(?, ?, ?, 'queued', ?)",
-                (operation_id, kind, json.dumps(job_payload, ensure_ascii=False), utc_now()),
+                (operation_id, kind, self.dialect.json_param(job_payload), utc_now()),
             )
         return operation
 
@@ -1237,7 +1062,7 @@ class Store:
                 "id": row["id"],
                 "operationId": row["operation_id"],
                 "kind": row["kind"],
-                "payload": json.loads(row["payload"]),
+                "payload": self.dialect.decode_json(row["payload"]),
                 "attempts": row["attempts"] + 1,
             }
 
@@ -1254,62 +1079,169 @@ class Store:
             rows = connection.execute("SELECT data, created_at FROM runs ORDER BY created_at DESC").fetchall()
         return [run for row in rows if (run := self._decode_run(row)) is not None]
 
-    def get_run(self, run_id: str, connection: sqlite3.Connection | None = None) -> dict[str, Any] | None:
+    def get_run(self, run_id: str, connection: DialectConnection | None = None) -> dict[str, Any] | None:
         if connection is not None:
             return self._decode_run(connection.execute("SELECT data, created_at FROM runs WHERE id=?", (run_id,)).fetchone())
         with self.connect() as own:
             return self._decode_run(own.execute("SELECT data, created_at FROM runs WHERE id=?", (run_id,)).fetchone())
 
-    def save_run(self, run: dict[str, Any], connection: sqlite3.Connection | None = None) -> None:
+    def save_run(self, run: dict[str, Any], connection: DialectConnection | None = None) -> None:
         now = utc_now()
         sql = """
             INSERT INTO runs(id, collector_id, data, created_at, updated_at) VALUES(?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at
         """
-        params = (run["id"], run["collectorId"], json.dumps(run, ensure_ascii=False), now, now)
+        params = (run["id"], run["collectorId"], self.dialect.json_param(run), now, now)
         if connection is not None:
             connection.execute(sql, params)
             return
         with self.transaction() as own:
             own.execute(sql, params)
 
-    def save_items(self, run_id: str, items: list[dict[str, Any]], connection: sqlite3.Connection | None = None) -> None:
-        own_connection = connection is None
-        target = connection or self.connect()
-        try:
-            if own_connection:
-                target.execute("BEGIN IMMEDIATE")
-            target.execute("DELETE FROM items WHERE run_id=?", (run_id,))
-            for item in items:
-                target.execute(
-                    "INSERT INTO items(id, run_id, data, created_at) VALUES(?, ?, ?, ?)",
-                    (item["id"], run_id, json.dumps(item, ensure_ascii=False), utc_now()),
-                )
-            if own_connection:
-                target.commit()
-        except Exception:
-            if own_connection:
-                target.rollback()
-            raise
-        finally:
-            if own_connection:
-                target.close()
+    def save_items(self, run_id: str, items: list[dict[str, Any]], connection: DialectConnection | None = None) -> None:
+        if connection is not None:
+            self._replace_run_items(connection, run_id, items)
+            return
+        with self.transaction() as target:
+            self._replace_run_items(target, run_id, items)
+
+    def _replace_run_items(self, connection: DialectConnection, run_id: str, items: list[dict[str, Any]]) -> None:
+        connection.execute("DELETE FROM items WHERE run_id=?", (run_id,))
+        for item in items:
+            connection.execute(
+                "INSERT INTO items(id, run_id, data, created_at) VALUES(?, ?, ?, ?)",
+                (item["id"], run_id, self.dialect.json_param(item), utc_now()),
+            )
 
     def list_items(self) -> list[dict[str, Any]]:
         with self.connect() as connection:
             rows = connection.execute("SELECT data FROM items ORDER BY created_at DESC").fetchall()
-        return [json.loads(row["data"]) for row in rows]
+        return [self.dialect.decode_json(row["data"]) for row in rows]
 
     def get_item(self, item_id: str) -> dict[str, Any] | None:
         with self.connect() as connection:
             return self._decode(connection.execute("SELECT data FROM items WHERE id=?", (item_id,)).fetchone())
 
-    def has_active_run(self, collector_id: str, connection: sqlite3.Connection | None = None) -> bool:
+    def _item_filter_clauses(
+        self,
+        *,
+        collector_id: str | None,
+        run_id: str | None,
+        decision: str | None,
+        entity_key: str | None,
+    ) -> tuple[list[str], list[Any]]:
+        clauses: list[str] = []
+        params: list[Any] = []
+        if collector_id is not None:
+            clauses.append(f"{self.dialect.json_extract_text('data', 'collectorId')}=?")
+            params.append(collector_id)
+        if run_id is not None:
+            clauses.append("run_id=?")
+            params.append(run_id)
+        if decision is not None:
+            clauses.append(f"{self.dialect.json_extract_text('data', 'decision')}=?")
+            params.append(decision)
+        if entity_key is not None:
+            clauses.append(f"{self.dialect.json_extract_text('data', 'entityKey')}=?")
+            params.append(entity_key)
+        return clauses, params
+
+    def list_items_cursor(
+        self,
+        *,
+        collector_id: str | None = None,
+        run_id: str | None = None,
+        decision: str | None = None,
+        entity_key: str | None = None,
+        sort_key: str = "observed_at",
+        limit: int = 50,
+        cursor: str | None = None,
+    ) -> dict[str, Any]:
+        """Page items in the deterministic output-loop order.
+
+        Ordering contract: ``(observedAt DESC, entityKey DESC)`` with the item
+        id as a final tiebreaker, so equal sort keys never reorder between
+        pages. The returned ``nextCursor`` is an opaque base64 token carrying
+        the last sort key tuple ``(observedAt, entityKey, id)``; decoding it is
+        the only way to resume a page walk and an invalid token raises
+        :class:`InvalidCursor` (error code ``INVALID_CURSOR``). Items always
+        carry non-null ``observedAt``/``entityKey`` fields, which holds for
+        every item produced by the harvest pipeline.
+        """
+
+        if sort_key != "observed_at":
+            raise ValueError("only the observed_at sort key is supported")
+        if limit < 1:
+            raise ValueError("limit must be positive")
+        observed_at = self.dialect.json_extract_text("data", "observedAt")
+        entity_key_expression = self.dialect.json_extract_text("data", "entityKey")
+        clauses, params = self._item_filter_clauses(
+            collector_id=collector_id,
+            run_id=run_id,
+            decision=decision,
+            entity_key=entity_key,
+        )
+        if cursor is not None:
+            cursor_observed_at, cursor_entity_key, cursor_item_id = decode_item_cursor(cursor)
+            clauses.append(f"({observed_at}, {entity_key_expression}, id) < (?, ?, ?)")
+            params.extend((cursor_observed_at, cursor_entity_key, cursor_item_id))
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        with self.connect() as connection:
+            rows = connection.execute(
+                f"SELECT data FROM items {where} "
+                f"ORDER BY {observed_at} DESC, {entity_key_expression} DESC, id DESC LIMIT ?",
+                (*params, limit + 1),
+            ).fetchall()
+        has_more = len(rows) > limit
+        items = [self.dialect.decode_json(row["data"]) for row in rows[:limit]]
+        next_cursor = None
+        if has_more and items:
+            last = items[-1]
+            next_cursor = encode_item_cursor(str(last["observedAt"]), str(last["entityKey"]), str(last["id"]))
+        return {"items": items, "nextCursor": next_cursor}
+
+    def iter_items_export(
+        self,
+        *,
+        collector_id: str | None = None,
+        run_id: str | None = None,
+        decision: str | None = None,
+        entity_key: str | None = None,
+    ) -> Iterator[dict[str, Any]]:
+        """Yield items in the same deterministic order as ``list_items_cursor``.
+
+        Iteration is unbounded by design: the export surface caps results at
+        ``EXPORT_ITEMS_CAP`` items and that cap is enforced by the caller, so
+        this generator only guarantees stable ordered streaming.
+        """
+
+        observed_at = self.dialect.json_extract_text("data", "observedAt")
+        entity_key_expression = self.dialect.json_extract_text("data", "entityKey")
+        clauses, params = self._item_filter_clauses(
+            collector_id=collector_id,
+            run_id=run_id,
+            decision=decision,
+            entity_key=entity_key,
+        )
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        connection = self.connect()
+        try:
+            cursor = connection.execute(
+                f"SELECT data FROM items {where} ORDER BY {observed_at} DESC, {entity_key_expression} DESC, id DESC",
+                tuple(params),
+            )
+            while batch := cursor.fetchmany(500):
+                for row in batch:
+                    yield self.dialect.decode_json(row["data"])
+        finally:
+            connection.close()
+
+    def has_active_run(self, collector_id: str, connection: DialectConnection | None = None) -> bool:
         query = "SELECT data FROM runs WHERE collector_id=?"
         target = connection or self.connect()
         try:
             rows = target.execute(query, (collector_id,)).fetchall()
-            return any(json.loads(row["data"])["status"] in NONTERMINAL_RUN_STATUSES for row in rows)
+            return any(self.dialect.decode_json(row["data"])["status"] in NONTERMINAL_RUN_STATUSES for row in rows)
         finally:
             if connection is None:
                 target.close()
@@ -1318,7 +1250,7 @@ class Store:
         with self.transaction() as connection:
             row = connection.execute("SELECT data FROM signing_keys WHERE id=?", (signing_key["id"],)).fetchone()
             if row:
-                existing = json.loads(row["data"])
+                existing = self.dialect.decode_json(row["data"])
                 if existing["tenantId"] != signing_key["tenantId"] or existing["publicKeyPem"] != signing_key["publicKeyPem"]:
                     raise ValueError("signing key identity cannot be rebound")
                 return existing
@@ -1330,14 +1262,14 @@ class Store:
                     signing_key["tenantId"],
                     signing_key["status"],
                     signing_key["revision"],
-                    json.dumps(signing_key, ensure_ascii=False),
+                    self.dialect.json_param(signing_key),
                     now,
                     now,
                 ),
             )
             return signing_key
 
-    def get_signing_key(self, key_id: str, connection: sqlite3.Connection | None = None) -> dict[str, Any] | None:
+    def get_signing_key(self, key_id: str, connection: DialectConnection | None = None) -> dict[str, Any] | None:
         if connection is not None:
             return self._decode(connection.execute("SELECT data FROM signing_keys WHERE id=?", (key_id,)).fetchone())
         with self.connect() as own:
@@ -1376,7 +1308,7 @@ class Store:
                 signing_key["compromiseEffectiveAt"] = compromise_effective_at or changed_at
             connection.execute(
                 "UPDATE signing_keys SET status=?, revision=?, data=?, updated_at=? WHERE id=?",
-                (status, signing_key["revision"], json.dumps(signing_key, ensure_ascii=False), changed_at, key_id),
+                (status, signing_key["revision"], self.dialect.json_param(signing_key), changed_at, key_id),
             )
             self._append_audit_event(
                 connection,
@@ -1389,19 +1321,19 @@ class Store:
             )
             return signing_key
 
-    def get_rule_version(self, rule_version_id: str, connection: sqlite3.Connection | None = None) -> dict[str, Any] | None:
+    def get_rule_version(self, rule_version_id: str, connection: DialectConnection | None = None) -> dict[str, Any] | None:
         if connection is not None:
             return self._decode(connection.execute("SELECT data FROM rule_versions WHERE id=?", (rule_version_id,)).fetchone())
         with self.connect() as own:
             return self._decode(own.execute("SELECT data FROM rule_versions WHERE id=?", (rule_version_id,)).fetchone())
 
-    def get_rule_attestation(self, attestation_id: str, connection: sqlite3.Connection | None = None) -> dict[str, Any] | None:
+    def get_rule_attestation(self, attestation_id: str, connection: DialectConnection | None = None) -> dict[str, Any] | None:
         if connection is not None:
             return self._decode(connection.execute("SELECT data FROM rule_attestations WHERE id=?", (attestation_id,)).fetchone())
         with self.connect() as own:
             return self._decode(own.execute("SELECT data FROM rule_attestations WHERE id=?", (attestation_id,)).fetchone())
 
-    def latest_rule_attestation(self, rule_version_id: str, connection: sqlite3.Connection | None = None) -> dict[str, Any] | None:
+    def latest_rule_attestation(self, rule_version_id: str, connection: DialectConnection | None = None) -> dict[str, Any] | None:
         query = "SELECT data FROM rule_attestations WHERE rule_version_id=? ORDER BY created_at DESC LIMIT 1"
         if connection is not None:
             return self._decode(connection.execute(query, (rule_version_id,)).fetchone())
@@ -1410,7 +1342,7 @@ class Store:
 
     def _append_audit_event(
         self,
-        connection: sqlite3.Connection,
+        connection: DialectConnection,
         *,
         tenant_id: str,
         target_type: str,
@@ -1441,7 +1373,7 @@ class Store:
         event["eventHash"] = event_hash
         connection.execute(
             "INSERT INTO audit_events(id, tenant_id, event_hash, data, created_at) VALUES(?, ?, ?, ?, ?)",
-            (event["id"], tenant_id, event_hash, json.dumps(event, ensure_ascii=False), event["occurredAt"]),
+            (event["id"], tenant_id, event_hash, self.dialect.json_param(event), event["occurredAt"]),
         )
         return event
 
@@ -1467,7 +1399,7 @@ class Store:
                     rule_version["tenantId"],
                     collector_id,
                     rule_version["ruleDigest"],
-                    json.dumps(rule_version, ensure_ascii=False),
+                    self.dialect.json_param(rule_version),
                     rule_version["createdAt"],
                 ),
             )
@@ -1483,7 +1415,7 @@ class Store:
                     attestation["ruleVersionId"],
                     attestation["ruleDigest"],
                     attestation["keyId"],
-                    json.dumps(attestation, ensure_ascii=False),
+                    self.dialect.json_param(attestation),
                     attestation["signedAt"],
                 ),
             )
@@ -1504,7 +1436,7 @@ class Store:
     def list_audit_events(self, limit: int = 100) -> list[dict[str, Any]]:
         with self.connect() as connection:
             rows = connection.execute("SELECT data FROM audit_events ORDER BY sequence DESC LIMIT ?", (limit,)).fetchall()
-        return [json.loads(row["data"]) for row in rows]
+        return [self.dialect.decode_json(row["data"]) for row in rows]
 
     def verify_audit_chain(self, tenant_id: str) -> bool:
         with self.connect() as connection:
@@ -1515,7 +1447,7 @@ class Store:
         previous_event_id: str | None = None
         previous_event_hash: str | None = None
         for row in rows:
-            event = json.loads(row["data"])
+            event = self.dialect.decode_json(row["data"])
             recorded_hash = event.pop("eventHash", None)
             expected_hash = f"sha256:{payload_hash({'event': event, 'previousEventHash': previous_event_hash})}"
             if recorded_hash != expected_hash or row["event_hash"] != expected_hash or event["previousEventId"] != previous_event_id:
@@ -1532,11 +1464,354 @@ class Store:
             return None
         if row["request_hash"] != digest:
             raise IdempotencyConflict(key)
-        return int(row["status_code"]), json.loads(row["response"])
+        return int(row["status_code"]), self.dialect.decode_json(row["response"])
 
     def remember_idempotency(self, scope: str, key: str, request: Any, status_code: int, response: dict[str, Any]) -> None:
         with self.transaction() as connection:
             connection.execute(
-                "INSERT OR IGNORE INTO idempotency(scope, key, request_hash, status_code, response, created_at) VALUES(?, ?, ?, ?, ?, ?)",
-                (scope, key, payload_hash(request), status_code, json.dumps(response, ensure_ascii=False), utc_now()),
+                self.dialect.insert_or_ignore(
+                    "INSERT INTO idempotency(scope, key, request_hash, status_code, response, created_at) VALUES(?, ?, ?, ?, ?, ?)"
+                ),
+                (scope, key, payload_hash(request), status_code, self.dialect.json_param(response), utc_now()),
             )
+
+    def create_sink(
+        self,
+        collector_id: str,
+        *,
+        cipher: CredentialCipher,
+        url: str,
+        secret: str | None = None,
+        enabled: bool = True,
+        sink_type: str = "webhook",
+    ) -> dict[str, Any]:
+        """Register an output sink for a collector; secrets are Fernet-encrypted."""
+
+        if sink_type not in SINK_TYPES:
+            raise ValueError(f"unsupported sink type: {sink_type!r}")
+        if not isinstance(url, str) or not url.strip():
+            raise ValueError("sink url must be a non-empty string")
+        now = utc_now()
+        sink_id = stable_id("sink", f"{collector_id}_{uuid.uuid4().hex}", 40)
+        with self.transaction() as connection:
+            connection.execute(
+                """
+                INSERT INTO sinks(id, collector_id, type, url, secret_encrypted, enabled, version, created_at, updated_at)
+                VALUES(?, ?, ?, ?, ?, ?, 1, ?, ?)
+                """,
+                (
+                    sink_id,
+                    collector_id,
+                    sink_type,
+                    url,
+                    cipher.encrypt(secret) if secret else None,
+                    self.dialect.bool_param(enabled),
+                    now,
+                    now,
+                ),
+            )
+            row = connection.execute("SELECT * FROM sinks WHERE id=?", (sink_id,)).fetchone()
+        return self._sink_view(row)
+
+    def update_sink(
+        self,
+        sink_id: str,
+        *,
+        cipher: CredentialCipher | None = None,
+        url: str | None = None,
+        secret: str | None = None,
+        enabled: bool | None = None,
+    ) -> dict[str, Any]:
+        """Update a sink; every update bumps its version."""
+
+        if secret is not None and cipher is None:
+            raise ValueError("updating the sink secret requires the credential cipher")
+        if url is not None and (not isinstance(url, str) or not url.strip()):
+            raise ValueError("sink url must be a non-empty string")
+        with self.transaction() as connection:
+            row = connection.execute("SELECT * FROM sinks WHERE id=?", (sink_id,)).fetchone()
+            if row is None:
+                raise KeyError(sink_id)
+            connection.execute(
+                "UPDATE sinks SET url=?, enabled=?, secret_encrypted=?, version=version+1, updated_at=? WHERE id=?",
+                (
+                    url if url is not None else row["url"],
+                    self.dialect.bool_param(enabled) if enabled is not None else row["enabled"],
+                    cipher.encrypt(secret) if secret is not None else row["secret_encrypted"],
+                    utc_now(),
+                    sink_id,
+                ),
+            )
+            return self._sink_view(connection.execute("SELECT * FROM sinks WHERE id=?", (sink_id,)).fetchone())
+
+    def get_sink(self, sink_id: str, *, cipher: CredentialCipher | None = None) -> dict[str, Any] | None:
+        with self.connect() as connection:
+            row = connection.execute("SELECT * FROM sinks WHERE id=?", (sink_id,)).fetchone()
+        if row is None:
+            return None
+        view = self._sink_view(row)
+        if cipher is not None and row["secret_encrypted"]:
+            view["secret"] = cipher.decrypt(str(row["secret_encrypted"]))
+        return view
+
+    def list_sinks_for_collector(self, collector_id: str) -> list[dict[str, Any]]:
+        with self.connect() as connection:
+            rows = connection.execute(
+                "SELECT * FROM sinks WHERE collector_id=? ORDER BY created_at DESC, id DESC",
+                (collector_id,),
+            ).fetchall()
+        return [self._sink_view(row) for row in rows]
+
+    def delete_sink(self, sink_id: str) -> None:
+        with self.transaction() as connection:
+            row = connection.execute("SELECT id FROM sinks WHERE id=?", (sink_id,)).fetchone()
+            if row is None:
+                raise KeyError(sink_id)
+            connection.execute("DELETE FROM sinks WHERE id=?", (sink_id,))
+
+    @staticmethod
+    def _sink_view(row: Any) -> dict[str, Any]:
+        return {
+            "id": row["id"],
+            "collectorId": row["collector_id"],
+            "type": row["type"],
+            "url": row["url"],
+            "enabled": bool(row["enabled"]),
+            "version": int(row["version"]),
+            "secretConfigured": bool(row["secret_encrypted"]),
+            "createdAt": row["created_at"],
+            "updatedAt": row["updated_at"],
+        }
+
+    def enqueue_delivery(
+        self,
+        *,
+        collector_id: str,
+        sink_id: str,
+        item_event_id: str,
+        sink_version_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Idempotently enqueue an item event for a sink; duplicates return the same delivery."""
+
+        now = utc_now()
+        delivery_id = stable_id("delivery", uuid.uuid4().hex, 24)
+        insert_sql = self.dialect.insert_or_ignore(
+            """
+            INSERT INTO deliveries(
+                id, collector_id, sink_id, sink_version_id, item_event_id, status, attempt_count, next_attempt_at, created_at, updated_at
+            ) VALUES(?, ?, ?, ?, ?, 'pending', 0, ?, ?, ?)
+            """
+        )
+        with self.transaction() as connection:
+            if sink_version_id is None:
+                sink = connection.execute("SELECT id, version FROM sinks WHERE id=?", (sink_id,)).fetchone()
+                if sink is None:
+                    raise KeyError(sink_id)
+                sink_version_id = f"{sink_id}#v{int(sink['version'])}"
+            connection.execute(
+                insert_sql,
+                (delivery_id, collector_id, sink_id, sink_version_id, item_event_id, now, now, now),
+            )
+            row = connection.execute(
+                "SELECT * FROM deliveries WHERE item_event_id=? AND sink_id=?",
+                (item_event_id, sink_id),
+            ).fetchone()
+        if row is None:
+            raise RuntimeError("enqueued delivery is unavailable")
+        return self._delivery_view(row)
+
+    def claim_due_deliveries(
+        self,
+        limit: int,
+        now: datetime | None = None,
+        *,
+        lease_seconds: int = 120,
+    ) -> list[dict[str, Any]]:
+        """Lease due deliveries like ``claim_job`` leases jobs.
+
+        A delivery is claimable when it is ``pending`` or ``failed`` with
+        ``next_attempt_at`` due, or when it is stuck in ``delivering`` with an
+        expired lease (a crashed dispatcher). Claimed rows move to
+        ``delivering`` with a fresh lease. The claimed views include the
+        joined sink target so a dispatcher can deliver without a second read.
+        """
+
+        if limit < 1:
+            raise ValueError("claim limit must be positive")
+        instant = (now or datetime.now(UTC)).astimezone(UTC)
+        now_iso = instant.isoformat().replace("+00:00", "Z")
+        lease_until = (instant + timedelta(seconds=lease_seconds)).isoformat().replace("+00:00", "Z")
+        claimed: list[dict[str, Any]] = []
+        with self.transaction() as connection:
+            rows = connection.execute(
+                f"""
+                SELECT d.*, s.type AS sink_type, s.url AS sink_url, s.secret_encrypted AS sink_secret_encrypted
+                FROM deliveries d
+                JOIN sinks s ON s.id=d.sink_id
+                WHERE (d.status IN ('pending', 'failed') AND d.next_attempt_at IS NOT NULL AND d.next_attempt_at<=?)
+                   OR (d.status='delivering' AND d.lease_until IS NOT NULL AND d.lease_until<?)
+                ORDER BY d.next_attempt_at, d.id
+                LIMIT ?{self.dialect.row_lock_clause()}
+                """,
+                (now_iso, now_iso, limit),
+            ).fetchall()
+            for row in rows:
+                connection.execute(
+                    "UPDATE deliveries SET status='delivering', lease_until=?, updated_at=? WHERE id=?",
+                    (lease_until, utc_now(), row["id"]),
+                )
+                claimed_row = connection.execute("SELECT * FROM deliveries WHERE id=?", (row["id"],)).fetchone()
+                view = self._delivery_view(claimed_row)
+                view["sinkType"] = row["sink_type"]
+                view["sinkUrl"] = row["sink_url"]
+                view["secretEncrypted"] = row["sink_secret_encrypted"]
+                claimed.append(view)
+        return claimed
+
+    def record_delivery_attempt(
+        self,
+        delivery_id: str,
+        *,
+        status_code: int | None = None,
+        error: str | None = None,
+        started_at: str | None = None,
+        finished_at: str | None = None,
+        next_attempt_at: str | None = None,
+    ) -> dict[str, Any]:
+        """Append an attempt to the append-only history and refresh delivery stats.
+
+        When ``error`` is provided the delivery moves to ``failed`` so the
+        claimer can retry it after ``next_attempt_at``; otherwise the status is
+        untouched and the caller finishes with ``mark_delivery_delivered`` or
+        ``mark_delivery_dead_lettered``.
+        """
+
+        now = utc_now()
+        with self.transaction() as connection:
+            row = connection.execute("SELECT status, attempt_count FROM deliveries WHERE id=?", (delivery_id,)).fetchone()
+            if row is None:
+                raise KeyError(delivery_id)
+            attempt_no = int(row["attempt_count"]) + 1
+            connection.execute(
+                """
+                INSERT INTO delivery_attempts(id, delivery_id, attempt_no, started_at, finished_at, status_code, error)
+                VALUES(?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    stable_id("delivery_attempt", f"{delivery_id}_{attempt_no}", 64),
+                    delivery_id,
+                    attempt_no,
+                    started_at or now,
+                    finished_at or now,
+                    status_code,
+                    error,
+                ),
+            )
+            connection.execute(
+                """
+                UPDATE deliveries
+                SET attempt_count=?, last_status_code=?, last_error=?,
+                    next_attempt_at=COALESCE(?, next_attempt_at),
+                    status=?, updated_at=?
+                WHERE id=?
+                """,
+                (attempt_no, status_code, error, next_attempt_at, "failed" if error is not None else str(row["status"]), now, delivery_id),
+            )
+            return self._delivery_view(
+                connection.execute("SELECT * FROM deliveries WHERE id=?", (delivery_id,)).fetchone()
+            )
+
+    def mark_delivery_delivered(self, delivery_id: str) -> dict[str, Any]:
+        with self.transaction() as connection:
+            if connection.execute("SELECT 1 FROM deliveries WHERE id=?", (delivery_id,)).fetchone() is None:
+                raise KeyError(delivery_id)
+            connection.execute(
+                "UPDATE deliveries SET status='delivered', lease_until=NULL, next_attempt_at=NULL, updated_at=? WHERE id=?",
+                (utc_now(), delivery_id),
+            )
+            return self._delivery_view(connection.execute("SELECT * FROM deliveries WHERE id=?", (delivery_id,)).fetchone())
+
+    def mark_delivery_dead_lettered(self, delivery_id: str, *, error: str | None = None) -> dict[str, Any]:
+        with self.transaction() as connection:
+            if connection.execute("SELECT 1 FROM deliveries WHERE id=?", (delivery_id,)).fetchone() is None:
+                raise KeyError(delivery_id)
+            connection.execute(
+                "UPDATE deliveries SET status='dead_lettered', lease_until=NULL, "
+                "last_error=COALESCE(?, last_error), updated_at=? WHERE id=?",
+                (error, utc_now(), delivery_id),
+            )
+            return self._delivery_view(connection.execute("SELECT * FROM deliveries WHERE id=?", (delivery_id,)).fetchone())
+
+    def list_deliveries_for_collector(self, collector_id: str, limit: int = 100) -> list[dict[str, Any]]:
+        with self.connect() as connection:
+            rows = connection.execute(
+                "SELECT * FROM deliveries WHERE collector_id=? ORDER BY created_at DESC, id DESC LIMIT ?",
+                (collector_id, limit),
+            ).fetchall()
+        return [self._delivery_view(row) for row in rows]
+
+    def redeliver_delivery(self, delivery_id: str) -> dict[str, Any]:
+        """Manually reset a delivery to ``pending`` keeping its id and attempt history."""
+
+        now = utc_now()
+        with self.transaction() as connection:
+            row = connection.execute("SELECT status FROM deliveries WHERE id=?", (delivery_id,)).fetchone()
+            if row is None:
+                raise KeyError(delivery_id)
+            if row["status"] == "delivering":
+                raise ValueError("delivery is actively being delivered; wait for its lease to expire")
+            connection.execute(
+                """
+                UPDATE deliveries
+                SET status='pending', next_attempt_at=?, lease_until=NULL, redelivery_count=redelivery_count+1, updated_at=?
+                WHERE id=?
+                """,
+                (now, now, delivery_id),
+            )
+            return self._delivery_view(connection.execute("SELECT * FROM deliveries WHERE id=?", (delivery_id,)).fetchone())
+
+    def get_delivery(self, delivery_id: str) -> dict[str, Any] | None:
+        with self.connect() as connection:
+            row = connection.execute("SELECT * FROM deliveries WHERE id=?", (delivery_id,)).fetchone()
+        return self._delivery_view(row) if row else None
+
+    def list_delivery_attempts(self, delivery_id: str) -> list[dict[str, Any]]:
+        with self.connect() as connection:
+            rows = connection.execute(
+                "SELECT * FROM delivery_attempts WHERE delivery_id=? ORDER BY attempt_no",
+                (delivery_id,),
+            ).fetchall()
+        return [
+            {
+                "id": row["id"],
+                "deliveryId": row["delivery_id"],
+                "attemptNo": int(row["attempt_no"]),
+                "startedAt": row["started_at"],
+                "finishedAt": row["finished_at"],
+                "statusCode": row["status_code"],
+                "error": row["error"],
+            }
+            for row in rows
+        ]
+
+    @staticmethod
+    def _delivery_view(row: Any, include_sink: bool = False) -> dict[str, Any]:
+        view = {
+            "id": row["id"],
+            "collectorId": row["collector_id"],
+            "sinkId": row["sink_id"],
+            "sinkVersionId": row["sink_version_id"],
+            "itemEventId": row["item_event_id"],
+            "status": row["status"],
+            "attemptCount": int(row["attempt_count"]),
+            "nextAttemptAt": row["next_attempt_at"],
+            "leaseUntil": row["lease_until"],
+            "lastStatusCode": row["last_status_code"],
+            "lastError": row["last_error"],
+            "redeliveryCount": int(row["redelivery_count"]),
+            "createdAt": row["created_at"],
+            "updatedAt": row["updated_at"],
+        }
+        if include_sink:
+            view.update(sinkType=row["sink_type"], sinkUrl=row["sink_url"], secretEncrypted=row["sink_secret_encrypted"])
+        return view
