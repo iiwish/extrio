@@ -47,6 +47,7 @@ jobs:
           file: docker/backend.Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
           tags: |
             ${{ env.BACKEND_IMAGE }}:${{ env.RELEASE_TAG }}
             ${{ env.BACKEND_IMAGE }}:sha-${{ github.sha }}
@@ -62,6 +63,7 @@ jobs:
           file: docker/web.Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
           tags: |
             ${{ env.WEB_IMAGE }}:${{ env.RELEASE_TAG }}
             ${{ env.WEB_IMAGE }}:sha-${{ github.sha }}
