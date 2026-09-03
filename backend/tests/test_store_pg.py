@@ -11,6 +11,7 @@ EXTRIO_TEST_DATABASE_URL at a disposable instance, e.g.:
 
 import os
 import shutil
+import time
 import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -20,7 +21,7 @@ import pytest
 
 from extrio.cli import create_backup, restore_backup
 from extrio.credentials import CredentialCipher
-from extrio.store import IdempotencyConflict, InvalidCursor, Store
+from extrio.store import IdempotencyConflict, InvalidCursor, Store, UsernameTaken
 
 TEST_DATABASE_URL = os.environ.get(
     "EXTRIO_TEST_DATABASE_URL",
@@ -81,7 +82,7 @@ def test_initialize_applies_baseline_migrations_idempotently(pg_store: Store) ->
         tables = {str(row["table_name"]) for row in connection.execute(
             "SELECT table_name FROM information_schema.tables WHERE table_schema='public'"
         ).fetchall()}
-    assert applied == ["000_baseline"]
+    assert applied == ["000_baseline", "001_user_accounts"]
     assert {"sinks", "deliveries", "delivery_attempts", "audit_events", "collector_schedules"}.issubset(tables)
 
 
@@ -107,6 +108,41 @@ def test_auth_usernames_match_case_insensitively(pg_store: Store) -> None:
                 "INSERT INTO auth_users(id, username, password_hash, role, display_name, created_at, updated_at)"
                 " VALUES('user_x', 'ADMIN', 'h', 'administrator', 'Dup', '2026-01-01', '2026-01-01')"
             )
+
+
+def test_user_crud_and_enabled_flag_roundtrip(pg_store: Store) -> None:
+    pg_store.create_first_auth_user(username="root", display_name="Root", password_hash="hash")
+    engineer = pg_store.create_user(
+        username="Engineer",
+        password_hash="hash2",
+        role="engineer",
+        display_name="Eng",
+    )
+    assert engineer["username"] == "Engineer"
+    assert engineer["role"] == "engineer"
+    assert engineer["enabled"] is True
+    assert "passwordHash" not in engineer
+    assert {"createdAt", "updatedAt"}.issubset(engineer)
+
+    with pytest.raises(UsernameTaken) as taken:
+        pg_store.create_user(username="engineer", password_hash="hash3", role="viewer", display_name="Dup")
+    assert taken.value.code == "USERNAME_TAKEN"
+
+    updated = pg_store.update_user(engineer["id"], display_name="Renamed", enabled=False)
+    assert updated["displayName"] == "Renamed" and updated["enabled"] is False
+    assert pg_store.get_user(engineer["id"])["enabled"] is False
+    with pytest.raises(KeyError):
+        pg_store.update_user("user_missing", display_name="Nobody")
+
+    credentials = pg_store.get_auth_credentials("ENGINEER")
+    assert credentials is not None and credentials["enabled"] is False
+    pg_store.update_user_password(engineer["id"], "new-hash")
+    assert pg_store.get_auth_credentials("engineer")["passwordHash"] == "new-hash"
+
+    assert pg_store.count_active_administrators() == 1
+    pg_store.update_user(engineer["id"], role="administrator", enabled=True)
+    assert pg_store.count_active_administrators() == 2
+    assert [user["username"] for user in pg_store.list_users()] == ["root", "Engineer"]
 
 
 def test_job_lease_lifecycle(pg_store: Store) -> None:
@@ -292,6 +328,39 @@ def test_delivery_state_machine_claims_retries_and_redelivers(pg_store: Store, t
     assert {row["id"] for row in listed} == {delivery["id"], stale["id"]}
     with pytest.raises(KeyError):
         pg_store.record_delivery_attempt("delivery_missing", status_code=200)
+
+
+def test_metrics_count_methods_aggregate_seeded_rows_on_postgres(pg_store: Store, tmp_path: Path) -> None:
+    collector_a = pg_store.create_collector("Alpha", "Collect notices", "https://a.example.com/list", "a.example.com")
+    collector_b = pg_store.create_collector("Beta", "Collect notices", "https://b.example.com/list", "b.example.com")
+    assert pg_store.count_collectors_by_status() == {"draft": 2}
+
+    for run_id, status in (("run_pg1", "succeeded"), ("run_pg2", "failed"), ("run_pg3", "succeeded")):
+        pg_store.save_run({"id": run_id, "collectorId": collector_a["id"], "status": status})
+        time.sleep(0.01)
+
+    assert pg_store.count_runs_by_status() == {"succeeded": 2, "failed": 1}
+    assert pg_store.count_runs_by_status(within_days=1) == {"succeeded": 2, "failed": 1}
+    assert pg_store.recent_run_statuses(collector_a["id"], 2) == ["succeeded", "failed"]
+    assert pg_store.recent_run_statuses(collector_b["id"], 5) == []
+
+    pg_store.save_items(
+        "run_pg1",
+        [
+            make_item("item_pg1", collector_a["id"], "run_pg1", "2026-09-01 10:00", "e1"),
+            make_item("item_pg2", collector_a["id"], "run_pg1", "2026-09-01 10:01", "e2", decision="rejected"),
+        ],
+    )
+    assert pg_store.count_items_by_decision() == {"accepted": 1, "rejected": 1}
+
+    cipher = CredentialCipher(tmp_path / "keys" / "cipher.key")
+    enabled_sink = pg_store.create_sink(collector_a["id"], cipher=cipher, url="https://hooks.example.com/on")
+    pg_store.create_sink(collector_a["id"], cipher=cipher, url="https://hooks.example.com/off", enabled=False)
+    delivered = pg_store.enqueue_delivery(collector_id=collector_a["id"], sink_id=enabled_sink["id"], item_event_id="evt_pg1")
+    pg_store.mark_delivery_delivered(delivered["id"])
+    pg_store.enqueue_delivery(collector_id=collector_a["id"], sink_id=enabled_sink["id"], item_event_id="evt_pg2")
+    assert pg_store.count_sinks_by_enabled() == {"enabled": 1, "disabled": 1}
+    assert pg_store.count_deliveries_by_status() == {"pending": 1, "delivered": 1}
 
 
 def test_backup_restore_roundtrip_postgresql(pg_store: Store, tmp_path: Path) -> None:

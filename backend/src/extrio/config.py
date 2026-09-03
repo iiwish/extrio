@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     auth_cookie_secure: bool = False
     auth_session_hours: int = 12
     auth_login_limit: str = "5/minute"
+    metrics_enabled: bool = True
     model_provider: str = "openai"
     model_base_url: str = "https://api.openai.com/v1"
     model_name: str = ""

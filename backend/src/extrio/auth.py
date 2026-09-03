@@ -12,6 +12,12 @@ USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9_.-]{3,64}$")
 MIN_PASSWORD_LENGTH = 8
 MAX_PASSWORD_LENGTH = 256
 
+ROLE_ADMINISTRATOR = "administrator"
+ROLE_ENGINEER = "engineer"
+ROLE_REVIEWER = "reviewer"
+ROLE_VIEWER = "viewer"
+ROLES = (ROLE_ADMINISTRATOR, ROLE_ENGINEER, ROLE_REVIEWER, ROLE_VIEWER)
+
 password_hash = PasswordHash.recommended()
 _dummy_password_hash = password_hash.hash(secrets.token_urlsafe(24))
 _login_storage = MemoryStorage()
@@ -37,6 +43,13 @@ def validate_display_name(value: object, username: str) -> str:
     if not 1 <= len(display_name) <= 64:
         raise ValueError("显示名称须为 1 至 64 个字符")
     return display_name
+
+
+def validate_role(value: object) -> str:
+    role = str(value or "").strip()
+    if role not in ROLES:
+        raise ValueError("角色必须是 administrator、engineer、reviewer 或 viewer")
+    return role
 
 
 def hash_password(value: str) -> str:

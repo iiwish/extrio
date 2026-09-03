@@ -81,6 +81,12 @@ class AuthSetupComplete(Exception):
     pass
 
 
+class UsernameTaken(Exception):
+    """Raised when a new username collides case-insensitively with an existing account."""
+
+    code = "USERNAME_TAKEN"
+
+
 class InvalidCursor(Exception):
     """Raised when a pagination cursor cannot be decoded or validated."""
 
@@ -242,7 +248,17 @@ class Store:
             "username": row["username"],
             "displayName": row["display_name"],
             "role": row["role"],
+            "enabled": bool(row["enabled"]),
         }
+
+    @staticmethod
+    def _user_view(row: Any) -> dict[str, Any] | None:
+        user = Store._auth_user(row)
+        if user is None:
+            return None
+        user["createdAt"] = row["created_at"]
+        user["updatedAt"] = row["updated_at"]
+        return user
 
     def auth_setup_required(self) -> bool:
         with self.connect() as connection:
@@ -313,6 +329,100 @@ class Store:
     def delete_auth_session(self, token_hash: str) -> None:
         with self.transaction() as connection:
             connection.execute("DELETE FROM auth_sessions WHERE token_hash=?", (token_hash,))
+
+    def create_user(
+        self,
+        *,
+        username: str,
+        password_hash: str,
+        role: str,
+        display_name: str,
+    ) -> dict[str, Any]:
+        """Create a team account; duplicate usernames are rejected case-insensitively."""
+
+        now = utc_now()
+        user_id = stable_id("user", uuid.uuid4().hex, 32)
+        with self.transaction() as connection:
+            if connection.execute(
+                f"SELECT 1 FROM auth_users WHERE {self.dialect.nocase_equality('username')}",
+                (username,),
+            ).fetchone() is not None:
+                raise UsernameTaken(username)
+            connection.execute(
+                """
+                INSERT INTO auth_users(id, username, password_hash, role, display_name, enabled, created_at, updated_at)
+                VALUES(?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (user_id, username, password_hash, role, display_name, self.dialect.bool_param(True), now, now),
+            )
+            row = connection.execute("SELECT * FROM auth_users WHERE id=?", (user_id,)).fetchone()
+        user = self._user_view(row)
+        if user is None:
+            raise RuntimeError("created authentication user is unavailable")
+        return user
+
+    def get_user(self, user_id: str) -> dict[str, Any] | None:
+        with self.connect() as connection:
+            row = connection.execute("SELECT * FROM auth_users WHERE id=?", (user_id,)).fetchone()
+        return self._user_view(row)
+
+    def list_users(self) -> list[dict[str, Any]]:
+        """List account views ordered by creation; password hashes never leave the store."""
+
+        with self.connect() as connection:
+            rows = connection.execute("SELECT * FROM auth_users ORDER BY created_at, id").fetchall()
+        return [view for row in rows if (view := self._user_view(row)) is not None]
+
+    def update_user(
+        self,
+        user_id: str,
+        *,
+        role: str | None = None,
+        display_name: str | None = None,
+        enabled: bool | None = None,
+    ) -> dict[str, Any]:
+        """Partially update an account; raises KeyError when the user does not exist."""
+
+        with self.transaction() as connection:
+            row = connection.execute("SELECT * FROM auth_users WHERE id=?", (user_id,)).fetchone()
+            if row is None:
+                raise KeyError(user_id)
+            assignments: list[str] = []
+            params: list[Any] = []
+            if role is not None:
+                assignments.append("role=?")
+                params.append(role)
+            if display_name is not None:
+                assignments.append("display_name=?")
+                params.append(display_name)
+            if enabled is not None:
+                assignments.append("enabled=?")
+                params.append(self.dialect.bool_param(enabled))
+            if assignments:
+                assignments.append("updated_at=?")
+                params.extend((utc_now(), user_id))
+                connection.execute(f"UPDATE auth_users SET {', '.join(assignments)} WHERE id=?", tuple(params))
+            updated = connection.execute("SELECT * FROM auth_users WHERE id=?", (user_id,)).fetchone()
+        view = self._user_view(updated)
+        if view is None:
+            raise KeyError(user_id)
+        return view
+
+    def update_user_password(self, user_id: str, password_hash: str) -> None:
+        with self.transaction() as connection:
+            if connection.execute("SELECT 1 FROM auth_users WHERE id=?", (user_id,)).fetchone() is None:
+                raise KeyError(user_id)
+            connection.execute(
+                "UPDATE auth_users SET password_hash=?, updated_at=? WHERE id=?",
+                (password_hash, utc_now(), user_id),
+            )
+
+    def count_active_administrators(self) -> int:
+        with self.connect() as connection:
+            row = connection.execute(
+                f"SELECT COUNT(*) AS total FROM auth_users WHERE role='administrator' AND enabled={self.dialect.bool_true()}"
+            ).fetchone()
+        return int(row["total"])
 
     def get_platform_setting(self, key: str) -> dict[str, Any] | None:
         with self.connect() as connection:
@@ -1815,3 +1925,79 @@ class Store:
         if include_sink:
             view.update(sinkType=row["sink_type"], sinkUrl=row["sink_url"], secretEncrypted=row["sink_secret_encrypted"])
         return view
+
+    def count_collectors_by_status(self) -> dict[str, int]:
+        """Count collectors grouped by their lifecycle status (JSON payload field)."""
+
+        status_expression = self.dialect.json_extract_text("data", "status")
+        with self.connect() as connection:
+            rows = connection.execute(
+                f"SELECT {status_expression} AS status, COUNT(*) AS total FROM collectors GROUP BY {status_expression}"
+            ).fetchall()
+        return {str(row["status"]): int(row["total"]) for row in rows}
+
+    def count_runs_by_status(self, *, within_days: int | None = None) -> dict[str, int]:
+        """Count runs grouped by their run status (JSON payload field).
+
+        ``within_days`` restricts the count to runs created at or after
+        ``now - within_days``. Timestamps are ISO-8601 TEXT on both dialects,
+        so the comparison is the lexicographic string comparison both engines
+        apply to text columns.
+        """
+
+        if within_days is not None and within_days < 0:
+            raise ValueError("within_days must be non-negative")
+        status_expression = self.dialect.json_extract_text("data", "status")
+        where = ""
+        params: tuple[Any, ...] = ()
+        if within_days is not None:
+            cutoff = (datetime.now(UTC) - timedelta(days=within_days)).isoformat().replace("+00:00", "Z")
+            where = "WHERE created_at>=?"
+            params = (cutoff,)
+        with self.connect() as connection:
+            rows = connection.execute(
+                f"SELECT {status_expression} AS status, COUNT(*) AS total FROM runs {where} GROUP BY {status_expression}",
+                params,
+            ).fetchall()
+        return {str(row["status"]): int(row["total"]) for row in rows}
+
+    def count_items_by_decision(self) -> dict[str, int]:
+        """Count items grouped by their review decision (JSON payload field)."""
+
+        decision_expression = self.dialect.json_extract_text("data", "decision")
+        with self.connect() as connection:
+            rows = connection.execute(
+                f"SELECT {decision_expression} AS decision, COUNT(*) AS total FROM items GROUP BY {decision_expression}"
+            ).fetchall()
+        return {str(row["decision"]): int(row["total"]) for row in rows}
+
+    def count_deliveries_by_status(self) -> dict[str, int]:
+        """Count webhook deliveries grouped by their delivery status column."""
+
+        with self.connect() as connection:
+            rows = connection.execute("SELECT status, COUNT(*) AS total FROM deliveries GROUP BY status").fetchall()
+        return {str(row["status"]): int(row["total"]) for row in rows}
+
+    def count_sinks_by_enabled(self) -> dict[str, int]:
+        """Count sinks split by their boolean enabled column, zero-filled."""
+
+        with self.connect() as connection:
+            rows = connection.execute("SELECT enabled, COUNT(*) AS total FROM sinks GROUP BY enabled").fetchall()
+        counts = {"enabled": 0, "disabled": 0}
+        for row in rows:
+            counts["enabled" if bool(row["enabled"]) else "disabled"] = int(row["total"])
+        return counts
+
+    def recent_run_statuses(self, collector_id: str, limit: int) -> list[str]:
+        """Return the ``limit`` most recent run statuses for a collector, newest first."""
+
+        if limit < 1:
+            raise ValueError("limit must be positive")
+        status_expression = self.dialect.json_extract_text("data", "status")
+        with self.connect() as connection:
+            rows = connection.execute(
+                f"SELECT {status_expression} AS status FROM runs WHERE collector_id=? "
+                "ORDER BY created_at DESC, updated_at DESC, id DESC LIMIT ?",
+                (collector_id, limit),
+            ).fetchall()
+        return [str(row["status"]) for row in rows]

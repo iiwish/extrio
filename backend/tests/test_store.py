@@ -1,6 +1,7 @@
 import base64
 import json
 import sqlite3
+import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -358,7 +359,7 @@ def test_initialize_records_baseline_migration_and_replays_idempotently(tmp_path
     store.initialize()
     with store.connect() as connection:
         applied = [str(row["id"]) for row in connection.execute("SELECT id FROM schema_migrations").fetchall()]
-    assert applied == ["000_baseline"]
+    assert applied == ["000_baseline", "001_user_accounts"]
 
 
 def test_initialize_applies_baseline_to_legacy_pre_migration_database(tmp_path: Path) -> None:
@@ -592,3 +593,64 @@ def test_backup_restore_rejects_tampered_archive(tmp_path: Path) -> None:
     snapshot.write_bytes(snapshot.read_bytes() + b"tampered")
     with pytest.raises(RuntimeError, match="checksum mismatch"):
         restore_backup(archive, database_path=tmp_path / "restored" / "extrio.db")
+
+
+def test_metrics_count_methods_start_empty_and_validate_arguments(tmp_path: Path) -> None:
+    store = make_store(tmp_path)
+    assert store.count_collectors_by_status() == {}
+    assert store.count_runs_by_status() == {}
+    assert store.count_runs_by_status(within_days=1) == {}
+    assert store.count_items_by_decision() == {}
+    assert store.count_deliveries_by_status() == {}
+    assert store.count_sinks_by_enabled() == {"enabled": 0, "disabled": 0}
+    with pytest.raises(ValueError, match="within_days"):
+        store.count_runs_by_status(within_days=-1)
+    with pytest.raises(ValueError, match="limit"):
+        store.recent_run_statuses("collector_any", 0)
+
+
+def test_metrics_count_methods_aggregate_seeded_rows(tmp_path: Path) -> None:
+    store = make_store(tmp_path)
+    collector_a = store.create_collector("Alpha", "Collect notices", "https://a.example.com/list", "a.example.com")
+    collector_b = store.create_collector("Beta", "Collect notices", "https://b.example.com/list", "b.example.com")
+    assert store.count_collectors_by_status() == {"draft": 2}
+
+    for run_id, status in (("run_m1", "succeeded"), ("run_m2", "failed"), ("run_m3", "succeeded")):
+        store.save_run({"id": run_id, "collectorId": collector_a["id"], "status": status})
+        time.sleep(0.01)
+    store.save_run({"id": "run_m4", "collectorId": collector_b["id"], "status": "cancelled"})
+    time.sleep(0.01)
+
+    assert store.count_runs_by_status() == {"succeeded": 2, "failed": 1, "cancelled": 1}
+    assert store.count_runs_by_status(within_days=1) == {"succeeded": 2, "failed": 1, "cancelled": 1}
+
+    # Backdate one run past the window (runs.created_at is written by save_run).
+    stale_timestamp = (datetime.now(UTC) - timedelta(days=2)).isoformat().replace("+00:00", "Z")
+    with store.connect() as connection:
+        connection.execute("UPDATE runs SET created_at=? WHERE id='run_m3'", (stale_timestamp,))
+    assert store.count_runs_by_status(within_days=1) == {"succeeded": 1, "failed": 1, "cancelled": 1}
+    assert store.count_runs_by_status() == {"succeeded": 2, "failed": 1, "cancelled": 1}
+
+    store.save_items(
+        "run_m1",
+        [
+            make_item("item_m1", collector_a["id"], "run_m1", "2026-09-01 10:00", "e1"),
+            make_item("item_m2", collector_a["id"], "run_m1", "2026-09-01 10:01", "e2", decision="rejected"),
+            make_item("item_m3", collector_a["id"], "run_m1", "2026-09-01 10:02", "e3", decision="risk_accepted"),
+        ],
+    )
+    assert store.count_items_by_decision() == {"accepted": 1, "rejected": 1, "risk_accepted": 1}
+
+    cipher = CredentialCipher(tmp_path / "keys" / "cipher.key")
+    enabled_sink = store.create_sink(collector_a["id"], cipher=cipher, url="https://hooks.example.com/on")
+    store.create_sink(collector_a["id"], cipher=cipher, url="https://hooks.example.com/off", enabled=False)
+    store.enqueue_delivery(collector_id=collector_a["id"], sink_id=enabled_sink["id"], item_event_id="evt_m_pending")
+    delivered = store.enqueue_delivery(collector_id=collector_a["id"], sink_id=enabled_sink["id"], item_event_id="evt_m_done")
+    store.mark_delivery_delivered(delivered["id"])
+    assert store.count_sinks_by_enabled() == {"enabled": 1, "disabled": 1}
+    assert store.count_deliveries_by_status() == {"pending": 1, "delivered": 1}
+
+    assert store.recent_run_statuses(collector_a["id"], 5) == ["failed", "succeeded", "succeeded"]
+    assert store.recent_run_statuses(collector_a["id"], 2) == ["failed", "succeeded"]
+    assert store.recent_run_statuses(collector_b["id"], 5) == ["cancelled"]
+    assert store.recent_run_statuses("collector_missing", 3) == []

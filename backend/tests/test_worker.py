@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 
 import pytest
@@ -7,7 +8,7 @@ import extrio.app as app_module
 from extrio.credentials import CredentialCipher
 from extrio.harvest import build_candidate
 from extrio.runtime import RunResult
-from extrio.store import Store
+from extrio.store import DEFAULT_COLLECTOR_SCHEDULE, Store
 from extrio.worker import Worker, classify_items, final_run_status
 
 
@@ -289,5 +290,151 @@ async def test_worker_advances_checkpoint_only_after_successful_finalization(tmp
             assert second_run["items"][0]["revision"] == 1
             assert len(second_run["items"][0]["observationHistory"]) == 2
             assert len(app_module.store.list_deliveries_for_collector(collector["id"])) == 1
+    finally:
+        app_module.store = original
+
+
+def store_run(store: Store, run_id: str, collector_id: str, status: str) -> None:
+    store.save_run(
+        {
+            "id": run_id,
+            "collectorId": collector_id,
+            "collectorName": "Demo",
+            "status": status,
+            "items": [],
+        }
+    )
+    time.sleep(0.01)
+
+
+def test_worker_pauses_schedule_after_three_consecutive_failed_runs(tmp_path: Path) -> None:
+    store = Store(tmp_path / "pause.db")
+    store.initialize()
+    collector = store.create_collector("Demo", "Collect notices", "https://example.com/list", "example.com")
+    enabled = store.save_schedule(collector["id"], {**DEFAULT_COLLECTOR_SCHEDULE, "enabled": True})
+    assert enabled["schedule"]["enabled"] is True
+    for index in range(3):
+        store_run(store, f"run_fail_{index}", collector["id"], "failed")
+
+    worker = Worker.__new__(Worker)
+    worker.store = store
+    assert worker.maybe_pause_schedule_after_failures(collector["id"]) is True
+
+    paused = store.get_collector(collector["id"])
+    assert paused["schedule"]["enabled"] is False
+    assert paused["schedule"]["cronExpression"] == enabled["schedule"]["cronExpression"]
+    assert paused["schedule"]["timezone"] == enabled["schedule"]["timezone"]
+    assert paused["schedule"]["overlapPolicy"] == enabled["schedule"]["overlapPolicy"]
+
+    revision_before = paused["schedule"]["revision"]
+    assert worker.maybe_pause_schedule_after_failures(collector["id"]) is False
+    still_paused = store.get_collector(collector["id"])
+    assert still_paused["schedule"]["enabled"] is False
+    assert still_paused["schedule"]["revision"] == revision_before
+
+
+def test_worker_keeps_schedule_enabled_when_failures_are_interrupted_by_success(tmp_path: Path) -> None:
+    store = Store(tmp_path / "intermittent.db")
+    store.initialize()
+    collector = store.create_collector("Demo", "Collect notices", "https://example.com/list", "example.com")
+    store.save_schedule(collector["id"], {**DEFAULT_COLLECTOR_SCHEDULE, "enabled": True})
+    for index, status in enumerate(("failed", "succeeded", "failed")):
+        store_run(store, f"run_{status}_{index}", collector["id"], status)
+
+    worker = Worker.__new__(Worker)
+    worker.store = store
+    assert worker.maybe_pause_schedule_after_failures(collector["id"]) is False
+    assert store.get_collector(collector["id"])["schedule"]["enabled"] is True
+
+
+def test_worker_keeps_schedule_enabled_with_fewer_than_three_failures(tmp_path: Path) -> None:
+    store = Store(tmp_path / "short.db")
+    store.initialize()
+    collector = store.create_collector("Demo", "Collect notices", "https://example.com/list", "example.com")
+    store.save_schedule(collector["id"], {**DEFAULT_COLLECTOR_SCHEDULE, "enabled": True})
+    for index in range(2):
+        store_run(store, f"run_fail_{index}", collector["id"], "failed")
+
+    worker = Worker.__new__(Worker)
+    worker.store = store
+    assert worker.maybe_pause_schedule_after_failures(collector["id"]) is False
+    assert store.get_collector(collector["id"])["schedule"]["enabled"] is True
+
+
+@pytest.mark.asyncio
+async def test_run_finalization_pauses_schedule_after_three_failed_runs(tmp_path: Path) -> None:
+    class FailingRuntime:
+        async def run(self, _collector, _run, _progress):
+            return RunResult(
+                items=[],
+                metrics={
+                    "listPagesFetched": 0,
+                    "detailUrlsDiscovered": 0,
+                    "detailPagesFetched": 0,
+                    "recordsOutsideWindow": 0,
+                    "duplicateDetailUrls": 0,
+                    "newItems": 0,
+                    "updatedItems": 0,
+                    "unchangedItems": 0,
+                    "warningCount": 0,
+                },
+                pagination_stop_reason="max_pages",
+                duration="0.1s",
+                watermark_candidate=None,
+            )
+
+    original = app_module.store
+    app_module.store = Store(tmp_path / "worker-pause.db")
+    app_module.store.initialize()
+    try:
+        with TestClient(app_module.app) as client:
+            collector = app_module.store.create_collector("Source", "Collect", "https://example.com/list", "example.com")
+            store = app_module.store
+            schedule = store.save_schedule(collector["id"], {**DEFAULT_COLLECTOR_SCHEDULE, "enabled": True})
+            assert schedule["schedule"]["enabled"] is True
+            list_html = (
+                '<ul class="notice-list"><li><a class="notice-title" href="/detail/a">Notice A</a>'
+                '<time datetime="2026-08-30"></time></li></ul>'
+            )
+            detail_html = (
+                '<h1 class="notice-title">Notice A</h1><div class="meta"><span data-field="buyer">Buyer</span>'
+                '<time datetime="2026-08-30"></time></div><div class="notice-budget"><span class="amount">100</span></div>'
+            )
+            collector.update(
+                status="ready_review",
+                candidate=build_candidate(
+                    collector,
+                    app_module.contracts,
+                    list_html,
+                    [("https://example.com/detail/a", detail_html)],
+                ),
+            )
+            store.save_collector(collector)
+            published = client.post(
+                f"/api/v1/collectors/{collector['id']}/publish",
+                headers={"Idempotency-Key": "publish-pause-0001"},
+                json={"reviewDecisions": {"title": "approved", "buyer": "approved", "publishedAt": "approved", "budget": "risk_accepted"}},
+            )
+            assert published.status_code == 200, published.json()
+
+            worker = Worker.__new__(Worker)
+            worker.store = store
+            worker.contracts = app_module.contracts
+            worker.runtime = FailingRuntime()
+            for index in range(3):
+                accepted = client.post(
+                    f"/api/v1/collectors/{collector['id']}/runs",
+                    headers={"Idempotency-Key": f"run-pause-{index:04d}-key"},
+                )
+                assert accepted.status_code == 202, accepted.json()
+                job = store.claim_job(60)
+                assert job is not None
+                await worker.process(job)
+                store.finish_job(job["id"])
+
+            assert store.recent_run_statuses(collector["id"], 3) == ["failed", "failed", "failed"]
+            paused = store.get_collector(collector["id"])
+            assert paused["schedule"]["enabled"] is False
+            assert paused["schedule"]["cronExpression"] == DEFAULT_COLLECTOR_SCHEDULE["cronExpression"]
     finally:
         app_module.store = original

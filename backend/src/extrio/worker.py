@@ -13,7 +13,7 @@ from extrio.explorer import Crawl4AIExplorer
 from extrio.integrity import IntegrityError, verify_rule_attestation
 from extrio.model_gateway import ModelRuleCompiler
 from extrio.runtime import CrawleeRuntime
-from extrio.store import Store
+from extrio.store import DEFAULT_COLLECTOR_SCHEDULE, Store
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger("extrio.worker")
@@ -21,6 +21,7 @@ NORMAL_STOP_REASONS = {"not_applicable", "next_link_exhausted", "time_window_rea
 REVISION_FIELDS = ("title", "publishedAt", "content", "buyer", "budget", "region")
 DELIVERY_BATCH_LIMIT = 10
 DELIVERABLE_CHANGE_TYPES = frozenset({"new", "updated"})
+CONSECUTIVE_FAILURE_PAUSE_THRESHOLD = 3
 
 
 def _revision_values(item: dict[str, Any], fingerprint_fields: list[str] | None = None) -> dict[str, Any]:
@@ -276,8 +277,39 @@ class Worker:
             enqueued = self.enqueue_run_deliveries(collector_id, result.items)
             if enqueued:
                 logger.info("Enqueued %s webhook deliveries run=%s collector=%s", enqueued, run_id, collector_id)
+            if final_status == "failed":
+                self.maybe_pause_schedule_after_failures(collector_id)
             return
         raise RuntimeError(f"Unknown job kind: {job['kind']}")
+
+    def maybe_pause_schedule_after_failures(self, collector_id: str) -> bool:
+        """Disable the collector schedule after consecutive failed runs (AC-010.2).
+
+        Called right after a run finalizes as ``failed``. The failure window is
+        inherently query-based: ``recent_run_statuses`` reads the newest runs
+        including the one that just finalized, so a successful run anywhere in
+        the window resets the streak without extra bookkeeping. Pausing reuses
+        the standard schedule update path (preserving cron and other fields)
+        and is a no-op when the schedule is already disabled.
+        """
+
+        statuses = self.store.recent_run_statuses(collector_id, CONSECUTIVE_FAILURE_PAUSE_THRESHOLD)
+        if len(statuses) < CONSECUTIVE_FAILURE_PAUSE_THRESHOLD or any(status != "failed" for status in statuses):
+            return False
+        collector = self.store.get_collector(collector_id)
+        schedule = (collector or {}).get("schedule") or {}
+        if not schedule.get("enabled"):
+            return False
+        values = {key: schedule[key] for key in DEFAULT_COLLECTOR_SCHEDULE}
+        values["enabled"] = False
+        updated = self.store.save_schedule(collector_id, values)
+        logger.info(
+            "schedule auto-paused after %d consecutive failures collector=%s schedule=%s",
+            CONSECUTIVE_FAILURE_PAUSE_THRESHOLD,
+            collector_id,
+            updated["schedule"]["id"],
+        )
+        return True
 
     def enqueue_run_deliveries(self, collector_id: str, items: list[dict[str, Any]]) -> int:
         """Enqueue one webhook delivery per accepted new/updated item and enabled sink.

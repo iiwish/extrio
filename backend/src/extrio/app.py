@@ -17,18 +17,22 @@ from zoneinfo import ZoneInfo
 
 import uvicorn
 from bs4 import BeautifulSoup
-from fastapi import FastAPI, Header, Query, Request, Response
+from fastapi import Depends, FastAPI, Header, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from extrio.auth import (
+    ROLE_ADMINISTRATOR,
+    ROLE_ENGINEER,
+    ROLE_REVIEWER,
     allow_login,
     hash_password,
     new_session,
     session_token_hash,
     validate_display_name,
     validate_password,
+    validate_role,
     validate_username,
     verify_password,
 )
@@ -46,6 +50,7 @@ from extrio.integrity import (
     immutable_rule_version,
     verify_rule_attestation,
 )
+from extrio.metrics import METRICS_CONTENT_TYPE, render_metrics
 from extrio.security import SourceUrlError, normalize_source_url
 from extrio.store import (
     DEFAULT_COLLECTION_ID,
@@ -55,6 +60,7 @@ from extrio.store import (
     IdempotencyConflict,
     InvalidCursor,
     Store,
+    UsernameTaken,
     stable_id,
 )
 
@@ -560,14 +566,21 @@ async def request_id_middleware(request: Request, call_next):
             "username": "local",
             "displayName": "Local Administrator",
             "role": "administrator",
+            "enabled": True,
         }
     else:
         token = request.cookies.get(settings.auth_cookie_name, "")
         if token:
-            request.state.auth_user = store.get_auth_session(session_token_hash(token))
+            session_user = store.get_auth_session(session_token_hash(token))
+            if session_user is not None and not session_user.get("enabled", True):
+                # Disabled accounts lose their sessions immediately; the request is unauthenticated.
+                store.delete_auth_session(session_token_hash(token))
+                session_user = None
+            request.state.auth_user = session_user
 
         public_path = (
             request.url.path == "/healthz"
+            or request.url.path == "/metrics"
             or request.url.path.startswith("/demo/")
             or request.url.path in {
                 "/api/v1/auth/state",
@@ -600,9 +613,68 @@ async def internal_error(request: Request, exc: Exception):
     return platform_error(request, "INTERNAL_ERROR", "服务内部错误", 500, retryable=True)
 
 
+class AuthRequired(Exception):
+    """Raised by role guards when no session user is resolved (defensive; middleware 401s first)."""
+
+
+class RoleDenied(Exception):
+    """Raised by role guards when the authenticated user lacks a required role."""
+
+    def __init__(self, required: tuple[str, ...]):
+        super().__init__("、".join(required))
+        self.required = required
+
+
+# Role matrix (v0.4): GETs stay open to any authenticated user; mutations require roles.
+ADMIN_ONLY = (ROLE_ADMINISTRATOR,)
+ENGINEER_OR_ADMIN = (ROLE_ENGINEER, ROLE_ADMINISTRATOR)
+REVIEWER_OR_ADMIN = (ROLE_REVIEWER, ROLE_ADMINISTRATOR)
+
+
+@app.exception_handler(AuthRequired)
+async def auth_required_handler(request: Request, exc: AuthRequired):
+    return platform_error(request, "AUTH_REQUIRED", "请先登录", 401)
+
+
+@app.exception_handler(RoleDenied)
+async def role_denied_handler(request: Request, exc: RoleDenied):
+    required = "、".join(exc.required)
+    return platform_error(request, "FORBIDDEN", f"当前角色无权执行该操作，需要 {required} 角色", 403)
+
+
+def require_roles(*roles: str):
+    """Dependency factory enforcing that the authenticated user holds one of ``roles``.
+
+    Resolves the same ``request.state.auth_user`` the auth middleware populates from the
+    session cookie, so it stays consistent with that resolution path. When authentication
+    is disabled (``EXTRIO_AUTH_ENABLED=false``) the guard is bypassed exactly like the
+    middleware, keeping auth-disabled deployments and existing tests working.
+    """
+
+    def dependency(request: Request) -> None:
+        if not settings.auth_enabled:
+            return
+        user = request.state.auth_user
+        if user is None:
+            raise AuthRequired
+        if str(user.get("role")) not in roles:
+            raise RoleDenied(roles)
+
+    return Depends(dependency)
+
+
 @app.get("/healthz", include_in_schema=False)
 def health() -> dict[str, str]:
     return {"status": "ok", "contract": "extrio.control-plane.v1"}
+
+
+@app.get("/metrics", include_in_schema=False)
+def metrics() -> Response:
+    """Prometheus scrape endpoint; public by design, computed at scrape time."""
+
+    if not settings.metrics_enabled:
+        return Response(status_code=404)
+    return Response(render_metrics(store), media_type=METRICS_CONTENT_TYPE)
 
 
 def auth_state_view(request: Request) -> dict[str, Any]:
@@ -673,8 +745,8 @@ async def login(request: Request):
         response.headers["Retry-After"] = "60"
         return response
     credentials = store.get_auth_credentials(username)
-    valid = verify_password(str(body.get("password", "")), credentials.get("passwordHash") if credentials else None)
-    if not valid or credentials is None:
+    password_valid = verify_password(str(body.get("password", "")), credentials.get("passwordHash") if credentials else None)
+    if credentials is None or not password_valid or not credentials.get("enabled", True):
         return platform_error(request, "INVALID_CREDENTIALS", "用户名或密码不正确", 401)
     user = {key: value for key, value in credentials.items() if key != "passwordHash"}
     request.state.auth_user = user
@@ -690,6 +762,103 @@ def logout(request: Request):
     response = JSONResponse({"authenticated": False})
     response.delete_cookie(settings.auth_cookie_name, path="/", samesite="strict", secure=settings.auth_cookie_secure)
     return response
+
+
+@app.get("/api/v1/users", dependencies=[require_roles(ROLE_ADMINISTRATOR)])
+def list_users():
+    return page(store.list_users())
+
+
+@app.post("/api/v1/users", status_code=201, dependencies=[require_roles(ROLE_ADMINISTRATOR)])
+async def create_user(
+    request: Request,
+    response: Response,
+    idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
+):
+    if error := require_idempotency(request, idempotency_key):
+        return error
+    body, body_error = await read_contract_body(request, required={"username", "password", "role"}, optional={"displayName"})
+    if body_error:
+        return body_error
+    scope = "POST:/users"
+    if found := replay(scope, idempotency_key, body, request):
+        return found
+    try:
+        username = validate_username(body.get("username"))
+        password = validate_password(body.get("password"))
+        role = validate_role(body.get("role"))
+        display_name = validate_display_name(body.get("displayName"), username)
+    except ValueError as exc:
+        return platform_error(request, "VALIDATION_FAILED", str(exc), 422)
+    try:
+        user = store.create_user(
+            username=username,
+            password_hash=hash_password(password),
+            role=role,
+            display_name=display_name,
+        )
+    except UsernameTaken:
+        return platform_error(request, "USERNAME_TAKEN", "用户名已存在", 409, pointer="/username")
+    response.headers["Location"] = f"/api/v1/users/{user['id']}"
+    remember(scope, idempotency_key, body, 201, user)
+    return user
+
+
+@app.patch("/api/v1/users/{user_id}", dependencies=[require_roles(ROLE_ADMINISTRATOR)])
+async def update_user(
+    user_id: str,
+    request: Request,
+    idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
+):
+    if error := require_idempotency(request, idempotency_key):
+        return error
+    body, body_error = await read_contract_body(request, required=set(), optional={"role", "displayName", "enabled", "password"})
+    if body_error:
+        return body_error
+    scope = f"PATCH:/users/{user_id}"
+    if found := replay(scope, idempotency_key, body, request):
+        return found
+    target = store.get_user(user_id)
+    if target is None:
+        return platform_error(request, "USER_NOT_FOUND", "用户不存在", 404)
+    changes: dict[str, Any] = {}
+    password_hash = None
+    if "role" in body:
+        try:
+            changes["role"] = validate_role(body.get("role"))
+        except ValueError as exc:
+            return platform_error(request, "VALIDATION_FAILED", str(exc), 422, pointer="/role")
+    if "displayName" in body:
+        try:
+            changes["display_name"] = validate_display_name(body.get("displayName"), target["username"])
+        except ValueError as exc:
+            return platform_error(request, "VALIDATION_FAILED", str(exc), 422, pointer="/displayName")
+    if "enabled" in body:
+        enabled = body.get("enabled")
+        if not isinstance(enabled, bool):
+            return platform_error(request, "VALIDATION_FAILED", "enabled 必须是布尔值", 422, pointer="/enabled")
+        changes["enabled"] = enabled
+    if "password" in body:
+        try:
+            password_hash = hash_password(validate_password(body.get("password")))
+        except ValueError as exc:
+            return platform_error(request, "VALIDATION_FAILED", str(exc), 422, pointer="/password")
+    if request.state.auth_user and request.state.auth_user.get("id") == user_id and changes.get("enabled") is False:
+        return platform_error(request, "SELF_DISABLE", "不能禁用当前登录的账号", 409)
+    demotes_last_administrator = (
+        target["role"] == ROLE_ADMINISTRATOR
+        and target["enabled"]
+        and (("role" in changes and changes["role"] != ROLE_ADMINISTRATOR) or changes.get("enabled") is False)
+        and store.count_active_administrators() <= 1
+    )
+    if demotes_last_administrator:
+        return platform_error(request, "LAST_ADMINISTRATOR", "不能移除最后一个可用的管理员账号", 409)
+    user = store.update_user(user_id, **changes) if changes else target
+    if password_hash is not None:
+        store.update_user_password(user_id, password_hash)
+        user = store.get_user(user_id)
+    remember(scope, idempotency_key, body, 200, user)
+    return user
 
 
 @app.get("/gather-spec.schema.json", include_in_schema=False)
@@ -708,7 +877,7 @@ def get_model_setting():
     return legacy_model_setting_from_configuration(configured) if configured else model_setting_view(store.get_platform_setting("model"))
 
 
-@app.put("/api/v1/settings/model")
+@app.put("/api/v1/settings/model", dependencies=[require_roles(*ADMIN_ONLY)])
 async def update_model_setting(request: Request, idempotency_key: str | None = Header(None, alias="Idempotency-Key")):
     if error := require_idempotency(request, idempotency_key):
         return error
@@ -757,7 +926,7 @@ def get_model_configuration():
     return model_configuration_view(store.get_platform_setting("model-configurations"))
 
 
-@app.put("/api/v1/settings/models")
+@app.put("/api/v1/settings/models", dependencies=[require_roles(*ADMIN_ONLY)])
 async def update_model_configuration(request: Request, idempotency_key: str | None = Header(None, alias="Idempotency-Key")):
     if error := require_idempotency(request, idempotency_key):
         return error
@@ -805,7 +974,7 @@ def get_collector(collector_id: str, request: Request):
     return collector if collector else platform_error(request, "COLLECTOR_NOT_FOUND", "Collector 不存在", 404)
 
 
-@app.patch("/api/v1/collectors/{collector_id}")
+@app.patch("/api/v1/collectors/{collector_id}", dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
 async def update_collector_definition(
     collector_id: str,
     request: Request,
@@ -945,7 +1114,7 @@ def _validate_candidate_against_latest_samples(
     return preview_items
 
 
-@app.patch("/api/v1/collectors/{collector_id}/candidate-rule")
+@app.patch("/api/v1/collectors/{collector_id}/candidate-rule", dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
 async def update_candidate_rule(
     collector_id: str,
     request: Request,
@@ -1115,7 +1284,7 @@ async def update_candidate_rule(
         return collector
 
 
-@app.post("/api/v1/collectors/{collector_id}/collection-policy")
+@app.post("/api/v1/collectors/{collector_id}/collection-policy", dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
 async def save_collection_policy(
     collector_id: str,
     request: Request,
@@ -1144,7 +1313,7 @@ async def save_collection_policy(
         return updated
 
 
-@app.put("/api/v1/collectors/{collector_id}/schedule")
+@app.put("/api/v1/collectors/{collector_id}/schedule", dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
 async def update_collector_schedule(
     collector_id: str,
     request: Request,
@@ -1171,7 +1340,7 @@ async def update_collector_schedule(
         return updated
 
 
-@app.post("/api/v1/collectors", status_code=201)
+@app.post("/api/v1/collectors", status_code=201, dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
 async def create_collector(request: Request, response: Response, idempotency_key: str | None = Header(None, alias="Idempotency-Key")):
     if error := require_idempotency(request, idempotency_key):
         return error
@@ -1207,7 +1376,7 @@ async def create_collector(request: Request, response: Response, idempotency_key
     return collector
 
 
-@app.post("/api/v1/collectors/batch")
+@app.post("/api/v1/collectors/batch", dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
 async def create_collectors_batch(request: Request, idempotency_key: str | None = Header(None, alias="Idempotency-Key")):
     if error := require_idempotency(request, idempotency_key):
         return error
@@ -1295,7 +1464,7 @@ async def create_collectors_batch(request: Request, idempotency_key: str | None 
     return value
 
 
-@app.post("/api/v1/collectors/{collector_id}/explorations", status_code=202)
+@app.post("/api/v1/collectors/{collector_id}/explorations", status_code=202, dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
 def start_exploration(
     collector_id: str,
     request: Request,
@@ -1364,7 +1533,7 @@ def get_ai_run(ai_run_id: str, request: Request):
     return ai_run if ai_run else platform_error(request, "AI_RUN_NOT_FOUND", "AI 任务不存在", 404)
 
 
-@app.post("/api/v1/collectors/{collector_id}/publish")
+@app.post("/api/v1/collectors/{collector_id}/publish", dependencies=[require_roles(*REVIEWER_OR_ADMIN)])
 async def publish_rule(collector_id: str, request: Request, idempotency_key: str | None = Header(None, alias="Idempotency-Key")):
     if error := require_idempotency(request, idempotency_key):
         return error
@@ -1505,7 +1674,7 @@ def create_run_operation(collector_id: str) -> dict[str, Any]:
     return operation
 
 
-@app.post("/api/v1/collectors/{collector_id}/runs", status_code=202)
+@app.post("/api/v1/collectors/{collector_id}/runs", status_code=202, dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
 def start_run(collector_id: str, request: Request, response: Response, idempotency_key: str | None = Header(None, alias="Idempotency-Key")):
     with mutation_lock:
         return _start_run(collector_id, request, response, idempotency_key)
@@ -1697,7 +1866,7 @@ def list_sinks(collector_id: str, request: Request):
     return {"items": sinks, "page": {"nextCursor": None}}
 
 
-@app.post("/api/v1/collectors/{collector_id}/sinks", status_code=201)
+@app.post("/api/v1/collectors/{collector_id}/sinks", status_code=201, dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
 async def create_sink(
     collector_id: str,
     request: Request,
@@ -1737,7 +1906,7 @@ async def create_sink(
     return value
 
 
-@app.put("/api/v1/collectors/{collector_id}/sinks/{sink_id}")
+@app.put("/api/v1/collectors/{collector_id}/sinks/{sink_id}", dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
 async def update_sink(
     collector_id: str,
     sink_id: str,
@@ -1771,7 +1940,7 @@ async def update_sink(
     return value
 
 
-@app.delete("/api/v1/collectors/{collector_id}/sinks/{sink_id}", status_code=204)
+@app.delete("/api/v1/collectors/{collector_id}/sinks/{sink_id}", status_code=204, dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
 async def delete_sink(
     collector_id: str,
     sink_id: str,
@@ -1795,7 +1964,7 @@ async def delete_sink(
     return Response(status_code=204)
 
 
-@app.post("/api/v1/collectors/{collector_id}/sinks/{sink_id}/test", status_code=202)
+@app.post("/api/v1/collectors/{collector_id}/sinks/{sink_id}/test", status_code=202, dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
 def test_sink(
     collector_id: str,
     sink_id: str,
@@ -1843,7 +2012,7 @@ def get_delivery(delivery_id: str, request: Request):
     return {**delivery_view(delivery), "attempts": store.list_delivery_attempts(delivery_id)}
 
 
-@app.post("/api/v1/deliveries/{delivery_id}/redeliver")
+@app.post("/api/v1/deliveries/{delivery_id}/redeliver", dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
 def redeliver_delivery(
     delivery_id: str,
     request: Request,
