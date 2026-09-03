@@ -4,6 +4,31 @@ All notable changes to Extrio are documented in this file. The project follows
 [Semantic Versioning](https://semver.org/) and keeps pending work under
 `Unreleased`.
 
+## 0.4.0 - 2026-09-03
+
+- Add multi-user local accounts with role-based access control: administrator
+  (full permissions plus user management), engineer (collector, exploration,
+  run, schedule, and sink operations), reviewer (rule review and publication),
+  and viewer (read-only access with export). First-run setup still creates the
+  administrator; accounts use Argon2 password hashing.
+- Enforce the role matrix on the control plane: rule publication requires
+  reviewer or above; collector, run, sink, and schedule writes require engineer
+  or above; user management and model settings require administrator; all reads
+  are available to every authenticated role.
+- Add user management API and console UI for creating, updating, and disabling
+  local accounts and their roles.
+- Add a Prometheus `/metrics` endpoint (no extra dependencies, scrape-time
+  counts) covering collectors, runs (24h and total), items, deliveries, and
+  sinks by status, plus build info. Controlled by `EXTRIO_METRICS_ENABLED`
+  (default `true`), unauthenticated by design and intended for an
+  internally-bound scrape target.
+- Protect scheduled collection: a schedule that records three consecutive
+  failed runs is paused automatically and stays paused until it is resumed
+  manually.
+- Add an offline benchmark harness (`scripts/benchmark.py`) and benchmark
+  methodology and baseline results documentation (`docs/benchmarks.md`) for the
+  deterministic local demo source.
+
 ## 0.3.0 - 2026-09-03
 
 - Add the data output loop: per-collector Webhook sinks with HMAC-SHA256
