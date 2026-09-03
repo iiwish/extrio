@@ -19,7 +19,11 @@ class Settings(BaseSettings):
     contracts_path: Path | None = None
     cors_origins: str = "http://127.0.0.1:5173,http://localhost:5173"
     allow_http_localhost: bool = False
-    allow_http_public: bool = False
+    # Deprecated as a runtime override in v0.6: EXTRIO_ALLOW_HTTP_PUBLIC only
+    # supplies the fallback default for the 'allowAnonymousHttp' platform
+    # setting (migration 002); the database value managed from the Settings UI
+    # wins whenever that row is present.
+    allow_http_public: bool = True
     seed_demo: bool = True
     worker_poll_seconds: float = 0.25
     worker_lease_seconds: int = 120

@@ -82,8 +82,28 @@ def test_initialize_applies_baseline_migrations_idempotently(pg_store: Store) ->
         tables = {str(row["table_name"]) for row in connection.execute(
             "SELECT table_name FROM information_schema.tables WHERE table_schema='public'"
         ).fetchall()}
-    assert applied == ["000_baseline", "001_user_accounts"]
-    assert {"sinks", "deliveries", "delivery_attempts", "audit_events", "collector_schedules"}.issubset(tables)
+    assert applied == ["000_baseline", "001_user_accounts", "002_platform_settings"]
+    assert {
+        "sinks",
+        "deliveries",
+        "delivery_attempts",
+        "audit_events",
+        "collector_schedules",
+        "platform_setting_values",
+    }.issubset(tables)
+
+
+def test_migration_002_applies_to_v05_database_without_the_row(pg_store: Store) -> None:
+    with pg_store.transaction() as connection:
+        connection.execute("DROP TABLE platform_setting_values")
+        connection.execute("DELETE FROM schema_migrations WHERE id='002_platform_settings'")
+
+    pg_store.initialize()
+
+    with pg_store.connect() as connection:
+        applied = [str(row["id"]) for row in connection.execute("SELECT id FROM schema_migrations").fetchall()]
+    assert applied == ["000_baseline", "001_user_accounts", "002_platform_settings"]
+    assert pg_store.get_platform_setting_value("allowAnonymousHttp") == "true"
 
 
 def test_collector_crud_and_source_url_json_extraction(pg_store: Store) -> None:
@@ -179,6 +199,27 @@ def test_idempotency_and_platform_settings_roundtrip(pg_store: Store) -> None:
 
     saved = pg_store.save_platform_setting("model", {"provider": "openai"})
     assert pg_store.get_platform_setting("model") == saved
+
+
+def test_platform_setting_values_roundtrip_and_effective_flag(pg_store: Store) -> None:
+    assert pg_store.get_platform_setting_value("allowAnonymousHttp") == "true"
+    assert pg_store.get_platform_setting_value("never_configured") is None
+    assert pg_store.effective_allow_http_public() is True
+
+    saved = pg_store.set_platform_setting_value("allowAnonymousHttp", "false", updated_by="user_root")
+    assert saved == {
+        "key": "allowAnonymousHttp",
+        "value": "false",
+        "updatedBy": "user_root",
+        "updatedAt": saved["updatedAt"],
+    }
+    assert pg_store.get_platform_setting_value_detail("allowAnonymousHttp") == saved
+    assert pg_store.effective_allow_http_public() is False
+
+    with pg_store.transaction() as connection:
+        connection.execute("DELETE FROM platform_setting_values WHERE key='allowAnonymousHttp'")
+    assert pg_store.get_platform_setting_value("allowAnonymousHttp") is None
+    assert pg_store.effective_allow_http_public() is True
 
 
 def test_rule_publication_triggers_enforce_immutability(pg_store: Store) -> None:

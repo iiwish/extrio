@@ -969,6 +969,45 @@ async def update_model_configuration(request: Request, idempotency_key: str | No
     return value
 
 
+@app.get("/api/v1/settings/platform")
+def get_platform_settings():
+    detail = store.get_platform_setting_value_detail("allowAnonymousHttp")
+    if detail is None:
+        return {"allowAnonymousHttp": store.effective_allow_http_public(), "updatedBy": None, "updatedAt": None}
+    return {
+        "allowAnonymousHttp": str(detail["value"]).strip().lower() == "true",
+        "updatedBy": detail["updatedBy"],
+        "updatedAt": detail["updatedAt"],
+    }
+
+
+@app.put("/api/v1/settings/platform", dependencies=[require_roles(*ADMIN_ONLY)])
+async def update_platform_settings(request: Request, idempotency_key: str | None = Header(None, alias="Idempotency-Key")):
+    if error := require_idempotency(request, idempotency_key):
+        return error
+    body, body_error = await read_contract_body(request, required={"allowAnonymousHttp"})
+    if body_error:
+        return body_error
+    scope = "PUT:/settings/platform"
+    if found := replay(scope, idempotency_key, body, request):
+        return found
+    flag = body.get("allowAnonymousHttp")
+    if not isinstance(flag, bool):
+        return platform_error(request, "VALIDATION_FAILED", "allowAnonymousHttp 必须是布尔值", 422, pointer="/allowAnonymousHttp")
+    saved = store.set_platform_setting_value(
+        "allowAnonymousHttp",
+        "true" if flag else "false",
+        updated_by=request.state.auth_user["id"] if request.state.auth_user else "system",
+    )
+    value = {
+        "allowAnonymousHttp": saved["value"] == "true",
+        "updatedBy": saved["updatedBy"],
+        "updatedAt": saved["updatedAt"],
+    }
+    remember(scope, idempotency_key, body, 200, value)
+    return value
+
+
 @app.get("/api/v1/collectors/{collector_id}")
 def get_collector(collector_id: str, request: Request):
     collector = store.get_collector(collector_id)
@@ -1003,7 +1042,7 @@ async def update_collector_definition(
             source_url, source_host = normalize_source_url(
                 body.get("sourceUrl", ""),
                 allow_http_localhost=settings.allow_http_localhost,
-                allow_http_public=settings.allow_http_public,
+                allow_http_public=store.effective_allow_http_public(),
             )
         except SourceUrlError as exc:
             return platform_error(request, exc.code, str(exc), 422, pointer="/sourceUrl")
@@ -1355,7 +1394,7 @@ async def create_collector(request: Request, response: Response, idempotency_key
         source_url, source_host = normalize_source_url(
             body.get("sourceUrl", ""),
             allow_http_localhost=settings.allow_http_localhost,
-            allow_http_public=settings.allow_http_public,
+            allow_http_public=store.effective_allow_http_public(),
         )
     except SourceUrlError as exc:
         return platform_error(request, exc.code, str(exc), 422, pointer="/sourceUrl")
@@ -1417,7 +1456,7 @@ async def create_collectors_batch(request: Request, idempotency_key: str | None 
             source_url, source_host = normalize_source_url(
                 str(raw),
                 allow_http_localhost=settings.allow_http_localhost,
-                allow_http_public=settings.allow_http_public,
+                allow_http_public=store.effective_allow_http_public(),
             )
             if source_url in seen:
                 raise SourceUrlError("DUPLICATE_IN_BATCH", "批次内 URL 重复")

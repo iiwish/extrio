@@ -43,3 +43,17 @@ def test_rejects_literal_private_network_sources() -> None:
 def test_public_http_policy_does_not_allow_loopback_hosts() -> None:
     with pytest.raises(SourceUrlError, match="私有"):
         normalize_source_url("http://localhost/internal", allow_http_public=True)
+
+
+def test_anonymous_http_rejection_message_points_at_the_settings_ui() -> None:
+    with pytest.raises(SourceUrlError) as raised:
+        normalize_source_url("http://example.com/list")
+    assert raised.value.code == "HTTPS_REQUIRED"
+    assert raised.value.args[0] == "匿名 HTTP 来源默认已被允许；如被关闭，请由管理员在 设置 → 采集策略 中开启，或改用 HTTPS"
+
+
+def test_access_profile_https_rejection_message_is_unchanged() -> None:
+    with pytest.raises(SourceUrlError) as raised:
+        normalize_source_url("http://example.com/list", allow_http_public=True, has_access_profile=True)
+    assert raised.value.code == "HTTPS_REQUIRED"
+    assert raised.value.args[0] == "配置 AccessProfile 或凭据的来源必须使用 HTTPS"

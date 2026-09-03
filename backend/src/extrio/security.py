@@ -40,7 +40,10 @@ def normalize_source_url(
         raise SourceUrlError("HTTPS_REQUIRED", "配置 AccessProfile 或凭据的来源必须使用 HTTPS")
     http_is_allowed = allow_http_public or (allow_http_localhost and is_loopback)
     if parsed.scheme == "http" and not http_is_allowed:
-        raise SourceUrlError("HTTPS_REQUIRED", "匿名 HTTP 来源需要管理员显式接受传输风险，否则必须使用 HTTPS")
+        raise SourceUrlError(
+            "HTTPS_REQUIRED",
+            "匿名 HTTP 来源默认已被允许；如被关闭，请由管理员在 设置 → 采集策略 中开启，或改用 HTTPS",
+        )
     if is_loopback and not allow_http_localhost:
         raise SourceUrlError("INVALID_URL", "来源网址不能指向私有、保留或 link-local 网络")
     if address and (address.is_private or address.is_link_local or address.is_reserved) and not (allow_http_localhost and is_loopback):

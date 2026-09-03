@@ -2093,3 +2093,62 @@ class Store:
                     yield self.dialect.decode_json(row["data"])
         finally:
             connection.close()
+
+    def get_platform_setting_value(self, key: str) -> str | None:
+        """Return the scalar value of a platform setting, or ``None`` when unset.
+
+        Complements the JSON-blob ``get_platform_setting`` (model configuration):
+        Settings-UI toggles (v0.6) are plain strings in
+        ``platform_setting_values`` with an audit trail.
+        """
+
+        with self.connect() as connection:
+            row = connection.execute("SELECT value FROM platform_setting_values WHERE key=?", (key,)).fetchone()
+        return str(row["value"]) if row else None
+
+    def get_platform_setting_value_detail(self, key: str) -> dict[str, Any] | None:
+        """Return ``{key, value, updatedBy, updatedAt}`` for a platform setting row."""
+
+        with self.connect() as connection:
+            row = connection.execute(
+                "SELECT key, value, updated_by, updated_at FROM platform_setting_values WHERE key=?", (key,)
+            ).fetchone()
+        if row is None:
+            return None
+        return {
+            "key": str(row["key"]),
+            "value": str(row["value"]),
+            "updatedBy": row["updated_by"],
+            "updatedAt": row["updated_at"],
+        }
+
+    def set_platform_setting_value(self, key: str, value: str, *, updated_by: str | None) -> dict[str, Any]:
+        """Upsert a scalar platform setting, recording who changed it and when."""
+
+        now = utc_now()
+        with self.transaction() as connection:
+            connection.execute(
+                """
+                INSERT INTO platform_setting_values(key, value, updated_by, updated_at) VALUES(?, ?, ?, ?)
+                ON CONFLICT(key) DO UPDATE SET
+                    value=excluded.value, updated_by=excluded.updated_by, updated_at=excluded.updated_at
+                """,
+                (key, value, updated_by, now),
+            )
+        return {"key": key, "value": value, "updatedBy": updated_by, "updatedAt": now}
+
+    def effective_allow_http_public(self) -> bool:
+        """Resolve the effective anonymous-HTTP collection policy (v0.6).
+
+        The ``allowAnonymousHttp`` platform row — seeded ``'true'`` by migration
+        002 and managed from the Settings UI — wins when present; while it is
+        absent the config default ``settings.allow_http_public`` applies. Any
+        stored value other than ``'true'`` (case-insensitive) counts as
+        disallowing anonymous HTTP. The credential-HTTPS hard line is unrelated
+        and always enforced by ``normalize_source_url``.
+        """
+
+        raw = self.get_platform_setting_value("allowAnonymousHttp")
+        if raw is not None:
+            return raw.strip().lower() == "true"
+        return get_settings().allow_http_public

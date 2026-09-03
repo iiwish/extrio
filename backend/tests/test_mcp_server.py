@@ -226,7 +226,10 @@ async def test_get_item_returns_full_record_and_errors_for_unknown(store: Store)
         assert "ITEM_NOT_FOUND" in error_text(missing)
 
 
-async def test_create_collection_enqueues_governed_exploration(store: Store) -> None:
+async def test_create_collection_enqueues_governed_exploration(store: Store, monkeypatch: pytest.MonkeyPatch) -> None:
+    # v0.6 allows anonymous HTTP sources by default; pin the deny profile so the
+    # HTTPS_REQUIRED rejection path of MCP creation stays covered.
+    monkeypatch.setattr(control_plane.settings, "allow_http_public", False)
     async with create_connected_server_and_client_session(mcp_server.build_server()) as session:
         created = result_payload(
             await call_tool(

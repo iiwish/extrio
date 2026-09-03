@@ -359,7 +359,7 @@ def test_initialize_records_baseline_migration_and_replays_idempotently(tmp_path
     store.initialize()
     with store.connect() as connection:
         applied = [str(row["id"]) for row in connection.execute("SELECT id FROM schema_migrations").fetchall()]
-    assert applied == ["000_baseline", "001_user_accounts"]
+    assert applied == ["000_baseline", "001_user_accounts", "002_platform_settings"]
 
 
 def test_initialize_applies_baseline_to_legacy_pre_migration_database(tmp_path: Path) -> None:
