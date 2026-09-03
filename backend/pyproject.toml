@@ -1,6 +1,6 @@
 [project]
 name = "extrio-backend"
-version = "0.4.0"
+version = "0.5.0"
 description = "Extrio FastAPI control plane and collection workers"
 readme = "README.md"
 license = "Apache-2.0"
@@ -23,6 +23,7 @@ dependencies = [
   "uvicorn[standard]>=0.35,<1",
   "croniter>=6,<7",
   "limits>=5.8,<6",
+  "mcp>=1.10,<2",
 ]
 
 [dependency-groups]
@@ -37,6 +38,7 @@ extrio-api = "extrio.app:run"
 extrio-worker = "extrio.worker:run"
 extrio-backup = "extrio.cli:run_backup"
 extrio-restore = "extrio.cli:run_restore"
+extrio-mcp = "extrio.mcp_server:run"
 
 [project.urls]
 Homepage = "https://github.com/iiwish/extrio"

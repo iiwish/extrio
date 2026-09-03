@@ -30,6 +30,12 @@ and contract-first APIs.
   management), engineer (collector, exploration, run, schedule, and sink operations), reviewer (rule
   review and publication), and viewer (read-only access with export).
 - Prometheus `/metrics` endpoint with scrape-time counters for collectors, runs, items, deliveries,
+- AI rule auto-repair: re-explore a changed site, preserve the frozen data contract, and route the
+  repaired candidate through human review before publication.
+- Signed evidence-bundle export: a verifiable ZIP containing rules, attestations, runs, item
+  lineage, and SHA256SUMS — signed with the same Ed25519 key as rule attestations.
+- MCP server for AI agents: governed collection creation and attested data queries over stdio or
+  token-protected HTTP (see [MCP Server](#mcp-server)).
   and sinks, plus build info (`EXTRIO_METRICS_ENABLED`, enabled by default, unauthenticated by
   design — bind it to an internal interface).
 - Item lineage, revisions, rejection evidence, and operational dashboards.
@@ -95,6 +101,70 @@ local database, keys, and artifacts.
 
 Production TLS termination must set `EXTRIO_AUTH_COOKIE_SECURE=true`. The default localhost
 configuration intentionally uses a non-secure cookie so HTTP evaluation works.
+
+## MCP Server
+
+Extrio ships a [Model Context Protocol](https://modelcontextprotocol.io) server
+(`extrio-mcp`) so AI agents such as Claude Code, Cursor, DeepSeek, or Doubao can
+use Extrio as a governed data-collection tool instead of scraping freely. Unlike
+generic crawl MCPs, three properties hold:
+
+- **Governed creation** — `create_collection` is an engineer-equivalent action that
+  queues AI exploration, but the candidate rule lands in the human review queue.
+  No data is collected until a reviewer publishes the rule; agents cannot publish rules.
+- **Deterministic runs** — `trigger_run` executes an already-published,
+  integrity-verified frozen rule. No LLM is involved at runtime.
+- **Attested data** — every item read back carries the rule version, run, and
+  artifact lineage that produced it.
+
+The server opens the same store as `extrio-api` and `extrio-worker`
+(`EXTRIO_DATABASE_URL` / `EXTRIO_DATABASE_PATH`), and never returns secrets.
+
+| Tool | Purpose |
+| --- | --- |
+| `list_collectors` | Summaries: status, source host, active rule version, schedule, last run outcome. |
+| `get_collector` | Detail: entry URL, intent, rule fields from the frozen GatherSpec, last 5 runs, sinks. |
+| `query_items` | Deterministic, cursor-paginated item pages with collector/decision filters. |
+| `get_item` | Full item record: extracted data, decision evidence, lineage, observations. |
+| `trigger_run` | Queue a run against the published rule; fails while another run is active. |
+| `create_collection` | Create a governed source and queue exploration for human review. |
+| `get_run` | Run status, counts, stop reason, integrity verification, checkpoint. |
+
+Stdio (default) for local, trusted clients:
+
+```bash
+uv run --project backend extrio-mcp            # or extrio-mcp once installed
+```
+
+```json
+{
+  "mcpServers": {
+    "extrio": {
+      "command": "extrio-mcp"
+    }
+  }
+}
+```
+
+Streamable HTTP, enabled only with a bearer token (`EXTRIO_MCP_TOKEN`; requests
+without a matching `Authorization: Bearer <token>` header receive `401`):
+
+```bash
+EXTRIO_MCP_TOKEN=change-me extrio-mcp --transport http --host 127.0.0.1 --port 8818
+```
+
+```json
+{
+  "mcpServers": {
+    "extrio": {
+      "url": "http://127.0.0.1:8818/mcp",
+      "headers": {
+        "Authorization": "Bearer change-me"
+      }
+    }
+  }
+}
+```
 
 ## Verification
 
