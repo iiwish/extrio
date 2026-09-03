@@ -404,6 +404,23 @@ GatherSpec 的演进规则成文如下，对所有贡献者与集成方生效：
 
 ---
 
+## 规则自愈（AI Repair，v0.5）
+
+站点改版导致已发布规则失效时，可在采集器详情页触发「AI 修复规则」（engineer 及以上角色）：
+
+1. **触发**：`POST /api/v1/collectors/{id}/repairs`（可选 `note` 说明改版背景），采集器进入 `exploring`，AI 任务历史记为 `rule_repair` / `repair`。
+2. **再探索**：Crawl4AI 重新抓取列表页与详情样本——优先用**旧规则的列表 selector** 定位条目（旧规则部分有效时修复最准），失效时回退确定性发现。
+3. **修复编译**：LLM 收到旧 GatherSpec（selectors/pagination/contract）+ 新 DOM，产出修正 RulePlan（`purpose=repair`、`promptVersion=2.1-repair`）；复用全部既有归一化（label、`regex_extract` 对象形态）。
+4. **契约强制（治理不变量）**：服务端把旧规则的 `contract` 子对象（identityFields、fingerprintFields、normalizedItemSchema、fieldBindings、quality、tombstonePolicy）**原样深拷贝**到新候选——LLM 提议的契约变化只记录日志、永不采信；随后重算 `outputContractDigest` 与 `ruleDigest` 并重新校验。
+5. **双重校验**：
+   - 结构：新规则的输出字段键必须与旧契约字段键**完全一致**，缺失/多余 → 操作以 `REPAIR_VALIDATION_FAILED` 失败并列出字段；
+   - 行为：每个 identity 字段必须能从新快照提取出值，否则同样 `REPAIR_VALIDATION_FAILED`。
+6. **人工审核**：修复候选回到 `ready_review`，走与首次发布完全相同的字段审核 → 发布流程（新 RuleVersion + 新 attestation）。
+
+错误码：`REPAIR_NOT_APPLICABLE`（采集器没有可修复的规则）、`REPAIR_VALIDATION_FAILED`（如上）。MCP 的 `create_collection` 同样不绕过审核——所有规则生产路径（生成、重生成、修复）都终止于人工审核门。
+
+---
+
 ## 相关文档
 
 - Schema：[`contracts/gather-spec.schema.json`](./contracts/gather-spec.schema.json) · 完整示例：[`contracts/gather-spec.example.json`](./contracts/gather-spec.example.json)
