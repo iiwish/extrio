@@ -73,5 +73,70 @@
   "language": {
     "label": "Interface language",
     "description": "Switch the console display language. The choice applies immediately and is remembered on this device."
+  },
+  "users": {
+    "title": "User management",
+    "description": "Manage team accounts, roles, and enabled state. Administrators only.",
+    "add": "Add user",
+    "listAria": "User list",
+    "empty": "No users yet",
+    "columns": {
+      "username": "Username",
+      "displayName": "Display name",
+      "role": "Role",
+      "status": "Status",
+      "updatedAt": "Updated",
+      "actions": "Actions"
+    },
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "actions": {
+      "edit": "Edit",
+      "editAria": "Edit user {{name}}",
+      "resetPassword": "Reset password",
+      "resetAria": "Reset the password of {{name}}",
+      "enable": "Enable",
+      "enableAria": "Enable user {{name}}",
+      "disable": "Disable",
+      "disableAria": "Disable user {{name}}"
+    },
+    "lastAdminHint": "The system keeps at least one active administrator account",
+    "selfHint": "The currently signed-in account cannot be disabled",
+    "dialog": {
+      "addTitle": "Add user",
+      "addDescription": "Create a team account and assign a role. The initial password applies on submit only.",
+      "editTitle": "Edit user",
+      "editDescription": "Adjust the display name, role, or enabled state.",
+      "resetTitle": "Reset password",
+      "resetDescription": "The new password applies on submit only and is never shown again.",
+      "toggleTitle": "Confirm {{action}}",
+      "toggleDescription": "{{action}} the account “{{name}}” immediately affects sign-in and access.",
+      "usernameLabel": "Username",
+      "usernamePlaceholder": "3-64 letters, digits, or ._-",
+      "displayNameLabel": "Display name",
+      "displayNamePlaceholder": "e.g. Chen Xi",
+      "passwordLabel": "Initial password",
+      "passwordPlaceholder": "At least 8 characters",
+      "newPasswordLabel": "New password",
+      "newPasswordPlaceholder": "At least 8 characters",
+      "roleLabel": "Role",
+      "enabledLabel": "Enable this account",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "save": "Save user",
+      "saveNew": "Create user",
+      "saving": "Saving…",
+      "reset": "Reset password",
+      "resetting": "Submitting…",
+      "toggleAction": "Confirm",
+      "cancel": "Cancel"
+    },
+    "errors": {
+      "USERNAME_TAKEN": "This username is already taken",
+      "LAST_ADMINISTRATOR": "Cannot modify the last active administrator account",
+      "SELF_DISABLE": "Cannot disable the currently signed-in account",
+      "USER_NOT_FOUND": "User not found",
+      "FORBIDDEN": "Your role is not allowed to perform this action"
+    }
   }
 }

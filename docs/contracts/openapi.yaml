@@ -77,6 +77,75 @@ paths:
                     const: false
         default:
           $ref: '#/components/responses/PlatformError'
+  /users:
+    get:
+      operationId: listUsers
+      responses:
+        '200':
+          description: Team accounts ordered by creation, without credential material.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPage'
+        default:
+          $ref: '#/components/responses/PlatformError'
+    post:
+      operationId: createUser
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserInput'
+      responses:
+        '201':
+          description: Team account created.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+            Location:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /users/{userId}:
+    patch:
+      operationId: updateUser
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: Identifier of the team account to update.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserInput'
+      responses:
+        '200':
+          description: Team account updated.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        default:
+          $ref: '#/components/responses/PlatformError'
   /settings/models:
     get:
       operationId: getModelConfiguration
@@ -919,8 +988,7 @@ components:
         displayName:
           type: string
         role:
-          type: string
-          enum: [administrator]
+          $ref: '#/components/schemas/UserRole'
     AuthState:
       type: object
       additionalProperties: false
@@ -961,6 +1029,79 @@ components:
           type: string
         password:
           type: string
+    UserRole:
+      type: string
+      description: Team account role. administrator manages users and settings; engineer operates collectors; reviewer publishes rules; viewer is read-only.
+      enum: [administrator, engineer, reviewer, viewer]
+    User:
+      type: object
+      description: Team account view; password material is never returned.
+      additionalProperties: false
+      required: [id, username, displayName, role, enabled, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        displayName:
+          type: string
+        role:
+          $ref: '#/components/schemas/UserRole'
+        enabled:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    UserPage:
+      type: object
+      additionalProperties: false
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+    CreateUserInput:
+      type: object
+      additionalProperties: false
+      required: [username, password, role]
+      properties:
+        username:
+          type: string
+          pattern: '^[A-Za-z0-9_.-]{3,64}$'
+        password:
+          type: string
+          minLength: 8
+          maxLength: 256
+        role:
+          $ref: '#/components/schemas/UserRole'
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 64
+    UpdateUserInput:
+      type: object
+      description: Partial team account update; at least one field must be present.
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        role:
+          $ref: '#/components/schemas/UserRole'
+        displayName:
+          type: string
+          minLength: 1
+          maxLength: 64
+        enabled:
+          type: boolean
+        password:
+          type: string
+          minLength: 8
+          maxLength: 256
     CollectorStatus:
       type: string
       enum: [draft, exploring, ready_review, published]
@@ -1198,6 +1339,10 @@ components:
         - INVALID_CURSOR
         - EXPORT_TOO_LARGE
         - SINK_NOT_FOUND
+        - USER_NOT_FOUND
+        - USERNAME_TAKEN
+        - LAST_ADMINISTRATOR
+        - SELF_DISABLE
         - DELIVERY_NOT_FOUND
         - DELIVERY_IN_FLIGHT
         - INTERNAL_ERROR

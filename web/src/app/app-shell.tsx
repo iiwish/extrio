@@ -78,7 +78,7 @@ export function AppShell() {
             <strong>{currentArea}</strong>
           </div>
           <div className="topbar-actions">
-            <span className="role-pill">{t('topbar.administrator')}</span>
+            <span className="role-pill">{t(`roles.${user.role}`)}</span>
             <span className="user-avatar" aria-label={t('aria.currentUser', { name: user.displayName })}>{user.displayName.slice(0, 1).toUpperCase()}</span>
             <Button type="button" variant="ghost" size="icon-sm" onClick={logout} title={t('topbar.logout')} aria-label={t('topbar.logout')}>
               <LogOut />

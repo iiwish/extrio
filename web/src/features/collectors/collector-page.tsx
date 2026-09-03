@@ -43,6 +43,7 @@ import type { TFunction } from 'i18next'
 import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom'
 import { ApiRequestError, api, waitForOperation } from '@/api/client'
 import type { AiRun, CandidateField, CandidateRule, CandidateRuleEditInput, CollectionPolicy, CollectionPolicyInput, CollectorDetail, CollectorSchedule, CollectorScheduleInput, DeliveryStatus, DeliverySummary, FieldReviewDecision, HarvestItem, Operation, Sink, SinkInput, SinkUpdateInput, UpdateCollectorInput } from '@/api/types'
+import { useAuth } from '@/features/auth/auth-gate'
 import { EvidenceRail } from '@/components/evidence-rail'
 import { StatusBadge } from '@/components/status-badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -84,6 +85,8 @@ export function CollectorPage() {
   const navigate = useNavigate()
   const { setTopbarBackTarget } = useOutletContext<{ setTopbarBackTarget: (target: string | null) => void }>()
   const queryClient = useQueryClient()
+  const { user } = useAuth()
+  const publishLockReason = user.role === 'reviewer' || user.role === 'administrator' ? null : t('common:roles.publishLocked')
   const query = useQuery({ queryKey: ['collector', collectorId], queryFn: () => api.collector(collectorId) })
   const latestRunQuery = useQuery({
     queryKey: ['run', query.data?.latestRunId],
@@ -271,6 +274,7 @@ export function CollectorPage() {
                 decisions={reviewDecisions}
                 pending={publish.isPending}
                 disabled={hasPendingDecision}
+                lockReason={publishLockReason}
                 onPublish={() => publish.mutate()}
               />
             )}
@@ -1389,12 +1393,12 @@ function PublishedView({ items, runId, onSelectItem, onOpenRun }: { items: Harve
   return <div className="workbench-content">{runId ? <section className="content-section recent-results"><div className="section-heading"><div><span className="eyebrow">LATEST RESULTS</span><h2>{t('published.resultsTitle')}</h2><p>{t('published.resultsDescription')}</p></div><Button variant="outline" onClick={() => onOpenRun(runId)}>{t('published.viewFullRun')} <ArrowRight /></Button></div><div className="sample-list item-results">{items.slice(0, 5).map((item) => <div className="sample-result-row" key={item.id}><button type="button" onClick={() => onSelectItem(item)}><StatusBadge status={item.decision} /><span><strong>{item.title}</strong><small>{item.changeType ? `${item.changeType === 'new' ? t('published.changeNew') : item.changeType === 'updated' ? t('published.changeUpdated') : t('published.changeUnchanged')} · ` : ''}{t('sample.publishedObserved', { publishedAt: item.publishedAt, observedAt: item.observedAt })}</small></span><span className="review-count">{t('review.viewEvidence')}</span></button><Button asChild variant="ghost" size="icon-sm" aria-label={t('published.openItemAria', { title: item.title })}><Link to={`/items/${item.id}`}><ArrowRight /></Link></Button></div>)}</div></section> : <Alert><Play /><AlertTitle>{t('published.readyTitle')}</AlertTitle><AlertDescription>{t('published.readyDescription')}</AlertDescription></Alert>}</div>
 }
 
-function PublishDialog({ candidate, decisions, pending, disabled, onPublish }: { candidate: CandidateRule; decisions: Record<string, FieldReviewDecision>; pending: boolean; disabled: boolean; onPublish: () => void }) {
+function PublishDialog({ candidate, decisions, pending, disabled, lockReason, onPublish }: { candidate: CandidateRule; decisions: Record<string, FieldReviewDecision>; pending: boolean; disabled: boolean; lockReason?: string | null; onPublish: () => void }) {
   const { t } = useTranslation('collectorDetail')
   const accepted = Object.values(decisions).filter((decision) => decision === 'approved').length
   const riskAccepted = Object.values(decisions).filter((decision) => decision === 'risk_accepted').length
   const excluded = Object.values(decisions).filter((decision) => decision === 'excluded').length
-  return <Dialog><DialogTrigger asChild><Button size="lg" disabled={disabled || pending}>{pending ? <><LoaderCircle className="animate-spin" />{t('publish.inProgress')}</> : <><FileCheck2 />{t('publish.trigger')}</>}</Button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>{t('publish.title')}</DialogTitle><DialogDescription>{t('publish.description')}</DialogDescription></DialogHeader><div className="dialog-proof"><span><strong>{t('publish.reviewer')}</strong>{t('publish.reviewerName')}</span><span><strong>{t('publish.fieldDecisions')}</strong>{t('publish.decisionSummary', { approved: accepted, riskAccepted, excluded })}</span><span><strong>{t('publish.qualityChecks')}</strong>{t('publish.qualitySummary', { passed: candidate.passedChecks, warnings: candidate.warningChecks })}</span></div><DialogFooter><DialogClose asChild><Button variant="ghost">{t('publish.backToReview')}</Button></DialogClose><DialogClose asChild><Button onClick={onPublish} disabled={pending || disabled}>{pending ? t('publish.confirming') : t('publish.confirm')}</Button></DialogClose></DialogFooter></DialogContent></Dialog>
+  return <Dialog><DialogTrigger asChild><Button size="lg" disabled={disabled || pending || Boolean(lockReason)} title={lockReason ?? undefined}>{pending ? <><LoaderCircle className="animate-spin" />{t('publish.inProgress')}</> : <><FileCheck2 />{t('publish.trigger')}</>}</Button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>{t('publish.title')}</DialogTitle><DialogDescription>{t('publish.description')}</DialogDescription></DialogHeader><div className="dialog-proof"><span><strong>{t('publish.reviewer')}</strong>{t('publish.reviewerName')}</span><span><strong>{t('publish.fieldDecisions')}</strong>{t('publish.decisionSummary', { approved: accepted, riskAccepted, excluded })}</span><span><strong>{t('publish.qualityChecks')}</strong>{t('publish.qualitySummary', { passed: candidate.passedChecks, warnings: candidate.warningChecks })}</span></div><DialogFooter><DialogClose asChild><Button variant="ghost">{t('publish.backToReview')}</Button></DialogClose><DialogClose asChild><Button onClick={onPublish} disabled={pending || disabled}>{pending ? t('publish.confirming') : t('publish.confirm')}</Button></DialogClose></DialogFooter></DialogContent></Dialog>
 }
 
 function CollectorSkeleton() { return <div className="page-frame"><Skeleton className="h-6 w-24" /><Skeleton className="h-20 w-full" /><Skeleton className="h-14 w-full" /><Skeleton className="h-80 w-full" /></div> }

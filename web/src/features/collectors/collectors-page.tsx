@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { api } from '@/api/client'
 import type { CollectorDetail, Run } from '@/api/types'
+import { useAuth } from '@/features/auth/auth-gate'
 import { StatusBadge } from '@/components/status-badge'
 import { collectorDisplayName, sourceLocationLabel } from './collector-presentation'
 import { Button } from '@/components/ui/button'
@@ -46,6 +47,8 @@ function needsAttention(collector: CollectorDetail, latestRun?: Run) {
 
 export function CollectorsPage() {
   const { t } = useTranslation('collectors')
+  const { user } = useAuth()
+  const canCreateCollector = user.role !== 'viewer'
   const query = useQuery({ queryKey: ['collectors'], queryFn: api.collectors })
   const runsQuery = useQuery({ queryKey: ['runs'], queryFn: api.runs })
   const [searchParams, setSearchParams] = useSearchParams()
@@ -91,7 +94,7 @@ export function CollectorsPage() {
         </div>
         <div className="collector-view-controls">
           <CollectionCombobox value={collectionFilter} collections={collections} onValueChange={(value) => updateParams({ collection: value === 'all' ? null : value })} />
-          <Button asChild size="sm"><Link to={createCollectorPath}><Plus />{t('list.create')}</Link></Button>
+          {canCreateCollector && <Button asChild size="sm"><Link to={createCollectorPath}><Plus />{t('list.create')}</Link></Button>}
         </div>
       </div>
 

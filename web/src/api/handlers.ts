@@ -25,6 +25,9 @@ import type {
   SinkInput,
   SinkUpdateInput,
   UpdateCollectorInput,
+  UpdateUserInput,
+  User,
+  CreateUserInput,
 } from './types'
 
 const collectors = structuredClone(seedCollectors)
@@ -207,6 +210,44 @@ interface MockOperation {
 
 const operations = new Map<string, MockOperation>()
 const mockAuthUser = { id: 'user_mock_admin', username: 'admin', displayName: '林然', role: 'administrator' as const }
+const users: User[] = [
+  {
+    id: mockAuthUser.id,
+    username: mockAuthUser.username,
+    displayName: mockAuthUser.displayName,
+    role: mockAuthUser.role,
+    enabled: true,
+    createdAt: '2026-08-28T08:00:00.000Z',
+    updatedAt: '2026-09-01T09:30:00.000Z',
+  },
+  {
+    id: 'user_mock_engineer',
+    username: 'engineer',
+    displayName: '陈曦',
+    role: 'engineer',
+    enabled: true,
+    createdAt: '2026-08-29T08:00:00.000Z',
+    updatedAt: '2026-08-29T08:00:00.000Z',
+  },
+  {
+    id: 'user_mock_reviewer',
+    username: 'reviewer',
+    displayName: '沈知言',
+    role: 'reviewer',
+    enabled: true,
+    createdAt: '2026-08-30T08:00:00.000Z',
+    updatedAt: '2026-09-02T10:15:00.000Z',
+  },
+  {
+    id: 'user_mock_viewer',
+    username: 'viewer',
+    displayName: '顾远',
+    role: 'viewer',
+    enabled: false,
+    createdAt: '2026-08-31T08:00:00.000Z',
+    updatedAt: '2026-09-02T14:40:00.000Z',
+  },
+]
 
 const byId = <T extends { id: string }>(rows: T[], id: string) => rows.find((row) => row.id === id)
 const requestId = () => `req_${crypto.randomUUID().replaceAll('-', '').slice(0, 16)}`
@@ -434,6 +475,62 @@ export const handlers = [
     user: mockAuthUser,
   })),
   http.post('*/api/v1/auth/logout', () => successResponse({ authenticated: false })),
+  http.get('*/api/v1/users', () => successResponse(page(users))),
+  http.post('*/api/v1/users', async ({ request }) => {
+    if (!requireIdempotency(request)) return errorResponse('IDEMPOTENCY_KEY_REQUIRED', '缺少 Idempotency-Key', 400)
+    await delay(120)
+    const input = await request.json() as CreateUserInput
+    if (!/^[A-Za-z0-9_.-]{3,64}$/.test(input.username)) {
+      return errorResponse('VALIDATION_FAILED', '用户名必须为 3-64 位字母、数字或 ._-', 422)
+    }
+    if (!input.password || input.password.length < 8) {
+      return errorResponse('VALIDATION_FAILED', '密码长度至少为 8 个字符', 422)
+    }
+    if (!['administrator', 'engineer', 'reviewer', 'viewer'].includes(input.role)) {
+      return errorResponse('VALIDATION_FAILED', '角色无效', 422)
+    }
+    if (users.some((user) => user.username.toLowerCase() === input.username.toLowerCase())) {
+      return errorResponse('USERNAME_TAKEN', '用户名已存在', 409)
+    }
+    const now = new Date().toISOString()
+    const user: User = {
+      id: `user_${crypto.randomUUID().replaceAll('-', '').slice(0, 16)}`,
+      username: input.username,
+      displayName: input.displayName?.trim() || input.username,
+      role: input.role,
+      enabled: true,
+      createdAt: now,
+      updatedAt: now,
+    }
+    users.push(user)
+    return successResponse(user, 201, { Location: `/api/v1/users/${user.id}` })
+  }),
+  http.patch('*/api/v1/users/:userId', async ({ params, request }) => {
+    if (!requireIdempotency(request)) return errorResponse('IDEMPOTENCY_KEY_REQUIRED', '缺少 Idempotency-Key', 400)
+    const user = byId(users, String(params.userId))
+    if (!user) return errorResponse('USER_NOT_FOUND', '用户不存在', 404)
+    const input = await request.json() as UpdateUserInput
+    if (input.role !== undefined && !['administrator', 'engineer', 'reviewer', 'viewer'].includes(input.role)) {
+      return errorResponse('VALIDATION_FAILED', '角色无效', 422)
+    }
+    if (input.enabled !== undefined && typeof input.enabled !== 'boolean') {
+      return errorResponse('VALIDATION_FAILED', 'enabled 必须是布尔值', 422)
+    }
+    if (user.id === mockAuthUser.id && input.enabled === false) {
+      return errorResponse('SELF_DISABLE', '不能禁用当前登录的账号', 409)
+    }
+    const demotesLastAdministrator = user.role === 'administrator' && user.enabled
+      && ((input.role !== undefined && input.role !== 'administrator') || input.enabled === false)
+      && users.filter((row) => row.role === 'administrator' && row.enabled).length <= 1
+    if (demotesLastAdministrator) {
+      return errorResponse('LAST_ADMINISTRATOR', '不能移除最后一个可用的管理员账号', 409)
+    }
+    if (input.role !== undefined) user.role = input.role
+    if (input.displayName !== undefined) user.displayName = input.displayName
+    if (input.enabled !== undefined) user.enabled = input.enabled
+    user.updatedAt = new Date().toISOString()
+    return successResponse(user)
+  }),
   http.get('*/api/v1/settings/models', () => successResponse(modelConfiguration)),
   http.put('*/api/v1/settings/models', async ({ request }) => {
     if (!requireIdempotency(request)) return errorResponse('IDEMPOTENCY_KEY_REQUIRED', '缺少 Idempotency-Key', 400)

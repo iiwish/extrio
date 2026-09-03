@@ -35,6 +35,13 @@
     "administrator": "Administrator",
     "logout": "Sign out"
   },
+  "roles": {
+    "administrator": "Administrator",
+    "engineer": "Engineer",
+    "reviewer": "Reviewer",
+    "viewer": "Viewer",
+    "publishLocked": "Your role cannot publish rules; reviewer or administrator required"
+  },
   "stage": {
     "railAria": "Collector stages",
     "design": "Design",

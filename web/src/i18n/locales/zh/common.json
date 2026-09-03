@@ -35,6 +35,13 @@
     "administrator": "管理员",
     "logout": "退出登录"
   },
+  "roles": {
+    "administrator": "管理员",
+    "engineer": "采集工程师",
+    "reviewer": "规则审核员",
+    "viewer": "数据消费者",
+    "publishLocked": "当前角色无权发布规则，需规则审核员或管理员"
+  },
   "stage": {
     "railAria": "Collector 阶段",
     "design": "设计",

@@ -72,5 +72,70 @@
   "language": {
     "label": "界面语言",
     "description": "切换控制台界面显示语言，选择立即生效并在本机记住。"
+  },
+  "users": {
+    "title": "用户管理",
+    "description": "管理团队成员账号、角色与启用状态。仅管理员可见。",
+    "add": "添加用户",
+    "listAria": "用户列表",
+    "empty": "暂无用户",
+    "columns": {
+      "username": "用户名",
+      "displayName": "显示名称",
+      "role": "角色",
+      "status": "状态",
+      "updatedAt": "更新时间",
+      "actions": "操作"
+    },
+    "enabled": "已启用",
+    "disabled": "已停用",
+    "actions": {
+      "edit": "编辑",
+      "editAria": "编辑用户 {{name}}",
+      "resetPassword": "重置密码",
+      "resetAria": "重置 {{name}} 的密码",
+      "enable": "启用",
+      "enableAria": "启用用户 {{name}}",
+      "disable": "停用",
+      "disableAria": "停用用户 {{name}}"
+    },
+    "lastAdminHint": "系统至少保留一个可用的管理员账号",
+    "selfHint": "不能停用当前登录的账号",
+    "dialog": {
+      "addTitle": "添加用户",
+      "addDescription": "创建团队成员账号并分配角色，初始密码仅在提交时生效。",
+      "editTitle": "编辑用户",
+      "editDescription": "调整显示名称、角色或启用状态。",
+      "resetTitle": "重置密码",
+      "resetDescription": "为新密码仅在提交时生效，保存后不会回显。",
+      "toggleTitle": "确认{{action}}",
+      "toggleDescription": "{{action}}“{{name}}”的账号将立即影响其登录与访问权限。",
+      "usernameLabel": "用户名",
+      "usernamePlaceholder": "3-64 位字母、数字或 ._-",
+      "displayNameLabel": "显示名称",
+      "displayNamePlaceholder": "例如：陈曦",
+      "passwordLabel": "初始密码",
+      "passwordPlaceholder": "至少 8 个字符",
+      "newPasswordLabel": "新密码",
+      "newPasswordPlaceholder": "至少 8 个字符",
+      "roleLabel": "角色",
+      "enabledLabel": "启用此账号",
+      "showPassword": "显示密码",
+      "hidePassword": "隐藏密码",
+      "save": "保存用户",
+      "saveNew": "创建用户",
+      "saving": "保存中…",
+      "reset": "重置密码",
+      "resetting": "提交中…",
+      "toggleAction": "确认",
+      "cancel": "取消"
+    },
+    "errors": {
+      "USERNAME_TAKEN": "用户名已存在",
+      "LAST_ADMINISTRATOR": "不能修改最后一个可用的管理员账号",
+      "SELF_DISABLE": "不能禁用当前登录的账号",
+      "USER_NOT_FOUND": "用户不存在",
+      "FORBIDDEN": "当前角色无权执行该操作"
+    }
   }
 }

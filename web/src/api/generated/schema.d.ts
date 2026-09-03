@@ -68,6 +68,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listUsers"];
+        put?: never;
+        post: operations["createUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["updateUser"];
+        trace?: never;
+    };
     "/settings/models": {
         parameters: {
             query?: never;
@@ -501,8 +533,7 @@ export interface components {
             id: string;
             username: string;
             displayName: string;
-            /** @enum {string} */
-            role: "administrator";
+            role: components["schemas"]["UserRole"];
         };
         AuthState: {
             authEnabled: boolean;
@@ -518,6 +549,40 @@ export interface components {
         AuthLoginInput: {
             username: string;
             password: string;
+        };
+        /**
+         * @description Team account role. administrator manages users and settings; engineer operates collectors; reviewer publishes rules; viewer is read-only.
+         * @enum {string}
+         */
+        UserRole: "administrator" | "engineer" | "reviewer" | "viewer";
+        /** @description Team account view; password material is never returned. */
+        User: {
+            id: string;
+            username: string;
+            displayName: string;
+            role: components["schemas"]["UserRole"];
+            enabled: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        UserPage: {
+            items: components["schemas"]["User"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        CreateUserInput: {
+            username: string;
+            password: string;
+            role: components["schemas"]["UserRole"];
+            displayName?: string;
+        };
+        /** @description Partial team account update; at least one field must be present. */
+        UpdateUserInput: {
+            role?: components["schemas"]["UserRole"];
+            displayName?: string;
+            enabled?: boolean;
+            password?: string;
         };
         /** @enum {string} */
         CollectorStatus: "draft" | "exploring" | "ready_review" | "published";
@@ -621,7 +686,7 @@ export interface components {
          * @description Stable v1 error taxonomy. New codes may be added without changing existing meanings.
          * @enum {string}
          */
-        ErrorCode: "AUTH_REQUIRED" | "INVALID_CREDENTIALS" | "SETUP_ALREADY_COMPLETED" | "RATE_LIMITED" | "FORBIDDEN" | "VALIDATION_FAILED" | "INVALID_URL" | "HTTPS_REQUIRED" | "DUPLICATE_IN_BATCH" | "SOURCE_ALREADY_EXISTS" | "SOURCE_UNREACHABLE" | "COLLECTION_NOT_FOUND" | "COLLECTOR_NOT_FOUND" | "OPERATION_NOT_FOUND" | "AI_RUN_NOT_FOUND" | "RUN_NOT_FOUND" | "ITEM_NOT_FOUND" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "OPERATION_ALREADY_ACTIVE" | "RUN_ALREADY_ACTIVE" | "RULE_NOT_PUBLISHED" | "CANDIDATE_RULE_NOT_FOUND" | "CANDIDATE_VALIDATION_FAILED" | "RULE_ATTESTATION_INVALID" | "REVIEW_DECISION_INVALID" | "OPERATION_CANCELLED" | "OPERATION_TIMED_OUT" | "INVALID_CURSOR" | "EXPORT_TOO_LARGE" | "SINK_NOT_FOUND" | "DELIVERY_NOT_FOUND" | "DELIVERY_IN_FLIGHT" | "INTERNAL_ERROR" | "UNEXPECTED_RESPONSE";
+        ErrorCode: "AUTH_REQUIRED" | "INVALID_CREDENTIALS" | "SETUP_ALREADY_COMPLETED" | "RATE_LIMITED" | "FORBIDDEN" | "VALIDATION_FAILED" | "INVALID_URL" | "HTTPS_REQUIRED" | "DUPLICATE_IN_BATCH" | "SOURCE_ALREADY_EXISTS" | "SOURCE_UNREACHABLE" | "COLLECTION_NOT_FOUND" | "COLLECTOR_NOT_FOUND" | "OPERATION_NOT_FOUND" | "AI_RUN_NOT_FOUND" | "RUN_NOT_FOUND" | "ITEM_NOT_FOUND" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "OPERATION_ALREADY_ACTIVE" | "RUN_ALREADY_ACTIVE" | "RULE_NOT_PUBLISHED" | "CANDIDATE_RULE_NOT_FOUND" | "CANDIDATE_VALIDATION_FAILED" | "RULE_ATTESTATION_INVALID" | "REVIEW_DECISION_INVALID" | "OPERATION_CANCELLED" | "OPERATION_TIMED_OUT" | "INVALID_CURSOR" | "EXPORT_TOO_LARGE" | "SINK_NOT_FOUND" | "USER_NOT_FOUND" | "USERNAME_TAKEN" | "LAST_ADMINISTRATOR" | "SELF_DISABLE" | "DELIVERY_NOT_FOUND" | "DELIVERY_IN_FLIGHT" | "INTERNAL_ERROR" | "UNEXPECTED_RESPONSE";
         OperationMetrics: {
             listPagesFetched: number;
             detailUrlsDiscovered: number;
@@ -1821,6 +1886,90 @@ export interface operations {
                         /** @constant */
                         authenticated: false;
                     };
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    listUsers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Team accounts ordered by creation, without credential material. */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserPage"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    createUser: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateUserInput"];
+            };
+        };
+        responses: {
+            /** @description Team account created. */
+            201: {
+                headers: {
+                    "X-Request-ID": components["headers"]["RequestId"];
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    updateUser: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                /** @description Identifier of the team account to update. */
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateUserInput"];
+            };
+        };
+        responses: {
+            /** @description Team account updated. */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
                 };
             };
             default: components["responses"]["PlatformError"];

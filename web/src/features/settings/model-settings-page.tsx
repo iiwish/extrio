@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Bot, Check, ChevronDown, CircleAlert, Eye, EyeOff, KeyRound, MoreHorizontal, Pencil, Plus, Power, Star, Trash2 } from 'lucide-react'
+import { Bot, Check, ChevronDown, CircleAlert, Eye, EyeOff, KeyRound, MoreHorizontal, Pencil, Plus, Power, Star, Trash2, Users } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { api } from '@/api/client'
+import { ApiRequestError, api } from '@/api/client'
 import type {
+  CreateUserInput,
   ModelConfiguration,
   ModelConfigurationInput,
   ModelConfigurationItem,
@@ -11,7 +12,11 @@ import type {
   ModelProvider,
   ModelProviderConfiguration,
   ModelProviderConfigurationInput,
+  UpdateUserInput,
+  User,
+  UserRole,
 } from '@/api/types'
+import { useAuth } from '@/features/auth/auth-gate'
 import { APP_LANGUAGES, getAppLanguage, setAppLanguage, type AppLanguage } from '@/i18n/language'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -73,6 +78,7 @@ function Status({ enabled, ready }: { enabled: boolean; ready?: boolean }) {
 export function ModelSettingsPage() {
   const { t } = useTranslation('settings')
   const queryClient = useQueryClient()
+  const { user: currentUser } = useAuth()
   const query = useQuery({ queryKey: ['model-configuration'], queryFn: api.modelConfiguration })
   const configuration = query.data ?? emptyConfiguration
   const providers = configuration.providers.map(providerInput)
@@ -261,6 +267,8 @@ export function ModelSettingsPage() {
       {!query.isLoading && configuration.providers.length === 0 && <div className="settings-empty"><Bot /><strong>{t('provider.emptyTitle')}</strong><Button onClick={() => openProvider()}><Plus />{t('provider.add')}</Button></div>}
     </div>
 
+    {currentUser.role === 'administrator' && <UsersSection currentUserId={currentUser.id} />}
+
     <Dialog open={providerDraft !== null} onOpenChange={(open) => { if (!open && !mutation.isPending) setProviderDraft(null) }}>
       <DialogContent className="settings-dialog">
         <DialogHeader><DialogTitle>{configuration.providers.some((provider) => provider.id === providerDraft?.id) ? t('provider.edit') : t('provider.add')}</DialogTitle><DialogDescription>{t('dialog.providerDescription')}</DialogDescription></DialogHeader>
@@ -312,4 +320,253 @@ export function ModelSettingsPage() {
       </DialogContent>
     </Dialog>
   </div>
+}
+
+const USER_ROLE_OPTIONS: UserRole[] = ['administrator', 'engineer', 'reviewer', 'viewer']
+
+type UserDraft = { id: string | null; username: string; displayName: string; password: string; role: UserRole; enabled: boolean }
+
+function UsersSection({ currentUserId }: { currentUserId: string }) {
+  const { t } = useTranslation(['settings', 'common'])
+  const queryClient = useQueryClient()
+  const query = useQuery({ queryKey: ['users'], queryFn: api.users })
+  const users = query.data ?? []
+  const activeAdministratorCount = users.filter((row) => row.role === 'administrator' && row.enabled).length
+  const [userDraft, setUserDraft] = useState<UserDraft | null>(null)
+  const [showUserPassword, setShowUserPassword] = useState(false)
+  const [passwordTarget, setPasswordTarget] = useState<User | null>(null)
+  const [newPassword, setNewPassword] = useState('')
+  const [toggleTarget, setToggleTarget] = useState<User | null>(null)
+
+  const isLastActiveAdministrator = (row: User) => row.role === 'administrator' && row.enabled && activeAdministratorCount <= 1
+  const isSelf = (row: User) => row.id === currentUserId
+  const editTarget = userDraft?.id ? users.find((row) => row.id === userDraft.id) ?? null : null
+
+  function actionError(reason: unknown) {
+    if (reason instanceof ApiRequestError) return t(`users.errors.${reason.code}`, { defaultValue: reason.message })
+    return reason instanceof Error ? reason.message : t('common:state.error')
+  }
+
+  const createMutation = useMutation({
+    mutationFn: (input: CreateUserInput) => api.createUser(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      setUserDraft(null)
+    },
+  })
+  const updateMutation = useMutation({
+    mutationFn: ({ userId, input }: { userId: string; input: UpdateUserInput }) => api.updateUser(userId, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
+  })
+  const pending = createMutation.isPending || updateMutation.isPending
+
+  function openCreateUser() {
+    setShowUserPassword(false)
+    setUserDraft({ id: null, username: '', displayName: '', password: '', role: 'engineer', enabled: true })
+  }
+
+  function openEditUser(row: User) {
+    setUserDraft({ id: row.id, username: row.username, displayName: row.displayName, password: '', role: row.role, enabled: row.enabled })
+  }
+
+  function openResetPassword(row: User) {
+    setNewPassword('')
+    setShowUserPassword(false)
+    setPasswordTarget(row)
+  }
+
+  function saveUser(event: FormEvent) {
+    event.preventDefault()
+    if (!userDraft) return
+    if (userDraft.id) {
+      updateMutation.mutate(
+        { userId: userDraft.id, input: { displayName: userDraft.displayName.trim() || undefined, role: userDraft.role, enabled: userDraft.enabled } },
+        { onSuccess: () => setUserDraft(null) },
+      )
+      return
+    }
+    createMutation.mutate({
+      username: userDraft.username,
+      password: userDraft.password,
+      displayName: userDraft.displayName.trim() || undefined,
+      role: userDraft.role,
+    })
+  }
+
+  function saveNewPassword(event: FormEvent) {
+    event.preventDefault()
+    if (!passwordTarget || newPassword.length < 8) return
+    updateMutation.mutate(
+      { userId: passwordTarget.id, input: { password: newPassword } },
+      { onSuccess: () => setPasswordTarget(null) },
+    )
+  }
+
+  function confirmToggle() {
+    if (!toggleTarget) return
+    updateMutation.mutate(
+      { userId: toggleTarget.id, input: { enabled: !toggleTarget.enabled } },
+      { onSuccess: () => setToggleTarget(null) },
+    )
+  }
+
+  const toggleActionLabel = toggleTarget?.enabled ? t('users.actions.disable') : t('users.actions.enable')
+
+  return <section className="settings-users" aria-label={t('users.listAria')}>
+    <header className="settings-users-toolbar">
+      <div>
+        <h2><Users aria-hidden="true" />{t('users.title')}</h2>
+        <p>{t('users.description')}</p>
+      </div>
+      <Button onClick={() => openCreateUser()}><Plus />{t('users.add')}</Button>
+    </header>
+
+    {query.isError && <Alert variant="destructive"><AlertDescription>{query.error.message}</AlertDescription></Alert>}
+    {createMutation.error && <Alert variant="destructive"><AlertDescription>{actionError(createMutation.error)}</AlertDescription></Alert>}
+    {updateMutation.error && <Alert variant="destructive"><AlertDescription>{actionError(updateMutation.error)}</AlertDescription></Alert>}
+
+    <div className="settings-users-head" aria-hidden="true">
+      <span>{t('users.columns.username')}</span>
+      <span>{t('users.columns.role')}</span>
+      <span>{t('users.columns.status')}</span>
+      <span>{t('users.columns.updatedAt')}</span>
+      <span>{t('users.columns.actions')}</span>
+    </div>
+    {users.map((row) => {
+      const rowLocked = isLastActiveAdministrator(row)
+      const toggleDisabled = rowLocked || isSelf(row)
+      return <div className="settings-users-row" key={row.id}>
+        <span className="settings-users-identity"><strong>{row.username}</strong><small>{row.displayName}</small></span>
+        <span className="role-pill">{t(`roles.${row.role}`, { ns: 'common' })}</span>
+        <span className={`settings-status ${row.enabled ? 'success' : 'muted'}`}>{row.enabled ? t('users.enabled') : t('users.disabled')}</span>
+        <span className="settings-users-updated">{row.updatedAt.slice(0, 10)}</span>
+        <span className="settings-users-actions">
+          <Button variant="ghost" size="sm" className="settings-provider-add-model" onClick={() => openEditUser(row)} aria-label={t('users.actions.editAria', { name: row.username })}><Pencil />{t('users.actions.edit')}</Button>
+          <Button variant="ghost" size="sm" className="settings-provider-add-model" onClick={() => openResetPassword(row)} aria-label={t('users.actions.resetAria', { name: row.username })}><KeyRound />{t('users.actions.resetPassword')}</Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="settings-provider-add-model"
+            disabled={toggleDisabled}
+            title={isSelf(row) ? t('users.selfHint') : rowLocked ? t('users.lastAdminHint') : undefined}
+            onClick={() => setToggleTarget(row)}
+            aria-label={row.enabled ? t('users.actions.disableAria', { name: row.username }) : t('users.actions.enableAria', { name: row.username })}
+          ><Power />{row.enabled ? t('users.actions.disable') : t('users.actions.enable')}</Button>
+        </span>
+      </div>
+    })}
+    {!query.isLoading && users.length === 0 && <div className="settings-users-none">{t('users.empty')}</div>}
+
+    <Dialog open={userDraft !== null} onOpenChange={(open) => { if (!open && !pending) setUserDraft(null) }}>
+      <DialogContent className="settings-dialog">
+        <DialogHeader>
+          <DialogTitle>{userDraft?.id ? t('users.dialog.editTitle') : t('users.dialog.addTitle')}</DialogTitle>
+          <DialogDescription>{userDraft?.id ? t('users.dialog.editDescription') : t('users.dialog.addDescription')}</DialogDescription>
+        </DialogHeader>
+        {userDraft && <form id="user-settings-form" className="settings-dialog-form" onSubmit={saveUser}>
+          <div className="field-group">
+            <label htmlFor="user-username">{t('users.dialog.usernameLabel')}</label>
+            {userDraft.id
+              ? <Input id="user-username" value={userDraft.username} disabled />
+              : <Input id="user-username" value={userDraft.username} onChange={(event) => setUserDraft({ ...userDraft, username: event.target.value })} placeholder={t('users.dialog.usernamePlaceholder')} minLength={3} maxLength={64} required autoFocus />}
+          </div>
+          <div className="field-group">
+            <label htmlFor="user-display-name">{t('users.dialog.displayNameLabel')}</label>
+            <Input id="user-display-name" value={userDraft.displayName} onChange={(event) => setUserDraft({ ...userDraft, displayName: event.target.value })} placeholder={t('users.dialog.displayNamePlaceholder')} maxLength={64} />
+          </div>
+          {!userDraft.id && <div className="field-group">
+            <label htmlFor="user-password">{t('users.dialog.passwordLabel')}</label>
+            <div className="credential-input">
+              <KeyRound />
+              <Input
+                id="user-password"
+                type={showUserPassword ? 'text' : 'password'}
+                value={userDraft.password}
+                onChange={(event) => setUserDraft({ ...userDraft, password: event.target.value })}
+                placeholder={t('users.dialog.passwordPlaceholder')}
+                autoComplete="new-password"
+                minLength={8}
+                maxLength={256}
+                required
+              />
+              <Button type="button" variant="ghost" size="icon-sm" title={showUserPassword ? t('users.dialog.hidePassword') : t('users.dialog.showPassword')} aria-label={showUserPassword ? t('users.dialog.hidePassword') : t('users.dialog.showPassword')} onClick={() => setShowUserPassword((visible) => !visible)}>
+                {showUserPassword ? <EyeOff /> : <Eye />}
+              </Button>
+            </div>
+          </div>}
+          <div className="field-group">
+            <label htmlFor="user-role">{t('users.dialog.roleLabel')}</label>
+            <Select value={userDraft.role} onValueChange={(value) => setUserDraft({ ...userDraft, role: value as UserRole })} disabled={Boolean(editTarget && isLastActiveAdministrator(editTarget))}>
+              <SelectTrigger id="user-role" aria-label={t('users.dialog.roleLabel')}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {USER_ROLE_OPTIONS.map((role) => <SelectItem key={role} value={role}>{t(`roles.${role}`, { ns: 'common' })}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          {userDraft.id && <label className="settings-checkbox">
+            <Checkbox
+              checked={userDraft.enabled}
+              disabled={Boolean(editTarget && (isLastActiveAdministrator(editTarget) || isSelf(editTarget)))}
+              onCheckedChange={(checked) => setUserDraft({ ...userDraft, enabled: checked === true })}
+            />
+            {t('users.dialog.enabledLabel')}
+          </label>}
+          {editTarget && (isLastActiveAdministrator(editTarget) || isSelf(editTarget)) && <small className="credential-help">{isLastActiveAdministrator(editTarget) ? t('users.lastAdminHint') : t('users.selfHint')}</small>}
+        </form>}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setUserDraft(null)} disabled={pending}>{t('common:action.cancel')}</Button>
+          <Button type="submit" form="user-settings-form" disabled={pending}>{pending ? t('users.dialog.saving') : userDraft?.id ? t('users.dialog.save') : t('users.dialog.saveNew')}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <Dialog open={passwordTarget !== null} onOpenChange={(open) => { if (!open && !updateMutation.isPending) setPasswordTarget(null) }}>
+      <DialogContent className="settings-dialog">
+        <DialogHeader>
+          <DialogTitle>{t('users.dialog.resetTitle')}</DialogTitle>
+          <DialogDescription>{t('users.dialog.resetDescription')}</DialogDescription>
+        </DialogHeader>
+        <form id="user-password-form" className="settings-dialog-form" onSubmit={saveNewPassword}>
+          <div className="field-group">
+            <label htmlFor="user-new-password">{t('users.dialog.newPasswordLabel')}</label>
+            <div className="credential-input">
+              <KeyRound />
+              <Input
+                id="user-new-password"
+                type={showUserPassword ? 'text' : 'password'}
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+                placeholder={t('users.dialog.newPasswordPlaceholder')}
+                autoComplete="new-password"
+                minLength={8}
+                maxLength={256}
+                required
+                autoFocus
+              />
+              <Button type="button" variant="ghost" size="icon-sm" title={showUserPassword ? t('users.dialog.hidePassword') : t('users.dialog.showPassword')} aria-label={showUserPassword ? t('users.dialog.hidePassword') : t('users.dialog.showPassword')} onClick={() => setShowUserPassword((visible) => !visible)}>
+                {showUserPassword ? <EyeOff /> : <Eye />}
+              </Button>
+            </div>
+          </div>
+        </form>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setPasswordTarget(null)} disabled={updateMutation.isPending}>{t('common:action.cancel')}</Button>
+          <Button type="submit" form="user-password-form" disabled={updateMutation.isPending}>{updateMutation.isPending ? t('users.dialog.resetting') : t('users.dialog.reset')}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <Dialog open={toggleTarget !== null} onOpenChange={(open) => { if (!open && !updateMutation.isPending) setToggleTarget(null) }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t('users.dialog.toggleTitle', { action: toggleActionLabel })}</DialogTitle>
+          <DialogDescription>{t('users.dialog.toggleDescription', { action: toggleActionLabel, name: toggleTarget?.displayName ?? '' })}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setToggleTarget(null)} disabled={updateMutation.isPending}>{t('common:action.cancel')}</Button>
+          <Button variant={toggleTarget?.enabled ? 'destructive' : 'default'} onClick={confirmToggle} disabled={updateMutation.isPending}>{t('users.dialog.toggleAction')}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </section>
 }

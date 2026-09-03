@@ -12,6 +12,10 @@ import type {
   CollectorScheduleInput,
   CreateCollectorInput,
   CreateCollectorsInput,
+  CreateUserInput,
+  UpdateUserInput,
+  User,
+  UserPage,
   Delivery,
   DeliveryDetail,
   DeliveryPage,
@@ -201,6 +205,10 @@ export const api = {
   setupAuth: (input: AuthSetupInput) => request<AuthState>('/auth/setup', { method: 'POST', body: JSON.stringify(input) }),
   login: (input: AuthLoginInput) => request<AuthState>('/auth/login', { method: 'POST', body: JSON.stringify(input) }),
   logout: () => request<{ authenticated: false }>('/auth/logout', { method: 'POST' }),
+  users: () => request<UserPage>('/users').then((result) => result.items),
+  createUser: (input: CreateUserInput) => command<User>('/users', { body: JSON.stringify(input) }),
+  updateUser: (userId: string, input: UpdateUserInput) =>
+    command<User>(`/users/${userId}`, { method: 'PATCH', body: JSON.stringify(input) }),
   modelConfiguration: () => request<ModelConfiguration>('/settings/models'),
   updateModelConfiguration: (input: ModelConfigurationInput) =>
     command<ModelConfiguration>('/settings/models', { method: 'PUT', body: JSON.stringify(input) }),
