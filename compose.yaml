@@ -12,7 +12,6 @@ x-backend: &backend
     EXTRIO_SIGNING_PRIVATE_KEY_PATH: /var/lib/extrio/keys/dev-rule-signing-key.pem
     EXTRIO_CREDENTIAL_ENCRYPTION_KEY_PATH: /var/lib/extrio/keys/dev-credential-encryption.key
     EXTRIO_CORS_ORIGINS: ${EXTRIO_CORS_ORIGINS:-http://127.0.0.1:8080,http://localhost:8080}
-    EXTRIO_ALLOW_HTTP_PUBLIC: ${EXTRIO_ALLOW_HTTP_PUBLIC:-false}
     EXTRIO_SEED_DEMO: "true"
     EXTRIO_AUTH_ENABLED: ${EXTRIO_AUTH_ENABLED:-true}
     EXTRIO_AUTH_COOKIE_SECURE: ${EXTRIO_AUTH_COOKIE_SECURE:-false}

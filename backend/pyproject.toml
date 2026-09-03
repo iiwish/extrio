@@ -1,6 +1,6 @@
 [project]
 name = "extrio-backend"
-version = "0.5.0"
+version = "0.6.0"
 description = "Extrio FastAPI control plane and collection workers"
 readme = "README.md"
 license = "Apache-2.0"
