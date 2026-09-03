@@ -654,3 +654,102 @@ def test_metrics_count_methods_aggregate_seeded_rows(tmp_path: Path) -> None:
     assert store.recent_run_statuses(collector_a["id"], 2) == ["failed", "succeeded"]
     assert store.recent_run_statuses(collector_b["id"], 5) == ["cancelled"]
     assert store.recent_run_statuses("collector_missing", 3) == []
+
+
+def test_list_runs_for_collector_orders_creation_and_filters_window(tmp_path: Path) -> None:
+    store = make_store(tmp_path)
+    collector = store.create_collector("Demo", "Collect notices", "https://example.com/list", "example.com")
+    other = store.create_collector("Other", "Collect notices", "https://other.example.com/list", "other.example.com")
+    store.save_run({"id": "run_late", "collectorId": collector["id"], "status": "succeeded"})
+    store.save_run({"id": "run_early", "collectorId": collector["id"], "status": "failed"})
+    store.save_run({"id": "run_other", "collectorId": other["id"], "status": "succeeded"})
+    with store.connect() as connection:
+        connection.execute("UPDATE runs SET created_at='2026-09-01T08:00:00Z', updated_at='2026-09-01T08:00:00Z' WHERE id='run_early'")
+        connection.execute("UPDATE runs SET created_at='2026-09-02T08:00:00Z', updated_at='2026-09-02T08:00:00Z' WHERE id='run_late'")
+        connection.execute("UPDATE runs SET created_at='2026-09-02T08:00:00Z', updated_at='2026-09-02T08:00:00Z' WHERE id='run_other'")
+
+    assert [run["id"] for run in store.list_runs_for_collector(collector["id"])] == ["run_early", "run_late"]
+    assert [run["id"] for run in store.list_runs_for_collector(collector["id"], since="2026-09-02T00:00:00Z")] == ["run_late"]
+    assert [run["id"] for run in store.list_runs_for_collector(collector["id"], until="2026-09-01T23:59:59Z")] == ["run_early"]
+    assert store.list_runs_for_collector(collector["id"], since="2026-09-03T00:00:00Z") == []
+    assert store.list_runs_for_collector("collector_missing") == []
+
+
+def test_list_rule_versions_for_collector_pairs_attestations(tmp_path: Path) -> None:
+    store = make_store(tmp_path)
+    collector = store.create_collector("Demo", "Collect notices", "https://example.com/list", "example.com")
+    signing_key = {
+        "id": "signingkey_test",
+        "tenantId": "tenant_demo",
+        "status": "trusted",
+        "algorithm": "Ed25519",
+        "publicKeyPem": "PUBLIC KEY",
+        "revision": 1,
+        "trustedAt": "2026-08-31T00:00:00Z",
+    }
+    store.ensure_signing_key(signing_key)
+    for version in ("v1", "v2"):
+        rule_version = {
+            "id": f"rule_demo_{version}",
+            "tenantId": "tenant_demo",
+            "collectorId": collector["id"],
+            "ruleDigest": "sha256:" + "1" * 64,
+            "gatherSpec": {"schemaVersion": "extrio.gather.v1"},
+            "status": "published",
+            "createdAt": "2026-08-31T00:00:00Z",
+        }
+        attestation = {
+            "attestationId": f"attestation_{version}",
+            "tenantId": "tenant_demo",
+            "ruleVersionId": f"rule_demo_{version}",
+            "ruleDigest": rule_version["ruleDigest"],
+            "keyId": "signingkey_test",
+            "signedAt": "2026-08-31T00:01:00Z",
+        }
+        store.publish_rule_bundle(
+            collector_id=collector["id"],
+            rule_version=rule_version,
+            attestation=attestation,
+            collector_changes={"status": "published", "activeRuleVersion": rule_version["id"]},
+            audit={"actorId": "user_rule_reviewer_demo", "action": "rule.published", "requestId": f"req_{version}"},
+        )
+
+    versions = store.list_rule_versions_for_collector(collector["id"])
+    assert [version["id"] for version in versions] == ["rule_demo_v1", "rule_demo_v2"]
+    assert versions[0]["gatherSpec"] == {"schemaVersion": "extrio.gather.v1"}
+    assert versions[0]["attestation"]["attestationId"] == "attestation_v1"
+    assert versions[1]["attestation"]["ruleVersionId"] == "rule_demo_v2"
+    assert store.list_rule_versions_for_collector("collector_missing") == []
+
+
+def test_list_items_for_collector_window_filters_observed_at(tmp_path: Path) -> None:
+    store = make_store(tmp_path)
+    collector = store.create_collector("Demo", "Collect notices", "https://example.com/list", "example.com")
+    other = store.create_collector("Other", "Collect notices", "https://other.example.com/list", "other.example.com")
+    store.save_run({"id": "run_one", "collectorId": collector["id"], "status": "succeeded"})
+    store.save_run({"id": "run_other", "collectorId": other["id"], "status": "succeeded"})
+    store.save_items(
+        "run_one",
+        [
+            make_item("item_a1", collector["id"], "run_one", "2026-09-01T08:30:00Z", "e1"),
+            make_item("item_a2", collector["id"], "run_one", "2026-09-01T09:00:00Z", "e2"),
+            make_item("item_a3", collector["id"], "run_one", "2026-09-02T08:30:00Z", "e3"),
+        ],
+    )
+    store.save_items("run_other", [make_item("item_o1", other["id"], "run_other", "2026-09-01T08:30:00Z", "e9")])
+
+    exported = [item["id"] for item in store.list_items_for_collector_window(collector["id"])]
+    assert exported == ["item_a3", "item_a2", "item_a1"]
+    assert [item["id"] for item in store.list_items_for_collector_window(collector["id"], since="2026-09-01T08:45:00Z")] == [
+        "item_a3",
+        "item_a2",
+    ]
+    assert [item["id"] for item in store.list_items_for_collector_window(collector["id"], until="2026-09-01T23:59:59Z")] == [
+        "item_a2",
+        "item_a1",
+    ]
+    assert [
+        item["id"]
+        for item in store.list_items_for_collector_window(collector["id"], since="2026-09-01T09:00:00Z", until="2026-09-01T09:00:00Z")
+    ] == ["item_a2"]
+    assert list(store.list_items_for_collector_window("collector_missing")) == []

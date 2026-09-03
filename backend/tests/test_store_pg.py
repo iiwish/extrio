@@ -385,3 +385,80 @@ def test_backup_restore_roundtrip_postgresql(pg_store: Store, tmp_path: Path) ->
     finally:
         with psycopg.connect(TEST_DATABASE_URL, autocommit=True, connect_timeout=3) as admin:
             admin.execute(f'DROP DATABASE IF EXISTS "{restore_database_name}" WITH (FORCE)')
+
+
+def test_evidence_store_queries_filter_windows_and_pair_attestations(pg_store: Store) -> None:
+    collector = pg_store.create_collector("Demo", "Collect notices", "https://example.com/list", "example.com")
+    other = pg_store.create_collector("Other", "Collect notices", "https://other.example.com/list", "other.example.com")
+    pg_store.save_run({"id": "run_early", "collectorId": collector["id"], "status": "succeeded"})
+    pg_store.save_run({"id": "run_late", "collectorId": collector["id"], "status": "succeeded"})
+    pg_store.save_run({"id": "run_other", "collectorId": other["id"], "status": "succeeded"})
+    with pg_store.connect() as connection:
+        connection.execute("UPDATE runs SET created_at='2026-09-01T08:00:00Z', updated_at='2026-09-01T08:00:00Z' WHERE id='run_early'")
+        connection.execute("UPDATE runs SET created_at='2026-09-02T08:00:00Z', updated_at='2026-09-02T08:00:00Z' WHERE id='run_late'")
+        connection.execute("UPDATE runs SET created_at='2026-09-02T08:00:00Z', updated_at='2026-09-02T08:00:00Z' WHERE id='run_other'")
+
+    assert [run["id"] for run in pg_store.list_runs_for_collector(collector["id"])] == ["run_early", "run_late"]
+    assert [run["id"] for run in pg_store.list_runs_for_collector(collector["id"], since="2026-09-02T00:00:00Z")] == ["run_late"]
+    assert [run["id"] for run in pg_store.list_runs_for_collector(collector["id"], until="2026-09-01T23:59:59Z")] == ["run_early"]
+    assert pg_store.list_runs_for_collector("collector_missing") == []
+
+    signing_key = {
+        "id": "signingkey_test",
+        "tenantId": "tenant_demo",
+        "status": "trusted",
+        "algorithm": "Ed25519",
+        "publicKeyPem": "PUBLIC KEY",
+        "revision": 1,
+        "trustedAt": "2026-08-31T00:00:00Z",
+    }
+    pg_store.ensure_signing_key(signing_key)
+    rule_version = {
+        "id": "rule_demo_v1",
+        "tenantId": "tenant_demo",
+        "collectorId": collector["id"],
+        "ruleDigest": "sha256:" + "1" * 64,
+        "gatherSpec": {"schemaVersion": "extrio.gather.v1"},
+        "status": "published",
+        "createdAt": "2026-08-31T00:00:00Z",
+    }
+    attestation = {
+        "attestationId": "attestation_pg_v1",
+        "tenantId": "tenant_demo",
+        "ruleVersionId": "rule_demo_v1",
+        "ruleDigest": rule_version["ruleDigest"],
+        "keyId": "signingkey_test",
+        "signedAt": "2026-08-31T00:01:00Z",
+    }
+    pg_store.publish_rule_bundle(
+        collector_id=collector["id"],
+        rule_version=rule_version,
+        attestation=attestation,
+        collector_changes={"status": "published", "activeRuleVersion": "rule_demo_v1"},
+        audit={"actorId": "user_rule_reviewer_demo", "action": "rule.published", "requestId": "req_pg"},
+    )
+    versions = pg_store.list_rule_versions_for_collector(collector["id"])
+    assert [version["id"] for version in versions] == ["rule_demo_v1"]
+    assert versions[0]["gatherSpec"] == {"schemaVersion": "extrio.gather.v1"}
+    assert versions[0]["attestation"]["attestationId"] == "attestation_pg_v1"
+
+    pg_store.save_items(
+        "run_early",
+        [
+            make_item("item_a1", collector["id"], "run_early", "2026-09-01T08:30:00Z", "e1"),
+            make_item("item_a2", collector["id"], "run_early", "2026-09-01T09:00:00Z", "e2"),
+            make_item("item_a3", collector["id"], "run_early", "2026-09-02T08:30:00Z", "e3"),
+        ],
+    )
+    pg_store.save_items("run_other", [make_item("item_o1", other["id"], "run_other", "2026-09-01T08:30:00Z", "e9")])
+    exported = [item["id"] for item in pg_store.list_items_for_collector_window(collector["id"])]
+    assert exported == ["item_a3", "item_a2", "item_a1"]
+    assert [item["id"] for item in pg_store.list_items_for_collector_window(collector["id"], since="2026-09-01T08:45:00Z")] == [
+        "item_a3",
+        "item_a2",
+    ]
+    assert [item["id"] for item in pg_store.list_items_for_collector_window(collector["id"], until="2026-09-01T23:59:59Z")] == [
+        "item_a2",
+        "item_a1",
+    ]
+    assert list(pg_store.list_items_for_collector_window("collector_missing")) == []

@@ -2001,3 +2001,95 @@ class Store:
                 (collector_id, limit),
             ).fetchall()
         return [str(row["status"]) for row in rows]
+
+    def list_runs_for_collector(
+        self,
+        collector_id: str,
+        *,
+        since: str | None = None,
+        until: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """List run views for one collector in deterministic creation order.
+
+        ``since``/``until`` are inclusive ISO-8601 bounds compared
+        lexicographically against the runs table ``created_at`` TEXT column
+        (both dialects store timestamps as ISO-8601 UTC strings).
+        """
+
+        clauses = ["collector_id=?"]
+        params: list[Any] = [collector_id]
+        if since:
+            clauses.append("created_at>=?")
+            params.append(since)
+        if until:
+            clauses.append("created_at<=?")
+            params.append(until)
+        with self.connect() as connection:
+            rows = connection.execute(
+                f"SELECT data, created_at FROM runs WHERE {' AND '.join(clauses)} ORDER BY created_at, id",
+                tuple(params),
+            ).fetchall()
+        return [run for row in rows if (run := self._decode_run(row)) is not None]
+
+    def list_rule_versions_for_collector(self, collector_id: str) -> list[dict[str, Any]]:
+        """List immutable rule versions for a collector, each with its latest attestation.
+
+        Wraps the per-rule-version read paths (``get_rule_version`` storage and
+        ``latest_rule_attestation``) inside a single connection so the returned
+        views pair every ``gatherSpec`` with the Ed25519 attestation record that
+        authorized its publication.
+        """
+
+        with self.connect() as connection:
+            rows = connection.execute(
+                "SELECT data FROM rule_versions WHERE collector_id=? ORDER BY created_at, id",
+                (collector_id,),
+            ).fetchall()
+            versions: list[dict[str, Any]] = []
+            for row in rows:
+                version = self.dialect.decode_json(row["data"])
+                versions.append({**version, "attestation": self.latest_rule_attestation(str(version["id"]), connection)})
+        return versions
+
+    def list_items_for_collector_window(
+        self,
+        collector_id: str,
+        *,
+        since: str | None = None,
+        until: str | None = None,
+    ) -> Iterator[dict[str, Any]]:
+        """Yield a collector's items whose ``observedAt`` falls inside the window.
+
+        Follows the ``list_items_cursor`` JSON-extract ordering contract:
+        ``(observedAt DESC, entityKey DESC, id DESC)``. ``since``/``until`` are
+        inclusive bounds compared lexicographically against the ISO-8601
+        ``observedAt`` payload field, mirroring the ``created_at`` TEXT
+        comparisons used by ``count_runs_by_status``.
+        """
+
+        observed_at = self.dialect.json_extract_text("data", "observedAt")
+        entity_key_expression = self.dialect.json_extract_text("data", "entityKey")
+        clauses, params = self._item_filter_clauses(
+            collector_id=collector_id,
+            run_id=None,
+            decision=None,
+            entity_key=None,
+        )
+        if since:
+            clauses.append(f"{observed_at}>=?")
+            params.append(since)
+        if until:
+            clauses.append(f"{observed_at}<=?")
+            params.append(until)
+        where = f"WHERE {' AND '.join(clauses)}"
+        connection = self.connect()
+        try:
+            cursor = connection.execute(
+                f"SELECT data FROM items {where} ORDER BY {observed_at} DESC, {entity_key_expression} DESC, id DESC",
+                tuple(params),
+            )
+            while batch := cursor.fetchmany(500):
+                for row in batch:
+                    yield self.dialect.decode_json(row["data"])
+        finally:
+            connection.close()
