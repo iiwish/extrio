@@ -55,10 +55,31 @@
     "fieldBinding": {"type": "string", "pattern": "^(list|detail)\\.[A-Za-z][A-Za-z0-9_]{0,63}$"},
     "selector": {"type": "string", "minLength": 5, "maxLength": 4096, "pattern": "^(css|jsonpath):"},
     "transform": {"enum": ["trim", "collapse_whitespace", "lowercase", "uppercase", "absolute_url", "strip_html"]},
+    "regexExtractTransform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "pattern"],
+      "properties": {
+        "type": {"const": "regex_extract"},
+        "pattern": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "RE2-compatible pattern; lookahead, lookbehind and backreferences are unsupported."
+        },
+        "group": {"type": "integer", "minimum": 0, "maximum": 8}
+      }
+    },
+    "transformItem": {
+      "oneOf": [
+        {"$ref": "#/$defs/transform"},
+        {"$ref": "#/$defs/regexExtractTransform"}
+      ]
+    },
     "fieldRule": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["label", "selector", "valueType", "required", "onError", "multipleMatchPolicy", "transforms"],
+      "required": ["selector", "valueType", "required", "onError", "multipleMatchPolicy", "transforms"],
       "properties": {
         "label": {"type": "string", "minLength": 1, "maxLength": 100},
         "selector": {"$ref": "#/$defs/selector"},
@@ -66,7 +87,7 @@
         "required": {"type": "boolean"},
         "onError": {"enum": ["fail_run", "reject_item", "null"]},
         "multipleMatchPolicy": {"enum": ["error", "first"]},
-        "transforms": {"type": "array", "maxItems": 8, "uniqueItems": true, "items": {"$ref": "#/$defs/transform"}},
+        "transforms": {"type": "array", "maxItems": 8, "uniqueItems": true, "items": {"$ref": "#/$defs/transformItem"}},
         "datetimeFormat": {"enum": ["RFC3339", "ISO8601_DATE", "UNIX_SECONDS", "UNIX_MILLISECONDS"]},
         "defaultTimezone": {"type": "string", "minLength": 1, "maxLength": 64}
       },

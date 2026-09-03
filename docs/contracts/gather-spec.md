@@ -10,7 +10,8 @@
 | JSON Schema | [`gather-spec.schema.json`](./gather-spec.schema.json) |
 | 提取语义 | [`extraction-semantics.md`](./extraction-semantics.md) |
 | 权威来源 | [`../SSOT.md`](../SSOT.md) 中的 `INV-001`、`INV-002`、`INV-003`、`INV-005` |
-| 最后更新 | `2026-09-01` |
+| 作者指南 | [`../rules-guide.md`](../rules-guide.md) |
+| 最后更新 | `2026-09-03` |
 | 审批责任 | 技术负责人 |
 
 ## 2. 规范边界
@@ -158,8 +159,11 @@ Selector 不允许脚本、网络请求、函数调用或正则替换。语法�
 - `required=true` 且字段缺失时，`onError` 不能为 `null`。
 - `datetime` 必须声明可解析格式或使用严格 RFC 3339；无时区输入使用 `defaultTimezone`。
 - `url` 在 `absolute_url` transform 后仍必须经过 allowedHosts 检查，才可以作为 detail URL。
-- transforms 按数组顺序执行；运行时不得增加未声明 transform。
+- transforms 按数组顺序执行；数组项既可以是既有纯字符串枚举（`trim`、`collapse_whitespace`、`lowercase`、`uppercase`、`absolute_url`、`strip_html`），也可以是仅用于 `regex_extract` 的对象形态 `{"type": "regex_extract", "pattern": "<RE2>", "group": <0-8>}`；两种形态不得混用于同一数组项以外的键。运行时不得增加未声明 transform。
+- `label` 为可选展示字段（1–64 字符，任意 Unicode），用于审核界面与 LLM prompt 语义；省略时必须整体省略该键，编译器不得虚构占位值。`label` 不参与提取、指纹、`outputContractDigest` 或 `ruleDigest`。
 - `html` 保留 Source 内容语义，但仍是不受信任内容，展示与输出遵守安全合同。
+
+`regex_extract` 的 RE2 语法边界、捕获组语义与无匹配时同 `onError` 的交互，以 [`extraction-semantics.md`](./extraction-semantics.md) 为准；完整的编写视角解读见 [`../rules-guide.md`](../rules-guide.md) 第 4 节。
 
 ## 9. 模板变量
 
@@ -222,6 +226,7 @@ JSON 不允许重复 key、NaN、Infinity 或不能被 JCS 表达的数值。`ru
 - `additionalProperties=false` 的对象不得接收未知字段。
 - 向 v1 增加可选字段前必须证明旧 runtime 会明确拒绝或安全忽略；能力协商不能依赖静默忽略。
 - Enum 新值只有在 runtime 声明支持时才能发布。
+- 兼容性 minor 演进（新增可选字段、扩大值域，如 `label` 与 `regex_extract` 对象形态）不改变 `schemaVersion`；任何删除、改名或语义变化属于不兼容变化，必须发布新的 GatherSpec 主版本 `extrio.gather.v2`。旧 Worker 对未知字段的确定性拒绝（AC-012.4）是特性而非缺陷。完整演进政策见 [`../rules-guide.md`](../rules-guide.md) 第 5 节。
 - 改变默认值、Selector 语义、规范化、身份、指纹、分页或 digest 属于不兼容变化。
 - Rule 导入必须重新执行所有校验，不因签名来源可信而跳过安全检查。
 

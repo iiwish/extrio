@@ -457,6 +457,32 @@
         "strip_html"
       ]
     },
+    "regexExtractTransform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "pattern"],
+      "properties": {
+        "type": {"const": "regex_extract"},
+        "pattern": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "RE2-compatible pattern; lookahead, lookbehind and backreferences are unsupported and enforced by the runtime engine."
+        },
+        "group": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8,
+          "description": "Capture group index to emit; 0 emits the whole match. Defaults to 0."
+        }
+      }
+    },
+    "transformItem": {
+      "oneOf": [
+        {"$ref": "#/$defs/transform"},
+        {"$ref": "#/$defs/regexExtractTransform"}
+      ]
+    },
     "fieldRule": {
       "type": "object",
       "additionalProperties": false,
@@ -474,11 +500,17 @@
         "required": {"type": "boolean"},
         "onError": {"enum": ["fail_run", "reject_item", "null"]},
         "multipleMatchPolicy": {"enum": ["error", "first"]},
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "Optional human-readable field label (any Unicode) for the review UI and LLM prompt quality; never part of extraction semantics or digests."
+        },
         "transforms": {
           "type": "array",
           "maxItems": 8,
           "uniqueItems": true,
-          "items": {"$ref": "#/$defs/transform"}
+          "items": {"$ref": "#/$defs/transformItem"}
         },
         "datetimeFormat": {"enum": ["RFC3339", "ISO8601_DATE", "UNIX_SECONDS", "UNIX_MILLISECONDS"]},
         "defaultTimezone": {

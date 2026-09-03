@@ -8,7 +8,7 @@
 | 状态 | `Ready_For_User_Review` |
 | 适用规则 | `extrio.gather.v1` |
 | 权威来源 | [`../SSOT.md`](../SSOT.md) 中的 `INV-001`、`INV-002`、`INV-003` |
-| 最后更新 | `2026-08-30` |
+| 最后更新 | `2026-09-03` |
 | 审批责任 | 技术负责人 |
 
 ## 2. 目标
@@ -157,6 +157,33 @@ v0.2 只支持标量字段提取。数组和嵌套对象可以通过 `valueType=
 8. identity、outputContractDigest 和 payloadFingerprint 计算。
 
 同一个 transform 在一个字段中最多出现一次。类型不适用的 transform 在编译时拒绝，例如对 integer 使用 `strip_html`。
+
+### 9.1 transforms 值形态
+
+`transforms` 数组项接受两种形态：
+
+- 纯字符串：`trim`、`collapse_whitespace`、`lowercase`、`uppercase`、`absolute_url`、`strip_html`。
+- 对象形态：仅允许 `{"type": "regex_extract", "pattern": "<RE2>", "group": <0-8>}`；`trim` 等既有 transform 永远使用纯字符串，对象形态包装其他类型会被 Schema 拒绝。
+
+两种形态可共存于同一数组并按顺序执行。Schema 通过 `oneOf` 保证每个数组项要么是合法枚举字符串，要么是合法 regex_extract 对象，不存在第三种形态。
+
+### 9.2 `regex_extract`
+
+`regex_extract` 在字符串值上执行一次 RE2 搜索，并把指定捕获组作为新的字段值：
+
+| 属性 | 约束 | 语义 |
+| --- | --- | --- |
+| `type` | 恒为 `regex_extract` | 对象形态标识 |
+| `pattern` | 1–512 字节，RE2 兼容 | 搜索模式；直接支持 Unicode 字面字符（如中文） |
+| `group` | 整数 0–8，缺省 `0` | 输出第 N 个捕获组；`0` = 整个匹配 |
+
+执行语义：
+
+1. 输入必须已经是字符串（selector 原始值或前序 transform 的输出）；非字符串值跳过该 transform。
+2. 命中时：取第 `group` 个捕获组（`group=0` 为整个匹配；索引越界按无匹配处理）替换当前值，继续执行数组中的后续 transforms，随后进入第 6 步 valueType 转换。
+3. 未命中时：**输出值不存在**，该字段进入既有缺失值处理——`required=true` 时按 `onError=reject_item|fail_run` 执行质量门（产生 `EXTRACT_NO_MATCH` 类拒绝证据）；`required=false` 且 `onError=null` 时输出 null，此时 `normalizedItemSchema` 必须允许该字段为 null。
+4. `pattern` 使用 **RE2 语法**：不支持前瞻 `(?=...)`/`(?!...)`、后顾 `(?<=...)`/`(?<!...)`、反向引用 `\1`–`\9` 与 `(?P=name)`。RE2 无回溯引擎保证线性时间与确定性；离线语义校验器（`re2_pattern_error`）在审核前拒绝越界 pattern，运行时 RE2 引擎是最终裁决者。
+5. `regex_extract` 属于 transforms 链，执行先于 valueType 转换：pattern 命中的字符串（如 `"355.6"`）随后按 `valueType=number` 转为 `355.6`。与 identity/fingerprint 的交互与其它 transform 一致——指纹输入取 transforms 完成后的规范值。
 
 ## 10. Output contract 与 fingerprint
 

@@ -129,8 +129,26 @@ def jsonpath_values(node: Any, selector: str) -> list[Any]:
     return [match.value for match in parse_jsonpath(expression).find(node)]
 
 
-def _apply_transforms(value: Any, transforms: list[str], source_url: str) -> Any:
+def _regex_extract(value: str, transform: dict[str, Any]) -> Any:
+    try:
+        group = int(transform.get("group", 0))
+        match = re.search(str(transform.get("pattern", "")), value)
+    except (re.error, TypeError, ValueError):
+        return None
+    if match is None:
+        return None
+    try:
+        return match.group(group)
+    except IndexError:
+        return None
+
+
+def _apply_transforms(value: Any, transforms: list[Any], source_url: str) -> Any:
     for transform in transforms:
+        if isinstance(transform, dict):
+            if transform.get("type") == "regex_extract" and isinstance(value, str):
+                value = _regex_extract(value, transform)
+            continue
         if transform == "trim" and isinstance(value, str):
             value = value.strip()
         elif transform == "collapse_whitespace" and isinstance(value, str):
@@ -184,6 +202,11 @@ def contract_field_values(html: str, source_url: str, field_specs: dict[str, Any
             matches = []
         value = matches[0] if matches else ""
         value = _apply_transforms(value, field.get("transforms", []), source_url)
+        if value is None:
+            # regex_extract found no match: required fields surface as missing
+            # through the normal onError quality gate, optional fields yield null.
+            values[key] = None
+            continue
         try:
             values[key] = (
                 value
@@ -307,6 +330,7 @@ def build_gather_spec(
     spec["sourceContext"].pop("accessProfileRef", None)
     detail_fields = {
         key: {
+            "label": str(label)[:64],
             "selector": selector,
             "valueType": profile.get("fieldValueTypes", {}).get(key, "string"),
             "required": required,
@@ -319,7 +343,7 @@ def build_gather_spec(
                 else {}
             ),
         }
-        for key, (_label, selector, required) in profile["fieldRules"].items()
+        for key, (label, selector, required) in profile["fieldRules"].items()
     }
     spec["collect"]["list"] = {
         "request": {"entrypointIndex": 0, "method": "GET", "headers": {"Accept": "text/html,application/xhtml+xml"}, "query": {}},
@@ -328,6 +352,7 @@ def build_gather_spec(
         "fields": (
             {
                 "listTitle": {
+                    "label": "列表标题",
                     "selector": profile["listTitleSelector"],
                     "valueType": "string",
                     "required": True,
@@ -336,6 +361,7 @@ def build_gather_spec(
                     "transforms": ["trim", "collapse_whitespace"],
                 },
                 "listPublishedAt": {
+                    "label": "列表日期",
                     "selector": profile["listPublishedAtSelector"],
                     "valueType": "string",
                     "required": True,
@@ -344,6 +370,7 @@ def build_gather_spec(
                     "transforms": ["trim"],
                 },
                 "detailUrl": {
+                    "label": "详情链接",
                     "selector": profile["detailLinkSelector"],
                     "valueType": "url",
                     "required": True,
@@ -395,7 +422,16 @@ def build_gather_spec(
 
 
 def _execution_field(field: dict[str, Any]) -> dict[str, Any]:
-    return {key: value for key, value in field.items() if key != "label"}
+    execution = dict(field)
+    label = execution.get("label")
+    if label is None:
+        return execution
+    label = str(label).strip()[:64]
+    if label:
+        execution["label"] = label
+    else:
+        execution.pop("label", None)
+    return execution
 
 
 def _json_schema_type(value_type: str) -> str | list[str]:
@@ -522,7 +558,7 @@ def build_candidate_from_plan(
         fields.append(
             {
                 "key": key,
-                "label": field["label"],
+                "label": field.get("label") or key,
                 "selector": selector,
                 "required": field["required"],
                 "confidence": 0.98 if display_sample != "字段缺失" else 0.35,

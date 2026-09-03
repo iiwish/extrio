@@ -53,9 +53,10 @@
       "title",
       "contentHtml",
       "publishAt",
-      "updatedAt"
+      "updatedAt",
+      "budgetAmount"
     ],
-    "outputContractDigest": "sha256:46fcabfb72682c3224ec670149920614a5cb4d901c207b4424acfeb135eb08a9",
+    "outputContractDigest": "sha256:3d03c545fa9fb03285848b33459d08979de0604a7e5b3b1d5d5aad8de2b115bc",
     "normalizedItemSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
@@ -85,6 +86,12 @@
             "null"
           ],
           "format": "date-time"
+        },
+        "budgetAmount": {
+          "type": [
+            "number",
+            "null"
+          ]
         }
       },
       "required": [
@@ -194,6 +201,7 @@
       "responseType": "html",
       "fields": {
         "title": {
+          "label": "公告标题",
           "selector": "css:h1.title::text",
           "valueType": "string",
           "required": true,
@@ -210,6 +218,22 @@
           "required": true,
           "onError": "reject_item",
           "multipleMatchPolicy": "error"
+        },
+        "budgetAmount": {
+          "label": "预算金额（万元）",
+          "selector": "css:.notice-budget .amount::text",
+          "valueType": "number",
+          "required": false,
+          "onError": "null",
+          "multipleMatchPolicy": "first",
+          "transforms": [
+            "trim",
+            {
+              "type": "regex_extract",
+              "pattern": "[0-9]+(?:\\.[0-9]+)?",
+              "group": 0
+            }
+          ]
         },
         "publishAt": {
           "selector": "css:time.published::attr(datetime)",
@@ -272,6 +296,6 @@
   },
   "integrity": {
     "digestAlgorithm": "sha256",
-    "ruleDigest": "sha256:044f4112c529cd11f8f7cf6055d8ac31f294bbf789be0540ab6d6e995dba9011"
+    "ruleDigest": "sha256:5fcc4a56ae65ba44ea589001fadb25f05a64aa381cc15653b0ba7ce0dc49ca75"
   }
 }

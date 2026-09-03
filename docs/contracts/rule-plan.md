@@ -9,7 +9,7 @@
 | 状态 | `Confirmed` |
 | JSON Schema | [`rule-plan.schema.json`](./rule-plan.schema.json) |
 | 下游合同 | [`gather-spec.md`](./gather-spec.md) |
-| 最后更新 | `2026-09-01` |
+| 最后更新 | `2026-09-03` |
 
 ## 2. 定位
 
@@ -27,7 +27,10 @@ RulePlan 是 Source 接入期的受约束编译中间表示。LLM 负责从非�
 
 ## 4. 字段规则
 
-每个字段具有稳定 ASCII key、用户可读 label、selector、类型、必填性、错误策略、多匹配策略和 transforms。支持的值类型为 `string`、`integer`、`number`、`boolean`、`datetime`、`url`、`html` 与 `json`；支持的 transforms 为 `trim`、`collapse_whitespace`、`lowercase`、`uppercase`、`absolute_url` 与 `strip_html`。
+每个字段具有稳定 ASCII key、可选用户可读 label、selector、类型、必填性、错误策略、多匹配策略和 transforms。支持的值类型为 `string`、`integer`、`number`、`boolean`、`datetime`、`url`、`html` 与 `json`；支持的 transforms 为 `trim`、`collapse_whitespace`、`lowercase`、`uppercase`、`absolute_url`、`strip_html`，以及对象形态的 `{"type": "regex_extract", "pattern": "<RE2>", "group": <0-8>}`。
+
+- `label`（可选，1–100 字符）：模型应在能提升审核清晰度时提供；省略时平台不虚构占位值。label 通过编译进入 GatherSpec 的 `fieldRule.label`（截断到 64 字符），仅用于审核界面与后续 prompt 语义，不参与提取、指纹或 digest。
+- `regex_extract`：当 selector 无法单独隔离目标值时，模型可追加一个 regex_extract 对象（详见 [`gather-spec.md`](./gather-spec.md) 第 8 节与 [`extraction-semantics.md`](./extraction-semantics.md) 第 9.2 节）。pattern 必须落在 RE2 兼容子集内——前瞻、后顾和反向引用不受支持；`group` 为捕获组索引（0 = 整个匹配）。正则不得用于改变提取边界以外的语义，更不得作为绕过 selector 方言的手段。
 
 HTML selector 相对当前列表 Item 或详情文档执行，并以 `::text`、`::html` 或 `::attr(name)` 明确取值。JSONPath 相对当前 JSON Item 或响应执行。必填字段不得使用 `onError=null`；列表阶段和详情阶段的必填字段都参与 Item 质量终结。
 
@@ -69,7 +72,7 @@ HTML selector 相对当前列表 Item 或详情文档执行，并以 `::text`、
 4. 平台规范化有限别名，验证 Schema、selector 命中、必填字段、详情交接、allowedHosts、分页、身份、指纹和兼容绑定。
 5. 合法计划转换为 GatherSpec，保存 provider、model、promptVersion、RulePlan Artifact 与样本证据，进入人工审核。
 
-网页文本始终是不可信数据。模型不得输出 JavaScript、XPath、正则程序、凭据、请求 Header、安全边界、Sink、签名或可执行网络指令。
+网页文本始终是不可信数据。模型不得输出 JavaScript、XPath、任意可执行程序、凭据、请求 Header、安全边界、Sink、签名或可执行网络指令；正则只允许以上述受约束的 `regex_extract` transform 形态出现，且必须落在 RE2 兼容子集内。
 
 ## 9. v1 支持边界
 
