@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Bot, Check, ChevronDown, CircleAlert, Eye, EyeOff, KeyRound, MoreHorizontal, Pencil, Plus, Power, Star, Trash2, Users } from 'lucide-react'
+import { Bot, Check, ChevronDown, CircleAlert, Eye, EyeOff, KeyRound, MoreHorizontal, Pencil, Plus, Power, ShieldCheck, Star, Trash2, Users } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ApiRequestError, api } from '@/api/client'
@@ -25,6 +25,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 
 type ProviderOption = { key: string; value: ModelProvider; labelKey: string; baseUrl: string }
 
@@ -273,6 +274,8 @@ export function ModelSettingsPage() {
       {!query.isLoading && configuration.providers.length === 0 && <div className="settings-empty"><Bot /><strong>{t('provider.emptyTitle')}</strong><Button onClick={() => openProvider()}><Plus />{t('provider.add')}</Button></div>}
     </div>
 
+    {currentUser.role === 'administrator' && <CollectionPolicySection />}
+
     {currentUser.role === 'administrator' && <UsersSection currentUserId={currentUser.id} />}
 
     <Dialog open={providerDraft !== null} onOpenChange={(open) => { if (!open && !mutation.isPending) setProviderDraft(null) }}>
@@ -326,6 +329,45 @@ export function ModelSettingsPage() {
       </DialogContent>
     </Dialog>
   </div>
+}
+
+function CollectionPolicySection() {
+  const { t } = useTranslation('settings')
+  const queryClient = useQueryClient()
+  const query = useQuery({ queryKey: ['platform-settings'], queryFn: api.platformSettings })
+  const settings = query.data
+
+  const mutation = useMutation({
+    mutationFn: api.updatePlatformSettings,
+    onSuccess: (value) => queryClient.setQueryData(['platform-settings'], value),
+  })
+
+  function actionError(reason: unknown) {
+    if (reason instanceof ApiRequestError) return t(`collectionPolicy.errors.${reason.code}`, { defaultValue: reason.message })
+    return reason instanceof Error ? reason.message : t('common:state.error')
+  }
+
+  return <section className="settings-collection-policy" aria-label={t('collectionPolicy.listAria')}>
+    <header className="settings-collection-policy-header">
+      <div>
+        <h2><ShieldCheck aria-hidden="true" />{t('collectionPolicy.title')}</h2>
+        <p>{t('collectionPolicy.description')}</p>
+      </div>
+    </header>
+
+    {query.isError && <Alert variant="destructive"><AlertDescription>{query.error.message}</AlertDescription></Alert>}
+    {mutation.error && <Alert variant="destructive"><AlertDescription>{actionError(mutation.error)}</AlertDescription></Alert>}
+
+    {settings && <div className="settings-collection-policy-row">
+      <label htmlFor="collection-policy-anonymous-http">{t('collectionPolicy.allowAnonymousHttp')}</label>
+      <Switch
+        id="collection-policy-anonymous-http"
+        checked={settings.allowAnonymousHttp}
+        disabled={mutation.isPending}
+        onCheckedChange={(allowed) => mutation.mutate({ allowAnonymousHttp: allowed })}
+      />
+    </div>}
+  </section>
 }
 
 const USER_ROLE_OPTIONS: UserRole[] = ['administrator', 'engineer', 'reviewer', 'viewer']

@@ -132,6 +132,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/settings/platform": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Returns platform collection policy settings. Available to any authenticated role. */
+        get: operations["getPlatformSettings"];
+        /** @description Updates platform collection policy settings. Administrators only; other roles receive FORBIDDEN. When allowAnonymousHttp is true (default), collector creation accepts anonymous http:// entry URLs; when false, http:// sources are rejected with HTTPS_REQUIRED unless localhost. Credential-bearing sources always require HTTPS regardless of this setting. Existing collectors are unaffected. */
+        put: operations["updatePlatformSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/collectors": {
         parameters: {
             query?: never;
@@ -703,6 +721,17 @@ export interface components {
             model: string;
             secretRef: string;
             secretConfigured: boolean;
+            /** Format: date-time */
+            updatedAt: string | null;
+        };
+        PlatformSettingsInput: {
+            /** @description When true (default), collector creation accepts anonymous http:// entry URLs. When false, http:// sources are rejected with HTTPS_REQUIRED unless localhost. Credential-bearing sources always require HTTPS. */
+            allowAnonymousHttp: boolean;
+        };
+        PlatformSettings: {
+            allowAnonymousHttp: boolean;
+            /** @description Account that last changed a platform setting; null while the seeded default is unchanged. */
+            updatedBy: string | null;
             /** Format: date-time */
             updatedAt: string | null;
         };
@@ -2115,6 +2144,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModelSetting"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    getPlatformSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Platform settings without secret material. */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformSettings"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    updatePlatformSettings: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description Platform settings saved. */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformSettings"];
                 };
             };
             default: components["responses"]["PlatformError"];

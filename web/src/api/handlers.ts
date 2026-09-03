@@ -20,6 +20,8 @@ import type {
   ModelSettingInput,
   Operation,
   PlatformError,
+  PlatformSettings,
+  PlatformSettingsInput,
   Run,
   Sink,
   SinkInput,
@@ -155,6 +157,24 @@ function readMockModelSetting(): ModelSetting {
 }
 
 let modelSetting = readMockModelSetting()
+
+const defaultPlatformSettings: PlatformSettings = {
+  allowAnonymousHttp: true,
+  updatedBy: null,
+  updatedAt: null,
+}
+const platformSettingsStorageKey = 'extrio.mock.platform-settings.v1'
+
+function readMockPlatformSettings(): PlatformSettings {
+  if (typeof localStorage === 'undefined') return defaultPlatformSettings
+  try {
+    return { ...defaultPlatformSettings, ...JSON.parse(localStorage.getItem(platformSettingsStorageKey) ?? '{}') as PlatformSettings }
+  } catch {
+    return defaultPlatformSettings
+  }
+}
+
+let platformSettings = readMockPlatformSettings()
 
 const defaultModelConfiguration: ModelConfiguration = {
   providers: [{
@@ -636,6 +656,21 @@ export const handlers = [
     modelSetting = { ...input, secretConfigured: false, updatedAt: new Date().toISOString() }
     if (typeof localStorage !== 'undefined') localStorage.setItem(modelSettingStorageKey, JSON.stringify(modelSetting))
     return successResponse(modelSetting)
+  }),
+  http.get('*/api/v1/settings/platform', () => successResponse(platformSettings)),
+  http.put('*/api/v1/settings/platform', async ({ request }) => {
+    if (!requireIdempotency(request)) return errorResponse('IDEMPOTENCY_KEY_REQUIRED', '缺少 Idempotency-Key', 400)
+    const input = await request.json() as PlatformSettingsInput
+    if (typeof input.allowAnonymousHttp !== 'boolean') {
+      return errorResponse('VALIDATION_FAILED', 'allowAnonymousHttp 必须是布尔值', 422)
+    }
+    platformSettings = {
+      allowAnonymousHttp: input.allowAnonymousHttp,
+      updatedBy: mockAuthUser.username,
+      updatedAt: new Date().toISOString(),
+    }
+    if (typeof localStorage !== 'undefined') localStorage.setItem(platformSettingsStorageKey, JSON.stringify(platformSettings))
+    return successResponse(platformSettings)
   }),
   http.get('*/api/v1/collectors', () => successResponse(page(collectors))),
   http.get('*/api/v1/collectors/:id', ({ params }) => {

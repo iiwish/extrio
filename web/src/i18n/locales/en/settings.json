@@ -139,5 +139,14 @@
       "USER_NOT_FOUND": "User not found",
       "FORBIDDEN": "Your role is not allowed to perform this action"
     }
+  },
+  "collectionPolicy": {
+    "title": "Collection policy",
+    "description": "Allow creating anonymous collection sources that start with http://. When off, only https:// sources are accepted; credential-bearing sources always require HTTPS. Administrators only.",
+    "listAria": "Collection policy",
+    "allowAnonymousHttp": "Allow anonymous HTTP sources",
+    "errors": {
+      "FORBIDDEN": "Your role is not allowed to perform this action"
+    }
   }
 }

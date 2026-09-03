@@ -31,6 +31,8 @@ import type {
   ModelSettingInput,
   Operation,
   PlatformError,
+  PlatformSettings,
+  PlatformSettingsInput,
   RepairInput,
   Run,
   RunPage,
@@ -251,6 +253,9 @@ export const api = {
   modelSetting: () => request<ModelSetting>('/settings/model'),
   updateModelSetting: (input: ModelSettingInput) =>
     command<ModelSetting>('/settings/model', { method: 'PUT', body: JSON.stringify(input) }),
+  platformSettings: () => request<PlatformSettings>('/settings/platform'),
+  updatePlatformSettings: (input: PlatformSettingsInput) =>
+    command<PlatformSettings>('/settings/platform', { method: 'PUT', body: JSON.stringify(input) }),
   collectors: () => request<CollectorPage>('/collectors').then((result) => result.items),
   collector: (id: string) => request<CollectorDetail>(`/collectors/${id}`),
   createCollector: (input: CreateCollectorInput) =>

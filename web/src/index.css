@@ -7915,6 +7915,64 @@
   text-align: center;
 }
 
+.settings-collection-policy {
+  overflow: hidden;
+  border: 1px solid #dce3e5;
+  border-radius: 7px;
+  background: #fff;
+}
+
+.settings-collection-policy-header {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 10px;
+  background: #f8fafb;
+}
+
+.settings-collection-policy-header h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #172126;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.settings-collection-policy-header h2 svg {
+  width: 14px;
+  height: 14px;
+  color: #2557d6;
+}
+
+.settings-collection-policy-header p {
+  max-width: 640px;
+  margin-top: 2px;
+  color: #7a878d;
+  font-size: 10px;
+}
+
+.settings-collection-policy-row {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 10px;
+  border-top: 1px solid #e3e8ea;
+}
+
+.settings-collection-policy-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #172126;
+  font-size: 11px;
+  cursor: pointer;
+}
+
 @media (max-width: 1199px) {
   .workbench-layout {
     display: block;

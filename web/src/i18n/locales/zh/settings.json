@@ -138,5 +138,14 @@
       "USER_NOT_FOUND": "用户不存在",
       "FORBIDDEN": "当前角色无权执行该操作"
     }
+  },
+  "collectionPolicy": {
+    "title": "采集策略",
+    "description": "允许创建以 http:// 开头的匿名采集来源。关闭后仅接受 https:// 来源；带凭据的来源始终要求 HTTPS。仅管理员可修改。",
+    "listAria": "采集策略",
+    "allowAnonymousHttp": "允许匿名 HTTP 来源",
+    "errors": {
+      "FORBIDDEN": "当前角色无权执行该操作"
+    }
   }
 }
