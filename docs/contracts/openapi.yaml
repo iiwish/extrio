@@ -348,6 +348,94 @@ paths:
                 $ref: '#/components/schemas/Operation'
         default:
           $ref: '#/components/responses/PlatformError'
+  /collectors/{collectorId}/repairs:
+    post:
+      operationId: startCollectorRepair
+      description: >-
+        Starts an AI rule repair for a Collector whose published or candidate rule no longer matches the source website.
+        The worker re-explores the source, recompiles the rule from the old GatherSpec plus fresh page snapshots while
+        preserving the frozen output contract (identityFields, fingerprintFields, normalizedItemSchema, fieldBindings,
+        quality, tombstonePolicy) byte-for-byte, and the repaired candidate re-enters the standard human review and
+        publication pipeline. Fails with REPAIR_NOT_APPLICABLE when the Collector has no repairable rule and with
+        OPERATION_ALREADY_ACTIVE when another asynchronous task is running.
+      parameters:
+        - $ref: '#/components/parameters/CollectorId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RepairInput'
+      responses:
+        '202':
+          description: Repair accepted for asynchronous execution; the AI run is recorded with kind rule_repair.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+            Location:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Operation'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /collectors/{collectorId}/evidence-bundle:
+    get:
+      operationId: exportCollectorEvidenceBundle
+      summary: Download the signed evidence bundle (ZIP) for one collector.
+      description: >-
+        Streams a deterministic, verifiable extrio.evidence.v1 ZIP archive proving what the collector
+        gathered, under which attested rule, with what lineage. The optional since/until bounds are inclusive
+        ISO-8601 filters on run creation time and item observedAt; ruleVersionId scopes the bundle to a single
+        rule version. Available to any authenticated role (read surface, like the items export). Fails with
+        EVIDENCE_BUNDLE_ERROR when the bundle cannot be built, for example an unknown rule version.
+      parameters:
+        - $ref: '#/components/parameters/CollectorId'
+        - name: since
+          in: query
+          required: false
+          description: Inclusive ISO-8601 lower bound on run createdAt and item observedAt.
+          schema:
+            type: string
+            format: date-time
+        - name: until
+          in: query
+          required: false
+          description: Inclusive ISO-8601 upper bound on run createdAt and item observedAt.
+          schema:
+            type: string
+            format: date-time
+        - name: ruleVersionId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Signed evidence bundle ZIP archive (extrio.evidence.v1).
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+            Content-Disposition:
+              description: Always 'attachment; filename="extrio-evidence-{collectorId}.zip"'.
+              schema:
+                type: string
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: The bundle cannot be built (EVIDENCE_BUNDLE_ERROR).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformError'
+        default:
+          $ref: '#/components/responses/PlatformError'
   /collectors/{collectorId}/collection-policy:
     post:
       operationId: createCollectionPolicyVersion
@@ -1328,6 +1416,7 @@ components:
         - IDEMPOTENCY_KEY_REQUIRED
         - IDEMPOTENCY_KEY_REUSED
         - OPERATION_ALREADY_ACTIVE
+        - REPAIR_NOT_APPLICABLE
         - RUN_ALREADY_ACTIVE
         - RULE_NOT_PUBLISHED
         - CANDIDATE_RULE_NOT_FOUND
@@ -1338,6 +1427,7 @@ components:
         - OPERATION_TIMED_OUT
         - INVALID_CURSOR
         - EXPORT_TOO_LARGE
+        - EVIDENCE_BUNDLE_ERROR
         - SINK_NOT_FOUND
         - USER_NOT_FOUND
         - USERNAME_TAKEN
@@ -1629,6 +1719,9 @@ components:
           type: [string, 'null']
         publishedRuleVersionId:
           type: [string, 'null']
+        note:
+          type: [string, 'null']
+          description: Optional reason recorded when the run was triggered as a repair.
         createdAt:
           type: string
           format: date-time
@@ -1906,6 +1999,14 @@ components:
         intent:
           type: string
           minLength: 1
+    RepairInput:
+      type: object
+      additionalProperties: false
+      properties:
+        note:
+          type: string
+          maxLength: 500
+          description: Optional reason for the repair, stored on the rule_repair AI run for the AI task history.
     CandidateRuleEditInput:
       type: object
       additionalProperties: false

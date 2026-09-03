@@ -40,6 +40,7 @@ from extrio.config import get_settings
 from extrio.contracts import ContractBundle
 from extrio.credentials import CredentialCipher
 from extrio.demo import router as demo_router
+from extrio.evidence import EvidenceBundleError, build_evidence_bundle
 from extrio.harvest import discover_records_from_spec, make_item
 from extrio.integrity import (
     IntegrityError,
@@ -1511,6 +1512,103 @@ def _start_exploration(collector_id: str, request: Request, response: Response, 
     response.headers["Location"] = operation["statusUrl"]
     remember(scope, idempotency_key, body, 202, operation)
     return operation
+
+
+@app.post("/api/v1/collectors/{collector_id}/repairs", status_code=202, dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
+async def start_repair(
+    collector_id: str,
+    request: Request,
+    response: Response,
+    idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
+):
+    if error := require_idempotency(request, idempotency_key):
+        return error
+    body: dict[str, Any] = {}
+    if (await request.body()).strip():
+        body, body_error = await read_contract_body(request, required=set(), optional={"note"})
+        if body_error:
+            return body_error
+    with mutation_lock:
+        return _start_repair(collector_id, request, response, idempotency_key, body)
+
+
+def _start_repair(
+    collector_id: str,
+    request: Request,
+    response: Response,
+    idempotency_key: str | None,
+    body: dict[str, Any],
+):
+    note = str(body.get("note") or "").strip()[:500] or None
+    replay_body = {"collectorId": collector_id, "note": note}
+    scope = f"POST:/collectors/{collector_id}/repairs"
+    if found := replay(scope, idempotency_key, replay_body, request):
+        return found
+    collector = store.get_collector(collector_id)
+    if not collector:
+        return platform_error(request, "COLLECTOR_NOT_FOUND", "Collector 不存在", 404)
+    if not (collector.get("candidate") or {}).get("gatherSpec"):
+        return platform_error(request, "REPAIR_NOT_APPLICABLE", "Collector 尚无可修复的规则，请先完成探索并发布或生成候选规则", 409)
+    if collector["activeOperationId"]:
+        active = store.get_operation(collector["activeOperationId"])
+        if active and active["status"] not in TERMINAL:
+            return platform_error(request, "OPERATION_ALREADY_ACTIVE", "Collector 已有进行中的异步任务", 409)
+    ai_run_id = stable_id("ai_run", uuid.uuid4().hex, 32)
+    ai_run = {
+        "id": ai_run_id,
+        "collectorId": collector_id,
+        "collectorName": collector["name"],
+        "sourceUrl": collector["sourceUrl"],
+        "kind": "rule_repair",
+        "trigger": "repair",
+        "initiatedBy": request.state.auth_user["id"] if request.state.auth_user else "system",
+    }
+    if note:
+        ai_run["note"] = note
+    operation = store.create_async_command(
+        kind="explore",
+        collector_id=collector_id,
+        resource_type="collector",
+        resource_id=collector_id,
+        job_payload={"collectorId": collector_id, "previousStatus": collector["status"], "aiRunId": ai_run_id, "repair": True},
+        collector_changes={"status": "exploring", "updatedAt": "刚刚"},
+        ai_run=ai_run,
+    )
+    response.headers["Location"] = operation["statusUrl"]
+    remember(scope, idempotency_key, replay_body, 202, operation)
+    return operation
+
+
+@app.get("/api/v1/collectors/{collector_id}/evidence-bundle")
+def download_evidence_bundle(
+    collector_id: str,
+    request: Request,
+    since: str | None = Query(None),
+    until: str | None = Query(None),
+    rule_version_id: str | None = Query(None, alias="ruleVersionId"),
+):
+    # Read endpoint for any authenticated role (mirrors items/export): intentionally no require_roles.
+    if store.get_collector(collector_id) is None:
+        return platform_error(request, "COLLECTOR_NOT_FOUND", "Collector 不存在", 404)
+    try:
+        zip_bytes = build_evidence_bundle(
+            store,
+            collector_id=collector_id,
+            rule_version_id=rule_version_id,
+            since=since,
+            until=until,
+            signer=rule_signer,
+            cipher=credential_cipher,
+        )
+    except (EvidenceBundleError, ValueError) as exc:
+        # EvidenceBundleError subclasses ValueError; the rule-scope mismatch in the
+        # evidence library also raises a plain ValueError and maps to the same code.
+        return platform_error(request, "EVIDENCE_BUNDLE_ERROR", str(exc), 400)
+    return Response(
+        content=zip_bytes,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="extrio-evidence-{collector_id}.zip"'},
+    )
 
 
 @app.get("/api/v1/operations/{operation_id}")
