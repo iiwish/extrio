@@ -4,6 +4,19 @@ All notable changes to Extrio are documented in this file. The project follows
 [Semantic Versioning](https://semver.org/) and keeps pending work under
 `Unreleased`.
 
+## 0.3.0 - 2026-09-03
+
+- Add the data output loop: per-collector Webhook sinks with HMAC-SHA256
+  signing, exponential-backoff retries, dead-letter handling, manual redelivery,
+  and n8n-friendly flat payloads.
+- Add CSV/JSONL export with URL-synced filters and cursor-paginated items API.
+- Add PostgreSQL as a first-class production storage backend with dialect-aware
+  SQL, versioned schema migrations, backup/restore CLI, and a compose PG profile
+  (SQLite remains the zero-config development profile).
+- Ship demo seed data by default on fresh installations and document the
+  GatherSpec rule format with an authoring guide, RE2 `regex_extract`
+  transforms, and rule field labels.
+
 ## 0.2.0 - 2026-09-02
 
 - Add bilingual console support (Chinese/English): i18next-based localization

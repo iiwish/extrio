@@ -3,7 +3,7 @@
   "docsetVersion": "v0.39.0",
   "productVersion": "v0.2",
   "status": "Ready_For_User_Review",
-  "generatedAt": "2026-09-03T02:36:16.854Z",
+  "generatedAt": "2026-09-03T04:58:14.411Z",
   "repositoryState": {
     "kind": "git_repository",
     "defaultBranch": "main"
@@ -12,12 +12,12 @@
     {
       "path": "docs/SSOT.md",
       "version": "v0.39.0",
-      "sha256": "14d0019af06c6108005d9dff9e2b9571afb9add31998e7a43750a94a12392760"
+      "sha256": "1cb5d515d95cff413eaa4dc3c017751445f1d4e24a1f28f7675a3c25f1fc5c50"
     },
     {
       "path": "docs/product-contract.md",
       "version": "v0.39.0",
-      "sha256": "aeda49bb3eabdd2a8a492912567eede79f3ee2c0ad23e0c9d0f119753d6f704f"
+      "sha256": "1fe9bc995009fc255f0f67f872b7a62db8dfa8ca0a263f9ab9b0a674abc32bc4"
     },
     {
       "path": "docs/domain-model.md",
@@ -27,17 +27,17 @@
     {
       "path": "docs/contracts/gather-spec.md",
       "version": "v1.5.0",
-      "sha256": "0a509c3875e985aa3d069a219a39279f17804c4d725ab40669062ddc0cdcd3a5"
+      "sha256": "f42fef1862b76a5eede4adb1836cbf83131d6922a2b9646e0f2d3a4a1e872473"
     },
     {
       "path": "docs/contracts/gather-spec.schema.json",
       "version": "extrio.gather.v1",
-      "sha256": "c4a497cb6eade004a2c1aff55ba956bb1ea90fbb3108fabe48afe269b2b481be"
+      "sha256": "86baabe552b22891bc55274af96b874665a4ef23a32e256d77b36c3fdbb4f7da"
     },
     {
       "path": "docs/contracts/extraction-semantics.md",
       "version": "v1.1.1",
-      "sha256": "e19c2bea109e11cd2865dcfb02c94f0e56221fe9c835d9ed1343b2cf04891ad7"
+      "sha256": "108b6ce2b6ddde1edd73839f31d273cc7855c913e1388910fcd5c2cf7b6ef97a"
     },
     {
       "path": "docs/contracts/rule-attestation.md",
@@ -92,7 +92,7 @@
     {
       "path": "docs/contracts/openapi.yaml",
       "version": "extrio.control-plane.v1",
-      "sha256": "fc3da4aeede09a7ada8dde63d7a8c621bbc9df7ec122e1485b20ef2b1fc235b6"
+      "sha256": "f6a206f5030bc7144b61117700b0ca297c75f94af8d25ba73dd310b041cdec84"
     },
     {
       "path": "docs/contracts/api-contract.md",
@@ -132,7 +132,7 @@
     {
       "path": "docs/frontend-prototype.md",
       "version": "v1.33.0",
-      "sha256": "189a6bf0d6f54d0a0f3c30b31c0403ba0169279ec1a1c5c71fe0a66e0a1a9b3b"
+      "sha256": "5ec63d090f996aa9a20447b41cc814840f792edc0ebdfa37e2e546b9ec13e113"
     },
     {
       "path": "docs/backend-vertical-slice.md",
@@ -159,7 +159,7 @@
     {
       "path": "docs/contracts/gather-spec.example.json",
       "version": "extrio.gather.v1",
-      "sha256": "2527a255f851140f33b415dd46985233eaa5ab5da911e625ebbc580169405f30"
+      "sha256": "dfd4d42654e0cfffb3636d94fb52fe77f873d45572addf57982d26980b78d5c0"
     },
     {
       "path": "docs/contracts/rule-attestation.example.json",
