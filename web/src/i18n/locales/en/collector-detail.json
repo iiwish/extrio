@@ -433,5 +433,22 @@
   },
   "sample": {
     "publishedObserved": "Published {{publishedAt}} · observed {{observedAt}}"
+  },
+  "repair": {
+    "action": "AI repair rule",
+    "actionAria": "Start AI rule repair",
+    "dialogTitle": "Start AI rule repair?",
+    "dialogDescription": "AI will re-explore the site and generate a repair candidate rule. The repair preserves the original data contract (output fields and quality gates unchanged) and must pass human review before it can be published.",
+    "noteLabel": "Repair reason (optional)",
+    "notePlaceholder": "e.g. the site was redesigned and the list selector broke",
+    "notApplicable": "This collector has no repairable rule",
+    "confirm": "Start repair",
+    "repairing": "Starting repair"
+  },
+  "evidence": {
+    "export": "Export evidence bundle",
+    "exporting": "Exporting",
+    "exportAria": "Export the signed evidence bundle (ZIP) for this collector",
+    "bundleError": "The evidence bundle could not be built. Adjust the scope and try again."
   }
 }

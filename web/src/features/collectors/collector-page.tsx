@@ -9,6 +9,7 @@ import {
   ChevronRight,
   CircleAlert,
   ClipboardCheck,
+  Download,
   Eye,
   EyeOff,
   FileSearch,
@@ -36,13 +37,14 @@ import {
   Trash2,
   WandSparkles,
   Webhook,
+  Wrench,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom'
-import { ApiRequestError, api, waitForOperation } from '@/api/client'
-import type { AiRun, CandidateField, CandidateRule, CandidateRuleEditInput, CollectionPolicy, CollectionPolicyInput, CollectorDetail, CollectorSchedule, CollectorScheduleInput, DeliveryStatus, DeliverySummary, FieldReviewDecision, HarvestItem, Operation, Sink, SinkInput, SinkUpdateInput, UpdateCollectorInput } from '@/api/types'
+import { ApiRequestError, api, downloadEvidenceBundle, waitForOperation } from '@/api/client'
+import type { AiRun, CandidateField, CandidateRule, CandidateRuleEditInput, CollectionPolicy, CollectionPolicyInput, CollectorDetail, CollectorSchedule, CollectorScheduleInput, DeliveryStatus, DeliverySummary, FieldReviewDecision, HarvestItem, Operation, RepairInput, Sink, SinkInput, SinkUpdateInput, UpdateCollectorInput } from '@/api/types'
 import { useAuth } from '@/features/auth/auth-gate'
 import { EvidenceRail } from '@/components/evidence-rail'
 import { StatusBadge } from '@/components/status-badge'
@@ -123,6 +125,31 @@ export function CollectorPage() {
       queryClient.invalidateQueries({ queryKey: ['ai-runs'] })
     },
   })
+  const repair = useMutation({
+    mutationFn: async (input: RepairInput) => {
+      const accepted = await api.startRepair(collectorId, input)
+      const completed = await waitForOperation(accepted, setActiveOperation)
+      return api.collector(completed.resourceId)
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(['collector', collectorId], data)
+      queryClient.invalidateQueries({ queryKey: ['collectors'] })
+      queryClient.invalidateQueries({ queryKey: ['ai-runs'] })
+    },
+  })
+  const exportEvidence = useMutation({
+    mutationFn: () => downloadEvidenceBundle(collectorId),
+    onSuccess: (blob) => {
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = `extrio-evidence-${collectorId}.zip`
+      document.body.append(anchor)
+      anchor.click()
+      anchor.remove()
+      URL.revokeObjectURL(url)
+    },
+  })
   const publish = useMutation({
     mutationFn: () => api.publish(collectorId, reviewDecisions),
     onSuccess: (data) => {
@@ -187,7 +214,7 @@ export function CollectorPage() {
 
   useEffect(() => {
     const operationId = query.data?.activeOperationId
-    if (!operationId || explore.isPending || run.isPending) return
+    if (!operationId || explore.isPending || repair.isPending || run.isPending) return
     const controller = new AbortController()
     api.operation(operationId)
       .then((operation) => waitForOperation(operation, setActiveOperation, controller.signal))
@@ -213,7 +240,7 @@ export function CollectorPage() {
         if (error.name !== 'AbortError') setOperationError(error)
       })
     return () => controller.abort()
-  }, [collectorId, explore.isPending, query.data?.activeOperationId, queryClient, run.isPending])
+  }, [collectorId, explore.isPending, query.data?.activeOperationId, queryClient, repair.isPending, run.isPending])
 
   if (query.isLoading) return <CollectorSkeleton />
   const collector = query.data
@@ -223,6 +250,12 @@ export function CollectorPage() {
     setActiveOperation(undefined)
     setOperationError(undefined)
     await explore.mutateAsync()
+  }
+
+  async function startRepair(input: RepairInput) {
+    setActiveOperation(undefined)
+    setOperationError(undefined)
+    await repair.mutateAsync(input)
   }
 
   function startRun() {
@@ -237,6 +270,13 @@ export function CollectorPage() {
   const runPending = run.isPending || persistedRunPending
   const hasPendingDecision = candidate?.fields.some((field) => (reviewDecisions[field.key] ?? 'pending') === 'pending') ?? true
   const pendingDecisionCount = candidate?.fields.filter((field) => (reviewDecisions[field.key] ?? 'pending') === 'pending').length ?? 0
+  const repairable = Boolean(collector.candidate?.gatherSpec || collector.activeRuleVersion)
+  const repairErrorMessage = repair.error instanceof ApiRequestError && repair.error.code === 'REPAIR_NOT_APPLICABLE'
+    ? t('repair.notApplicable')
+    : repair.error?.message
+  const evidenceErrorMessage = exportEvidence.error instanceof ApiRequestError && exportEvidence.error.code === 'EVIDENCE_BUNDLE_ERROR'
+    ? t('evidence.bundleError')
+    : exportEvidence.error?.message
 
   function openFieldEvidence(field: CandidateField) {
     evidenceTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
@@ -263,7 +303,7 @@ export function CollectorPage() {
         <header className="object-header">
           <div className="object-title">
             <span className="source-icon large"><Globe2 /></span>
-            <div><div className="title-line"><h1>{collectorDisplayName(collector.name)}</h1><StatusBadge status={collector.status} /></div><p className="object-subtitle"><Link className="collection-context-link" to={`/collectors?collection=${encodeURIComponent(collector.collectionId)}`}><Layers3 />{collector.collectionName}</Link><span className="collector-phase">{t('header.currentPhase')}<strong>{t(collectorPhaseLabel(collector.status, explore.isPending, runPending))}</strong></span></p></div>
+            <div><div className="title-line"><h1>{collectorDisplayName(collector.name)}</h1><StatusBadge status={collector.status} /></div><p className="object-subtitle"><Link className="collection-context-link" to={`/collectors?collection=${encodeURIComponent(collector.collectionId)}`}><Layers3 />{collector.collectionName}</Link><span className="collector-phase">{t('header.currentPhase')}<strong>{t(collectorPhaseLabel(collector.status, explore.isPending || repair.isPending, runPending))}</strong></span></p></div>
           </div>
           <div className="object-actions">
             {collector.status === 'draft' && <Button size="lg" onClick={() => { void startExploration().catch(() => undefined) }} disabled={explore.isPending}>{explore.isPending ? <><LoaderCircle className="animate-spin" />{t('header.exploringNow')}</> : <><Rocket />{t('header.generateCandidates')}</>}</Button>}
@@ -279,12 +319,14 @@ export function CollectorPage() {
               />
             )}
             {collector.status === 'published' && <Button size="lg" onClick={startRun} disabled={runPending || explore.isPending}>{runPending ? <><LoaderCircle className="animate-spin" />{t('header.runningNow')}</> : <><Play />{t('header.runNow')}</>}</Button>}
+            {repairable && <RepairRuleDialog disabled={explore.isPending || repair.isPending || runPending || Boolean(collector.activeOperationId)} pending={repair.isPending} onRepair={(input) => startRepair(input)} />}
+            <EvidenceExportButton pending={exportEvidence.isPending} onExport={() => exportEvidence.mutate()} />
           </div>
         </header>
 
-        {(explore.isPending || collector.status === 'exploring') && <ExplorationProgress operation={activeOperation} singleStage={isSingleStageSource(collector.sourceUrl)} />}
+        {(explore.isPending || repair.isPending || collector.status === 'exploring') && <ExplorationProgress operation={activeOperation} singleStage={isSingleStageSource(collector.sourceUrl)} />}
         {runPending && <RunProgress operation={activeOperation} />}
-        {(explore.error || publish.error || savePolicy.error || saveSchedule.error || updateDefinition.error || editCandidate.error || run.error || operationError) && <Alert variant="destructive" className="mt-5"><AlertTitle>{t('header.operationIncomplete')}</AlertTitle><AlertDescription>{explore.error?.message ?? publish.error?.message ?? savePolicy.error?.message ?? saveSchedule.error?.message ?? updateDefinition.error?.message ?? editCandidate.error?.message ?? run.error?.message ?? operationError?.message}</AlertDescription></Alert>}
+        {(explore.error || repair.error || exportEvidence.error || publish.error || savePolicy.error || saveSchedule.error || updateDefinition.error || editCandidate.error || run.error || operationError) && <Alert variant="destructive" className="mt-5"><AlertTitle>{t('header.operationIncomplete')}</AlertTitle><AlertDescription>{repairErrorMessage ?? evidenceErrorMessage ?? explore.error?.message ?? publish.error?.message ?? savePolicy.error?.message ?? saveSchedule.error?.message ?? updateDefinition.error?.message ?? editCandidate.error?.message ?? run.error?.message ?? operationError?.message}</AlertDescription></Alert>}
 
         <Tabs key={`${collector.id}:${collector.status}`} defaultValue={defaultCollectorTab(collector.status)} className="collector-workspace-tabs">
           <div className="collector-workspace-nav">
@@ -604,6 +646,49 @@ function RegenerateRuleDialog({ disabled, pending, hasCandidate, onRegenerate }:
   }
   if (!hasCandidate) return <Button onClick={() => void submit()} disabled={disabled}>{pending ? <LoaderCircle className="animate-spin" /> : <WandSparkles />}{pending ? t('config.action.generating') : t('header.generateCandidates')}</Button>
   return <Dialog open={open} onOpenChange={setOpen}><DialogTrigger asChild><Button variant="outline" disabled={disabled}><RefreshCw />{t('config.action.regenerate')}</Button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>{t('config.regenerate.dialogTitle')}</DialogTitle><DialogDescription>{t('config.regenerate.dialogDescription')}</DialogDescription></DialogHeader><DialogFooter><Button variant="ghost" onClick={() => setOpen(false)} disabled={pending}>{t('common:action.cancel')}</Button><Button onClick={() => void submit()} disabled={pending}>{pending ? <LoaderCircle className="animate-spin" /> : <WandSparkles />}{pending ? t('config.action.generating') : t('config.regenerate.confirm')}</Button></DialogFooter></DialogContent></Dialog>
+}
+
+function RepairRuleDialog({ disabled, pending, onRepair }: { disabled: boolean; pending: boolean; onRepair: (input: RepairInput) => Promise<void> }) {
+  const { t } = useTranslation('collectorDetail')
+  const [open, setOpen] = useState(false)
+  const [note, setNote] = useState('')
+  async function submit() {
+    try {
+      await onRepair({ note: note.trim() || undefined })
+      setOpen(false)
+    } catch {
+      setOpen(false)
+      return
+    }
+  }
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild><Button variant="outline" size="lg" disabled={disabled} aria-label={t('repair.actionAria')}><Wrench />{t('repair.action')}</Button></DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t('repair.dialogTitle')}</DialogTitle>
+          <DialogDescription>{t('repair.dialogDescription')}</DialogDescription>
+        </DialogHeader>
+        <label className="definition-form">
+          <span>{t('repair.noteLabel')}</span>
+          <Textarea rows={3} maxLength={500} value={note} onChange={(event) => setNote(event.target.value)} placeholder={t('repair.notePlaceholder')} />
+        </label>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => setOpen(false)} disabled={pending}>{t('common:action.cancel')}</Button>
+          <Button onClick={() => void submit()} disabled={pending}>{pending ? <LoaderCircle className="animate-spin" /> : <Wrench />}{pending ? t('repair.repairing') : t('repair.confirm')}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function EvidenceExportButton({ pending, onExport }: { pending: boolean; onExport: () => void }) {
+  const { t } = useTranslation('collectorDetail')
+  return (
+    <Button variant="outline" size="lg" disabled={pending} aria-label={t('evidence.exportAria')} onClick={onExport}>
+      {pending ? <LoaderCircle className="animate-spin" /> : <Download />}{pending ? t('evidence.exporting') : t('evidence.export')}
+    </Button>
+  )
 }
 
 type GatherFieldRule = CandidateRule['gatherSpec']['collect']['list']['fields'][string]

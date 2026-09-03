@@ -11,6 +11,7 @@
     "typeDeepseek": "DeepSeek",
     "typeQwen": "阿里云百炼",
     "typeCustom": "OpenAI 兼容服务",
+    "typeOllama": "Ollama（本地）",
     "groupAria": "{{name}} 供应商",
     "expandModelsAria": "展开 {{name}} 的模型",
     "collapseModelsAria": "折叠 {{name}} 的模型",

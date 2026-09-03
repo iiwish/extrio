@@ -433,5 +433,22 @@
   },
   "sample": {
     "publishedObserved": "发布时间 {{publishedAt}} · 采集时间 {{observedAt}}"
+  },
+  "repair": {
+    "action": "AI 修复规则",
+    "actionAria": "启动 AI 规则修复",
+    "dialogTitle": "启动 AI 规则修复？",
+    "dialogDescription": "AI 将重新探索站点并生成修复候选规则。修复保留原数据契约（输出字段与质量门不变），必须经过人工审核后才能发布。",
+    "noteLabel": "修复原因（可选）",
+    "notePlaceholder": "例如：站点改版导致列表 selector 失效",
+    "notApplicable": "该采集器没有可修复的规则",
+    "confirm": "启动修复",
+    "repairing": "正在启动修复"
+  },
+  "evidence": {
+    "export": "导出证据包",
+    "exporting": "正在导出",
+    "exportAria": "导出该采集器的签名证据包（ZIP）",
+    "bundleError": "证据包生成失败，请调整范围后重试"
   }
 }

@@ -455,6 +455,57 @@ function advanceOperation(operation: MockOperation) {
   collector.updatedAt = '刚刚'
 }
 
+// Minimal deterministic stored-entry ZIP (single manifest member) so the mock contract
+// environment hands back a genuinely openable archive; the real bundle is signed server-side.
+const ZIP_CRC_TABLE = Array.from({ length: 256 }, (_, index) => {
+  let value = index
+  for (let bit = 0; bit < 8; bit += 1) value = value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1
+  return value >>> 0
+})
+
+function zipCrc32(content: Uint8Array): number {
+  let crc = 0xffffffff
+  for (const byte of content) crc = ZIP_CRC_TABLE[(crc ^ byte) & 0xff] ^ (crc >>> 8)
+  return (crc ^ 0xffffffff) >>> 0
+}
+
+function mockEvidenceBundleZip(collectorId: string): Uint8Array {
+  const encoder = new TextEncoder()
+  const name = encoder.encode('manifest.json')
+  const content = encoder.encode(JSON.stringify({ bundleVersion: 'extrio.evidence.v1', collector: { id: collectorId } }, null, 2))
+  const crc = zipCrc32(content)
+  const record = (view: DataView) => {
+    view.setUint16(0, 20, true)
+    view.setUint16(8, 0, true)
+    view.setUint32(14, crc, true)
+    view.setUint32(18, content.length, true)
+    view.setUint32(22, content.length, true)
+    view.setUint16(26, name.length, true)
+  }
+  const local = new Uint8Array(30 + name.length + content.length)
+  record(new DataView(local.buffer))
+  local.set([0x50, 0x4b, 0x03, 0x04], 0)
+  local.set(name, 30)
+  local.set(content, 30 + name.length)
+  const centralOffset = local.length
+  const central = new Uint8Array(46 + name.length)
+  record(new DataView(central.buffer))
+  central.set([0x50, 0x4b, 0x01, 0x02], 0)
+  central.set(name, 46)
+  const end = new Uint8Array(22)
+  const endView = new DataView(end.buffer)
+  end.set([0x50, 0x4b, 0x05, 0x06], 0)
+  endView.setUint16(8, 1, true)
+  endView.setUint16(10, 1, true)
+  endView.setUint32(12, central.length, true)
+  endView.setUint32(16, centralOffset, true)
+  const archive = new Uint8Array(local.length + central.length + end.length)
+  archive.set(local, 0)
+  archive.set(central, local.length)
+  archive.set(end, local.length + central.length)
+  return archive
+}
+
 export const handlers = [
   http.get('*/api/v1/auth/state', () => successResponse({
     authEnabled: true,
@@ -770,6 +821,66 @@ export const handlers = [
     aiRuns.unshift(aiRun)
     collector.activeOperationId = operation.value.id
     return successResponse(operation.value, 202, { Location: operation.value.statusUrl })
+  }),
+  http.post('*/api/v1/collectors/:id/repairs', async ({ params, request }) => {
+    if (!requireIdempotency(request)) return errorResponse('IDEMPOTENCY_KEY_REQUIRED', '缺少 Idempotency-Key', 400)
+    const collector = byId(collectors, String(params.id))
+    if (!collector) return errorResponse('COLLECTOR_NOT_FOUND', 'Collector 不存在', 404)
+    if (!collector.candidate?.gatherSpec && !collector.activeRuleVersion) {
+      return errorResponse('REPAIR_NOT_APPLICABLE', 'Collector 尚无可修复的规则，请先完成探索并发布或生成候选规则', 409)
+    }
+    if (collector.activeOperationId) {
+      const active = operations.get(collector.activeOperationId)
+      if (active && !['succeeded', 'failed', 'cancelled', 'timed_out'].includes(active.value.status)) {
+        return errorResponse('OPERATION_ALREADY_ACTIVE', 'Collector 已有进行中的异步任务', 409)
+      }
+    }
+    const note = (await request.json().catch(() => null) as { note?: string } | null)?.note?.trim()
+    collector.status = 'exploring'
+    const operation = createOperation('explore', collector.id, collector.id)
+    const aiRunId = `ai_run_${crypto.randomUUID().replaceAll('-', '').slice(0, 12)}`
+    const aiRun: AiRunDetail = {
+      id: aiRunId,
+      operationId: operation.value.id,
+      collectorId: collector.id,
+      collectorName: collector.name,
+      sourceUrl: collector.sourceUrl,
+      kind: 'rule_repair',
+      trigger: 'repair',
+      initiatedBy: mockAuthUser.id,
+      status: 'queued',
+      phase: 'queued',
+      progress: 0,
+      resultStatus: 'pending',
+      reviewStatus: 'not_ready',
+      attemptCount: 0,
+      modelSummary: { invocationCount: 0, promptTokens: 0, completionTokens: 0, totalTokens: 0, estimatedCost: null },
+      validationSummary: { acceptedSamples: 0, rejectedSamples: 0, warningCount: 0 },
+      candidateRuleDigest: null,
+      publishedRuleVersionId: null,
+      createdAt: new Date().toISOString(),
+      startedAt: null,
+      finishedAt: null,
+      durationMs: null,
+      error: null,
+      attempts: [],
+    }
+    if (note) aiRun.note = note
+    aiRuns.unshift(aiRun)
+    collector.activeOperationId = operation.value.id
+    return successResponse(operation.value, 202, { Location: operation.value.statusUrl })
+  }),
+  http.get('*/api/v1/collectors/:id/evidence-bundle', ({ params }) => {
+    const collector = byId(collectors, String(params.id))
+    if (!collector) return errorResponse('COLLECTOR_NOT_FOUND', 'Collector 不存在', 404)
+    return new HttpResponse(mockEvidenceBundleZip(collector.id), {
+      status: 200,
+      headers: {
+        'X-Request-ID': requestId(),
+        'Content-Type': 'application/zip',
+        'Content-Disposition': `attachment; filename="extrio-evidence-${collector.id}.zip"`,
+      },
+    })
   }),
   http.get('*/api/v1/operations/:id', ({ params }) => {
     const operation = operations.get(String(params.id))

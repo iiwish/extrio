@@ -31,6 +31,7 @@ import type {
   ModelSettingInput,
   Operation,
   PlatformError,
+  RepairInput,
   Run,
   RunPage,
   Sink,
@@ -150,6 +151,41 @@ export async function exportItemsDownload(query: ItemsExportQuery): Promise<Blob
   return response.blob()
 }
 
+export interface EvidenceBundleQuery {
+  since?: string
+  until?: string
+  ruleVersionId?: string
+}
+
+export async function downloadEvidenceBundle(collectorId: string, query: EvidenceBundleQuery = {}): Promise<Blob> {
+  const params = new URLSearchParams()
+  for (const key of ['since', 'until', 'ruleVersionId'] as const) {
+    const value = query[key]?.trim()
+    if (value) params.set(key, value)
+  }
+  const scope = params.size > 0 ? `?${params.toString()}` : ''
+  let response: Response
+  try {
+    response = await fetch(`${API_BASE_URL}/collectors/${encodeURIComponent(collectorId)}/evidence-bundle${scope}`, {
+      credentials: 'include',
+      headers: { Accept: 'application/zip' },
+    })
+  } catch {
+    throw new ApiRequestError({
+      code: 'UNEXPECTED_RESPONSE',
+      message: i18next.t('api:error.connectionFailed'),
+      requestId: 'request_id_unavailable',
+      retryable: true,
+    })
+  }
+  if (!response.ok) {
+    if (response.status === 401) window.dispatchEvent(new Event('extrio:auth-required'))
+    const error = (await response.json().catch(() => null)) as PlatformError | null
+    throw error ? new ApiRequestError(error) : requestError(response)
+  }
+  return response.blob()
+}
+
 function idempotencyKey() {
   return crypto.randomUUID()
 }
@@ -224,6 +260,8 @@ export const api = {
   createCollectors: (input: CreateCollectorsInput) =>
     command<BatchCollectorImportResult>('/collectors/batch', { body: JSON.stringify(input) }),
   startExploration: (id: string) => command<Operation>(`/collectors/${id}/explorations`),
+  startRepair: (id: string, input: RepairInput = {}) =>
+    command<Operation>(`/collectors/${id}/repairs`, { body: JSON.stringify(input) }),
   saveCollectionPolicy: (id: string, input: CollectionPolicyInput) =>
     command<CollectorDetail>(`/collectors/${id}/collection-policy`, { body: JSON.stringify(input) }),
   updateCollectorSchedule: (id: string, input: CollectorScheduleInput) =>

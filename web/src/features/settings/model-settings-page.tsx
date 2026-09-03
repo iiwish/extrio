@@ -26,11 +26,14 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
-const providerOptions: Array<{ value: ModelProvider; labelKey: string; baseUrl: string }> = [
-  { value: 'openai', labelKey: 'provider.typeOpenai', baseUrl: 'https://api.openai.com/v1' },
-  { value: 'deepseek', labelKey: 'provider.typeDeepseek', baseUrl: 'https://api.deepseek.com/v1' },
-  { value: 'qwen', labelKey: 'provider.typeQwen', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1' },
-  { value: 'custom', labelKey: 'provider.typeCustom', baseUrl: '' },
+type ProviderOption = { key: string; value: ModelProvider; labelKey: string; baseUrl: string }
+
+const providerOptions: ProviderOption[] = [
+  { key: 'openai', value: 'openai', labelKey: 'provider.typeOpenai', baseUrl: 'https://api.openai.com/v1' },
+  { key: 'deepseek', value: 'deepseek', labelKey: 'provider.typeDeepseek', baseUrl: 'https://api.deepseek.com/v1' },
+  { key: 'qwen', value: 'qwen', labelKey: 'provider.typeQwen', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1' },
+  { key: 'custom', value: 'custom', labelKey: 'provider.typeCustom', baseUrl: '' },
+  { key: 'ollama', value: 'custom', labelKey: 'provider.typeOllama', baseUrl: 'http://127.0.0.1:11434/v1' },
 ]
 
 export function providerPreset(provider: ModelProvider) {
@@ -84,6 +87,7 @@ export function ModelSettingsPage() {
   const providers = configuration.providers.map(providerInput)
   const models = configuration.models.map(modelInput)
   const [providerDraft, setProviderDraft] = useState<ProviderDraft | null>(null)
+  const [providerOptionKey, setProviderOptionKey] = useState<string>('openai')
   const [showApiKey, setShowApiKey] = useState(false)
   const [modelDraft, setModelDraft] = useState<ModelDraft | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null)
@@ -101,6 +105,7 @@ export function ModelSettingsPage() {
   function openProvider(provider?: ModelProviderConfiguration) {
     const preset = providerPreset('openai')
     setShowApiKey(false)
+    setProviderOptionKey(provider ? providerPreset(provider.provider).key : 'openai')
     setProviderDraft(provider ? providerInput(provider) : {
       id: nextId('provider'),
       name: t(preset.labelKey),
@@ -111,13 +116,14 @@ export function ModelSettingsPage() {
     })
   }
 
-  function changeProviderType(provider: ModelProvider) {
+  function changeProviderType(optionKey: string) {
     if (!providerDraft) return
-    const previous = providerPreset(providerDraft.provider)
-    const next = providerPreset(provider)
+    const previous = providerOptions.find((option) => option.key === providerOptionKey) ?? providerPreset(providerDraft.provider)
+    const next = providerOptions.find((option) => option.key === optionKey) ?? previous
+    setProviderOptionKey(next.key)
     setProviderDraft({
       ...providerDraft,
-      provider,
+      provider: next.value,
       name: providerDraft.name === t(previous.labelKey) ? t(next.labelKey) : providerDraft.name,
       baseUrl: !providerDraft.baseUrl || providerDraft.baseUrl === previous.baseUrl ? next.baseUrl : providerDraft.baseUrl,
     })
@@ -274,7 +280,7 @@ export function ModelSettingsPage() {
         <DialogHeader><DialogTitle>{configuration.providers.some((provider) => provider.id === providerDraft?.id) ? t('provider.edit') : t('provider.add')}</DialogTitle><DialogDescription>{t('dialog.providerDescription')}</DialogDescription></DialogHeader>
         {providerDraft && <form id="provider-settings-form" className="settings-dialog-form" onSubmit={saveProvider}>
           <div className="field-group"><label htmlFor="provider-name">{t('dialog.nameLabel')}</label><Input id="provider-name" value={providerDraft.name} onChange={(event) => setProviderDraft({ ...providerDraft, name: event.target.value })} required autoFocus /></div>
-          <div className="field-group"><label htmlFor="provider-type">{t('dialog.providerLabel')}</label><Select value={providerDraft.provider} onValueChange={(value) => changeProviderType(value as ModelProvider)}><SelectTrigger id="provider-type" aria-label={t('dialog.providerLabel')}><SelectValue /></SelectTrigger><SelectContent>{providerOptions.map((option) => <SelectItem key={option.value} value={option.value}>{t(option.labelKey)}</SelectItem>)}</SelectContent></Select></div>
+          <div className="field-group"><label htmlFor="provider-type">{t('dialog.providerLabel')}</label><Select value={providerOptionKey} onValueChange={changeProviderType}><SelectTrigger id="provider-type" aria-label={t('dialog.providerLabel')}><SelectValue /></SelectTrigger><SelectContent>{providerOptions.map((option) => <SelectItem key={option.key} value={option.key}>{t(option.labelKey)}</SelectItem>)}</SelectContent></Select></div>
           <div className="field-group"><label htmlFor="provider-base-url">{t('dialog.baseUrlLabel')}</label><Input id="provider-base-url" type="url" value={providerDraft.baseUrl} onChange={(event) => setProviderDraft({ ...providerDraft, baseUrl: event.target.value })} placeholder="https://api.example.com/v1" required /></div>
           <div className="field-group">
             <label htmlFor="provider-api-key">{t('dialog.apiKeyLabel')}</label>

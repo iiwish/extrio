@@ -197,6 +197,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/collectors/{collectorId}/repairs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Starts an AI rule repair for a Collector whose published or candidate rule no longer matches the source website. The worker re-explores the source, recompiles the rule from the old GatherSpec plus fresh page snapshots while preserving the frozen output contract (identityFields, fingerprintFields, normalizedItemSchema, fieldBindings, quality, tombstonePolicy) byte-for-byte, and the repaired candidate re-enters the standard human review and publication pipeline. Fails with REPAIR_NOT_APPLICABLE when the Collector has no repairable rule and with OPERATION_ALREADY_ACTIVE when another asynchronous task is running. */
+        post: operations["startCollectorRepair"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/collectors/{collectorId}/evidence-bundle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the signed evidence bundle (ZIP) for one collector.
+         * @description Streams a deterministic, verifiable extrio.evidence.v1 ZIP archive proving what the collector gathered, under which attested rule, with what lineage. The optional since/until bounds are inclusive ISO-8601 filters on run creation time and item observedAt; ruleVersionId scopes the bundle to a single rule version. Available to any authenticated role (read surface, like the items export). Fails with EVIDENCE_BUNDLE_ERROR when the bundle cannot be built, for example an unknown rule version.
+         */
+        get: operations["exportCollectorEvidenceBundle"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/collectors/{collectorId}/collection-policy": {
         parameters: {
             query?: never;
@@ -686,7 +723,7 @@ export interface components {
          * @description Stable v1 error taxonomy. New codes may be added without changing existing meanings.
          * @enum {string}
          */
-        ErrorCode: "AUTH_REQUIRED" | "INVALID_CREDENTIALS" | "SETUP_ALREADY_COMPLETED" | "RATE_LIMITED" | "FORBIDDEN" | "VALIDATION_FAILED" | "INVALID_URL" | "HTTPS_REQUIRED" | "DUPLICATE_IN_BATCH" | "SOURCE_ALREADY_EXISTS" | "SOURCE_UNREACHABLE" | "COLLECTION_NOT_FOUND" | "COLLECTOR_NOT_FOUND" | "OPERATION_NOT_FOUND" | "AI_RUN_NOT_FOUND" | "RUN_NOT_FOUND" | "ITEM_NOT_FOUND" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "OPERATION_ALREADY_ACTIVE" | "RUN_ALREADY_ACTIVE" | "RULE_NOT_PUBLISHED" | "CANDIDATE_RULE_NOT_FOUND" | "CANDIDATE_VALIDATION_FAILED" | "RULE_ATTESTATION_INVALID" | "REVIEW_DECISION_INVALID" | "OPERATION_CANCELLED" | "OPERATION_TIMED_OUT" | "INVALID_CURSOR" | "EXPORT_TOO_LARGE" | "SINK_NOT_FOUND" | "USER_NOT_FOUND" | "USERNAME_TAKEN" | "LAST_ADMINISTRATOR" | "SELF_DISABLE" | "DELIVERY_NOT_FOUND" | "DELIVERY_IN_FLIGHT" | "INTERNAL_ERROR" | "UNEXPECTED_RESPONSE";
+        ErrorCode: "AUTH_REQUIRED" | "INVALID_CREDENTIALS" | "SETUP_ALREADY_COMPLETED" | "RATE_LIMITED" | "FORBIDDEN" | "VALIDATION_FAILED" | "INVALID_URL" | "HTTPS_REQUIRED" | "DUPLICATE_IN_BATCH" | "SOURCE_ALREADY_EXISTS" | "SOURCE_UNREACHABLE" | "COLLECTION_NOT_FOUND" | "COLLECTOR_NOT_FOUND" | "OPERATION_NOT_FOUND" | "AI_RUN_NOT_FOUND" | "RUN_NOT_FOUND" | "ITEM_NOT_FOUND" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "OPERATION_ALREADY_ACTIVE" | "REPAIR_NOT_APPLICABLE" | "RUN_ALREADY_ACTIVE" | "RULE_NOT_PUBLISHED" | "CANDIDATE_RULE_NOT_FOUND" | "CANDIDATE_VALIDATION_FAILED" | "RULE_ATTESTATION_INVALID" | "REVIEW_DECISION_INVALID" | "OPERATION_CANCELLED" | "OPERATION_TIMED_OUT" | "INVALID_CURSOR" | "EXPORT_TOO_LARGE" | "EVIDENCE_BUNDLE_ERROR" | "SINK_NOT_FOUND" | "USER_NOT_FOUND" | "USERNAME_TAKEN" | "LAST_ADMINISTRATOR" | "SELF_DISABLE" | "DELIVERY_NOT_FOUND" | "DELIVERY_IN_FLIGHT" | "INTERNAL_ERROR" | "UNEXPECTED_RESPONSE";
         OperationMetrics: {
             listPagesFetched: number;
             detailUrlsDiscovered: number;
@@ -792,6 +829,8 @@ export interface components {
             validationSummary: components["schemas"]["AiValidationSummary"];
             candidateRuleDigest: string | null;
             publishedRuleVersionId: string | null;
+            /** @description Optional reason recorded when the run was triggered as a repair. */
+            note?: string | null;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -906,6 +945,10 @@ export interface components {
              */
             sourceUrl: string;
             intent: string;
+        };
+        RepairInput: {
+            /** @description Optional reason for the repair, stored on the rule_repair AI run for the AI task history. */
+            note?: string;
         };
         CandidateRuleEditInput: {
             listSelector: string;
@@ -2239,6 +2282,79 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Operation"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    startCollectorRepair: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                collectorId: components["parameters"]["CollectorId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RepairInput"];
+            };
+        };
+        responses: {
+            /** @description Repair accepted for asynchronous execution; the AI run is recorded with kind rule_repair. */
+            202: {
+                headers: {
+                    "X-Request-ID": components["headers"]["RequestId"];
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Operation"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    exportCollectorEvidenceBundle: {
+        parameters: {
+            query?: {
+                /** @description Inclusive ISO-8601 lower bound on run createdAt and item observedAt. */
+                since?: string;
+                /** @description Inclusive ISO-8601 upper bound on run createdAt and item observedAt. */
+                until?: string;
+                ruleVersionId?: string;
+            };
+            header?: never;
+            path: {
+                collectorId: components["parameters"]["CollectorId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Signed evidence bundle ZIP archive (extrio.evidence.v1). */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["RequestId"];
+                    /** @description Always 'attachment; filename="extrio-evidence-{collectorId}.zip"'. */
+                    "Content-Disposition"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/zip": string;
+                };
+            };
+            /** @description The bundle cannot be built (EVIDENCE_BUNDLE_ERROR). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformError"];
                 };
             };
             default: components["responses"]["PlatformError"];

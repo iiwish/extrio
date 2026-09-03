@@ -43,6 +43,7 @@ export type CreateCollectorInput = Schemas['CreateCollectorInput']
 export type UpdateCollectorInput = Schemas['UpdateCollectorInput']
 export type CandidateRuleEditInput = Schemas['CandidateRuleEditInput']
 export type CreateCollectorsInput = Schemas['CreateCollectorsInput']
+export type RepairInput = Schemas['RepairInput']
 export type BatchCollectorImportItem = Omit<Schemas['BatchCollectorImportItem'], 'collector'> & { collector: CollectorDetail | null }
 export type BatchCollectorImportResult = Omit<Schemas['BatchCollectorImportResult'], 'results'> & { results: BatchCollectorImportItem[] }
 export type CollectorPage = Omit<Schemas['CollectorPage'], 'items'> & { items: CollectorDetail[] }

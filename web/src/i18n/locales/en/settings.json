@@ -11,6 +11,7 @@
     "typeDeepseek": "DeepSeek",
     "typeQwen": "Alibaba Cloud Bailian",
     "typeCustom": "OpenAI-compatible service",
+    "typeOllama": "Ollama (local)",
     "groupAria": "{{name}} provider",
     "expandModelsAria": "Expand models of {{name}}",
     "collapseModelsAria": "Collapse models of {{name}}",
