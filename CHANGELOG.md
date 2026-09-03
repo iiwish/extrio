@@ -4,7 +4,7 @@ All notable changes to Extrio are documented in this file. The project follows
 [Semantic Versioning](https://semver.org/) and keeps pending work under
 `Unreleased`.
 
-## Unreleased
+## 0.2.0 - 2026-09-02
 
 - Add bilingual console support (Chinese/English): i18next-based localization
   across all pages, a settings interface-language switcher persisted per device,
