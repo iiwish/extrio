@@ -344,6 +344,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/items/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stream items as CSV or JSONL in the same deterministic order as listItems.
+         * @description The response body is streamed. The server enforces the export item cap before streaming starts; requests whose filter scope exceeds the cap are rejected with EXPORT_TOO_LARGE and no body is streamed. CSV columns are the fixed columns followed by the alphabetical union of extractedData keys (missing values stay empty). The CSV body starts with a UTF-8 BOM.
+         */
+        get: operations["exportItems"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/items/{itemId}": {
         parameters: {
             query?: never;
@@ -354,6 +374,119 @@ export interface paths {
         get: operations["getItem"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/collectors/{collectorId}/sinks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the output sinks configured for one collector. */
+        get: operations["listSinks"];
+        put?: never;
+        /** Register a webhook output sink for the collector. */
+        post: operations["createSink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/collectors/{collectorId}/sinks/{sinkId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Partially update a sink; every update bumps its version.
+         * @description Omitted fields keep their stored values; an omitted secret keeps the stored credential.
+         */
+        put: operations["updateSink"];
+        post?: never;
+        /** Remove an output sink. */
+        delete: operations["deleteSink"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/collectors/{collectorId}/sinks/{sinkId}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enqueue a synthetic test delivery for a sink.
+         * @description Enqueues a delivery with a synthetic `test_` item event id and kind=test; the delivery worker performs the actual HTTP call asynchronously. Returns 202 with the delivery resource.
+         */
+        post: operations["testSink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/collectors/{collectorId}/deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List the deliveries of one collector with their latest attempt summary. */
+        get: operations["listCollectorDeliveries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/deliveries/{deliveryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Fetch one delivery with its full attempt history. */
+        get: operations["getDelivery"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/deliveries/{deliveryId}/redeliver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reset a delivery to pending for another delivery attempt.
+         * @description Works from delivered, failed and dead_lettered deliveries; delivering rows must wait for their lease to expire (DELIVERY_IN_FLIGHT).
+         */
+        post: operations["redeliverDelivery"];
         delete?: never;
         options?: never;
         head?: never;
@@ -488,7 +621,7 @@ export interface components {
          * @description Stable v1 error taxonomy. New codes may be added without changing existing meanings.
          * @enum {string}
          */
-        ErrorCode: "AUTH_REQUIRED" | "INVALID_CREDENTIALS" | "SETUP_ALREADY_COMPLETED" | "RATE_LIMITED" | "FORBIDDEN" | "VALIDATION_FAILED" | "INVALID_URL" | "HTTPS_REQUIRED" | "DUPLICATE_IN_BATCH" | "SOURCE_ALREADY_EXISTS" | "SOURCE_UNREACHABLE" | "COLLECTION_NOT_FOUND" | "COLLECTOR_NOT_FOUND" | "OPERATION_NOT_FOUND" | "AI_RUN_NOT_FOUND" | "RUN_NOT_FOUND" | "ITEM_NOT_FOUND" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "OPERATION_ALREADY_ACTIVE" | "RUN_ALREADY_ACTIVE" | "RULE_NOT_PUBLISHED" | "CANDIDATE_RULE_NOT_FOUND" | "CANDIDATE_VALIDATION_FAILED" | "RULE_ATTESTATION_INVALID" | "REVIEW_DECISION_INVALID" | "OPERATION_CANCELLED" | "OPERATION_TIMED_OUT" | "INTERNAL_ERROR" | "UNEXPECTED_RESPONSE";
+        ErrorCode: "AUTH_REQUIRED" | "INVALID_CREDENTIALS" | "SETUP_ALREADY_COMPLETED" | "RATE_LIMITED" | "FORBIDDEN" | "VALIDATION_FAILED" | "INVALID_URL" | "HTTPS_REQUIRED" | "DUPLICATE_IN_BATCH" | "SOURCE_ALREADY_EXISTS" | "SOURCE_UNREACHABLE" | "COLLECTION_NOT_FOUND" | "COLLECTOR_NOT_FOUND" | "OPERATION_NOT_FOUND" | "AI_RUN_NOT_FOUND" | "RUN_NOT_FOUND" | "ITEM_NOT_FOUND" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "OPERATION_ALREADY_ACTIVE" | "RUN_ALREADY_ACTIVE" | "RULE_NOT_PUBLISHED" | "CANDIDATE_RULE_NOT_FOUND" | "CANDIDATE_VALIDATION_FAILED" | "RULE_ATTESTATION_INVALID" | "REVIEW_DECISION_INVALID" | "OPERATION_CANCELLED" | "OPERATION_TIMED_OUT" | "INVALID_CURSOR" | "EXPORT_TOO_LARGE" | "SINK_NOT_FOUND" | "DELIVERY_NOT_FOUND" | "DELIVERY_IN_FLIGHT" | "INTERNAL_ERROR" | "UNEXPECTED_RESPONSE";
         OperationMetrics: {
             listPagesFetched: number;
             detailUrlsDiscovered: number;
@@ -919,6 +1052,96 @@ export interface components {
         ItemPage: {
             items: components["schemas"]["HarvestResult"][];
             page: components["schemas"]["PageMeta"];
+            /** @description Opaque continuation token for the next page in deterministic output-loop order; null on the last page. */
+            nextCursor: string | null;
+        };
+        Sink: {
+            id: string;
+            collectorId: string;
+            /** @enum {string} */
+            type: "webhook";
+            /**
+             * Format: uri
+             * @description HTTP or HTTPS webhook endpoint without embedded credentials.
+             */
+            url: string;
+            enabled: boolean;
+            /** @description Bumped on every successful update. */
+            version: number;
+            /** @description True when the server holds a signing secret for this sink; the secret itself never leaves the API. */
+            credentialConfigured: boolean;
+            createdAt: string;
+            updatedAt: string;
+        };
+        SinkPage: {
+            items: components["schemas"]["Sink"][];
+            page: components["schemas"]["PageMeta"];
+        };
+        SinkInput: {
+            /**
+             * @default webhook
+             * @enum {string}
+             */
+            type: "webhook";
+            /**
+             * Format: uri
+             * @description HTTP or HTTPS endpoint; embedded user/password credentials are rejected with INVALID_URL.
+             */
+            url: string;
+            /** @description Write-only signing secret; encrypted at rest and never returned by any response. */
+            secret?: string;
+            /** @default true */
+            enabled: boolean;
+        };
+        SinkUpdateInput: {
+            /** Format: uri */
+            url?: string;
+            /** @description Non-empty value replaces the stored credential; omitting the field keeps it. */
+            secret?: string;
+            enabled?: boolean;
+        };
+        /** @enum {string} */
+        DeliveryStatus: "pending" | "delivering" | "delivered" | "failed" | "dead_lettered";
+        Delivery: {
+            id: string;
+            collectorId: string;
+            sinkId: string;
+            /** @description Sink version captured when the delivery was enqueued. */
+            sinkVersionId: string;
+            itemEventId: string;
+            status: components["schemas"]["DeliveryStatus"];
+            attemptCount: number;
+            nextAttemptAt: string | null;
+            leaseUntil: string | null;
+            lastStatusCode: number | null;
+            lastError: string | null;
+            redeliveryCount: number;
+            /**
+             * @description Present only for synthetic sink-test deliveries (item event ids prefixed with test_).
+             * @enum {string}
+             */
+            kind?: "test";
+            createdAt: string;
+            updatedAt: string;
+        };
+        DeliveryAttempt: {
+            id: string;
+            deliveryId: string;
+            attemptNo: number;
+            startedAt: string;
+            finishedAt: string;
+            statusCode: number | null;
+            error: string | null;
+        };
+        DeliverySummary: components["schemas"]["Delivery"] & {
+            latestAttempt: components["schemas"]["DeliveryAttempt"] | null;
+        };
+        DeliveryDetail: components["schemas"]["Delivery"] & {
+            attempts: components["schemas"]["DeliveryAttempt"][];
+        };
+        DeliveryPage: {
+            items: components["schemas"]["DeliverySummary"][];
+            page: components["schemas"]["PageMeta"];
         };
         id: string;
         versionLabel: string;
@@ -990,6 +1213,15 @@ export interface components {
         };
         /** @enum {unknown} */
         transform: "trim" | "collapse_whitespace" | "lowercase" | "uppercase" | "absolute_url" | "strip_html";
+        regexExtractTransform: {
+            /** @constant */
+            type: "regex_extract";
+            /** @description RE2-compatible pattern; lookahead, lookbehind and backreferences are unsupported and enforced by the runtime engine. */
+            pattern: string;
+            /** @description Capture group index to emit; 0 emits the whole match. Defaults to 0. */
+            group?: number;
+        };
+        transformItem: components["schemas"]["transform"] | components["schemas"]["regexExtractTransform"];
         fieldRule: {
             selector: string;
             /** @enum {unknown} */
@@ -999,7 +1231,9 @@ export interface components {
             onError: "fail_run" | "reject_item" | "null";
             /** @enum {unknown} */
             multipleMatchPolicy: "error" | "first";
-            transforms?: components["schemas"]["transform"][];
+            /** @description Optional human-readable field label (any Unicode) for the review UI and LLM prompt quality; never part of extraction semantics or digests. */
+            label?: string;
+            transforms?: components["schemas"]["transformItem"][];
             /** @enum {unknown} */
             datetimeFormat?: "RFC3339" | "ISO8601_DATE" | "UNIX_SECONDS" | "UNIX_MILLISECONDS";
             defaultTimezone?: string;
@@ -1349,6 +1583,15 @@ export interface components {
                 };
                 /** @enum {unknown} */
                 transform: "trim" | "collapse_whitespace" | "lowercase" | "uppercase" | "absolute_url" | "strip_html";
+                regexExtractTransform: {
+                    /** @constant */
+                    type: "regex_extract";
+                    /** @description RE2-compatible pattern; lookahead, lookbehind and backreferences are unsupported and enforced by the runtime engine. */
+                    pattern: string;
+                    /** @description Capture group index to emit; 0 emits the whole match. Defaults to 0. */
+                    group?: number;
+                };
+                transformItem: components["schemas"]["transform"] | components["schemas"]["regexExtractTransform"];
                 fieldRule: {
                     selector: string;
                     /** @enum {unknown} */
@@ -1358,7 +1601,9 @@ export interface components {
                     onError: "fail_run" | "reject_item" | "null";
                     /** @enum {unknown} */
                     multipleMatchPolicy: "error" | "first";
-                    transforms?: components["schemas"]["transform"][];
+                    /** @description Optional human-readable field label (any Unicode) for the review UI and LLM prompt quality; never part of extraction semantics or digests. */
+                    label?: string;
+                    transforms?: components["schemas"]["transformItem"][];
                     /** @enum {unknown} */
                     datetimeFormat?: "RFC3339" | "ISO8601_DATE" | "UNIX_SECONDS" | "UNIX_MILLISECONDS";
                     defaultTimezone?: string;
@@ -1470,6 +1715,8 @@ export interface components {
         AiRunId: string;
         RunId: string;
         ItemId: string;
+        SinkId: string;
+        DeliveryId: string;
         /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
         IdempotencyKey: string;
         Cursor: string;
@@ -2137,7 +2384,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Accepted items and rejected candidates. */
+            /** @description Accepted items and rejected candidates in deterministic output-loop order. */
             200: {
                 headers: {
                     "X-Request-ID": components["headers"]["RequestId"];
@@ -2145,6 +2392,54 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ItemPage"];
+                };
+            };
+            /** @description The cursor is not a valid continuation token (INVALID_CURSOR). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformError"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    exportItems: {
+        parameters: {
+            query: {
+                /** @description Export wire format. */
+                format: "csv" | "jsonl";
+                collectorId?: string;
+                runId?: string;
+                decision?: components["schemas"]["ItemDecision"];
+                entityKey?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Streamed export of at most 100000 items. */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                    "application/x-ndjson": string;
+                };
+            };
+            /** @description The export scope exceeds the item cap (EXPORT_TOO_LARGE). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformError"];
                 };
             };
             default: components["responses"]["PlatformError"];
@@ -2169,6 +2464,296 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HarvestResult"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    listSinks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collectorId: components["parameters"]["CollectorId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sinks ordered by creation time; secrets never appear in responses. */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SinkPage"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    createSink: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                collectorId: components["parameters"]["CollectorId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SinkInput"];
+            };
+        };
+        responses: {
+            /** @description Sink created with version 1. */
+            201: {
+                headers: {
+                    "X-Request-ID": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Sink"];
+                };
+            };
+            /** @description The URL is not a plain HTTP/HTTPS endpoint or embeds credentials (INVALID_URL). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformError"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    updateSink: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                collectorId: components["parameters"]["CollectorId"];
+                sinkId: components["parameters"]["SinkId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SinkUpdateInput"];
+            };
+        };
+        responses: {
+            /** @description Updated sink with a bumped version. */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Sink"];
+                };
+            };
+            /** @description The URL is not a plain HTTP/HTTPS endpoint or embeds credentials (INVALID_URL). */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformError"];
+                };
+            };
+            /** @description The sink does not exist for this collector (SINK_NOT_FOUND). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformError"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    deleteSink: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                collectorId: components["parameters"]["CollectorId"];
+                sinkId: components["parameters"]["SinkId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Sink removed. */
+            204: {
+                headers: {
+                    "X-Request-ID": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The sink does not exist for this collector (SINK_NOT_FOUND). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformError"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    testSink: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                collectorId: components["parameters"]["CollectorId"];
+                sinkId: components["parameters"]["SinkId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Test delivery enqueued; Location points at the delivery resource. */
+            202: {
+                headers: {
+                    "X-Request-ID": components["headers"]["RequestId"];
+                    /** @description Relative URL of the enqueued delivery. */
+                    Location?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Delivery"];
+                };
+            };
+            /** @description The collector or sink does not exist (COLLECTOR_NOT_FOUND / SINK_NOT_FOUND). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformError"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    listCollectorDeliveries: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collectorId: components["parameters"]["CollectorId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deliveries ordered by creation time. */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliveryPage"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    getDelivery: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deliveryId: components["parameters"]["DeliveryId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Delivery resource with all recorded attempts. */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliveryDetail"];
+                };
+            };
+            /** @description The delivery does not exist (DELIVERY_NOT_FOUND). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformError"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    redeliverDelivery: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                deliveryId: components["parameters"]["DeliveryId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The same delivery reset to pending with an incremented redeliveryCount. */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Delivery"];
+                };
+            };
+            /** @description The delivery does not exist (DELIVERY_NOT_FOUND). */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformError"];
+                };
+            };
+            /** @description The delivery is actively being delivered (DELIVERY_IN_FLIGHT). */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformError"];
                 };
             };
             default: components["responses"]["PlatformError"];

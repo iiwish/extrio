@@ -12,6 +12,10 @@ import type {
   CollectorScheduleInput,
   CreateCollectorInput,
   CreateCollectorsInput,
+  Delivery,
+  DeliveryDetail,
+  DeliveryPage,
+  ExportFormat,
   FieldReviewDecision,
   HarvestItem,
   AiRunDetail,
@@ -25,6 +29,10 @@ import type {
   PlatformError,
   Run,
   RunPage,
+  Sink,
+  SinkInput,
+  SinkPage,
+  SinkUpdateInput,
   UpdateCollectorInput,
 } from './types'
 
@@ -87,7 +95,55 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       retryable: response.status >= 500,
     })
   }
+  if (response.status === 204) return undefined as T
   return response.json() as Promise<T>
+}
+
+function requestError(response: Response): ApiRequestError {
+  return new ApiRequestError({
+    code: 'UNEXPECTED_RESPONSE',
+    message: response.status === 502 || response.status === 503
+      ? i18next.t('api:error.controlPlaneUnavailable')
+      : i18next.t('api:error.requestFailed'),
+    requestId: response.headers.get('X-Request-ID') ?? 'request_id_unavailable',
+    retryable: response.status >= 500,
+  })
+}
+
+export interface ItemsExportQuery {
+  format: ExportFormat
+  collectorId?: string
+  runId?: string
+  decision?: string
+  entityKey?: string
+}
+
+export async function exportItemsDownload(query: ItemsExportQuery): Promise<Blob> {
+  const params = new URLSearchParams({ format: query.format })
+  for (const key of ['collectorId', 'runId', 'decision', 'entityKey'] as const) {
+    const value = query[key]?.trim()
+    if (value) params.set(key, value)
+  }
+  let response: Response
+  try {
+    response = await fetch(`${API_BASE_URL}/items/export?${params.toString()}`, {
+      credentials: 'include',
+      headers: { Accept: query.format === 'csv' ? 'text/csv' : 'application/x-ndjson' },
+    })
+  } catch {
+    throw new ApiRequestError({
+      code: 'UNEXPECTED_RESPONSE',
+      message: i18next.t('api:error.connectionFailed'),
+      requestId: 'request_id_unavailable',
+      retryable: true,
+    })
+  }
+  if (!response.ok) {
+    if (response.status === 401) window.dispatchEvent(new Event('extrio:auth-required'))
+    const error = (await response.json().catch(() => null)) as PlatformError | null
+    throw error ? new ApiRequestError(error) : requestError(response)
+  }
+  return response.blob()
 }
 
 function idempotencyKey() {
@@ -175,5 +231,24 @@ export const api = {
   aiRuns: (collectorId?: string) => request<AiRunPage>(`/ai-runs?limit=200${collectorId ? `&collectorId=${encodeURIComponent(collectorId)}` : ''}`).then((result) => result.items),
   aiRunDetail: (id: string) => request<AiRunDetail>(`/ai-runs/${id}`),
   items: () => request<ItemPage>('/items?limit=200').then((result) => result.items),
+  itemsPage: (query: { limit?: number; cursor?: string } = {}) => {
+    const params = new URLSearchParams({ limit: String(query.limit ?? 50) })
+    if (query.cursor) params.set('cursor', query.cursor)
+    return request<ItemPage>(`/items?${params.toString()}`)
+  },
   item: (id: string) => request<HarvestItem>(`/items/${id}`),
+  sinks: (collectorId: string) =>
+    request<SinkPage>(`/collectors/${collectorId}/sinks`).then((result) => result.items),
+  createSink: (collectorId: string, input: SinkInput) =>
+    command<Sink>(`/collectors/${collectorId}/sinks`, { body: JSON.stringify(input) }),
+  updateSink: (collectorId: string, sinkId: string, input: SinkUpdateInput) =>
+    command<Sink>(`/collectors/${collectorId}/sinks/${sinkId}`, { method: 'PUT', body: JSON.stringify(input) }),
+  deleteSink: (collectorId: string, sinkId: string) =>
+    command<void>(`/collectors/${collectorId}/sinks/${sinkId}`, { method: 'DELETE' }),
+  testSink: (collectorId: string, sinkId: string) =>
+    command<Delivery>(`/collectors/${collectorId}/sinks/${sinkId}/test`),
+  deliveries: (collectorId: string) =>
+    request<DeliveryPage>(`/collectors/${collectorId}/deliveries`).then((result) => result.items),
+  delivery: (id: string) => request<DeliveryDetail>(`/deliveries/${id}`),
+  redeliverDelivery: (id: string) => command<Delivery>(`/deliveries/${id}/redeliver`),
 }

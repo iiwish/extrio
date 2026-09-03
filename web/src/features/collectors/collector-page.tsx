@@ -5,34 +5,44 @@ import {
   CalendarRange,
   CalendarClock,
   Check,
+  ChevronDown,
   ChevronRight,
   CircleAlert,
   ClipboardCheck,
+  Eye,
+  EyeOff,
   FileSearch,
   FileCheck2,
   Globe2,
+  Inbox,
+  KeyRound,
   Layers3,
   LayoutDashboard,
   ListTree,
   LockKeyhole,
   LoaderCircle,
+  MoreHorizontal,
   PanelRightOpen,
   Pencil,
   Play,
+  Plus,
   RefreshCw,
   Route,
   Rocket,
   Save,
+  Send,
   Settings2,
   ShieldCheck,
+  Trash2,
   WandSparkles,
+  Webhook,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom'
-import { api, waitForOperation } from '@/api/client'
-import type { AiRun, CandidateField, CandidateRule, CandidateRuleEditInput, CollectionPolicy, CollectionPolicyInput, CollectorDetail, CollectorSchedule, CollectorScheduleInput, FieldReviewDecision, HarvestItem, Operation, UpdateCollectorInput } from '@/api/types'
+import { ApiRequestError, api, waitForOperation } from '@/api/client'
+import type { AiRun, CandidateField, CandidateRule, CandidateRuleEditInput, CollectionPolicy, CollectionPolicyInput, CollectorDetail, CollectorSchedule, CollectorScheduleInput, DeliveryStatus, DeliverySummary, FieldReviewDecision, HarvestItem, Operation, Sink, SinkInput, SinkUpdateInput, UpdateCollectorInput } from '@/api/types'
 import { EvidenceRail } from '@/components/evidence-rail'
 import { StatusBadge } from '@/components/status-badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -49,6 +59,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Progress } from '@/components/ui/progress'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -57,6 +73,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
+import { cn } from '@/lib/utils'
 import { collectorDisplayName } from './collector-presentation'
 
 type Translator = TFunction<'collectorDetail', undefined>
@@ -310,6 +327,8 @@ export function CollectorPage() {
               pending={savePolicy.isPending}
               onSave={(input) => savePolicy.mutate(input)}
             />
+            <WebhookPushPanel collectorId={collector.id} />
+            <DeliveryLogPanel collectorId={collector.id} />
           </TabsContent>
 
           <TabsContent value="rule" className="collector-workspace-panel">
@@ -924,6 +943,305 @@ function CollectionPolicyPanel({
         <span><small>{t('policy.runLimit')}</small><strong>{t('policy.runLimitValue', { pages: initial.maxPages, items: initial.maxItems })}</strong></span>
       </div>
     </section>
+  )
+}
+
+const deliveryToneClasses = {
+  neutral: 'border-[#d9e0e3] bg-[#eef2f3] text-[#526169]',
+  info: 'border-[#bad0ff] bg-[#edf3ff] text-[#2557d6]',
+  success: 'border-[#b6decf] bg-[#eaf7f2] text-[#117153]',
+  warning: 'border-[#efd3a8] bg-[#fff6e8] text-[#9b5907]',
+  danger: 'border-[#efc1c1] bg-[#fff0f0] text-[#aa3030]',
+}
+
+function deliveryStatusTone(status: DeliveryStatus): keyof typeof deliveryToneClasses {
+  if (status === 'delivered') return 'success'
+  if (status === 'failed') return 'warning'
+  if (status === 'dead_lettered') return 'danger'
+  return 'info'
+}
+
+function DeliveryStatusBadge({ status }: { status: DeliveryStatus }) {
+  const { t } = useTranslation('collectors')
+  return (
+    <Badge variant="outline" className={cn('gap-1 rounded-md px-1.5 py-0.5 font-medium', deliveryToneClasses[deliveryStatusTone(status)])}>
+      {t(`delivery.status.${status}`)}
+    </Badge>
+  )
+}
+
+function deliveryTime(value: string | null) {
+  if (!value) return '—'
+  return new Intl.DateTimeFormat('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Shanghai' }).format(new Date(value))
+}
+
+function deliveryAttemptSummary(delivery: DeliverySummary, t: TFunction<'collectors', undefined>) {
+  const statusCode = delivery.latestAttempt?.statusCode ?? delivery.lastStatusCode
+  const error = delivery.latestAttempt?.error ?? delivery.lastError
+  const time = delivery.latestAttempt?.finishedAt ?? delivery.updatedAt
+  if (statusCode === null && !error) return t('delivery.noAttempt')
+  return [statusCode ?? t('delivery.noStatusCode'), error, deliveryTime(time)].filter(Boolean).join(' · ')
+}
+
+function WebhookPushPanel({ collectorId }: { collectorId: string }) {
+  const { t } = useTranslation('collectors')
+  const queryClient = useQueryClient()
+  const sinksQuery = useQuery({ queryKey: ['sinks', collectorId], queryFn: () => api.sinks(collectorId) })
+  const [editing, setEditing] = useState<'new' | Sink | null>(null)
+  const [deleting, setDeleting] = useState<Sink | null>(null)
+  const [testQueued, setTestQueued] = useState(false)
+  const testSink = useMutation({
+    mutationFn: (sinkId: string) => api.testSink(collectorId, sinkId),
+    onSuccess: () => {
+      setTestQueued(true)
+      queryClient.invalidateQueries({ queryKey: ['deliveries', collectorId] })
+    },
+  })
+  const sinks = sinksQuery.data ?? []
+
+  return (
+    <section className="collection-policy-panel" aria-label={t('webhook.panelAria')}>
+      <div className="collection-policy-heading">
+        <span className="policy-icon"><Webhook /></span>
+        <div><span className="eyebrow">WEBHOOK DELIVERY</span><h2>{t('webhook.title')}</h2><p>{t('webhook.description')}</p></div>
+        <Button variant="outline" size="sm" onClick={() => setEditing('new')}><Plus />{t('webhook.add')}</Button>
+      </div>
+      {testSink.isSuccess && testQueued && <Alert className="mb-3"><Send /><AlertTitle>{t('webhook.testQueued')}</AlertTitle></Alert>}
+      {testSink.error && <Alert variant="destructive" className="mb-3"><AlertTitle>{testSink.error.message}</AlertTitle></Alert>}
+      {sinksQuery.error && <Alert variant="destructive" className="mb-3"><AlertTitle>{sinksQuery.error.message}</AlertTitle></Alert>}
+      {sinksQuery.isLoading && <Skeleton className="h-16 w-full" />}
+      {sinksQuery.isSuccess && sinks.length === 0 && <div className="card-empty">{t('webhook.empty')}</div>}
+      {sinks.map((sink) => (
+        <div className="flex items-center gap-3 border-t border-[#e0e6e8] py-2.5" key={sink.id}>
+          <div className="min-w-0 flex-1">
+            <code className="block truncate text-sm" title={sink.url}>{sink.url}</code>
+            <div className="mt-1 flex items-center gap-2 text-xs text-[#76848b]">
+              <Badge variant="outline" className={cn('rounded-md px-1.5 py-0.5 font-medium', sink.enabled ? deliveryToneClasses.success : deliveryToneClasses.neutral)}>
+                {sink.enabled ? t('webhook.enabledOn') : t('webhook.enabledOff')}
+              </Badge>
+              <span>{t('webhook.version', { version: sink.version })}</span>
+              <span className={sink.credentialConfigured ? '' : 'text-[#9b5907]'}>{sink.credentialConfigured ? t('webhook.credentialConfigured') : t('webhook.credentialMissing')}</span>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" disabled={testSink.isPending} aria-label={t('webhook.testAria', { url: sink.url })} onClick={() => testSink.mutate(sink.id)}>
+            {testSink.isPending ? <LoaderCircle className="animate-spin" /> : <Send />}{t('webhook.test')}
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon-sm" aria-label={t('webhook.actionsAria', { url: sink.url })}><MoreHorizontal /></Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => setEditing(sink)}><Pencil />{t('webhook.edit')}</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setDeleting(sink)}><Trash2 />{t('webhook.delete')}</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      ))}
+      {editing && <SinkDialog key={editing === 'new' ? 'new' : editing.id} collectorId={collectorId} sink={editing} onClose={() => setEditing(null)} />}
+      {deleting && <SinkDeleteDialog key={deleting.id} collectorId={collectorId} sink={deleting} onClose={() => setDeleting(null)} />}
+    </section>
+  )
+}
+
+function SinkDialog({ collectorId, sink, onClose }: { collectorId: string; sink: 'new' | Sink; onClose: () => void }) {
+  const { t } = useTranslation('collectors')
+  const queryClient = useQueryClient()
+  const isEdit = sink !== 'new'
+  const [url, setUrl] = useState(isEdit ? sink.url : '')
+  const [secret, setSecret] = useState('')
+  const [enabled, setEnabled] = useState(isEdit ? sink.enabled : true)
+  const [showSecret, setShowSecret] = useState(false)
+  const save = useMutation({
+    mutationFn: () => {
+      const trimmedUrl = url.trim()
+      const trimmedSecret = secret.trim()
+      if (isEdit) {
+        const input: SinkUpdateInput = { url: trimmedUrl, enabled }
+        if (trimmedSecret) input.secret = trimmedSecret
+        return api.updateSink(collectorId, sink.id, input)
+      }
+      const input: SinkInput = { type: 'webhook', url: trimmedUrl, enabled }
+      if (trimmedSecret) input.secret = trimmedSecret
+      return api.createSink(collectorId, input)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sinks', collectorId] })
+      onClose()
+    },
+  })
+  const errorMessage = save.error instanceof ApiRequestError && save.error.code === 'INVALID_URL'
+    ? t('webhook.invalidUrl')
+    : save.error?.message
+
+  return (
+    <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent className="webhook-dialog">
+        <DialogHeader>
+          <DialogTitle>{isEdit ? t('webhook.dialogEditTitle') : t('webhook.dialogAddTitle')}</DialogTitle>
+          <DialogDescription>{t('webhook.dialogDescription')}</DialogDescription>
+        </DialogHeader>
+        <form id="sink-settings-form" className="definition-form" onSubmit={(event) => { event.preventDefault(); save.mutate() }}>
+          <label><span>{t('webhook.url')}</span><Input type="url" value={url} onChange={(event) => setUrl(event.target.value)} placeholder={t('webhook.urlPlaceholder')} required /></label>
+          <div className="field-group">
+            <label htmlFor="sink-secret">{t('webhook.secret')}</label>
+            <div className="credential-input">
+              <KeyRound />
+              <Input
+                id="sink-secret"
+                type={showSecret ? 'text' : 'password'}
+                value={secret}
+                onChange={(event) => setSecret(event.target.value)}
+                placeholder={isEdit && sink.credentialConfigured ? t('webhook.secretKeep') : t('webhook.secretPlaceholder')}
+                autoComplete="new-password"
+              />
+              <Button type="button" variant="ghost" size="icon-sm" aria-label={showSecret ? t('webhook.hideSecret') : t('webhook.showSecret')} onClick={() => setShowSecret((visible) => !visible)}>
+                {showSecret ? <EyeOff /> : <Eye />}
+              </Button>
+            </div>
+            <small className="credential-help">{isEdit && sink.credentialConfigured ? t('webhook.secretKeep') : t('webhook.secretHelp')}</small>
+          </div>
+          <label className="flex items-center gap-2 text-sm"><Checkbox checked={enabled} onCheckedChange={(checked) => setEnabled(checked === true)} /><span>{t('webhook.enabled')}</span></label>
+        </form>
+        {save.error && <Alert variant="destructive"><AlertTitle>{t('webhook.saveFailed', { message: errorMessage })}</AlertTitle></Alert>}
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose} disabled={save.isPending}>{t('common:action.cancel')}</Button>
+          <Button type="submit" form="sink-settings-form" disabled={!url.trim() || save.isPending}>{save.isPending ? <LoaderCircle className="animate-spin" /> : <Save />}{save.isPending ? t('webhook.saving') : t('webhook.save')}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function SinkDeleteDialog({ collectorId, sink, onClose }: { collectorId: string; sink: Sink; onClose: () => void }) {
+  const { t } = useTranslation('collectors')
+  const queryClient = useQueryClient()
+  const remove = useMutation({
+    mutationFn: () => api.deleteSink(collectorId, sink.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sinks', collectorId] })
+      onClose()
+    },
+  })
+  return (
+    <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t('webhook.confirmDeleteTitle')}</DialogTitle>
+          <DialogDescription>{t('webhook.confirmDeleteDescription', { url: sink.url })}</DialogDescription>
+        </DialogHeader>
+        {remove.error && <Alert variant="destructive"><AlertTitle>{remove.error.message}</AlertTitle></Alert>}
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose} disabled={remove.isPending}>{t('common:action.cancel')}</Button>
+          <Button variant="destructive" onClick={() => remove.mutate()} disabled={remove.isPending}>{remove.isPending ? <LoaderCircle className="animate-spin" /> : <Trash2 />}{t('webhook.confirmDelete')}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function DeliveryLogPanel({ collectorId }: { collectorId: string }) {
+  const { t } = useTranslation('collectors')
+  const queryClient = useQueryClient()
+  const deliveriesQuery = useQuery({ queryKey: ['deliveries', collectorId], queryFn: () => api.deliveries(collectorId) })
+  const sinksQuery = useQuery({ queryKey: ['sinks', collectorId], queryFn: () => api.sinks(collectorId) })
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const redeliver = useMutation({
+    mutationFn: (id: string) => api.redeliverDelivery(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['deliveries', collectorId] })
+      setExpandedId(null)
+    },
+  })
+  const deliveries = deliveriesQuery.data ?? []
+  const sinkUrl = (sinkId: string) => (sinksQuery.data ?? []).find((sink) => sink.id === sinkId)?.url
+
+  return (
+    <section className="collection-policy-panel" aria-label={t('delivery.panelAria')}>
+      <div className="collection-policy-heading">
+        <span className="policy-icon schedule-icon"><Inbox /></span>
+        <div><span className="eyebrow">DELIVERY LOG</span><h2>{t('delivery.title')}</h2><p>{t('delivery.description')}</p></div>
+      </div>
+      {deliveriesQuery.error && <Alert variant="destructive" className="mb-3"><AlertTitle>{deliveriesQuery.error.message}</AlertTitle></Alert>}
+      {deliveriesQuery.isLoading && <Skeleton className="h-20 w-full" />}
+      {deliveriesQuery.isSuccess && deliveries.length === 0 && <div className="card-empty">{t('delivery.empty')}</div>}
+      {deliveries.length > 0 && (
+        <div>
+          <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto_minmax(0,1.2fr)_auto] items-center gap-3 border-b border-[#e0e6e8] pb-1.5 text-xs text-[#76848b]" aria-hidden="true">
+            <span>{t('delivery.event')}</span><span>{t('delivery.target')}</span><span>{t('delivery.statusLabel')}</span><span>{t('delivery.lastAttempt')}</span><span />
+          </div>
+          {deliveries.map((delivery) => (
+            <DeliveryRow
+              key={delivery.id}
+              delivery={delivery}
+              sinkUrl={sinkUrl(delivery.sinkId)}
+              redeliverPending={redeliver.isPending && redeliver.variables === delivery.id}
+              expanded={expandedId === delivery.id}
+              onToggle={() => setExpandedId((current) => current === delivery.id ? null : delivery.id)}
+              onRedeliver={() => redeliver.mutate(delivery.id)}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function DeliveryRow({ delivery, sinkUrl, redeliverPending, expanded, onToggle, onRedeliver }: {
+  delivery: DeliverySummary
+  sinkUrl: string | undefined
+  redeliverPending: boolean
+  expanded: boolean
+  onToggle: () => void
+  onRedeliver: () => void
+}) {
+  const { t } = useTranslation('collectors')
+  return (
+    <div className="border-b border-[#e0e6e8] last:border-b-0">
+      <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto_minmax(0,1.2fr)_auto] items-center gap-3 py-2.5">
+        <div className="flex min-w-0 items-center gap-1">
+          <Button variant="ghost" size="icon-sm" aria-label={t('delivery.expandAria', { id: delivery.id })} aria-expanded={expanded} onClick={onToggle}>
+            <ChevronDown className={cn('transition-transform', expanded && 'rotate-180')} />
+          </Button>
+          <code className="truncate text-xs" title={delivery.itemEventId}>{delivery.itemEventId}</code>
+          {delivery.kind === 'test' && <Badge variant="outline" className="shrink-0 rounded-md px-1.5 py-0.5 text-xs font-medium">{t('delivery.testTag')}</Badge>}
+        </div>
+        <span className="truncate text-xs text-[#76848b]" title={sinkUrl}>{sinkUrl ?? delivery.sinkId}</span>
+        <DeliveryStatusBadge status={delivery.status} />
+        <span className="truncate text-xs text-[#76848b]" title={deliveryAttemptSummary(delivery, t)}>{deliveryAttemptSummary(delivery, t)}</span>
+        <div className="flex items-center justify-end gap-1">
+          {delivery.status === 'dead_lettered' && (
+            <Button variant="outline" size="sm" disabled={redeliverPending} aria-label={t('delivery.redeliverAria', { id: delivery.id })} onClick={onRedeliver}>
+              {redeliverPending ? <LoaderCircle className="animate-spin" /> : <RefreshCw />}{redeliverPending ? t('delivery.redelivering') : t('delivery.redeliver')}
+            </Button>
+          )}
+        </div>
+      </div>
+      {expanded && <DeliveryAttempts deliveryId={delivery.id} />}
+    </div>
+  )
+}
+
+function DeliveryAttempts({ deliveryId }: { deliveryId: string }) {
+  const { t } = useTranslation('collectors')
+  const detailQuery = useQuery({ queryKey: ['delivery', deliveryId], queryFn: () => api.delivery(deliveryId) })
+  const attempts = detailQuery.data?.attempts ?? []
+  return (
+    <div className="mb-3 ml-8 rounded-md border border-[#e0e6e8] bg-[#f7f9fa] p-3">
+      <p className="mb-2 text-xs font-medium text-[#526169]">{t('delivery.attemptsTitle')}</p>
+      {detailQuery.isLoading && <Skeleton className="h-8 w-full" />}
+      {detailQuery.isError && <p className="text-xs text-[#aa3030]">{detailQuery.error.message}</p>}
+      {detailQuery.isSuccess && attempts.length === 0 && <p className="text-xs text-[#76848b]">{t('delivery.noAttempts')}</p>}
+      <ul className="space-y-1.5">
+        {attempts.map((attempt) => (
+          <li className="flex items-center gap-3 text-xs" key={attempt.id}>
+            <span className="shrink-0 font-medium text-[#526169]">{t('delivery.attemptNo', { no: attempt.attemptNo })}</span>
+            <span className="shrink-0 text-[#76848b]">{t('delivery.attemptTime', { started: deliveryTime(attempt.startedAt), finished: deliveryTime(attempt.finishedAt) })}</span>
+            <span className={cn('shrink-0 font-medium', attempt.statusCode === null || attempt.statusCode < 400 ? 'text-[#117153]' : 'text-[#aa3030]')}>{attempt.statusCode ?? t('delivery.noStatusCode')}</span>
+            {attempt.error && <span className="truncate text-[#aa3030]" title={attempt.error}>{attempt.error}</span>}
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }
 

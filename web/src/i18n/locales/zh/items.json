@@ -10,6 +10,15 @@
     "searchPlaceholder": "搜索标题、正文、采集器或 entity key",
     "searchAria": "搜索 Item"
   },
+  "export": {
+    "title": "导出",
+    "aria": "导出当前筛选的数据",
+    "csv": "导出 CSV",
+    "jsonl": "导出 JSONL",
+    "exporting": "正在导出…",
+    "tooLarge": "导出数据量超过上限，请缩小筛选范围",
+    "failed": "导出失败：{{message}}"
+  },
   "list": {
     "aria": "Item 列表",
     "columnItem": "数据项",

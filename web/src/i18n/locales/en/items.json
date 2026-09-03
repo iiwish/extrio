@@ -10,6 +10,15 @@
     "searchPlaceholder": "Search title, content, collector, or entity key",
     "searchAria": "Search items"
   },
+  "export": {
+    "title": "Export",
+    "aria": "Export data with the current filters",
+    "csv": "Export CSV",
+    "jsonl": "Export JSONL",
+    "exporting": "Exporting…",
+    "tooLarge": "The export exceeds the item cap. Narrow the filters and retry.",
+    "failed": "Export failed: {{message}}"
+  },
   "list": {
     "aria": "Item list",
     "columnItem": "Data item",

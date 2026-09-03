@@ -9,6 +9,10 @@ import type {
   CollectionPolicyInput,
   CreateCollectorInput,
   CreateCollectorsInput,
+  Delivery,
+  DeliveryAttempt,
+  DeliveryStatus,
+  DeliverySummary,
   FieldReviewDecision,
   ModelConfiguration,
   ModelConfigurationInput,
@@ -17,12 +21,117 @@ import type {
   Operation,
   PlatformError,
   Run,
+  Sink,
+  SinkInput,
+  SinkUpdateInput,
   UpdateCollectorInput,
 } from './types'
 
 const collectors = structuredClone(seedCollectors)
 const runs = structuredClone(seedRuns)
 const aiRuns = structuredClone(seedAiRuns)
+const sinks: Sink[] = [{
+  id: 'sink_beijing_webhook',
+  collectorId: 'collector_beijing_tender',
+  type: 'webhook',
+  url: 'https://hooks.example.com/extrio/beijing',
+  enabled: true,
+  version: 1,
+  credentialConfigured: true,
+  createdAt: '2026-08-30T02:00:00.000Z',
+  updatedAt: '2026-08-30T02:00:00.000Z',
+}]
+const deliveryAttempts = new Map<string, DeliveryAttempt[]>()
+const deliveries: DeliverySummary[] = seedDeliveries()
+
+function seedDeliveries(): DeliverySummary[] {
+  const delivered: DeliverySummary = {
+    id: 'delivery_beijing_0902_a',
+    collectorId: 'collector_beijing_tender',
+    sinkId: 'sink_beijing_webhook',
+    sinkVersionId: 'sink_beijing_webhook#v1',
+    itemEventId: 'evt_20260902_0007',
+    status: 'delivered',
+    attemptCount: 2,
+    nextAttemptAt: null,
+    leaseUntil: null,
+    lastStatusCode: 200,
+    lastError: null,
+    redeliveryCount: 0,
+    createdAt: '2026-09-02T09:12:00.000Z',
+    updatedAt: '2026-09-02T09:12:41.000Z',
+    latestAttempt: {
+      id: 'attempt_beijing_0902_a_2',
+      deliveryId: 'delivery_beijing_0902_a',
+      attemptNo: 2,
+      startedAt: '2026-09-02T09:12:39.000Z',
+      finishedAt: '2026-09-02T09:12:41.000Z',
+      statusCode: 200,
+      error: null,
+    },
+  }
+  const retrying: DeliverySummary = {
+    id: 'delivery_beijing_0902_b',
+    collectorId: 'collector_beijing_tender',
+    sinkId: 'sink_beijing_webhook',
+    sinkVersionId: 'sink_beijing_webhook#v1',
+    itemEventId: 'evt_20260902_0011',
+    status: 'failed',
+    attemptCount: 1,
+    nextAttemptAt: '2026-09-03T02:30:00.000Z',
+    leaseUntil: null,
+    lastStatusCode: 502,
+    lastError: 'upstream connect error',
+    redeliveryCount: 0,
+    createdAt: '2026-09-02T11:40:00.000Z',
+    updatedAt: '2026-09-02T11:40:18.000Z',
+    latestAttempt: {
+      id: 'attempt_beijing_0902_b_1',
+      deliveryId: 'delivery_beijing_0902_b',
+      attemptNo: 1,
+      startedAt: '2026-09-02T11:40:16.000Z',
+      finishedAt: '2026-09-02T11:40:18.000Z',
+      statusCode: 502,
+      error: 'upstream connect error',
+    },
+  }
+  const deadLettered: DeliverySummary = {
+    id: 'delivery_beijing_0901_c',
+    collectorId: 'collector_beijing_tender',
+    sinkId: 'sink_beijing_webhook',
+    sinkVersionId: 'sink_beijing_webhook#v1',
+    itemEventId: 'evt_20260901_0003',
+    status: 'dead_lettered',
+    attemptCount: 3,
+    nextAttemptAt: null,
+    leaseUntil: null,
+    lastStatusCode: null,
+    lastError: 'ECONNREFUSED 203.0.113.9:443',
+    redeliveryCount: 1,
+    createdAt: '2026-09-01T15:02:00.000Z',
+    updatedAt: '2026-09-01T15:33:52.000Z',
+    latestAttempt: {
+      id: 'attempt_beijing_0901_c_3',
+      deliveryId: 'delivery_beijing_0901_c',
+      attemptNo: 3,
+      startedAt: '2026-09-01T15:33:50.000Z',
+      finishedAt: '2026-09-01T15:33:52.000Z',
+      statusCode: null,
+      error: 'ECONNREFUSED 203.0.113.9:443',
+    },
+  }
+  deliveryAttempts.set(delivered.id, [
+    { id: 'attempt_beijing_0902_a_1', deliveryId: delivered.id, attemptNo: 1, startedAt: '2026-09-02T09:12:02.000Z', finishedAt: '2026-09-02T09:12:30.000Z', statusCode: 500, error: 'upstream timeout' },
+    delivered.latestAttempt!,
+  ])
+  deliveryAttempts.set(retrying.id, [retrying.latestAttempt!])
+  deliveryAttempts.set(deadLettered.id, [
+    { id: 'attempt_beijing_0901_c_1', deliveryId: deadLettered.id, attemptNo: 1, startedAt: '2026-09-01T15:02:01.000Z', finishedAt: '2026-09-01T15:02:44.000Z', statusCode: null, error: 'ECONNREFUSED 203.0.113.9:443' },
+    { id: 'attempt_beijing_0901_c_2', deliveryId: deadLettered.id, attemptNo: 2, startedAt: '2026-09-01T15:14:01.000Z', finishedAt: '2026-09-01T15:14:43.000Z', statusCode: null, error: 'ECONNREFUSED 203.0.113.9:443' },
+    deadLettered.latestAttempt!,
+  ])
+  return [delivered, retrying, deadLettered]
+}
 const defaultModelSetting: ModelSetting = {
   provider: 'openai',
   baseUrl: 'https://api.openai.com/v1',
@@ -129,6 +238,38 @@ function errorResponse(code: PlatformError['code'], message: string, status: num
 
 function requireIdempotency(request: Request) {
   return request.headers.get('Idempotency-Key')?.trim() || null
+}
+
+function parseWebhookUrl(value: string): URL | null {
+  try {
+    const url = new URL(value)
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) return null
+    return url
+  } catch {
+    return null
+  }
+}
+
+function createMockDelivery(sink: Sink, itemEventId: string): Delivery {
+  const now = new Date().toISOString()
+  const delivery: Delivery = {
+    id: `delivery_${crypto.randomUUID().replaceAll('-', '').slice(0, 20)}`,
+    collectorId: sink.collectorId,
+    sinkId: sink.id,
+    sinkVersionId: `${sink.id}#v${sink.version}`,
+    itemEventId,
+    status: 'pending',
+    attemptCount: 0,
+    nextAttemptAt: now,
+    leaseUntil: null,
+    lastStatusCode: null,
+    lastError: null,
+    redeliveryCount: 0,
+    createdAt: now,
+    updatedAt: now,
+  }
+  if (itemEventId.startsWith('test_')) delivery.kind = 'test'
+  return delivery
 }
 
 function createOperation(kind: Operation['kind'], collectorId: string, resourceId: string): MockOperation {
@@ -706,9 +847,150 @@ export const handlers = [
     const aiRun = byId(aiRuns, String(params.id))
     return aiRun ? successResponse(aiRun) : errorResponse('AI_RUN_NOT_FOUND', 'AI 任务不存在', 404)
   }),
-  http.get('*/api/v1/items', () => successResponse(page(runs.flatMap((run) => run.items)))),
+  http.get('*/api/v1/items/export', ({ request }) => {
+    const url = new URL(request.url)
+    const format = url.searchParams.get('format')
+    if (format !== 'csv' && format !== 'jsonl') {
+      return errorResponse('VALIDATION_FAILED', 'format 必须是 csv 或 jsonl', 422)
+    }
+    const collectorId = url.searchParams.get('collectorId')
+    const decision = url.searchParams.get('decision')
+    const entityKey = url.searchParams.get('entityKey')
+    const items = runs.flatMap((run) => run.items).filter((item) =>
+      (!collectorId || item.collectorId === collectorId)
+      && (!decision || item.decision === decision)
+      && (!entityKey || item.entityKey === entityKey))
+    const headers: Record<string, string> = {
+      'X-Request-ID': requestId(),
+      'Content-Disposition': `attachment; filename="extrio-items.${format}"`,
+    }
+    if (format === 'jsonl') {
+      return new HttpResponse(items.map((item) => JSON.stringify(item)).join('\n'), {
+        status: 200,
+        headers: { ...headers, 'Content-Type': 'application/x-ndjson' },
+      })
+    }
+    const columns = ['entityKey', 'revision', 'decision', 'changeType', 'collectorName', 'sourceHost', 'sourceUrl', 'publishedAt', 'observedAt']
+    const extractedColumns = [...new Set(items.flatMap((item) => Object.keys(item.extractedData ?? {})))].sort()
+    const escape = (value: unknown) => {
+      if (value === null || value === undefined) return ''
+      const text = typeof value === 'string' ? value : String(JSON.stringify(value))
+      return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text
+    }
+    const lines = [
+      [...columns, ...extractedColumns].join(','),
+      ...items.map((item) => [
+        ...columns.map((column) => escape(item[column as keyof typeof item])),
+        ...extractedColumns.map((column) => escape((item.extractedData as Record<string, unknown> | undefined)?.[column])),
+      ].join(',')),
+    ]
+    return new HttpResponse(`\ufeff${lines.join('\r\n')}`, {
+      status: 200,
+      headers: { ...headers, 'Content-Type': 'text/csv; charset=utf-8' },
+    })
+  }),
+  http.get('*/api/v1/items', ({ request }) => {
+    const url = new URL(request.url)
+    const limit = Number.parseInt(url.searchParams.get('limit') ?? '50', 10) || 50
+    const all = runs.flatMap((run) => run.items)
+    const cursor = url.searchParams.get('cursor')
+    let start = 0
+    if (cursor) {
+      const decoded = Number.parseInt(atob(cursor), 10)
+      if (!Number.isInteger(decoded) || decoded < 0) {
+        return errorResponse('INVALID_CURSOR', 'Cursor 无效，请使用上一页响应返回的 nextCursor', 400)
+      }
+      start = decoded
+    }
+    const items = all.slice(start, start + limit)
+    const nextCursor = start + limit < all.length ? btoa(String(start + limit)) : null
+    return successResponse({ items, page: { nextCursor }, nextCursor })
+  }),
   http.get('*/api/v1/items/:id', ({ params }) => {
     const item = runs.flatMap((run) => run.items).find((row) => row.id === String(params.id))
     return item ? successResponse(item) : errorResponse('ITEM_NOT_FOUND', 'Item 或拒绝候选不存在', 404)
+  }),
+  http.get('*/api/v1/collectors/:id/sinks', ({ params }) => {
+    if (!byId(collectors, String(params.id))) return errorResponse('COLLECTOR_NOT_FOUND', 'Collector 不存在', 404)
+    return successResponse(page(sinks.filter((sink) => sink.collectorId === String(params.id))))
+  }),
+  http.post('*/api/v1/collectors/:id/sinks', async ({ params, request }) => {
+    if (!requireIdempotency(request)) return errorResponse('IDEMPOTENCY_KEY_REQUIRED', '缺少 Idempotency-Key', 400)
+    const collector = byId(collectors, String(params.id))
+    if (!collector) return errorResponse('COLLECTOR_NOT_FOUND', 'Collector 不存在', 404)
+    const input = await request.json() as SinkInput
+    if (input.type !== undefined && input.type !== 'webhook') {
+      return errorResponse('VALIDATION_FAILED', '当前仅支持 webhook Sink', 422)
+    }
+    const url = parseWebhookUrl(input.url)
+    if (!url) return errorResponse('INVALID_URL', 'Sink URL 仅支持 HTTP 或 HTTPS 且不能嵌入凭据', 400)
+    const now = new Date().toISOString()
+    const sink: Sink = {
+      id: `sink_${crypto.randomUUID().replaceAll('-', '').slice(0, 16)}`,
+      collectorId: collector.id,
+      type: 'webhook',
+      url: url.toString(),
+      enabled: input.enabled ?? true,
+      version: 1,
+      credentialConfigured: Boolean(input.secret?.trim()),
+      createdAt: now,
+      updatedAt: now,
+    }
+    sinks.unshift(sink)
+    return successResponse(sink, 201)
+  }),
+  http.put('*/api/v1/collectors/:id/sinks/:sinkId', async ({ params, request }) => {
+    if (!requireIdempotency(request)) return errorResponse('IDEMPOTENCY_KEY_REQUIRED', '缺少 Idempotency-Key', 400)
+    const sink = sinks.find((row) => row.id === String(params.sinkId) && row.collectorId === String(params.id))
+    if (!sink) return errorResponse('SINK_NOT_FOUND', 'Sink 不存在', 404)
+    const input = await request.json() as SinkUpdateInput
+    if (input.url !== undefined) {
+      const url = parseWebhookUrl(input.url)
+      if (!url) return errorResponse('INVALID_URL', 'Sink URL 仅支持 HTTP 或 HTTPS 且不能嵌入凭据', 400)
+      sink.url = url.toString()
+    }
+    if (input.enabled !== undefined) sink.enabled = input.enabled
+    if (input.secret !== undefined) sink.credentialConfigured = input.secret.trim().length > 0
+    sink.version += 1
+    sink.updatedAt = new Date().toISOString()
+    return successResponse(sink)
+  }),
+  http.delete('*/api/v1/collectors/:id/sinks/:sinkId', ({ params, request }) => {
+    if (!requireIdempotency(request)) return errorResponse('IDEMPOTENCY_KEY_REQUIRED', '缺少 Idempotency-Key', 400)
+    const index = sinks.findIndex((row) => row.id === String(params.sinkId) && row.collectorId === String(params.id))
+    if (index === -1) return errorResponse('SINK_NOT_FOUND', 'Sink 不存在', 404)
+    sinks.splice(index, 1)
+    return new HttpResponse(null, { status: 204, headers: { 'X-Request-ID': requestId() } })
+  }),
+  http.post('*/api/v1/collectors/:id/sinks/:sinkId/test', ({ params, request }) => {
+    if (!requireIdempotency(request)) return errorResponse('IDEMPOTENCY_KEY_REQUIRED', '缺少 Idempotency-Key', 400)
+    const sink = sinks.find((row) => row.id === String(params.sinkId) && row.collectorId === String(params.id))
+    if (!sink) return errorResponse('SINK_NOT_FOUND', 'Sink 不存在', 404)
+    const delivery = createMockDelivery(sink, `test_${crypto.randomUUID().replaceAll('-', '')}`)
+    deliveries.unshift({ ...delivery, latestAttempt: null })
+    return successResponse(delivery, 202, { Location: `/api/v1/deliveries/${delivery.id}` })
+  }),
+  http.get('*/api/v1/collectors/:id/deliveries', ({ params }) => {
+    if (!byId(collectors, String(params.id))) return errorResponse('COLLECTOR_NOT_FOUND', 'Collector 不存在', 404)
+    return successResponse(page(deliveries.filter((row) => row.collectorId === String(params.id))))
+  }),
+  http.get('*/api/v1/deliveries/:id', ({ params }) => {
+    const delivery = deliveries.find((row) => row.id === String(params.id))
+    if (!delivery) return errorResponse('DELIVERY_NOT_FOUND', 'Delivery 不存在', 404)
+    const { latestAttempt: _latestAttempt, ...rest } = delivery
+    return successResponse({ ...rest, attempts: deliveryAttempts.get(delivery.id) ?? [] })
+  }),
+  http.post('*/api/v1/deliveries/:id/redeliver', ({ params, request }) => {
+    if (!requireIdempotency(request)) return errorResponse('IDEMPOTENCY_KEY_REQUIRED', '缺少 Idempotency-Key', 400)
+    const delivery = deliveries.find((row) => row.id === String(params.id))
+    if (!delivery) return errorResponse('DELIVERY_NOT_FOUND', 'Delivery 不存在', 404)
+    if (delivery.status === ('delivering' satisfies DeliveryStatus)) {
+      return errorResponse('DELIVERY_IN_FLIGHT', 'Delivery 正在投递中，请等待租约过期后再重试', 409)
+    }
+    delivery.status = 'pending'
+    delivery.redeliveryCount += 1
+    delivery.updatedAt = new Date().toISOString()
+    const { latestAttempt: _latestAttempt, ...rest } = delivery
+    return successResponse(rest)
   }),
 ]

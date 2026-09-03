@@ -1,13 +1,20 @@
-import { useQuery } from '@tanstack/react-query'
-import { ArrowRight, FileText, Search } from 'lucide-react'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { ArrowRight, Download, FileText, LoaderCircle, Search } from 'lucide-react'
 import { useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { api } from '@/api/client'
-import type { HarvestItem } from '@/api/types'
+import { ApiRequestError, api, exportItemsDownload } from '@/api/client'
+import type { ExportFormat, HarvestItem } from '@/api/types'
 import { StatusBadge } from '@/components/status-badge'
 import { collectorDisplayName, collectorSourceLabel } from '@/features/collectors/collector-presentation'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -40,6 +47,29 @@ export function ItemsPage() {
     setSearchParams(next)
   }
 
+  // /items/export (OpenAPI 1.14.0) has no `source` param: the source filter stays client-side only.
+  const exportMutation = useMutation({
+    mutationFn: async (format: ExportFormat) => {
+      const blob = await exportItemsDownload({
+        format,
+        collectorId: collector === 'all' ? undefined : collector,
+        decision: decision === 'all' ? undefined : decision,
+        entityKey: search.trim() || undefined,
+      })
+      return { blob, format }
+    },
+    onSuccess: ({ blob, format }) => {
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = `extrio-items-${new Date().toISOString().slice(0, 10)}.${format}`
+      document.body.append(anchor)
+      anchor.click()
+      anchor.remove()
+      URL.revokeObjectURL(url)
+    },
+  })
+
   return (
     <div className="page-frame entity-page items-page">
       <h1 className="sr-only">{t('common:nav.items')}</h1>
@@ -55,8 +85,32 @@ export function ItemsPage() {
           </div>
           <span className="result-count">{t('list.count', { count: items.length })}</span>
         </div>
-        <div className="toolbar-search items-search"><Search /><Input value={search} onChange={(event) => updateParam('q', event.target.value, '')} placeholder={t('toolbar.searchPlaceholder')} aria-label={t('toolbar.searchAria')} /></div>
+        <div className="flex items-center gap-2">
+          <div className="toolbar-search items-search"><Search /><Input value={search} onChange={(event) => updateParam('q', event.target.value, '')} placeholder={t('toolbar.searchPlaceholder')} aria-label={t('toolbar.searchAria')} /></div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" disabled={exportMutation.isPending} aria-label={t('export.aria')}>
+                {exportMutation.isPending ? <LoaderCircle className="animate-spin" /> : <Download />}{t('export.title')}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => exportMutation.mutate('csv')}>{t('export.csv')}</DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => exportMutation.mutate('jsonl')}>{t('export.jsonl')}</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
+
+      {exportMutation.error && (
+        <Alert variant="destructive" className="mb-3">
+          <AlertTitle>{t('export.title')}</AlertTitle>
+          <AlertDescription>
+            {exportMutation.error instanceof ApiRequestError && exportMutation.error.code === 'EXPORT_TOO_LARGE'
+              ? t('export.tooLarge')
+              : t('export.failed', { message: exportMutation.error.message })}
+          </AlertDescription>
+        </Alert>
+      )}
 
       <section className="object-list item-object-list" aria-label={t('list.aria')}>
         <div className="object-list-head item-list-grid" aria-hidden="true">
