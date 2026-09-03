@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import extrio.app as app_module
+from extrio.credentials import CredentialCipher
 from extrio.harvest import build_candidate
 from extrio.runtime import RunResult
 from extrio.store import Store
@@ -93,6 +94,32 @@ def test_item_classification_uses_declared_fingerprint_fields() -> None:
 )
 def test_final_run_status_requires_a_normal_stop_reason(accepted: int, rejected: int, stop_reason: str, expected: str) -> None:
     assert final_run_status(accepted=accepted, rejected=rejected, stop_reason=stop_reason) == expected
+
+
+def test_enqueue_run_deliveries_targets_only_accepted_new_updated_items_and_enabled_sinks(tmp_path: Path) -> None:
+    store = Store(tmp_path / "enqueue.db")
+    store.initialize()
+    collector = store.create_collector("Demo", "Collect notices", "https://example.com/list", "example.com")
+    cipher = CredentialCipher(tmp_path / "keys" / "cipher.key")
+    enabled = store.create_sink(collector["id"], cipher=cipher, url="https://hooks.example.com/a", secret="s3cret")
+    store.create_sink(collector["id"], cipher=cipher, url="https://hooks.example.com/b", secret="s3cret", enabled=False)
+    fresh = accepted_item(run_id="run_fresh")
+    fresh["collectorId"] = collector["id"]
+    updated = accepted_item(run_id="run_updated")
+    updated.update({"collectorId": collector["id"], "changeType": "updated", "revision": 2})
+    rejected = accepted_item(run_id="run_rejected")
+    rejected.update({"collectorId": collector["id"], "decision": "rejected", "changeType": None})
+    unchanged = accepted_item(run_id="run_unchanged")
+    unchanged.update({"collectorId": collector["id"], "changeType": "unchanged"})
+
+    worker = Worker.__new__(Worker)
+    worker.store = store
+
+    assert worker.enqueue_run_deliveries(collector["id"], [fresh, updated, rejected, unchanged]) == 2
+    deliveries = store.list_deliveries_for_collector(collector["id"])
+    assert {delivery["itemEventId"] for delivery in deliveries} == {"item_run_fresh", "item_run_updated"}
+    assert all(delivery["sinkId"] == enabled["id"] and delivery["status"] == "pending" for delivery in deliveries)
+    assert worker.enqueue_run_deliveries("collector_without_sinks", [fresh]) == 0
 
 
 @pytest.mark.asyncio
@@ -187,6 +214,10 @@ async def test_worker_advances_checkpoint_only_after_successful_finalization(tmp
     try:
         with TestClient(app_module.app) as client:
             collector = app_module.store.create_collector("Source", "Collect", "https://example.com/list", "example.com")
+            cipher = CredentialCipher(tmp_path / "keys" / "cipher.key")
+            sink = app_module.store.create_sink(
+                collector["id"], cipher=cipher, url="https://hooks.example.com/extrio", secret="s3cret"
+            )
             list_html = (
                 '<ul class="notice-list"><li><a class="notice-title" href="/detail/a">Notice A</a>'
                 '<time datetime="2026-08-30"></time></li></ul>'
@@ -233,6 +264,12 @@ async def test_worker_advances_checkpoint_only_after_successful_finalization(tmp
             assert first_run["checkpointAfter"]["watermark"] == "2026-08-30"
             assert app_module.store.get_checkpoint(collector["id"])["lastSuccessfulRunId"] == first_run["id"]
 
+            deliveries = app_module.store.list_deliveries_for_collector(collector["id"])
+            assert len(deliveries) == 1
+            assert deliveries[0]["sinkId"] == sink["id"]
+            assert deliveries[0]["itemEventId"] == first_run["items"][0]["id"]
+            assert deliveries[0]["status"] == "pending"
+
             second = client.post(
                 f"/api/v1/collectors/{collector['id']}/runs",
                 headers={"Idempotency-Key": "run-worker-incremental-0001"},
@@ -251,5 +288,6 @@ async def test_worker_advances_checkpoint_only_after_successful_finalization(tmp
             assert second_run["items"][0]["changeType"] == "unchanged"
             assert second_run["items"][0]["revision"] == 1
             assert len(second_run["items"][0]["observationHistory"]) == 2
+            assert len(app_module.store.list_deliveries_for_collector(collector["id"])) == 1
     finally:
         app_module.store = original

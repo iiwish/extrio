@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: Extrio Control Plane API
-  version: 1.13.0
-  description: Versioned browser-facing control-plane contract for the Extrio v0.2 vertical slice.
+  version: 1.14.0
+  description: Versioned browser-facing control-plane contract for Extrio, including the v0.3 output loop (item export, sinks, deliveries).
 x-contract-id: extrio.control-plane.v1
 servers:
   - url: /api/v1
@@ -504,7 +504,7 @@ paths:
         - $ref: '#/components/parameters/Limit'
       responses:
         '200':
-          description: Accepted items and rejected candidates.
+          description: Accepted items and rejected candidates in deterministic output-loop order.
           headers:
             X-Request-ID:
               $ref: '#/components/headers/RequestId'
@@ -512,6 +512,70 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ItemPage'
+        '400':
+          description: The cursor is not a valid continuation token (INVALID_CURSOR).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformError'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /items/export:
+    get:
+      operationId: exportItems
+      summary: Stream items as CSV or JSONL in the same deterministic order as listItems.
+      description: >-
+        The response body is streamed. The server enforces the export item cap before streaming
+        starts; requests whose filter scope exceeds the cap are rejected with EXPORT_TOO_LARGE and
+        no body is streamed. CSV columns are the fixed columns followed by the alphabetical union
+        of extractedData keys (missing values stay empty). The CSV body starts with a UTF-8 BOM.
+      parameters:
+        - name: format
+          in: query
+          required: true
+          description: Export wire format.
+          schema:
+            type: string
+            enum: [csv, jsonl]
+        - name: collectorId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: runId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: decision
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/ItemDecision'
+        - name: entityKey
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Streamed export of at most 100000 items.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            text/csv:
+              schema:
+                type: string
+            application/x-ndjson:
+              schema:
+                type: string
+        '400':
+          description: The export scope exceeds the item cap (EXPORT_TOO_LARGE).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformError'
         default:
           $ref: '#/components/responses/PlatformError'
   /items/{itemId}:
@@ -529,6 +593,221 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HarvestResult'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /collectors/{collectorId}/sinks:
+    get:
+      operationId: listSinks
+      summary: List the output sinks configured for one collector.
+      parameters:
+        - $ref: '#/components/parameters/CollectorId'
+      responses:
+        '200':
+          description: Sinks ordered by creation time; secrets never appear in responses.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SinkPage'
+        default:
+          $ref: '#/components/responses/PlatformError'
+    post:
+      operationId: createSink
+      summary: Register a webhook output sink for the collector.
+      parameters:
+        - $ref: '#/components/parameters/CollectorId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SinkInput'
+      responses:
+        '201':
+          description: Sink created with version 1.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sink'
+        '400':
+          description: The URL is not a plain HTTP/HTTPS endpoint or embeds credentials (INVALID_URL).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformError'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /collectors/{collectorId}/sinks/{sinkId}:
+    put:
+      operationId: updateSink
+      summary: Partially update a sink; every update bumps its version.
+      description: Omitted fields keep their stored values; an omitted secret keeps the stored credential.
+      parameters:
+        - $ref: '#/components/parameters/CollectorId'
+        - $ref: '#/components/parameters/SinkId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SinkUpdateInput'
+      responses:
+        '200':
+          description: Updated sink with a bumped version.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sink'
+        '400':
+          description: The URL is not a plain HTTP/HTTPS endpoint or embeds credentials (INVALID_URL).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformError'
+        '404':
+          description: The sink does not exist for this collector (SINK_NOT_FOUND).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformError'
+        default:
+          $ref: '#/components/responses/PlatformError'
+    delete:
+      operationId: deleteSink
+      summary: Remove an output sink.
+      parameters:
+        - $ref: '#/components/parameters/CollectorId'
+        - $ref: '#/components/parameters/SinkId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '204':
+          description: Sink removed.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+        '404':
+          description: The sink does not exist for this collector (SINK_NOT_FOUND).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformError'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /collectors/{collectorId}/sinks/{sinkId}/test:
+    post:
+      operationId: testSink
+      summary: Enqueue a synthetic test delivery for a sink.
+      description: >-
+        Enqueues a delivery with a synthetic `test_` item event id and kind=test; the delivery
+        worker performs the actual HTTP call asynchronously. Returns 202 with the delivery resource.
+      parameters:
+        - $ref: '#/components/parameters/CollectorId'
+        - $ref: '#/components/parameters/SinkId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202':
+          description: Test delivery enqueued; Location points at the delivery resource.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+            Location:
+              description: Relative URL of the enqueued delivery.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Delivery'
+        '404':
+          description: The collector or sink does not exist (COLLECTOR_NOT_FOUND / SINK_NOT_FOUND).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformError'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /collectors/{collectorId}/deliveries:
+    get:
+      operationId: listCollectorDeliveries
+      summary: List the deliveries of one collector with their latest attempt summary.
+      parameters:
+        - $ref: '#/components/parameters/CollectorId'
+      responses:
+        '200':
+          description: Deliveries ordered by creation time.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeliveryPage'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /deliveries/{deliveryId}:
+    get:
+      operationId: getDelivery
+      summary: Fetch one delivery with its full attempt history.
+      parameters:
+        - $ref: '#/components/parameters/DeliveryId'
+      responses:
+        '200':
+          description: Delivery resource with all recorded attempts.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeliveryDetail'
+        '404':
+          description: The delivery does not exist (DELIVERY_NOT_FOUND).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformError'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /deliveries/{deliveryId}/redeliver:
+    post:
+      operationId: redeliverDelivery
+      summary: Reset a delivery to pending for another delivery attempt.
+      description: Works from delivered, failed and dead_lettered deliveries; delivering rows must wait for their lease to expire (DELIVERY_IN_FLIGHT).
+      parameters:
+        - $ref: '#/components/parameters/DeliveryId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: The same delivery reset to pending with an incremented redeliveryCount.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Delivery'
+        '404':
+          description: The delivery does not exist (DELIVERY_NOT_FOUND).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformError'
+        '409':
+          description: The delivery is actively being delivered (DELIVERY_IN_FLIGHT).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformError'
         default:
           $ref: '#/components/responses/PlatformError'
 components:
@@ -572,6 +851,20 @@ components:
         minLength: 1
     ItemId:
       name: itemId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+    SinkId:
+      name: sinkId
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+    DeliveryId:
+      name: deliveryId
       in: path
       required: true
       schema:
@@ -902,6 +1195,11 @@ components:
         - REVIEW_DECISION_INVALID
         - OPERATION_CANCELLED
         - OPERATION_TIMED_OUT
+        - INVALID_CURSOR
+        - EXPORT_TOO_LARGE
+        - SINK_NOT_FOUND
+        - DELIVERY_NOT_FOUND
+        - DELIVERY_IN_FLIGHT
         - INTERNAL_ERROR
         - UNEXPECTED_RESPONSE
     OperationMetrics:
@@ -1993,11 +2291,181 @@ components:
     ItemPage:
       type: object
       additionalProperties: false
-      required: [items, page]
+      required: [items, page, nextCursor]
       properties:
         items:
           type: array
           items:
             $ref: '#/components/schemas/HarvestResult'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+        nextCursor:
+          type: [string, 'null']
+          description: Opaque continuation token for the next page in deterministic output-loop order; null on the last page.
+    Sink:
+      type: object
+      additionalProperties: false
+      required: [id, collectorId, type, url, enabled, version, credentialConfigured, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        collectorId:
+          type: string
+        type:
+          type: string
+          enum: [webhook]
+        url:
+          type: string
+          format: uri
+          description: HTTP or HTTPS webhook endpoint without embedded credentials.
+        enabled:
+          type: boolean
+        version:
+          type: integer
+          minimum: 1
+          description: Bumped on every successful update.
+        credentialConfigured:
+          type: boolean
+          description: True when the server holds a signing secret for this sink; the secret itself never leaves the API.
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+    SinkPage:
+      type: object
+      additionalProperties: false
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Sink'
+        page:
+          $ref: '#/components/schemas/PageMeta'
+    SinkInput:
+      type: object
+      additionalProperties: false
+      required: [url]
+      properties:
+        type:
+          type: string
+          enum: [webhook]
+          default: webhook
+        url:
+          type: string
+          format: uri
+          description: HTTP or HTTPS endpoint; embedded user/password credentials are rejected with INVALID_URL.
+        secret:
+          type: string
+          description: Write-only signing secret; encrypted at rest and never returned by any response.
+        enabled:
+          type: boolean
+          default: true
+    SinkUpdateInput:
+      type: object
+      additionalProperties: false
+      properties:
+        url:
+          type: string
+          format: uri
+        secret:
+          type: string
+          description: Non-empty value replaces the stored credential; omitting the field keeps it.
+        enabled:
+          type: boolean
+    DeliveryStatus:
+      type: string
+      enum: [pending, delivering, delivered, failed, dead_lettered]
+    Delivery:
+      type: object
+      additionalProperties: false
+      required: [id, collectorId, sinkId, sinkVersionId, itemEventId, status, attemptCount, nextAttemptAt, leaseUntil, lastStatusCode, lastError, redeliveryCount, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        collectorId:
+          type: string
+        sinkId:
+          type: string
+        sinkVersionId:
+          type: string
+          description: Sink version captured when the delivery was enqueued.
+        itemEventId:
+          type: string
+        status:
+          $ref: '#/components/schemas/DeliveryStatus'
+        attemptCount:
+          type: integer
+          minimum: 0
+        nextAttemptAt:
+          type: [string, 'null']
+        leaseUntil:
+          type: [string, 'null']
+        lastStatusCode:
+          type: [integer, 'null']
+        lastError:
+          type: [string, 'null']
+        redeliveryCount:
+          type: integer
+          minimum: 0
+        kind:
+          type: string
+          enum: [test]
+          description: Present only for synthetic sink-test deliveries (item event ids prefixed with test_).
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+    DeliveryAttempt:
+      type: object
+      additionalProperties: false
+      required: [id, deliveryId, attemptNo, startedAt, finishedAt, statusCode, error]
+      properties:
+        id:
+          type: string
+        deliveryId:
+          type: string
+        attemptNo:
+          type: integer
+          minimum: 1
+        startedAt:
+          type: string
+        finishedAt:
+          type: string
+        statusCode:
+          type: [integer, 'null']
+        error:
+          type: [string, 'null']
+    DeliverySummary:
+      allOf:
+        - $ref: '#/components/schemas/Delivery'
+        - type: object
+          additionalProperties: false
+          required: [latestAttempt]
+          properties:
+            latestAttempt:
+              anyOf:
+                - $ref: '#/components/schemas/DeliveryAttempt'
+                - type: 'null'
+    DeliveryDetail:
+      allOf:
+        - $ref: '#/components/schemas/Delivery'
+        - type: object
+          additionalProperties: false
+          required: [attempts]
+          properties:
+            attempts:
+              type: array
+              items:
+                $ref: '#/components/schemas/DeliveryAttempt'
+    DeliveryPage:
+      type: object
+      additionalProperties: false
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DeliverySummary'
         page:
           $ref: '#/components/schemas/PageMeta'

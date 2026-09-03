@@ -8,6 +8,7 @@ from typing import Any
 from extrio.config import get_settings
 from extrio.contracts import ContractBundle
 from extrio.credentials import CredentialCipher
+from extrio.delivery import OUTCOME_DELIVERED, WebhookDispatcher
 from extrio.explorer import Crawl4AIExplorer
 from extrio.integrity import IntegrityError, verify_rule_attestation
 from extrio.model_gateway import ModelRuleCompiler
@@ -18,6 +19,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 logger = logging.getLogger("extrio.worker")
 NORMAL_STOP_REASONS = {"not_applicable", "next_link_exhausted", "time_window_reached", "checkpoint_reached"}
 REVISION_FIELDS = ("title", "publishedAt", "content", "buyer", "budget", "region")
+DELIVERY_BATCH_LIMIT = 10
+DELIVERABLE_CHANGE_TYPES = frozenset({"new", "updated"})
 
 
 def _revision_values(item: dict[str, Any], fingerprint_fields: list[str] | None = None) -> dict[str, Any]:
@@ -89,9 +92,11 @@ class Worker:
         self.settings = get_settings()
         self.store = Store(self.settings.database_path)
         self.contracts = ContractBundle(self.settings.contracts_path)
-        compiler = ModelRuleCompiler(self.store, CredentialCipher(self.settings.credential_encryption_key_path))
+        self.cipher = CredentialCipher(self.settings.credential_encryption_key_path)
+        compiler = ModelRuleCompiler(self.store, self.cipher)
         self.explorer = Crawl4AIExplorer(self.contracts, self.settings.artifact_path, compiler)
         self.runtime = CrawleeRuntime(self.settings.artifact_path)
+        self.dispatcher = WebhookDispatcher(self.store, self.cipher)
         self.stop_event = asyncio.Event()
 
     async def _progress(
@@ -268,8 +273,44 @@ class Worker:
                     raise RuntimeError(f"Operation {operation_id} not found")
                 operation.update(status="succeeded", phase="completed", progress=100, metrics=result.metrics, error=None)
                 self.store.save_operation(operation, collector_id, connection)
+            enqueued = self.enqueue_run_deliveries(collector_id, result.items)
+            if enqueued:
+                logger.info("Enqueued %s webhook deliveries run=%s collector=%s", enqueued, run_id, collector_id)
             return
         raise RuntimeError(f"Unknown job kind: {job['kind']}")
+
+    def enqueue_run_deliveries(self, collector_id: str, items: list[dict[str, Any]]) -> int:
+        """Enqueue one webhook delivery per accepted new/updated item and enabled sink.
+
+        Rejected and unchanged items never produce deliveries; with no enabled
+        sinks this is a no-op. Idempotency is enforced by the store per
+        ``(item_event_id, sink_id)``.
+        """
+
+        sinks = [sink for sink in self.store.list_sinks_for_collector(collector_id) if sink["enabled"]]
+        if not sinks:
+            return 0
+        enqueued = 0
+        for item in items:
+            if item.get("decision") != "accepted" or item.get("changeType") not in DELIVERABLE_CHANGE_TYPES:
+                continue
+            for sink in sinks:
+                try:
+                    self.store.enqueue_delivery(collector_id=collector_id, sink_id=sink["id"], item_event_id=str(item["id"]))
+                    enqueued += 1
+                except KeyError:
+                    logger.warning("Skipped delivery enqueue for removed sink=%s item=%s", sink["id"], item["id"])
+        return enqueued
+
+    async def process_due_deliveries(self) -> int:
+        """Claim due deliveries and deliver them; returns how many were processed."""
+
+        claimed = self.store.claim_due_deliveries(DELIVERY_BATCH_LIMIT, lease_seconds=self.settings.worker_lease_seconds)
+        if not claimed:
+            return 0
+        outcomes = await asyncio.to_thread(self.dispatcher.process_batch, claimed)
+        logger.info("Delivery cycle claimed=%s delivered=%s", len(claimed), outcomes.count(OUTCOME_DELIVERED))
+        return len(claimed)
 
     def fail(self, job: dict[str, Any], exc: Exception) -> None:
         operation_id = job["operationId"]
@@ -325,10 +366,12 @@ class Worker:
         while not self.stop_event.is_set():
             job = self.store.claim_job(self.settings.worker_lease_seconds)
             if job is None:
-                try:
-                    await asyncio.wait_for(self.stop_event.wait(), timeout=self.settings.worker_poll_seconds)
-                except TimeoutError:
-                    pass
+                processed = await self.process_due_deliveries()
+                if processed == 0:
+                    try:
+                        await asyncio.wait_for(self.stop_event.wait(), timeout=self.settings.worker_poll_seconds)
+                    except TimeoutError:
+                        pass
                 continue
             logger.info("Processing %s operation=%s", job["kind"], job["operationId"])
             try:
@@ -337,6 +380,7 @@ class Worker:
             except Exception as exc:  # noqa: BLE001
                 logger.exception("Job failed operation=%s", job["operationId"])
                 self.fail(job, exc)
+            await self.process_due_deliveries()
 
 
 async def _main() -> None:

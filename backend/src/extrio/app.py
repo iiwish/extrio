@@ -1,10 +1,14 @@
 import asyncio
 import copy
+import csv
+import io
+import json
 import logging
 import os
 import re
 import threading
 import uuid
+from collections.abc import Iterator
 from contextlib import asynccontextmanager, suppress
 from datetime import datetime, timedelta
 from typing import Any
@@ -16,7 +20,7 @@ from bs4 import BeautifulSoup
 from fastapi import FastAPI, Header, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from extrio.auth import (
     allow_login,
@@ -43,7 +47,16 @@ from extrio.integrity import (
     verify_rule_attestation,
 )
 from extrio.security import SourceUrlError, normalize_source_url
-from extrio.store import DEFAULT_COLLECTION_ID, DEFAULT_COLLECTION_NAME, AuthSetupComplete, IdempotencyConflict, Store, stable_id
+from extrio.store import (
+    DEFAULT_COLLECTION_ID,
+    DEFAULT_COLLECTION_NAME,
+    EXPORT_ITEMS_CAP,
+    AuthSetupComplete,
+    IdempotencyConflict,
+    InvalidCursor,
+    Store,
+    stable_id,
+)
 
 settings = get_settings()
 store = Store(settings.database_path)
@@ -523,7 +536,7 @@ async def lifespan(_app: FastAPI):
             await schedule_task
 
 
-app = FastAPI(title="Extrio Control Plane API", version="1.13.0", lifespan=lifespan)
+app = FastAPI(title="Extrio Control Plane API", version="1.14.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
@@ -1525,15 +1538,333 @@ def get_run(run_id: str, request: Request):
     return run if run else platform_error(request, "RUN_NOT_FOUND", "Run 不存在", 404)
 
 
+EXPORT_CSV_COLUMNS = (
+    "entityKey",
+    "revision",
+    "decision",
+    "changeType",
+    "collectorName",
+    "sourceHost",
+    "sourceUrl",
+    "publishedAt",
+    "observedAt",
+)
+
+
+def invalid_cursor_error(request: Request) -> JSONResponse:
+    return platform_error(request, "INVALID_CURSOR", "Cursor 无效，请使用上一页响应返回的 nextCursor", 400)
+
+
+def sink_view(sink: dict[str, Any]) -> dict[str, Any]:
+    """API projection of a stored sink; the secret itself never leaves the store."""
+    return {
+        "id": sink["id"],
+        "collectorId": sink["collectorId"],
+        "type": sink["type"],
+        "url": sink["url"],
+        "enabled": bool(sink["enabled"]),
+        "version": int(sink["version"]),
+        "credentialConfigured": bool(sink["secretConfigured"]),
+        "createdAt": sink["createdAt"],
+        "updatedAt": sink["updatedAt"],
+    }
+
+
+def delivery_view(delivery: dict[str, Any]) -> dict[str, Any]:
+    """API projection of a delivery; synthetic sink-test deliveries carry kind=test."""
+    view = {key: value for key, value in delivery.items() if key != "secretEncrypted"}
+    if str(view.get("itemEventId", "")).startswith("test_"):
+        view["kind"] = "test"
+    return view
+
+
+def sink_url_error(value: Any) -> str | None:
+    """Return a stable rejection message when the sink URL is not a plain http(s) URL."""
+    if not isinstance(value, str) or not value.strip():
+        return "Sink URL 不能为空"
+    parsed = urlparse(value.strip())
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return "Sink URL 仅支持 HTTP 或 HTTPS"
+    if parsed.username or parsed.password:
+        return "Sink URL 不能嵌入用户名或密码"
+    return None
+
+
+def sink_not_found(request: Request) -> JSONResponse:
+    return platform_error(request, "SINK_NOT_FOUND", "Sink 不存在", 404)
+
+
+def get_collector_sink(collector_id: str, sink_id: str) -> dict[str, Any] | None:
+    sink = store.get_sink(sink_id)
+    if sink is None or sink["collectorId"] != collector_id:
+        return None
+    return sink
+
+
+def export_csv_row(item: dict[str, Any], extracted_columns: list[str]) -> list[Any]:
+    row = [item.get(column) for column in EXPORT_CSV_COLUMNS]
+    extracted = item.get("extractedData")
+    extracted = extracted if isinstance(extracted, dict) else {}
+    for column in extracted_columns:
+        value = extracted.get(column)
+        if value is None or isinstance(value, str):
+            row.append(value)
+        else:
+            row.append(json.dumps(value, ensure_ascii=False))
+    return row
+
+
+def iter_export_csv(
+    filters: dict[str, Any],
+    columns: list[str],
+) -> Iterator[str]:
+    yield "\ufeff"
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(columns)
+    yield buffer.getvalue()
+    for item in store.iter_items_export(**filters):
+        buffer.seek(0)
+        buffer.truncate()
+        writer.writerow(export_csv_row(item, columns[len(EXPORT_CSV_COLUMNS):]))
+        yield buffer.getvalue()
+
+
+def iter_export_jsonl(filters: dict[str, Any]) -> Iterator[str]:
+    for item in store.iter_items_export(**filters):
+        yield json.dumps(item, ensure_ascii=False) + "\n"
+
+
 @app.get("/api/v1/items")
-def list_items(limit: int = 50):
-    return page(store.list_items(), limit)
+def list_items(request: Request, limit: int = Query(50, ge=1, le=200), cursor: str | None = Query(None)):
+    try:
+        result = store.list_items_cursor(limit=limit, cursor=cursor)
+    except InvalidCursor:
+        return invalid_cursor_error(request)
+    next_cursor = result["nextCursor"]
+    return {"items": result["items"], "page": {"nextCursor": next_cursor}, "nextCursor": next_cursor}
+
+
+@app.get("/api/v1/items/export")
+def export_items(
+    request: Request,
+    format: str = Query(..., pattern="^(csv|jsonl)$"),
+    collector_id: str | None = Query(None, alias="collectorId"),
+    run_id: str | None = Query(None, alias="runId"),
+    decision: str | None = Query(None),
+    entity_key: str | None = Query(None, alias="entityKey"),
+):
+    filters = {"collector_id": collector_id, "run_id": run_id, "decision": decision, "entity_key": entity_key}
+    probe = store.iter_items_export(**filters)
+    count = 0
+    extracted_columns: set[str] = set()
+    try:
+        for item in probe:
+            count += 1
+            if count > EXPORT_ITEMS_CAP:
+                return platform_error(request, "EXPORT_TOO_LARGE", "导出范围超过单次导出上限，请缩小过滤条件后重试", 400)
+            extracted = item.get("extractedData")
+            if isinstance(extracted, dict):
+                extracted_columns.update(str(key) for key in extracted)
+    finally:
+        probe.close()
+
+    if format == "csv":
+        columns = [*EXPORT_CSV_COLUMNS, *sorted(extracted_columns)]
+        return StreamingResponse(
+            iter_export_csv(filters, columns),
+            media_type="text/csv; charset=utf-8",
+            headers={"Content-Disposition": 'attachment; filename="extrio-items.csv"'},
+        )
+    return StreamingResponse(
+        iter_export_jsonl(filters),
+        media_type="application/x-ndjson",
+        headers={"Content-Disposition": 'attachment; filename="extrio-items.jsonl"'},
+    )
 
 
 @app.get("/api/v1/items/{item_id}")
 def get_item(item_id: str, request: Request):
     item = store.get_item(item_id)
     return item if item else platform_error(request, "ITEM_NOT_FOUND", "Item 或拒绝候选不存在", 404)
+
+
+@app.get("/api/v1/collectors/{collector_id}/sinks")
+def list_sinks(collector_id: str, request: Request):
+    if store.get_collector(collector_id) is None:
+        return platform_error(request, "COLLECTOR_NOT_FOUND", "Collector 不存在", 404)
+    sinks = [sink_view(sink) for sink in store.list_sinks_for_collector(collector_id)]
+    return {"items": sinks, "page": {"nextCursor": None}}
+
+
+@app.post("/api/v1/collectors/{collector_id}/sinks", status_code=201)
+async def create_sink(
+    collector_id: str,
+    request: Request,
+    idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
+):
+    if error := require_idempotency(request, idempotency_key):
+        return error
+    body, body_error = await read_contract_body(request, required={"url"}, optional={"type", "secret", "enabled"})
+    if body_error:
+        return body_error
+    scope = f"POST:/collectors/{collector_id}/sinks"
+    if found := replay(scope, idempotency_key, body, request):
+        return found
+    if store.get_collector(collector_id) is None:
+        return platform_error(request, "COLLECTOR_NOT_FOUND", "Collector 不存在", 404)
+    sink_type = str(body.get("type") or "webhook")
+    if sink_type != "webhook":
+        return platform_error(request, "VALIDATION_FAILED", "当前仅支持 webhook Sink", 422, pointer="/type")
+    if url_error := sink_url_error(body.get("url")):
+        return platform_error(request, "INVALID_URL", url_error, 400, pointer="/url")
+    enabled = body.get("enabled", True)
+    if not isinstance(enabled, bool):
+        return platform_error(request, "VALIDATION_FAILED", "enabled 必须是布尔值", 422, pointer="/enabled")
+    secret = body.get("secret")
+    if secret is not None and (not isinstance(secret, str) or not secret.strip()):
+        return platform_error(request, "VALIDATION_FAILED", "secret 必须是非空字符串", 422, pointer="/secret")
+    sink = store.create_sink(
+        collector_id,
+        cipher=credential_cipher,
+        url=str(body["url"]).strip(),
+        secret=secret,
+        enabled=enabled,
+        sink_type=sink_type,
+    )
+    value = sink_view(sink)
+    remember(scope, idempotency_key, body, 201, value)
+    return value
+
+
+@app.put("/api/v1/collectors/{collector_id}/sinks/{sink_id}")
+async def update_sink(
+    collector_id: str,
+    sink_id: str,
+    request: Request,
+    idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
+):
+    if error := require_idempotency(request, idempotency_key):
+        return error
+    body, body_error = await read_contract_body(request, required=set(), optional={"url", "secret", "enabled"})
+    if body_error:
+        return body_error
+    scope = f"PUT:/collectors/{collector_id}/sinks/{sink_id}"
+    if found := replay(scope, idempotency_key, body, request):
+        return found
+    if get_collector_sink(collector_id, sink_id) is None:
+        return sink_not_found(request)
+    url = None
+    if "url" in body:
+        if url_error := sink_url_error(body.get("url")):
+            return platform_error(request, "INVALID_URL", url_error, 400, pointer="/url")
+        url = str(body["url"]).strip()
+    enabled = body.get("enabled") if "enabled" in body else None
+    if enabled is not None and not isinstance(enabled, bool):
+        return platform_error(request, "VALIDATION_FAILED", "enabled 必须是布尔值", 422, pointer="/enabled")
+    secret = body.get("secret") if "secret" in body else None
+    if secret is not None and (not isinstance(secret, str) or not secret.strip()):
+        return platform_error(request, "VALIDATION_FAILED", "secret 必须是非空字符串", 422, pointer="/secret")
+    updated = store.update_sink(sink_id, cipher=credential_cipher, url=url, secret=secret, enabled=enabled)
+    value = sink_view(updated)
+    remember(scope, idempotency_key, body, 200, value)
+    return value
+
+
+@app.delete("/api/v1/collectors/{collector_id}/sinks/{sink_id}", status_code=204)
+async def delete_sink(
+    collector_id: str,
+    sink_id: str,
+    request: Request,
+    idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
+):
+    if error := require_idempotency(request, idempotency_key):
+        return error
+    body = {"collectorId": collector_id, "sinkId": sink_id}
+    scope = f"DELETE:/collectors/{collector_id}/sinks/{sink_id}"
+    try:
+        replayed = store.idempotency_replay(scope, idempotency_key, body)
+    except IdempotencyConflict:
+        return platform_error(request, "IDEMPOTENCY_KEY_REUSED", "Idempotency-Key 已被不同请求占用", 409)
+    if replayed is not None:
+        return Response(status_code=204, headers={"Idempotency-Replayed": "true"})
+    if get_collector_sink(collector_id, sink_id) is None:
+        return sink_not_found(request)
+    store.delete_sink(sink_id)
+    store.remember_idempotency(scope, idempotency_key, body, 204, {})
+    return Response(status_code=204)
+
+
+@app.post("/api/v1/collectors/{collector_id}/sinks/{sink_id}/test", status_code=202)
+def test_sink(
+    collector_id: str,
+    sink_id: str,
+    request: Request,
+    response: Response,
+    idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
+):
+    if error := require_idempotency(request, idempotency_key):
+        return error
+    body = {"collectorId": collector_id, "sinkId": sink_id}
+    scope = f"POST:/collectors/{collector_id}/sinks/{sink_id}/test"
+    if found := replay(scope, idempotency_key, body, request):
+        return found
+    if store.get_collector(collector_id) is None:
+        return platform_error(request, "COLLECTOR_NOT_FOUND", "Collector 不存在", 404)
+    if get_collector_sink(collector_id, sink_id) is None:
+        return sink_not_found(request)
+    delivery = store.enqueue_delivery(
+        collector_id=collector_id,
+        sink_id=sink_id,
+        item_event_id=f"test_{uuid.uuid4().hex}",
+    )
+    value = delivery_view(delivery)
+    response.headers["Location"] = f"/api/v1/deliveries/{delivery['id']}"
+    remember(scope, idempotency_key, body, 202, value)
+    return value
+
+
+@app.get("/api/v1/collectors/{collector_id}/deliveries")
+def list_deliveries(collector_id: str, request: Request):
+    if store.get_collector(collector_id) is None:
+        return platform_error(request, "COLLECTOR_NOT_FOUND", "Collector 不存在", 404)
+    items = []
+    for delivery in store.list_deliveries_for_collector(collector_id):
+        attempts = store.list_delivery_attempts(delivery["id"])
+        items.append({**delivery_view(delivery), "latestAttempt": attempts[-1] if attempts else None})
+    return {"items": items, "page": {"nextCursor": None}}
+
+
+@app.get("/api/v1/deliveries/{delivery_id}")
+def get_delivery(delivery_id: str, request: Request):
+    delivery = store.get_delivery(delivery_id)
+    if delivery is None:
+        return platform_error(request, "DELIVERY_NOT_FOUND", "Delivery 不存在", 404)
+    return {**delivery_view(delivery), "attempts": store.list_delivery_attempts(delivery_id)}
+
+
+@app.post("/api/v1/deliveries/{delivery_id}/redeliver")
+def redeliver_delivery(
+    delivery_id: str,
+    request: Request,
+    idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
+):
+    if error := require_idempotency(request, idempotency_key):
+        return error
+    body = {"deliveryId": delivery_id}
+    scope = f"POST:/deliveries/{delivery_id}/redeliver"
+    if found := replay(scope, idempotency_key, body, request):
+        return found
+    delivery = store.get_delivery(delivery_id)
+    if delivery is None:
+        return platform_error(request, "DELIVERY_NOT_FOUND", "Delivery 不存在", 404)
+    try:
+        redelivered = store.redeliver_delivery(delivery_id)
+    except ValueError:
+        return platform_error(request, "DELIVERY_IN_FLIGHT", "Delivery 正在投递中，请等待租约过期后再重试", 409)
+    value = delivery_view(redelivered)
+    remember(scope, idempotency_key, body, 200, value)
+    return value
 
 
 def custom_openapi():
