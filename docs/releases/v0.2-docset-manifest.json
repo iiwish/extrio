@@ -3,7 +3,7 @@
   "docsetVersion": "v0.39.0",
   "productVersion": "v0.2",
   "status": "Ready_For_User_Review",
-  "generatedAt": "2026-09-03T08:09:55.537Z",
+  "generatedAt": "2026-09-03T10:31:43.866Z",
   "repositoryState": {
     "kind": "git_repository",
     "defaultBranch": "main"
@@ -12,12 +12,12 @@
     {
       "path": "docs/SSOT.md",
       "version": "v0.39.0",
-      "sha256": "e922a371c3328c5d78b9fd8083debf61f20911c9ac63e02c808b7ef4792c9f15"
+      "sha256": "13fef5c20809891e38f99cd558ca667040e156a1a1361b30298e22baba613c2d"
     },
     {
       "path": "docs/product-contract.md",
       "version": "v0.39.0",
-      "sha256": "413b802b4a5b5559f3cca4f5176248caeace8a0ad0b8e6a75aae91f3f0250708"
+      "sha256": "4de95ccf7df50a939ea83b5ba3d47a3ef521980a0880a795d1ba9c310ac9b97e"
     },
     {
       "path": "docs/domain-model.md",
@@ -92,7 +92,7 @@
     {
       "path": "docs/contracts/openapi.yaml",
       "version": "extrio.control-plane.v1",
-      "sha256": "eafe58924904e79b800bf4dae4a52dce731651790c8bb825f96406a1f2d95302"
+      "sha256": "5842596c1e4f2ac739efecfbcd9b0b8a2f5f98d498d0246f6f17dff4fcd070cb"
     },
     {
       "path": "docs/contracts/api-contract.md",

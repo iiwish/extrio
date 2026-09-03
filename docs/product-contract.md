@@ -94,7 +94,7 @@ Item 详情的返回操作位于顶部栏，以公告标题和质量终态作为
 | --- | --- |
 | `FR-001` | 平台必须支持 TemplateVersion 与 Custom 两种方式创建 CollectionVersion，并在冻结前进行 JSON Schema 和业务语义校验。 |
 | `FR-002` | 已冻结 CollectionVersion 必须不可变；字段、身份、质量或输出变化必须创建新版本。 |
-| `FR-003` | 平台必须支持单个创建和批量导入 Source；从“全部需求”进入新建页时默认创建新需求，从具体需求筛选上下文进入时默认复用该需求的 `collectionId`、采集意图和 CollectionVersion，用户仍可切换两种模式；保存前校验 HTTP(S) URL、允许域名、重复项和租户归属；同批成功 Collector 必须共享稳定 `collectionId`、`collectionName` 与 CollectionVersion，匿名公共 HTTP 仅在 TenantAdmin 策略显式接受传输风险时可用。 |
+| `FR-003` | 平台必须支持单个创建和批量导入 Source；从“全部需求”进入新建页时默认创建新需求，从具体需求筛选上下文进入时默认复用该需求的 `collectionId`、采集意图和 CollectionVersion，用户仍可切换两种模式；保存前校验 HTTP(S) URL、允许域名、重复项和租户归属；同批成功 Collector 必须共享稳定 `collectionId`、`collectionName` 与 CollectionVersion，匿名公共 HTTP 默认可用，TenantAdmin 可在界面采集策略中关闭。 |
 | `FR-004` | Collector 必须明确引用一个 SourceRevision、一个 CollectionVersion、至多一个 AccessProfileVersion 和一组受控 CollectorOverride。 |
 | `FR-005` | 接入编译必须通过默认模型生成受约束 RulePlan，并输出 GatherSpec、编译输入摘要、编译器版本、Agent 元数据、RulePlan Artifact、样本 Artifact 和校验报告；配置了默认模型但模型不可用，或 RulePlan 未通过 Schema、语义、安全和样本验证时，不得生成可审核候选。 |
 | `FR-006` | 发布前必须通过 Schema、语义、安全边界和样本质量门；只有 RuleReviewer 可以发布或回滚，活动规则必须具有有效 RuleAttestation。 |
@@ -175,7 +175,7 @@ Item 详情的返回操作位于顶部栏，以公告标题和质量终态作为
 ## 10. 边界与异常场景
 
 - Source 重定向到未授权域名时立即阻断请求并产生安全事件。
-- Source 入口只允许 HTTP(S)。匿名公共 HTTP 默认关闭，必须由 TenantAdmin 策略显式接受风险；携带 AccessProfileVersion 或任何凭据的 Source 请求必须使用 HTTPS，且凭据不会因 redirect 自动转发到其他 origin。
+- Source 入口只允许 HTTP(S)。匿名公共 HTTP 默认允许，TenantAdmin 可在界面采集策略中关闭；携带 AccessProfileVersion 或任何凭据的 Source 请求必须使用 HTTPS，且凭据不会因 redirect 自动转发到其他 origin。
 - Source 返回登录页、验证码页或封禁页时不得继续尝试绕过；Run 进入失败或部分成功。
 - CollectionVersion 升级不会自动切换现有 Collector；必须重新编译、验证和发布。
 - RuleVersion 发布与 Schedule 触发并发时，Run 使用创建事务中读取到的活动版本。

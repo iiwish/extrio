@@ -98,7 +98,7 @@ Extrio 是面向授权 Source 的通用结构化采集平台。通用性来自 L
 ### 5.1 当前范围
 
 1. CollectionTemplate、TemplateVersion、Collection 与 CollectionVersion 管理。
-2. Source 创建、批量导入、复用已有 Collection 需求身份与采集意图、合规边界和 AccessProfileVersion 引用；允许 TenantAdmin 策略显式接受匿名公共 HTTP 传输风险，任何 AccessProfileVersion 或凭据访问必须使用 HTTPS。
+2. Source 创建、批量导入、复用已有 Collection 需求身份与采集意图、合规边界和 AccessProfileVersion 引用；匿名公共 HTTP 传输风险由 TenantAdmin 在界面采集策略中管理（默认允许，可关闭），任何 AccessProfileVersion 或凭据访问必须使用 HTTPS。
 3. Source 与 CollectionVersion 绑定为 Collector，支持受控 CollectorOverride。
 4. Collector 定义与候选规则工作区：名称可以独立编辑；意图或 Source 入口变化使当前候选失效并阻断新 Run，直到重新探索、审核和发布。探索阶段由默认模型根据受控 DOM/JSON 样本编译 `RulePlan`，平台将其校验并转换为 GatherSpec；规则编辑表单只呈现可修改的列表 Item selector、网页业务字段 selector 与分页参数，并以简洁阶段标题和 `detailUrl` 交接标识保持执行顺序；`source`、`crawlTime`、`observedAt` 等系统字段不进入编辑表单；请求配置、字段类型、错误策略、转换、安全边界和输出合同统一在只读 JSON 中查阅，不在表单重复展示。selector 与分页参数可以作为受控 CollectorOverride 直接编辑，经最近探索样本验证后形成新候选；字段语义服从 CollectionVersion，任何已发布 RuleVersion 均不可原地修改。
 5. 编译、Schema/语义校验、样本测试、人工审核、RuleAttestation、发布和回滚 RuleVersion。

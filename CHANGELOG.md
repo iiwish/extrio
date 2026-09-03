@@ -4,6 +4,14 @@ All notable changes to Extrio are documented in this file. The project follows
 [Semantic Versioning](https://semver.org/) and keeps pending work under
 `Unreleased`.
 
+## 0.6.0 - 2026-09-03
+
+- Allow anonymous `http://` collection sources by default and make the policy
+  a first-class setting: administrators can toggle 「允许匿名 HTTP 来源」 in
+  Settings → 采集策略 (stored per instance, audited with updater and time).
+  The deprecated `EXTRIO_ALLOW_HTTP_PUBLIC` environment variable no longer
+  controls runtime behavior. Credential-bearing sources still require HTTPS.
+
 ## 0.5.0 - 2026-09-03
 
 - Add AI rule auto-repair: re-explore a changed site, compile a corrected rule
