@@ -13,8 +13,9 @@ The repository contains a desktop React operations console and a Python control
 plane with exploration and execution workers, durable operations, SQLite state,
 and contract-first APIs.
 
-> **Project status:** v0.2 self-hosted public-alpha release candidate. Extrio includes first-run local
-> administrator authentication, but it is not a hardened multi-tenant service. Keep the API and
+> **Project status:** v0.2 self-hosted public-alpha release candidate. Extrio includes multi-user local
+> accounts with role-based access control (administrator / engineer / reviewer / viewer) and first-run
+> administrator setup, but it is not a hardened multi-tenant service. Keep the API and
 > worker behind the bundled web proxy and review [SECURITY.md](SECURITY.md) before deployment.
 
 ## What is included
@@ -25,6 +26,12 @@ and contract-first APIs.
 - Durable AI rule-task history with attempts, model usage, and review status.
 - Two-stage list discovery and detail extraction with deterministic execution.
 - Scheduled and manual runs with incremental checkpoints and quality gates.
+- Multi-user local accounts with role-based access control: administrator (full access plus user
+  management), engineer (collector, exploration, run, schedule, and sink operations), reviewer (rule
+  review and publication), and viewer (read-only access with export).
+- Prometheus `/metrics` endpoint with scrape-time counters for collectors, runs, items, deliveries,
+  and sinks, plus build info (`EXTRIO_METRICS_ENABLED`, enabled by default, unauthenticated by
+  design — bind it to an internal interface).
 - Item lineage, revisions, rejection evidence, and operational dashboards.
 - Bilingual operations console (中文 / English) with an in-app language switcher.
 - Versioned JSON Schema and OpenAPI contracts under `docs/contracts`.

@@ -105,7 +105,7 @@ Item 详情的返回操作位于顶部栏，以公告标题和质量终态作为
 | `FR-011` | 平台必须支持 Webhook Sink（v0.3 交付）与 Kafka Sink（后续版本提供），并为每个 Item 事件和 SinkVersion 建立可重试、可审计的 Delivery；同目标人工重新交付不得创建重复逻辑 Delivery。 |
 | `FR-012` | 平台必须通过 `metadata_only`、`sampled`、`replayable` 三种 ArtifactManifest 证据等级提供运行证据；只有完整 `replayable` 证据可用于等价验证回放，生产重新交付必须单独授权。 |
 | `FR-013` | 平台必须检测 Source 漂移、连续失败、队列滞后、交付失败和异常数据量，并关联到可操作对象。 |
-| `FR-014` | 平台必须提供 Tenant RBAC、不可变 AuditEvent、凭据引用和敏感信息脱敏。 |
+| `FR-014` | 平台必须提供本地多用户与角色（administrator、engineer、reviewer、viewer；RBAC）、不可变 AuditEvent、凭据引用和敏感信息脱敏。 |
 | `FR-015` | 平台必须支持 RuleVersion 回滚；回滚不得改变已经创建或运行中的 Run。 |
 | `FR-016` | Operator 必须能够独立于 GatherSpec 配置版本化 CollectionPolicy：首次运行默认采集最近 30 天，后续运行从最近一次成功 Checkpoint 减去 3 天回看窗口开始；Run 必须固定 policy version、窗口边界和 Checkpoint 前值。 |
 | `FR-017` | 日期降序列表必须在连续两页均早于窗口边界时提前停止；只有完整成功 Run 可以原子推进 Checkpoint，失败、取消、超时和预算截断不得推进。 |
@@ -129,7 +129,7 @@ Item 详情的返回操作位于顶部栏，以公告标题和质量终态作为
 | `NFR-010` | 指标不得使用 Run ID、Item ID 或 URL 等无界高基数字段作为常驻标签。 |
 | `NFR-011` | 浏览器 API 必须符合 `extrio.control-plane.v1`：所有用户可见失败具有稳定错误码、可理解说明、关联对象和 request ID；所有写请求具有幂等键，异步探索与 Run 通过可恢复 Operation 暴露进度和终态。 |
 | `NFR-012` | 关键操作界面必须支持键盘操作、清晰焦点、非颜色唯一状态表达和 WCAG 2.2 AA 对比度。 |
-| `NFR-013` | 公开 Alpha 必须通过首次管理员设置、Argon2 密码哈希和服务端可撤销会话保护控制面；生产多用户形态采用 OIDC、MFA step-up 与独立服务身份。 |
+| `NFR-013` | 公开 Alpha 必须通过本地多用户账户与角色（administrator/engineer/reviewer/viewer，首次设置创建 administrator）、Argon2 密码哈希和服务端可撤销会话保护控制面；外部 OIDC/SSO、MFA step-up 与独立服务身份仍为后续范围。 |
 
 ## 8. v0.2 设计容量
 
@@ -187,7 +187,7 @@ Item 详情的返回操作位于顶部栏，以公告标题和质量终态作为
 
 ## 11. 集成需求
 
-- 身份认证：公开 Alpha 保存单实例管理员的 Argon2 密码哈希并使用不透明服务端会话；外部 OIDC、多用户角色、MFA 与独立工作负载身份属于生产演进范围。
+- 身份认证：本地多用户与角色（administrator/engineer/reviewer/viewer）属于公开 Alpha 能力，首次设置创建 administrator，密码使用 Argon2 哈希并配合不透明服务端会话；外部 OIDC/SSO、MFA、多租户隔离与独立工作负载身份属于后续演进范围。
 - 凭据管理：通过 AccessProfileVersion 引用 Secret Manager，不在规则中保存可用明文。
 - LLM：只允许编译服务使用，并记录 provider、model、promptVersion 和 toolchainVersion。
 - Kafka：使用预配置 Sink，支持稳定消息键和幂等 producer 配置。

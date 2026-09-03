@@ -89,7 +89,7 @@ Extrio 是面向授权 Source 的通用结构化采集平台。通用性来自 L
 | `INV-008` | Source 访问必须获得合法授权，并受域名、网络、速率和资源预算约束。 |
 | `INV-009` | Run 必须先冻结 staging、质量决定和 accepted set 再提升并释放 Delivery；失败和部分成功不得被记录为完整成功，不得静默丢弃必填字段错误或交付失败。 |
 | `INV-010` | RuleVersion 回滚只改变 Collector 的活动版本指针，不改变历史 RuleVersion 或运行中的 Run。 |
-| `INV-011` | 控制面请求必须经过认证；公开 Alpha 使用单实例管理员权限，后续多租户形态再按 Tenant、资源与动作授权。客户端提交的 tenantId、对象 ID 或 trace context 不构成权限依据。 |
+| `INV-011` | 控制面请求必须经过认证；公开 Alpha 通过本地多用户角色（administrator、engineer、reviewer、viewer）控制授权，后续多租户形态再按 Tenant、资源与动作授权。客户端提交的 tenantId、对象 ID 或 trace context 不构成权限依据。 |
 | `INV-012` | 只有 `evidenceMode=replayable` 且响应字节、URL 上下文、连续 chunk 和运行时语义均完整可验证时，执行才可称为历史证据回放。 |
 | `INV-013` | 每次异步规则生成或修复必须建立独立 AiRun；重试追加 AiAttempt，模型调用追加 ModelInvocation，不得用 Operation 或日志替代可查询历史。 |
 
@@ -107,7 +107,7 @@ Extrio 是面向授权 Source 的通用结构化采集平台。通用性来自 L
 8. Cron Schedule、确定性采集 Run、AiRun、各自的 Attempt、取消、失败重试和可查询运行历史。
 9. HarvestItem、Revision 与 Observation、稳定事件键、Webhook 交付（Kafka 于后续版本提供）和受控 redelivery。
 10. ArtifactManifest、原始响应采样、失败证据、证据等价回放和受控重新处理。
-11. Tenant RBAC、不可变审计、基础 SLO、告警和 Source 漂移检测。
+11. 本地多用户与角色（administrator、engineer、reviewer、viewer；RBAC）、不可变审计、基础 SLO、告警和 Source 漂移检测。
 12. 面向 `1280px` 及以上视口的桌面端 Web 控制台，以任务优先的运营工作台作为 `/` 主页。概览以实际运行成功率、已发布规则覆盖和最新实体质量通过率建立聚合视角，并用最近运行数据量与终态趋势说明变化；只保留最多三项异常入口，不重复展示 Run 或 Item 列表、技术 ID、推断式质量分或继续工作入口。待处理判断基于 Collector 生命周期与最近 Run 的真实异常终态，健康且成功运行的已发布 Collector 不进入队列。控制台以固定列运营列表呈现 Collector、Run 与 Item，并以详情证据卡组承载对象深度信息。顶部栏只显示当前一级页面标题，不重复工作区名称或层级分隔。侧栏只保留品牌、一级导航和底部设置入口，不常驻显示 API 或 Mock 环境提示。Collector 使用稳定 `collectionId` 与 `collectionName` 归属一个业务采集需求，列表首行集中放置状态筛选、可按需求名称或合同版本输入搜索的需求筛选器和新建操作，不显示需求标签、布局切换、页面标题或概览指标卡，不使用任意文件夹作为领域归属。Collector 列表固定对齐 Source 身份、所属需求、状态、活动规则、最近运行与下一动作；需求筛选写入 URL，完整采集说明和策略进入详情。从全部需求上下文新建 Collector 时默认定义新需求，从具体需求筛选上下文新建时默认选中并复用该需求。Run 列表首行集中状态筛选、按 Collector 名称或 Run ID 搜索、开始时间排序提示和刷新操作，不重复展示页面标题或概览指标卡；列表固定对齐 Run 身份、终态、接收与拒绝数量、执行范围与停止原因、开始时间与耗时。Item 列表首行把 Source、Collector、质量决定筛选置于左侧，把标题、正文、Collector 或 entity key 搜索置于右侧，不重复展示页面标题或概览指标卡；列表固定对齐实体身份、质量决定、变化与 Revision、发布时间、最近采集和 entity key，Collector 展示名与 Source host 相同时只显示一次。Run 与 Item 的搜索和筛选写入 URL。Collector 详情首屏明确区分只读需求归属、可编辑来源定义和规则工作区，区分重新生成候选规则、两阶段候选规则工作台与不可变活动规则。规则工作台以可视流程明确 Stage 01、`detailUrl` 交接、Stage 02 和公告级输出合同，并按需提供完整 GatherSpec 只读视图；内部版本 ID 与 digest 不作为产品主信息展示。控制台通过符合 `/api/v1` OpenAPI 的 FastAPI 控制面跑通一个需求批量导入多个采集入口、逐项创建 Collector、`single` 或 `list_detail` 探索、审核、规则发布、Collector 级 Cron 定时计划、版本化采集范围、异步增量运行、Checkpoint、最新 Item 实体与谱系查看的真实纵向闭环；MSW 只承担前端隔离测试与合同模拟，移动端和窄屏适配不在当前产品范围。
 13. Collector 详情的返回操作进入顶部栏当前页面标题区域，使用可访问的箭头图标按钮，正文不重复返回文字链接。批量导入顺序不是 Collector 业务身份，不进入名称或详情主标题；同域 Source 由网址路径区分。详情页收敛为“概览、规则、采集配置”三个一级视图：概览承载当前状态、活动规则、运行范围、最近运行和最多五条最近结果；存在候选或活动规则时才显示规则视图，`ready_review` 默认进入规则审核，其余状态默认进入概览；采集配置承载 Source 定义、规则编辑、定时运行和增量策略；定时运行优先提供常用频率，按需接受五段 Cron，固定中国标准时间与禁止重叠运行。字段审核和样本数据在规则审核内协作；已发布规则的状态、采集流程、输出字段、验证结果和审核结论直接显示在规则页，不通过额外 Dialog。完整 GatherSpec 只在采集配置的“编辑规则”Dialog 内以“JSON”Tab 按需只读查阅；规则页不重复展示，内部版本 ID 与 digest 不作为独立信息项展示。原始 JSON 不允许直接编辑，规则修改通过结构化表单形成受控 Override、新候选与完整验证链。字段和 Item 证据默认不占据页面宽度，只在用户选择对应对象后以可关闭的右侧 Sheet 显示。
 14. 运行终态必须同时反映数据质量与抓取完整性。`list_detail` Run 发现的详情 URL 未全部取得响应时使用 `detail_fetch_incomplete`，终态为部分成功（存在 accepted Item）或失败（没有 accepted Item），不得推进 Checkpoint；Run 列表与详情同时展示已抓取数和发现数。
@@ -135,7 +135,7 @@ Extrio 是面向授权 Source 的通用结构化采集平台。通用性来自 L
 - PostgreSQL 是领域状态的系统记录；Redis 只承担可恢复的工作分发与短期协调；S3 兼容对象存储保存 raw 和 Artifact。
 - GatherSpec 统一使用 JSON，并通过 `extrio.gather.v1` Schema、固定提取语义、ruleDigest 和独立 RuleAttestation 校验。
 - v0.2 使用 Cron、PostgreSQL transactional outbox 和 Redis Streams，不引入 Temporal。
-- 公开 Alpha 使用首个本地管理员、Argon2 密码哈希和服务端可撤销会话；外部 OIDC、多用户角色、Tenant 授权和独立工作负载身份属于生产演进边界。
+- 本地多用户与角色（administrator、engineer、reviewer、viewer）属于公开 Alpha 能力：首次设置创建 administrator，认证使用 Argon2 密码哈希和服务端可撤销会话；外部 OIDC/SSO、MFA、多租户隔离、审计导出、Tenant 授权和独立工作负载身份仍为生产演进边界。
 - 同一 Python 代码库可以承载控制面、编译与执行模块，但部署、数据写入、网络权限和运行生命周期必须保持逻辑隔离。
 - 探索和 Run 通过持久化 Operation 以 `202 Accepted` 启动；阶段、指标和终态由服务端事实驱动，页面刷新通过 `activeOperationId` 或 `operationId` 恢复，不得由客户端定时器伪造。
 - Source 入口只允许 HTTP(S)。公共 HTTP 默认关闭，只能由 TenantAdmin 策略显式开启并在界面标记风险；该策略不放宽 exact allowedHosts、私网/metadata 阻断、DNS 复检、重定向复检、速率或资源预算。
