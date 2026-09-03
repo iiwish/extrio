@@ -3,7 +3,7 @@
   "docsetVersion": "v0.39.0",
   "productVersion": "v0.2",
   "status": "Ready_For_User_Review",
-  "generatedAt": "2026-09-02T10:53:41.205Z",
+  "generatedAt": "2026-09-03T02:36:16.854Z",
   "repositoryState": {
     "kind": "git_repository",
     "defaultBranch": "main"
@@ -147,7 +147,7 @@
     {
       "path": "docs/releases/v0.2-public-readiness.md",
       "version": "v1.0.0",
-      "sha256": "fcbb6114af15d1397dae096db3c3abc9d22405a99414fb32ac588341d015b98f"
+      "sha256": "9b64a4af217626121a1fb4343fa21f930e97d7ec1c7ce5ee2ecbe1ebb79ba469"
     },
     {
       "path": "docs/releases/v0.2-acceptance.md",
