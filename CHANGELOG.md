@@ -4,6 +4,23 @@ All notable changes to Extrio are documented in this file. The project follows
 [Semantic Versioning](https://semver.org/) and keeps pending work under
 `Unreleased`.
 
+## 0.5.0 - 2026-09-03
+
+- Add AI rule auto-repair: re-explore a changed site, compile a corrected rule
+  from the old GatherSpec plus fresh DOM, force-preserve the frozen data
+  contract server-side, and route the repaired candidate through the existing
+  human review flow (`REPAIR_VALIDATION_FAILED` / `REPAIR_NOT_APPLICABLE`
+  stable error codes).
+- Add signed evidence-bundle export: a deterministic, Ed25519-signed ZIP with
+  the collector, immutable rules, attestations, runs, item lineage, deliveries,
+  and SHA256SUMS — with hard guards against secret leakage and a verification
+  helper (`verify_evidence_bundle`).
+- Add a governed MCP server (`extrio-mcp`): AI agents can list collectors,
+  query attested items, trigger runs against frozen rules, and create
+  collections that require human review; stdio and token-protected HTTP
+  transports.
+- Add an Ollama provider preset for local model setups.
+
 ## 0.4.0 - 2026-09-03
 
 - Add multi-user local accounts with role-based access control: administrator
