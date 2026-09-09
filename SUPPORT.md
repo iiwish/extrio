@@ -1,6 +1,6 @@
 # Support
 
-Extrio is a public-alpha release candidate maintained on a best-effort basis.
+Extrio is a self-hosted public alpha maintained on a best-effort basis.
 
 - Use [GitHub Discussions](https://github.com/iiwish/extrio/discussions) for setup questions and
   design discussion when Discussions are enabled.

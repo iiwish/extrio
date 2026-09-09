@@ -10,21 +10,22 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "docs/releases/v0.2-docset-manifest.json"
 VERSION_OVERRIDES = {
-    "docs/SSOT.md": "v0.39.0",
-    "docs/product-contract.md": "v0.39.0",
+    "docs/SSOT.md": "v0.44.0",
+    "docs/product-contract.md": "v0.44.0",
     "docs/domain-model.md": "v0.8.0",
-    "docs/contracts/gather-spec.md": "v1.5.0",
+    "docs/contracts/gather-spec.md": "v1.6.0",
     "docs/runtime-contract.md": "v0.6.0",
     "docs/architecture/ADR-002-orchestration-storage.md": "v1.2.0",
-    "docs/frontend-prototype.md": "v1.33.0",
-    "docs/backend-vertical-slice.md": "v1.13.0",
-    "docs/contracts/api-contract.md": "v1.13.0",
+    "docs/frontend-prototype.md": "v1.38.0",
+    "docs/backend-vertical-slice.md": "v1.15.0",
+    "docs/contracts/api-contract.md": "v1.16.0",
     "docs/security-compliance.md": "v0.7.0",
     "docs/architecture/ADR-005-local-authentication.md": "v1.0.0",
     "docs/releases/v0.2-public-readiness.md": "v1.0.0",
-    "docs/releases/v0.2-acceptance.md": "v0.39.0",
+    "docs/releases/v0.2-acceptance.md": "v0.44.0",
+    "docs/planning/v1.0-scope-matrix.md": "v1.0.0",
 }
-DOCSET_VERSION = "v0.39.0"
+DOCSET_VERSION = "v0.44.0"
 
 
 def digest(path: Path) -> str:
@@ -38,7 +39,7 @@ def expected_manifest(source: dict) -> dict:
     known = {entry["path"] for entry in entries}
     if "docs/backend-vertical-slice.md" not in known:
         entries.insert(-1, {"path": "docs/backend-vertical-slice.md", "version": "v1.0.0", "sha256": ""})
-    for path in ("docs/architecture/ADR-005-local-authentication.md", "docs/releases/v0.2-public-readiness.md"):
+    for path in ("docs/architecture/ADR-005-local-authentication.md", "docs/releases/v0.2-public-readiness.md", "docs/planning/v1.0-scope-matrix.md"):
         if path not in known:
             entries.insert(-1, {"path": path, "version": VERSION_OVERRIDES[path], "sha256": ""})
 

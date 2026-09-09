@@ -1,14 +1,38 @@
 # Extrio 单一事实来源
 
+## 1.0 交付范围
+
+1.0 的交付范围为单组织自托管稳定版，面向一个组织内的数据运营团队，保留本地账号角色、SQLite 评估和 PostgreSQL 部署路径。多租户、SSO/MFA、分布式高可用和移动端不属于本次交付范围。全站页面的内容组织、桌面布局、操作流程和状态反馈属于 1.0 的体验验收范围，不以功能测试通过或单纯调整样式代替。具体页面方案需以真实界面走查和用户复核为依据，沿用唯一正式前端。
+
+1.0 的功能、AC/NFR、部署依赖和退出条件以[单组织自托管验收范围](planning/v1.0-scope-matrix.md)为版本适用合同。功能实现、工程验证、页面设计签收和生产目标达成分别记录，不将范围确认视为已实现或已验收。
+
+## 核心操作上下文
+
+来源、运行、AI 任务和数据详情通过安全的站内 returnTo 保留入口筛选及 section 分区，返回不丢失来源页面的上下文。搜索可独立清除，刷新保留筛选；首次读取失败提供重试，不显示伪空列表，后台错误保留已读取数据。运行时间使用持久化 ISO 时间，不把历史运行显示为“刚刚”。正文中的 HTML 仅以惰性解析后的纯文本阅读或转义源码显示，不挂载源站脚本、图片和 iframe。来源概览区分已发布规则与最近异常运行；只读角色不能触发来源执行、定义/规则/策略修改或 Webhook 发送。接入表单的录入和导入预览具有离开确认，刷新/关闭使用原生未保存提醒；提交失败保留输入，成功创建可进入详情。设置弹层关闭后恢复原操作按钮焦点，退出失败保留会话并可重试。
+
+## 数据查询与导出
+
+数据页使用 `GET /items?view=entities`，服务端按 `collectorId + entityKey` 选择最新观测后应用筛选，返回匹配实体总数、全局筛选选项和游标。页面每次加载 50 个实体，支持继续加载至游标结束；筛选变化重新开始分页，读取失败显示错误与重试。`q` 对标题、正文、来源名称和 entity key 做字面子串搜索，`sourceHost`、`collectorId`、`decision` 为精确筛选。CSV/JSONL 导出复用相同的实体视图和全部筛选，覆盖全部匹配数据而非仅已显示页；超出已有导出上限明确拒绝，不静默截断。默认 API 仍提供观测视图，`entityKey` 仍表示精确匹配。桌面工具栏的搜索区可收缩，导出操作在最小支持视口中可达；宽表格在自身区域滚动。
+
+字段变更比较保留 JSON 类型，`null`、`0`、`false`、空字符串、空数组和空对象不合并为同一值；对象键顺序和数值等价表示不制造 Revision。有效变化追加 Revision 并进入已配置 Sink 的交付队列，不重写历史结果。
+
+## 单前端实现边界
+
+Extrio 只有一套正式前端：`web/index.html` → `src/main.tsx` → `app/router.tsx`，共享 AppShell、AuthGate、QueryClient 与 API 客户端。一级导航为概览、采集需求、采集来源、运行、数据、设置。需求列表读取独立持久化的 Collection，点击进入 `/collections/:collectionId` 明细，展示完整目标、字段要求、来源执行合同与关联来源；明细支持添加来源，来源归属链接返回需求明细，需求列表的搜索、状态筛选和更新时间排序通过 URL 保留，详情返回不丢失列表上下文。需求列表把名称与两行目标摘要放在同一业务单元，按来源发布覆盖、最近更新时间和合同引用进行比较；使用中、已归档和全部筛选显示各自数量，清除搜索只清除关键词，刷新保留当前条件。初始加载与失败不显示零需求，空列表、当前状态为空和搜索无匹配分别提供反馈。合同引用与来源发布覆盖不代表统一字段版本已冻结、调度开启或运行健康。需求支持独立新建、名称与业务目标编辑、空需求删除、归档和恢复；工程师与管理员可操作，其他角色只读。有关联来源的需求禁止删除；归档禁止编辑需求与添加来源，不停止已有来源、定时采集或运行，不删除历史数据。编辑使用 revision 冲突校验，不覆盖已有来源采集说明及不可变规则；新来源使用当前业务目标。模型、凭据、审核、运行与数据保留现有后端能力。旧 `experience.html` 地址仅用于兼容跳转，不提供独立应用或模拟业务数据。
+
+需求详情以“采集字段 / 关联来源”组织工作面，字段仅展示一次。头部集中需求身份、使用/归档状态、来源发布覆盖与更新时间，长目标或多段目标支持摘要与全文展开。当前分区通过 section=sources 写入 URL，采集字段为默认分区；刷新恢复分区，返回列表保留 q/status/sort 且不携带详情 section。字段名称、技术标识和业务说明归入同一列，编辑操作列固定宽度；来源覆盖和约束差异在同行表达，按需打开该字段的来源详情与完整合同。字段草稿支持手动增改删、名称、标识、类型、必填、去重标识、变更检测与说明，真实保存到 Collection，使用 revision、权限、幂等和审计保护。没有草稿时按 key 合并来源输出，每个字段一行，差异保留而非视为统一已发布合同；有草稿时以草稿为主，来源额外字段可按需展开且不自动写入草稿。已发布字段只读取不可变活动 RuleVersion，候选规则另行标注。来源合同差异和草稿缺失字段可见，完整输出 Schema 与质量规则可查。字段编辑采用顶部保存操作条，长表编辑时持续可达。未保存标记在分区标签中可见，分区切换保留本地字段草稿；应用内跨页面离开需确认，浏览器刷新/关闭保留原生提醒，保存期间不允许通过离开确认放弃正在提交的内容。后台详情读取失败保留已有数据和本地字段编辑，失败与 revision 冲突不自动覆盖输入，放弃重载使用明确动作。字段编辑和来源证据弹层关闭后恢复触发位置。关联来源把名称和入口网址归组，状态与真实输出字段数并列；合同未知或不可用显示无法确认，不解释为零。草稿不自动应用于新旧来源或运行，不等于字段版本发布；模板入口、真实 AI 字段建议、版本发布和来源迁移属于后续实现。设置分为系统设置和模型设置两个 URL 同步页签（`?tab=system|models`）。系统设置包含语言、账号、环境及管理员专属的采集策略与用户管理；模型设置保留供应商、模型、默认模型及凭据管理，非管理员只读，读取失败提供重试且不得显示为空配置。桌面下限为 `1024px`，主验收 `1440x900`，补充 `1280x800`、`1132x1028`、`1024x800`；宽表格在自身区域滚动，移动端不在范围内。
+
+设计见 [核心体验重构方案](core-experience-redesign.md)，实现与验收见 [前端说明](experience-prototype.md)。
+
 ## 1. 文档元数据
 
 | 字段 | 内容 |
 | --- | --- |
 | 文档名称 | Extrio 单一事实来源（SSOT） |
-| 文档版本 | `v0.39.0` |
-| 对应产品版本 | `v0.2` |
+| 文档版本 | `v0.44.0` |
+| 对应产品版本 | `v0.6` |
 | 状态 | `Confirmed` |
-| 最后更新 | `2026-09-02` |
+| 最后更新 | `2026-09-06` |
 | 维护责任 | 产品负责人 |
 | 审批责任 | 产品负责人、技术负责人 |
 | 文档职责 | 定义 Extrio 的权威事实体系、产品边界、不可违反原则与文档优先级 |
@@ -25,11 +49,11 @@
 
 | 事实领域 | 权威文档 | 版本 | 状态 | 负责内容 |
 | --- | --- | --- | --- | --- |
-| 权威入口与产品原则 | [`SSOT.md`](./SSOT.md) | `v0.39.0` | `Confirmed` | 产品定位、范围、不变量、版本与治理 |
-| 产品需求 | [`product-contract.md`](./product-contract.md) | `v0.39.0` | `Confirmed` | 用户、旅程、功能需求、非功能需求、成功指标 |
+| 权威入口与产品原则 | [`SSOT.md`](./SSOT.md) | `v0.44.0` | `Confirmed` | 产品定位、范围、不变量、版本与治理 |
+| 产品需求 | [`product-contract.md`](./product-contract.md) | `v0.44.0` | `Confirmed` | 用户、旅程、功能需求、非功能需求、成功指标 |
 | 领域语义 | [`domain-model.md`](./domain-model.md) | `v0.8.0` | `Confirmed` | 聚合、关系、状态机、唯一约束、AI 任务、CollectionPolicyVersion 与 Checkpoint 语义 |
 | RulePlan 语义与语法 | [`contracts/rule-plan.md`](./contracts/rule-plan.md)、[`contracts/rule-plan.schema.json`](./contracts/rule-plan.schema.json) | `v1.0.0` / `extrio.rule-plan.v1` | `Confirmed` | LLM 编译中间表示、字段位置、绑定、分页与支持边界 |
-| GatherSpec 语义 | [`contracts/gather-spec.md`](./contracts/gather-spec.md) | `v1.5.0` | `Confirmed` | 规则字段语义、编译边界、完整性、兼容性、安全约束及与运行策略的边界 |
+| GatherSpec 语义 | [`contracts/gather-spec.md`](./contracts/gather-spec.md) | `v1.6.0` | `Confirmed` | 规则字段语义、编译边界、完整性、兼容性、安全约束及与运行策略的边界 |
 | GatherSpec 语法 | [`contracts/gather-spec.schema.json`](./contracts/gather-spec.schema.json) | `extrio.gather.v1` | `Ready_For_User_Review` | 可执行 JSON Schema |
 | 提取与规范化 | [`contracts/extraction-semantics.md`](./contracts/extraction-semantics.md) | `v1.1.1` | `Ready_For_User_Review` | DOM/JSON、Selector、类型与 canonical 输出语义 |
 | 规则发布证明语义 | [`contracts/rule-attestation.md`](./contracts/rule-attestation.md) | `v1.1.0` | `Ready_For_User_Review` | 签名、审批绑定、密钥轮换与事故处置 |
@@ -38,7 +62,7 @@
 | Artifact Manifest 语法 | [`contracts/artifact-manifest.schema.json`](./contracts/artifact-manifest.schema.json)、[`contracts/artifact-manifest-chunk.schema.json`](./contracts/artifact-manifest-chunk.schema.json) | `extrio.artifact-manifest.v1` | `Ready_For_User_Review` | Root 与 Chunk JSON Schema |
 | 平台消息协议 | [`contracts/platform-protocol.md`](./contracts/platform-protocol.md) | `v1.2.0` | `Ready_For_User_Review` | JobEnvelope、ResultBatch、PlatformError 与 ItemEvent Envelope |
 | 平台消息语法 | [`contracts/job-envelope.schema.json`](./contracts/job-envelope.schema.json)、[`contracts/result-batch.schema.json`](./contracts/result-batch.schema.json)、[`contracts/platform-error.schema.json`](./contracts/platform-error.schema.json)、[`contracts/item-event-envelope.schema.json`](./contracts/item-event-envelope.schema.json) | `v1` | `Ready_For_User_Review` | 服务间输入、结果、错误和输出机器合同 |
-| 控制面 API 语义 | [`contracts/api-contract.md`](./contracts/api-contract.md) | `v1.13.0` | `Confirmed` | 浏览器 API 边界、管理员认证、异步命令、AI 任务审计、幂等、多供应商与多模型设置、Collector 需求归属、Collector 定义与两阶段候选规则编辑、Source 传输策略、公告 Item 语义、增量策略与 Checkpoint、规则完整性证据、错误和兼容规则 |
+| 控制面 API 语义 | [`contracts/api-contract.md`](./contracts/api-contract.md) | `v1.16.0` | `Confirmed` | 浏览器 API 边界、管理员认证、异步命令、AI 任务审计、幂等、多供应商与多模型设置、Collector 需求归属、Collector 定义与两阶段候选规则编辑、Source 传输策略、公告 Item 语义、增量策略与 Checkpoint、规则完整性证据、错误和兼容规则 |
 | 控制面 API 语法 | [`contracts/openapi.yaml`](./contracts/openapi.yaml) | `extrio.control-plane.v1` | `Confirmed` | `/api/v1` OpenAPI 3.1 机器合同与生成类型来源 |
 | 运行时行为 | [`runtime-contract.md`](./runtime-contract.md) | `v0.6.0` | `Confirmed` | 调度、终结、幂等、重试、时间窗口、Checkpoint、交付、漂移和回放 |
 | 安全与合规 | [`security-compliance.md`](./security-compliance.md) | `v0.7.0` | `Ready_For_User_Review` | Alpha 管理员认证、租户演进边界、凭据、网络、内容、隐私和审计 |
@@ -47,9 +71,9 @@
 | 规则完整性 | [`architecture/ADR-003-rule-integrity.md`](./architecture/ADR-003-rule-integrity.md) | `v1.3.0` | `Ready_For_User_Review` | 不可变规则、摘要、证明和运行时固定 |
 | 身份与访问 | [`architecture/ADR-004-identity-access.md`](./architecture/ADR-004-identity-access.md) | `v1.1.0` | `Proposed_Production_Target` | OIDC、会话、服务身份和 Tenant 授权 |
 | Alpha 管理员认证 | [`architecture/ADR-005-local-authentication.md`](./architecture/ADR-005-local-authentication.md) | `v1.0.0` | `Accepted` | 首次设置、Argon2、本地可撤销会话与登录限流 |
-| 前端原型 | [`frontend-prototype.md`](./frontend-prototype.md) | `v1.33.0` | `Confirmed` | 第一版前端闭环、管理员登录、多供应商与多模型设置、Collector 需求归属与运营列表、采集 Run、AI 任务与 Item 运营列表、Collector 任务工作区、按需证据、设计合同、技术栈和验收 |
-| 真实纵向闭环 | [`backend-vertical-slice.md`](./backend-vertical-slice.md) | `v1.13.0` | `Confirmed` | FastAPI、管理员会话、Crawl4AI、可审计 LLM RulePlan 编译、同域嵌入入口解析、确定性运行、本地持久化、可信发布与受控增量运行 |
-| 发布验收 | [`releases/v0.2-acceptance.md`](./releases/v0.2-acceptance.md) | `v0.39.0` | `Confirmed` | v0.2 范围、退出标准与验收证据 |
+| 前端原型 | [`frontend-prototype.md`](./frontend-prototype.md) | `v1.38.0` | `Confirmed` | 第一版前端闭环、管理员登录、多供应商与多模型设置、Collector 需求归属与运营列表、采集 Run、AI 任务与 Item 运营列表、Collector 任务工作区、按需证据、设计合同、技术栈和验收 |
+| 真实纵向闭环 | [`backend-vertical-slice.md`](./backend-vertical-slice.md) | `v1.15.0` | `Confirmed` | FastAPI、管理员会话、Crawl4AI、可审计 LLM RulePlan 编译、同域嵌入入口解析、确定性运行、本地持久化、可信发布与受控增量运行 |
+| 发布验收 | [`releases/v0.2-acceptance.md`](./releases/v0.2-acceptance.md) | `v0.44.0` | `Confirmed` | v0.6 范围、退出标准与验收证据 |
 
 ### 2.1 冲突处理
 
@@ -62,7 +86,7 @@
 
 ## 3. 产品定义
 
-Extrio 是一个将采集意图转化为可审核、可版本化、可重复执行的数据采集程序的平台。
+Extrio 是面向需要持续采集公开或已授权网页、并要求每条数据可验证的数据运营团队的自托管可信网页数据管线。首要场景是招投标、监管公告和公共通知等列表/详情型来源。
 
 用户定义“要采什么”以及数据质量要求，平台把意图固化为版本化的数据合同；编译阶段结合 Source、CollectionVersion 与受控的 CollectorOverride 生成不可变 RuleVersion；运行阶段只执行已发布规则，不调用 LLM，也不隐式修改规则。每个结果必须能追溯到确切的规则、数据合同、运行记录和证据。
 
@@ -73,7 +97,7 @@ Extrio 的核心价值是：
 3. 让运行、数据质量、异常和回放具备统一证据链。
 4. 在 Source 变化时快速发现漂移，并通过新规则版本恢复。
 
-Extrio 是面向授权 Source 的通用结构化采集平台。通用性来自 LLM 在接入期理解网页并编译受约束规则，而不是运行期自由生成代码。平台不提供验证码破解、访问控制绕过、代理售卖或任意代码执行能力。对外唯一产品名为 `Extrio`；`RulePlan`、`GatherSpec`、`Collector` 与 `RuleVersion` 是内部领域术语。
+Extrio 的产品边界是“AI 辅助接入、人工审核发布、确定性持续运行”，不是通用爬虫工具箱、网页聊天机器人或自主 Agent 平台。可扩展性来自 LLM 在接入期理解网页并编译受约束规则，而不是运行期自由生成代码。平台不提供验证码破解、访问控制绕过、代理售卖或任意代码执行能力。对外唯一产品名为 `Extrio`；`RulePlan`、`GatherSpec`、`Collector` 与 `RuleVersion` 是内部领域术语。
 
 ## 4. 核心不变量
 
@@ -92,15 +116,18 @@ Extrio 是面向授权 Source 的通用结构化采集平台。通用性来自 L
 | `INV-011` | 控制面请求必须经过认证；公开 Alpha 通过本地多用户角色（administrator、engineer、reviewer、viewer）控制授权，后续多租户形态再按 Tenant、资源与动作授权。客户端提交的 tenantId、对象 ID 或 trace context 不构成权限依据。 |
 | `INV-012` | 只有 `evidenceMode=replayable` 且响应字节、URL 上下文、连续 chunk 和运行时语义均完整可验证时，执行才可称为历史证据回放。 |
 | `INV-013` | 每次异步规则生成或修复必须建立独立 AiRun；重试追加 AiAttempt，模型调用追加 ModelInvocation，不得用 Operation 或日志替代可查询历史。 |
+| `INV-014` | `list_detail` Item 的 canonical title 必须来自详情文档；列表标题与详情标题经 Unicode、空白和标点归一后不一致时必须拒绝，不得生成 Revision、Observation 或 Delivery。 |
+| `INV-015` | AI 规则任务必须提供可实时轮询的结构化阶段记录；记录只包含阶段、状态、时间、耗时、指标与归一化错误，不暴露原始提示词、模型思维过程、Source 正文、模型响应正文或凭据。 |
+| `INV-016` | AI 交互采用绑定单次 AiRun 的可选操作指引，不提供脱离 Collector、候选规则和验证证据的通用 Chat；操作指引不得放宽网络、安全、输出合同、确定性校验或人工发布门。 |
 
-## 5. v0.2 产品范围
+## 5. v0.6 产品范围
 
 ### 5.1 当前范围
 
 1. CollectionTemplate、TemplateVersion、Collection 与 CollectionVersion 管理。
-2. Source 创建、批量导入、复用已有 Collection 需求身份与采集意图、合规边界和 AccessProfileVersion 引用；匿名公共 HTTP 传输风险由 TenantAdmin 在界面采集策略中管理（默认允许，可关闭），任何 AccessProfileVersion 或凭据访问必须使用 HTTPS。
+2. Source 创建与精确入口批量导入、复用已有 Collection 需求身份与采集意图、合规边界和 AccessProfileVersion 引用。一个具体列表入口建立一个 Collector，同域名的不同业务列表保持独立运行边界；站点根目录不作为 `exact` 运行入口，分页由 GatherSpec 处理。CSV/TXT 导入使用 UTF-8、2 MiB 与 1000 行上限，`entryUrl` 必填，`mode` 省略时默认为 `exact`，当前拒绝其他模式，`name` 与 `scopeHint` 可选。重新选择文件替换当前文件条目并保留手动条目；同一 URL 同时来自文件和手动输入时，以文件内结构化元数据为准。文件级错误保留最近一次成功解析的预览；匿名公共 HTTP 传输风险由 TenantAdmin 在界面采集策略中管理（默认允许，可关闭），任何 AccessProfileVersion 或凭据访问必须使用 HTTPS。
 3. Source 与 CollectionVersion 绑定为 Collector，支持受控 CollectorOverride。
-4. Collector 定义与候选规则工作区：名称可以独立编辑；意图或 Source 入口变化使当前候选失效并阻断新 Run，直到重新探索、审核和发布。探索阶段由默认模型根据受控 DOM/JSON 样本编译 `RulePlan`，平台将其校验并转换为 GatherSpec；规则编辑表单只呈现可修改的列表 Item selector、网页业务字段 selector 与分页参数，并以简洁阶段标题和 `detailUrl` 交接标识保持执行顺序；`source`、`crawlTime`、`observedAt` 等系统字段不进入编辑表单；请求配置、字段类型、错误策略、转换、安全边界和输出合同统一在只读 JSON 中查阅，不在表单重复展示。selector 与分页参数可以作为受控 CollectorOverride 直接编辑，经最近探索样本验证后形成新候选；字段语义服从 CollectionVersion，任何已发布 RuleVersion 均不可原地修改。
+4. Collector 定义与候选规则工作区：名称可以独立编辑；意图或 Source 入口变化使当前候选失效并阻断新 Run，直到重新探索、审核和发布。探索阶段由默认模型根据受控 DOM/JSON 样本编译 `RulePlan`，平台将其校验并转换为 GatherSpec。生成或修复前可以提交一次性操作指引，指引作为不可信意图进入当前 AiRun，不改变安全边界与人工审核门。执行中通过 Source 获取、AI 结构分析、详情发现、样本获取、AI 规则编译、确定性验证和结果整理等结构化阶段实时展示进度，并保留阶段时间与结果指标；原始提示词、思维过程、网页正文和模型响应正文不进入该记录。规则编辑表单只呈现可修改的列表 Item selector、网页业务字段 selector 与分页参数，并以简洁阶段标题和 `detailUrl` 交接标识保持执行顺序；`source`、`crawlTime`、`observedAt` 等系统字段不进入编辑表单；请求配置、字段类型、错误策略、转换、安全边界和输出合同统一在只读 JSON 中查阅，不在表单重复展示。selector 与分页参数可以作为受控 CollectorOverride 直接编辑，经最近探索样本验证后形成新候选；字段语义服从 CollectionVersion，任何已发布 RuleVersion 均不可原地修改。
 5. 编译、Schema/语义校验、样本测试、人工审核、RuleAttestation、发布和回滚 RuleVersion。
 6. `single` 单阶段直接采集与 `list_detail` 两阶段采集；HTML 使用 CSS Selector，JSON 使用 JSONPath，列表阶段支持 `none`、query `page` 与 `next_link` 分页。Source 入口是同域 iframe 外壳且外壳本身不产生记录时，探索解析同域嵌入入口并把有效入口冻结进 GatherSpec。Item 边界、身份字段、指纹字段和业务输出字段由 RulePlan 明确表达，Run 只执行规则并写入采集时间。
 7. HTTP 采集和受限浏览器采集；浏览器规则固定导航完成条件与异步内容沉降时长，运行时按规则生成可重放 DOM snapshot，不允许任意脚本或代码插件。
@@ -108,13 +135,13 @@ Extrio 是面向授权 Source 的通用结构化采集平台。通用性来自 L
 9. HarvestItem、Revision 与 Observation、稳定事件键、Webhook 交付（Kafka 于后续版本提供）和受控 redelivery。
 10. ArtifactManifest、原始响应采样、失败证据、证据等价回放、受控重新处理，以及 Ed25519 签名的证据包导出（规则、attestation、运行与条目谱系的可验证 ZIP）。
 11. 本地多用户与角色（administrator、engineer、reviewer、viewer；RBAC）、不可变审计、基础 SLO、告警和 Source 漂移检测。
-12. 面向 `1280px` 及以上视口的桌面端 Web 控制台，以任务优先的运营工作台作为 `/` 主页。概览以实际运行成功率、已发布规则覆盖和最新实体质量通过率建立聚合视角，并用最近运行数据量与终态趋势说明变化；只保留最多三项异常入口，不重复展示 Run 或 Item 列表、技术 ID、推断式质量分或继续工作入口。待处理判断基于 Collector 生命周期与最近 Run 的真实异常终态，健康且成功运行的已发布 Collector 不进入队列。控制台以固定列运营列表呈现 Collector、Run 与 Item，并以详情证据卡组承载对象深度信息。顶部栏只显示当前一级页面标题，不重复工作区名称或层级分隔。侧栏只保留品牌、一级导航和底部设置入口，不常驻显示 API 或 Mock 环境提示。Collector 使用稳定 `collectionId` 与 `collectionName` 归属一个业务采集需求，列表首行集中放置状态筛选、可按需求名称或合同版本输入搜索的需求筛选器和新建操作，不显示需求标签、布局切换、页面标题或概览指标卡，不使用任意文件夹作为领域归属。Collector 列表固定对齐 Source 身份、所属需求、状态、活动规则、最近运行与下一动作；需求筛选写入 URL，完整采集说明和策略进入详情。从全部需求上下文新建 Collector 时默认定义新需求，从具体需求筛选上下文新建时默认选中并复用该需求。Run 列表首行集中状态筛选、按 Collector 名称或 Run ID 搜索、开始时间排序提示和刷新操作，不重复展示页面标题或概览指标卡；列表固定对齐 Run 身份、终态、接收与拒绝数量、执行范围与停止原因、开始时间与耗时。Item 列表首行把 Source、Collector、质量决定筛选置于左侧，把标题、正文、Collector 或 entity key 搜索置于右侧，不重复展示页面标题或概览指标卡；列表固定对齐实体身份、质量决定、变化与 Revision、发布时间、最近采集和 entity key，Collector 展示名与 Source host 相同时只显示一次。Run 与 Item 的搜索和筛选写入 URL。Collector 详情首屏明确区分只读需求归属、可编辑来源定义和规则工作区，区分重新生成候选规则、两阶段候选规则工作台与不可变活动规则。规则工作台以可视流程明确 Stage 01、`detailUrl` 交接、Stage 02 和公告级输出合同，并按需提供完整 GatherSpec 只读视图；内部版本 ID 与 digest 不作为产品主信息展示。控制台通过符合 `/api/v1` OpenAPI 的 FastAPI 控制面跑通一个需求批量导入多个采集入口、逐项创建 Collector、`single` 或 `list_detail` 探索、审核、规则发布、Collector 级 Cron 定时计划、版本化采集范围、异步增量运行、Checkpoint、最新 Item 实体与谱系查看的真实纵向闭环；MSW 只承担前端隔离测试与合同模拟，移动端和窄屏适配不在当前产品范围。
-13. Collector 详情的返回操作进入顶部栏当前页面标题区域，使用可访问的箭头图标按钮，正文不重复返回文字链接。批量导入顺序不是 Collector 业务身份，不进入名称或详情主标题；同域 Source 由网址路径区分。详情页收敛为“概览、规则、采集配置”三个一级视图：概览承载当前状态、活动规则、运行范围、最近运行和最多五条最近结果；存在候选或活动规则时才显示规则视图，`ready_review` 默认进入规则审核，其余状态默认进入概览；采集配置承载 Source 定义、规则编辑、定时运行和增量策略；定时运行优先提供常用频率，按需接受五段 Cron，固定中国标准时间与禁止重叠运行。字段审核和样本数据在规则审核内协作；已发布规则的状态、采集流程、输出字段、验证结果和审核结论直接显示在规则页，不通过额外 Dialog。完整 GatherSpec 只在采集配置的“编辑规则”Dialog 内以“JSON”Tab 按需只读查阅；规则页不重复展示，内部版本 ID 与 digest 不作为独立信息项展示。原始 JSON 不允许直接编辑，规则修改通过结构化表单形成受控 Override、新候选与完整验证链。字段和 Item 证据默认不占据页面宽度，只在用户选择对应对象后以可关闭的右侧 Sheet 显示。
-14. 运行终态必须同时反映数据质量与抓取完整性。`list_detail` Run 发现的详情 URL 未全部取得响应时使用 `detail_fetch_incomplete`，终态为部分成功（存在 accepted Item）或失败（没有 accepted Item），不得推进 Checkpoint；Run 列表与详情同时展示已抓取数和发现数。
+12. 面向 `1024px` 及以上视口的桌面端 Web 控制台，以任务优先的运营工作台作为 `/` 主页。概览以实际运行成功率、已发布规则覆盖和最新实体质量通过率建立聚合视角，并用最近运行数据量与终态趋势说明变化；只保留最多三项异常入口，不重复展示 Run 或 Item 列表、技术 ID、推断式质量分或继续工作入口。待处理判断基于 Collector 生命周期和最近 Run 的真实异常终态，健康且成功运行的已发布 Collector 不进入队列。控制台以固定列运营列表呈现 Collector、Run 与 Item，并以详情证据卡组承载对象深度信息。顶部栏在一级列表和首页只显示当前一级页面；新建、详情等二级工作流统一显示图标返回按钮与“一级页面 / 当前页面”层级导航，正文不重复页面级标题或返回链接。侧栏只保留品牌、一级导航和底部设置入口，不常驻显示 API 或 Mock 环境提示。Collector 使用稳定 `collectionId` 与 `collectionName` 归属一个业务采集需求，列表首行集中放置状态筛选、可按需求名称或合同版本输入搜索的需求筛选器和新建操作，不显示需求标签、布局切换、页面标题或概览指标卡，不使用任意文件夹作为领域归属。Collector 列表固定对齐 Source 身份、所属需求、状态、活动规则、最近运行与下一动作；需求筛选写入 URL，完整采集说明和策略进入详情。从全部需求上下文新建 Collector 时默认定义新需求，从具体需求筛选上下文新建时默认选中并复用该需求。Run 列表首行集中状态筛选、按 Collector 名称或 Run ID 搜索、开始时间排序提示和刷新操作，不重复展示页面标题或概览指标卡；列表固定对齐 Run 身份、终态、接收与拒绝数量、执行范围与停止原因、开始时间与耗时。Item 列表首行把 Source、Collector、质量决定筛选置于左侧，把标题、正文、Collector 或 entity key 搜索置于右侧，不重复展示页面标题或概览指标卡；列表固定对齐实体身份、质量决定、变化与 Revision、发布时间、最近采集和 entity key，Collector 展示名与 Source host 相同时只显示一次。Run 与 Item 的搜索和筛选写入 URL。Collector 详情首屏明确区分只读需求归属、可编辑来源定义和规则工作区，区分重新生成候选规则、两阶段候选规则工作台与不可变活动规则。规则工作台以可视流程明确 Stage 01、`detailUrl` 交接、Stage 02 和公告级输出合同，并按需提供完整 GatherSpec 只读视图；内部版本 ID 与 digest 不作为产品主信息展示。控制台通过符合 `/api/v1` OpenAPI 的 FastAPI 控制面跑通一个需求批量导入多个采集入口、逐项创建 Collector、`single` 或 `list_detail` 探索、审核、规则发布、Collector 级 Cron 定时计划、版本化采集范围、异步增量运行、Checkpoint、最新 Item 实体与谱系查看的真实纵向闭环；MSW 只承担前端隔离测试与合同模拟，移动端和低于 1024px 的窄屏适配不在当前产品范围。
+13. Collector 新建与详情的返回操作进入顶部栏当前页面层级区域，使用可访问的箭头图标按钮；一级“采集来源”可点击返回同一列表上下文，正文不重复页面级标题或返回文字链接。批量导入顺序不是 Collector 业务身份，不进入名称或详情主标题；同域 Source 由网址路径区分。详情页收敛为“概览、规则、采集配置”三个一级视图：概览承载当前状态、活动规则、运行范围、最近运行和最多五条最近结果；存在候选或活动规则时才显示规则视图，`ready_review` 默认进入规则审核，其余状态默认进入概览；采集配置承载 Source 定义、规则编辑、定时运行和增量策略；定时运行优先提供常用频率，按需接受五段 Cron，固定中国标准时间与禁止重叠运行。字段审核和样本数据在规则审核内协作；已发布规则的状态、采集流程、输出字段、验证结果和审核结论直接显示在规则页，不通过额外 Dialog。完整 GatherSpec 只在采集配置的“编辑规则”Dialog 内以“JSON”Tab 按需只读查阅；规则页不重复展示，内部版本 ID 与 digest 不作为独立信息项展示。原始 JSON 不允许直接编辑，规则修改通过结构化表单形成受控 Override、新候选与完整验证链。字段和 Item 证据默认不占据页面宽度，只在用户选择对应对象后以可关闭的右侧 Sheet 显示。
+14. 运行终态必须同时反映数据质量与抓取完整性。`list_detail` Run 发现的详情 URL 未全部取得响应时使用 `detail_fetch_incomplete`，终态为部分成功（存在 accepted Item）或失败（没有 accepted Item），不得推进 Checkpoint；Run 列表与详情同时展示已抓取数和发现数。详情标题与列表标题不一致时 canonical title 采用详情标题并拒绝该候选；运行时对疑似瞬时错页执行一次受限单 URL 重取，仍不一致才保留拒绝结论。
 14. 一级“设置”页面按供应商分组同屏管理模型，不把存在归属关系的两个对象拆成平级 Tab。顶部左侧只提供唯一默认模型选择，右侧提供添加供应商，不展示缺少决策价值的供应商或可用模型计数；每个供应商组展示连接、密钥与启停状态，并在组内添加、启停、编辑或删除模型。用户在供应商对话框中直接录入 API Key；浏览器只在保存请求中短暂提交，不写入本地存储，控制面使用独立主密钥加密落库，所有读取响应只返回 `credentialConfigured`。供应商可拥有零到多个模型；模型能力只属于探索与候选规则编译边界，不改变运行期禁用 LLM 的不变量。
 15. Source 首次抓取失败必须归一为稳定的 `SOURCE_UNREACHABLE`，向用户说明域名、连接失败类别和检查动作；第三方抓取库的堆栈、源码行号和内部路径只允许进入受控日志，不进入操作错误正文。
-16. Run 详情的返回操作位于顶部栏，不在正文重复展示。首屏以 Source 根 URL 作为主标题，以完整入口的路径、终态、开始时间、耗时和执行模式作为次级上下文；同域名下的不同入口仍可通过路径区分。页面不显示“运行记录”等无信息眉题，也不把 Run ID 作为主信息；结果、执行过程、范围与增量、质量与证据使用与 Collector 详情一致的全宽等分线型任务导航。结果摘要以单行结论和指标带呈现接收、拒绝、变化与耗时，不重复堆叠统计卡。执行证据先表达规则证明、固定范围、结果集冻结和 Artifact 保留方式等人可理解的结论，对象 ID、版本 ID、digest、attestation 与 SigningKey 收纳在默认折叠的技术信息中，页面不常驻右侧 evidence rail。
-17. Item 详情的返回操作位于顶部栏，首屏以公告标题、质量终态、Source 身份、发布时间与 Revision 建立对象上下文。“数据内容、版本与观察、质量决定、来源与谱系”使用与 Collector、Run 详情一致的全宽等分线型任务导航。数据内容先展示规范化字段与正文；版本变化与观察历史合并为同一任务视图；质量决定呈现可读结论和拒绝原因；来源与谱系先提供 Collector、详情来源和最近 Run 的可操作入口，Entity key 与完整 lineage ID 收纳在默认折叠的技术信息中。页面不常驻右侧 evidence rail，也不在主标题下展示 Entity key。
+16. Run 详情的返回操作位于顶部栏，不在正文重复展示。首屏以 Source 根 URL 作为主标题，以完整入口的路径、终态、开始时间、耗时和执行模式作为次级上下文；同域名下的不同入口仍可通过路径区分。页面不显示“运行记录”等无信息眉题，也不把 Run ID 作为主信息；结果、执行过程、范围与增量、质量与证据使用与 Collector 详情一致的左对齐紧凑线型任务导航。结果摘要以单行结论和指标带呈现接收、拒绝、变化与耗时，不重复堆叠统计卡。执行证据先表达规则证明、固定范围、结果集冻结和 Artifact 保留方式等人可理解的结论，对象 ID、版本 ID、digest、attestation 与 SigningKey 收纳在默认折叠的技术信息中，页面不常驻右侧 evidence rail。
+17. Item 详情的返回操作位于顶部栏，首屏以公告标题、质量终态、Source 身份、发布时间与 Revision 建立对象上下文。“数据内容、版本与观察、质量决定、来源与谱系”使用与 Collector、Run 详情一致的左对齐紧凑线型任务导航。数据内容先展示规范化字段与正文；版本变化与观察历史合并为同一任务视图；质量决定呈现可读结论和拒绝原因；来源与谱系先提供 Collector、详情来源和最近 Run 的可操作入口，Entity key 与完整 lineage ID 收纳在默认折叠的技术信息中。页面不常驻右侧 evidence rail，也不在主标题下展示 Entity key。
 
 ### 5.2 不在当前范围
 
@@ -122,23 +149,23 @@ Extrio 是面向授权 Source 的通用结构化采集平台。通用性来自 L
 - 用户提交并在 Worker 中执行 Python、JavaScript 或其他任意代码。
 - 多区域主动主动部署、复杂财务计费、代理交易市场。
 - 端到端 exactly-once 承诺。
-- 自动删除 Source 中已经消失的实体；v0.2 只输出显式识别的删除或撤销事件。
+- 自动删除 Source 中已经消失的实体；当前版本只输出显式识别的删除或撤销事件。
 - 无人审核的生产规则发布；自动发布只能在后续版本通过独立风险决策引入。
-- 通用 cursor、无限滚动、任意增量表达式和双向回填；v0.2 增量只覆盖具有列表发布时间、时间降序和 `next_link` 的 Source。
+- 通用 cursor、无限滚动、任意增量表达式和双向回填；当前版本的增量只覆盖具有列表发布时间、时间降序和 `next_link` 的 Source。
 
 ## 6. 技术基线
 
 - Python FastAPI 控制面是租户、领域对象、权限、发布、调度、审计和交付状态的唯一写入入口；生产长任务不在 API 请求进程内执行。
 - Python 编译服务使用 Crawl4AI 获取完成导航并经过固定沉降时长的渲染 Source 样本；当前默认模型先编译列表发现计划，再结合详情样本编译受约束 `extrio.rule-plan.v1`。服务端对 selector、分页、字段类型、身份、指纹、样本命中与安全边界进行确定性验证，将合法 RulePlan 转换为 GatherSpec，并固定 provider、model、promptVersion 与浏览器 snapshot 时点。Python 执行 Worker 只解释已发布 GatherSpec，不读取模型配置或调用模型。两者采用独立工作负载身份和权限边界。
-- 本地开发纵向闭环使用 SQLite WAL 持久化领域对象、不可变 RuleVersion/RuleAttestation/AuditEvent、幂等记录、Operation 与 leased job，使用文件型开发 Ed25519 key 完成 RFC 8785 签名验证，并把 sampled HTML 写入本地 Artifact 目录；该配置只用于开发验收，生产系统记录仍为 PostgreSQL，签名仍由 KMS/HSM 承担，工作分发仍为 Redis Streams，raw 与 Artifact 仍进入对象存储。
+- 1.0 单组织自托管使用 PostgreSQL 持久化领域对象、不可变 RuleVersion/RuleAttestation/AuditEvent、幂等记录、Operation 与 leased job；SQLite WAL 保留为评估和本地开发路径。实例使用受保护的 Ed25519 签名密钥、独立凭据加密主密钥与本地 Artifact 目录，密钥及数据的一致备份和空实例恢复是发布验收条件，开发样本不替代运维证据。
 - Web 控制台采用 pnpm、Vite、React、TypeScript、Tailwind CSS 与 shadcn/ui；浏览器只通过 `/api/v1` 访问控制面，类型生成自 [`contracts/openapi.yaml`](./contracts/openapi.yaml)，不读取数据库、对象存储凭据或 Worker 内部状态。
-- PostgreSQL 是领域状态的系统记录；Redis 只承担可恢复的工作分发与短期协调；S3 兼容对象存储保存 raw 和 Artifact。
+- 后续平台拓扑以 PostgreSQL 为系统记录、Redis 为可恢复工作分发、S3 兼容对象存储保存 raw/Artifact，并采用托管 KMS/HSM；这些组件不构成单组织 1.0 的安装前置条件。
 - GatherSpec 统一使用 JSON，并通过 `extrio.gather.v1` Schema、固定提取语义、ruleDigest 和独立 RuleAttestation 校验。
-- v0.2 使用 Cron、PostgreSQL transactional outbox 和 Redis Streams，不引入 Temporal。
+- 1.0 使用持久化 Schedule、数据库事务队列和租约，不引入 Temporal；Redis Streams 分发属于后续平台拓扑。
 - 本地多用户与角色（administrator、engineer、reviewer、viewer）属于公开 Alpha 能力：首次设置创建 administrator，认证使用 Argon2 密码哈希和服务端可撤销会话；外部 OIDC/SSO、MFA、多租户隔离、审计导出、Tenant 授权和独立工作负载身份仍为生产演进边界。
 - 同一 Python 代码库可以承载控制面、编译与执行模块，但部署、数据写入、网络权限和运行生命周期必须保持逻辑隔离。
 - 探索和 Run 通过持久化 Operation 以 `202 Accepted` 启动；阶段、指标和终态由服务端事实驱动，页面刷新通过 `activeOperationId` 或 `operationId` 恢复，不得由客户端定时器伪造。
-- Source 入口只允许 HTTP(S)。公共 HTTP 默认关闭，只能由 TenantAdmin 策略显式开启并在界面标记风险；该策略不放宽 exact allowedHosts、私网/metadata 阻断、DNS 复检、重定向复检、速率或资源预算。
+- Source 入口只允许 HTTP(S)。匿名公共 HTTP 默认允许，TenantAdmin 可以在界面采集策略中关闭；任何携带凭据的访问必须使用 HTTPS。该策略不放宽 exact allowedHosts、私网/metadata 阻断、DNS 复检、重定向复检、速率或资源预算。
 - 所有服务边界、消息 envelope、失败语义与演进阈值由权威合同、OpenAPI 和版本化 JSON Schema 定义；实现不得以框架或采集库默认行为替代合同。
 
 ## 7. 版本与变更治理
@@ -146,7 +173,7 @@ Extrio 是面向授权 Source 的通用结构化采集平台。通用性来自 L
 ### 7.1 独立版本
 
 - 文档体系版本使用 `vMAJOR.MINOR.PATCH`。
-- 产品发布版本独立编号，例如 `v0.2`。
+- 产品发布版本独立编号，例如 `v0.6`。
 - GatherSpec 兼容版本使用稳定标识，例如 `extrio.gather.v1`。
 - RuleVersion 是业务实体版本，不与文档或产品版本复用。
 
@@ -194,7 +221,7 @@ Extrio 是面向授权 Source 的通用结构化采集平台。通用性来自 L
 
 ### 概览看板时间范围
 
-概览看板同时呈现今日采集、本周运行成功率、本月有效数据和当前规则覆盖，使日、周、月经营口径可以并列比较。日、周、月只作为“采集产出趋势”的聚合粒度，分别覆盖最近 14 天、12 周和 12 个月；柱形按接收与拒绝数据堆叠，运行质量面板同步说明该趋势范围内的成功、部分成功、失败和数据通过率。看板最多读取 200 条 Run 与 Item 观测，并保留最多三项需要人工推进的异常。
+概览看板同时呈现今日采集、本周运行成功率、本月有效数据和当前规则覆盖，使日、周、月经营口径可以并列比较。日、周、月只作为“采集产出趋势”的聚合粒度，分别覆盖最近 14 天、12 周和 12 个月；柱形按接收与拒绝数据堆叠，运行质量面板同步说明该趋势范围内的成功、部分成功、失败和数据通过率。经营指标通过 `GET /api/v1/overview?timezone=<IANA>` 在服务端全量聚合，不受列表 200 条上限影响。按浏览器时区的自然日、周一和自然月划分半开区间，运行按持久化创建时间归桶；成功率分母仅包含已终结运行，取消/超时计失败，活动运行单列。本月实体先按来源与 entity key 取最新观测，再按该行 UTC 入库时间判断月份；历史 observedAt 展示字符串不用于时区推断。页面提供快照时间和刷新，失败显示无法确认而不是零或健康。需要关注区域使用来源及最近运行列表，只展示最多三项，不作为全量异常统计。
 
 ## 9. 审核结论
 

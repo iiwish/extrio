@@ -35,8 +35,9 @@ contains the versioned contract bundle required by both processes. The primary
 deployment artifact is the OCI image in `docker/backend.Dockerfile`; Compose
 starts the same image once as the API and once as the worker.
 
-The current package is a local alpha with first-run local administrator
-authentication only. It is not a hardened multi-tenant service: keep the API
-and worker behind the bundled web proxy and review [SECURITY.md](../SECURITY.md)
-before deployment. Do not bind it to an untrusted network without outbound
-network controls, production secrets, and a production persistence profile.
+The current package is a self-hosted public alpha with first-run administrator
+setup, local users, and role-based access control. It is not a hardened
+multi-tenant service: keep the API and worker behind the bundled web proxy and
+review [SECURITY.md](../SECURITY.md) before deployment. Do not bind it to an
+untrusted network without outbound network controls, production secrets, and a
+production persistence profile.

@@ -5,7 +5,7 @@
 | 字段 | 内容 |
 | --- | --- |
 | 文档版本 | `v0.6.0` |
-| 对应产品版本 | `v0.2` |
+| 对应产品版本 | `v0.6` |
 | 状态 | `Confirmed` |
 | 权威来源 | [`SSOT.md`](./SSOT.md) |
 | 关联需求 | `FR-005` 至 `FR-015`，`NFR-001` 至 `NFR-013` |
@@ -91,7 +91,7 @@ occurrenceKey = sha256(scheduleId + "\n" + scheduleRevision + "\n" + scheduledAt
 - RuleVersion 的 Schema 主版本受当前 runtime 支持。
 - AccessProfileVersion、SinkVersion、RuleAttestation 和合规授权未失效。
 - Tenant、Source、Collector 和传输类型配额允许执行。
-- 同一 Collector 不存在非终态 Run；v0.2 固定 `overlapPolicy=forbid`。
+- 同一 Collector 不存在非终态 Run；v0.6 固定 `overlapPolicy=forbid`。
 
 检查失败必须记录 `Skipped` 调度结果和稳定原因码，不得创建一个注定无法执行的 Run。
 

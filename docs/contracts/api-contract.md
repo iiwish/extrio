@@ -1,12 +1,42 @@
 # Extrio 控制面 API 合同
 
+## 全量概览
+
+`GET /overview?timezone=<IANA>` 对已认证用户提供全量数据库聚合，不使用 Run/Item 列表上限。默认时区 UTC；未知时区返回 422 / INVALID_REQUEST，定位 `/timezone`。响应包含 generatedAt、timezone、today、week、monthEntities、collectors 和日/周/月 14/12/12 个趋势桶。自然日、周一和自然月转换为 UTC 半开区间；运行按持久化 created_at 归桶，成功率分母只包含终态，cancelled/timed_out 计失败，queued/running/finalizing 单列。每个请求在一个数据库一致读事务内生成快照。
+
+本月实体先按实体列表的来源/实体键和观测排序取最新行，再按该行 UTC 入库时间确定月份，避免依赖历史 observedAt 的未声明展示时区。counts 由服务端聚合而不是下载全表后在客户端计算。需要关注入口是独立的来源/最近运行列表投影，不是全量异常数量。MSW 隔离模式不回退读取真实概览，明确返回不可用。
+
+## Item 查询
+
+`GET /items` 与 `GET /items/export` 共享 `view=observations|entities`、`collectorId`、`runId`、`decision`、精确 `entityKey`、精确 `sourceHost` 与最多 500 字的 `q`。`q` 按标题、正文、来源名称和 entity key 做字面子串搜索，`%`、`_` 不作为通配符。
+
+默认 `observations` 保持历史观测语义。`entities` 先按 `collectorId + entityKey` 取 observedAt 最新、id 降序打破同时间并列的观测，然后应用全部筛选；不同来源下相同 entity key 不合并。列表使用 observedAt/entityKey/id 降序游标，并返回筛选后、不含 cursor 限制的 `total` 和未筛选实体集的 `facets.sourceHosts`、`facets.collectors`。导出使用相同选择与排序，保留 CSV/JSONL 和导出上限合同。分页不提供跨请求快照隔离，持续写入时刷新以获得最新实体状态。
+
+## 需求字段草稿与预览
+
+`PATCH /collections/{collectionId}` 接受 `revision` 与 `fieldDraft: {fields: [...]}`，要求工程师或管理员、Idempotency-Key 及当前 revision；归档需求拒绝写入。每个字段包含 key、label、type、required、identity、fingerprint、description；最多 100 个，key 必须唯一、以英文字母开头、仅含字母数字下划线且不超过 64 字符，身份字段必须必填。空数组表示有意清空草稿，不回退为来源字段。草稿写入与幂等回执、AuditEvent 原子提交，不修改任何来源或已发布版本。
+
+`GET /collections/{collectionId}` 返回 `fieldDraft`（存在时）与 `sourceContracts`，每个来源合同包含 sourceId、sourceName、state、ruleVersion、fields、完整 schema 与 quality。state 为 published、candidate、unavailable 或 empty。活动版本无法读取时返回 unavailable，不使用候选字段替代；没有活动版本时才可显示 candidate。字段投影包含输出 Schema 中的所有属性，不仅限于详情页样本字段。草稿是需求编辑状态，不是可执行 CollectionVersion。
+
+## Collection 管理
+
+`GET /collections` 返回全部独立需求摘要及来源统计；`GET /collections/{id}` 返回需求及全部关联来源，不受来源列表 50 条默认上限影响。来源中的 collectionName 是当前需求名称的投影。
+
+`POST /collections` 接受 name（1–200 字符）和 intent（1–10000 字符），无需来源，返回 201。`PATCH /collections/{id}` 接受 revision 与 name/intent，或 revision 与 status（active/archived）；元数据编辑和归档/恢复分开提交。归档需求禁止修改元数据和接入来源；恢复后可继续使用。元数据编辑不改写已有 Collector.intent、候选规则、RuleVersion、Run 或 Item。
+
+`DELETE /collections/{id}` 接受 revision，成功返回 200 和 `{id, deleted: true}`。存在关联来源时返回 COLLECTION_HAS_SOURCES（409），不执行级联删除。归档只控制需求的管理状态，不停止已有来源的运行与定时计划。
+
+写操作要求 engineer/administrator 和 Idempotency-Key；幂等记录与需求写入在同一数据库事务提交。并发版本不匹配返回 COLLECTION_CONFLICT（409）；归档限制返回 COLLECTION_ARCHIVED（409）；不存在返回 COLLECTION_NOT_FOUND（404）。来源接入和需求删除/归档在相同 Collection 行锁下检查，禁止并发创建孤立来源。SQLite 使用写事务串行化，PostgreSQL 使用行锁与命令键事务锁。
+
+迁移 003 创建 collections 表；启动按稳定 collectionId 回填缺失需求，保留同一需求不同来源的目标文本。既有需求元数据不被重复回填覆盖。空需求可通过现有 `/collectors/batch` 的 collectionId 添加来源，服务端使用当前需求名称、业务目标与 collectionVersion。
+
 ## 1. 元数据
 
 | 字段 | 内容 |
 | --- | --- |
 | 合同 ID | `extrio.control-plane.v1` |
-| 合同版本 | `v1.13.0` |
-| 对应产品版本 | `v0.2` |
+| 合同版本 | `v1.16.0` |
+| 对应产品版本 | `v0.6` |
 | 状态 | `Confirmed` |
 | 机器合同 | [`openapi.yaml`](./openapi.yaml) |
 
@@ -24,7 +54,7 @@ Source 探索和 Run 是异步命令：
 
 1. POST 请求校验权限、幂等键和领域前置条件后返回 `202 Accepted`。
 2. 响应体是 `Operation`，`Location` 指向 `/api/v1/operations/{operationId}`。
-3. 前端按 `pollAfterMs` 查询 Operation；服务端可通过 `Retry-After` 覆盖查询间隔。
+3. 前端按 `pollAfterMs` 查询 Operation；服务端可通过 `Retry-After` 覆盖查询间隔。新建 Operation 同时返回 UTC `queuedAt`，供刷新后继续计算队列等待时间；历史迁移记录可以缺省该字段。探索 Operation 同时返回 `aiRunId`，使 Collector 进度可以直接进入同一 AI 任务详情。
 4. Operation 状态只能按 `queued -> running -> terminal` 前进；终态为 `succeeded`、`failed`、`cancelled` 或 `timed_out`，不得回到非终态。
 5. `progress` 和 `phase` 由服务端事实驱动。前端不得用定时器伪造阶段、数量或成功结果。
 6. `resourceType/resourceId` 指向 Collector 或 Run。Operation 成功后前端重新读取该资源获得权威快照。
@@ -34,17 +64,17 @@ Source 探索和 Run 是异步命令：
 
 Run 仍是领域聚合，并固化 `collectionMode` 与 `operationId`；Operation 只表示创建/执行命令的可观察进度，不替代 Run、RunAttempt 或 RunFinalization。
 
-规则生成与修复同时建立独立 `AiRun`。`GET /ai-runs` 返回按创建时间倒序的任务投影，并可通过 `collectorId` 限定单个采集器；`GET /ai-runs/{aiRunId}` 追加全部 `AiAttempt` 与 `ModelInvocation`。AiRun 固定 Collector 名称、Source URL、任务类型、触发原因和发起人；`resultStatus` 表达候选是否生成，`reviewStatus` 独立表达 `not_ready`、`ready_review`、`published` 或 `superseded`。新的候选规则进入待审核时，更早的待审核任务标记为 `superseded`；发布事务把当前待审核 AiRun 关联至 `publishedRuleVersionId`。
+规则生成与修复同时建立独立 `AiRun`。`POST /collectors/{collectorId}/explorations` 接受可选 `guidance`，`POST /collectors/{collectorId}/repairs` 接受兼容字段 `note`；两者最多 500 字，作为不可信操作指引固定到本次任务并提供给受约束模型编译器。指引不能改变网络边界、选择器方言、输出合同、确定性验证或人工发布门。`GET /ai-runs` 返回按创建时间倒序的任务投影，并可通过 `collectorId` 限定单个采集器；`GET /ai-runs/{aiRunId}` 追加全部 `AiAttempt` 与 `ModelInvocation`。AiRun 固定 Collector 名称、Source URL、任务类型、触发原因和发起人；`resultStatus` 表达候选是否生成，`reviewStatus` 独立表达 `not_ready`、`ready_review`、`published` 或 `superseded`。新的候选规则进入待审核时，更早的待审核任务标记为 `superseded`；发布事务把当前待审核 AiRun 关联至 `publishedRuleVersionId`。
 
-每次 Worker 重试追加 AiAttempt；每次模型调用追加 purpose、provider、model、promptVersion、开始/结束时间、Token 用量、可空成本、响应摘要和归一化错误。AiRun 审计数据不得包含原始提示词、Source HTML/JSON 样本、模型响应正文、API Key 或可用凭据。升级已有本地数据库时，历史 explore Operation 必须回填为 AiRun；无法恢复的模型用量保持零，不得推断伪造。
+每次 Worker 重试追加 AiAttempt；每次模型调用追加 purpose、provider、model、promptVersion、开始/结束时间、Token 用量、可空成本、响应摘要和归一化错误。新建 AiRun 和对应 Operation 追加同一份结构化 `activity` 阶段历史；阶段转换关闭上一条 running 记录并保存耗时和指标，失败时把实际失败阶段标记为 failed，终态 Operation 仍使用 `phase=completed`。AiRun 审计数据不得包含原始提示词、模型思维过程、Source HTML/JSON 样本、模型响应正文、API Key 或可用凭据。升级已有本地数据库时，历史 explore Operation 必须回填为 AiRun；无法恢复的阶段和模型用量保持缺省或零，不得推断伪造。
 
 ## 4. 幂等与并发
 
-所有写请求必须携带 `Idempotency-Key`。同一 Tenant、actor、HTTP method、规范化资源目标和 key 的重试返回同一逻辑结果；相同 key 携带不同 payload 返回 `IDEMPOTENCY_KEY_REUSED`。v0.2 禁止同一 Collector 存在重叠非终态 Run，并返回 `RUN_ALREADY_ACTIVE`；探索冲突返回 `OPERATION_ALREADY_ACTIVE`。
+所有写请求必须携带 `Idempotency-Key`。同一 Tenant、actor、HTTP method、规范化资源目标和 key 的重试返回同一逻辑结果；相同 key 携带不同 payload 返回 `IDEMPOTENCY_KEY_REUSED`。当前版本禁止同一 Collector 存在重叠非终态 Run，并返回 `RUN_ALREADY_ACTIVE`；探索冲突返回 `OPERATION_ALREADY_ACTIVE`。
 
-批量 Source 导入以一次逻辑命令处理，合法项独立提交，非法项进入逐项 `error`；业务部分失败仍返回 `200`，不使用 WebDAV `207 Multi-Status`。传输或命令级失败才返回非 2xx PlatformError。
+批量 Source 导入以一次逻辑命令处理。`POST /collectors/batch` 的 `sources` 每项包含必填 `entryUrl`，可选 `mode`、`name` 与 `scopeHint`；`mode` 省略时默认为 `exact`，当前拒绝其他模式。`exact` 入口必须是具体列表页或单页，站点根目录以 `EXACT_ENTRY_REQUIRED` 逐项拒绝。合法项独立提交，非法项进入逐项 `error`；业务部分失败仍返回 `200`，不使用 WebDAV `207 Multi-Status`。传输或命令级失败才返回非 2xx PlatformError。
 
-Source URL 只接受 `http` 与 `https`。匿名公共 HTTP 需要服务端 TenantAdmin 风险策略显式开启；携带 AccessProfile 或凭据的 Source 必须使用 HTTPS。`HTTPS_REQUIRED` 同时表示凭据传输不安全或当前租户未批准匿名 HTTP，`INVALID_URL` 表示协议或 URL 结构不受支持。
+Source URL 只接受 `http` 与 `https`。匿名公共 HTTP 默认允许，TenantAdmin 可以通过服务端风险策略关闭；携带 AccessProfile 或凭据的 Source 必须使用 HTTPS。`HTTPS_REQUIRED` 同时表示凭据传输不安全或当前租户不允许匿名 HTTP，`INVALID_URL` 表示协议或 URL 结构不受支持。
 
 ## 5. 分页与缓存
 
@@ -64,7 +94,7 @@ CandidateRule 包含适合审核的摘要和完整 `gatherSpec`。`gatherSpec` �
 
 `PATCH /collectors/{collectorId}` 接受完整的可编辑定义 `name + intent + sourceUrl`。名称变化只更新展示身份；意图或规范化 Source URL 变化必须把 Collector 置为 `draft`、清除候选与审核决定并阻断 Run，历史 `activeRuleVersion` 只作为可追溯引用保留。异步 Operation 或非终态 Run 存在时返回 `OPERATION_ALREADY_ACTIVE`。
 
-Collector 列表与详情响应必须包含稳定 `collectionId`、`collectionName` 与 `collectionVersion`。`POST /collectors/batch` 为一次需求导入生成一个 Collection 身份，并把同一身份写入每个成功 Collector 和批量结果；逐项失败不改变已成功对象的归属。`name` 是 Source 级 Collector 展示名，`collectionName` 是共享业务需求名称，两者不得在客户端混用。
+Collector 列表与详情响应必须包含稳定 `collectionId`、`collectionName` 与 `collectionVersion`。`POST /collectors/batch` 为一次需求导入生成一个 Collection 身份，并把同一身份写入每个成功 Collector 和批量结果；逐项失败不改变已成功对象的归属。`name` 是 Source 级 Collector 展示名，`collectionName` 是共享业务需求名称，两者不得在客户端混用。可选 `scopeHint` 是 Source 特定的规则编译提示，不改变 CollectionVersion 的输出语义；模型发现、首次编译和修复均使用该提示，确定性 Run 不读取它。
 
 `PATCH /collectors/{collectorId}/candidate-rule` 只编辑候选规则，不更新 RuleVersion。请求完整覆盖列表 Item selector、分页和当前输出字段 selector；`list_detail` 客户端通过可选的 `listFields` 完整覆盖全部列表阶段字段 selector，并保持其中 `detailUrl` 与兼容字段 `detailLinkSelector` 一致。服务端将编辑记录为编译 `overrideRefs`、重算候选 digest 和 GatherSpec `ruleDigest`、执行 Schema 校验，并使用最近一次成功探索的 sampled HTML 验证列表发现和必填字段。缺省 `listFields` 的 v1 客户端继续只更新 `detailUrl`；未知或不完整的列表字段集合被拒绝。验证失败返回 `CANDIDATE_VALIDATION_FAILED`，没有样本返回同一稳定错误；成功后 Collector 进入 `ready_review`，旧审核决定清空。发布仍通过独立命令创建新的不可变 RuleVersion。
 

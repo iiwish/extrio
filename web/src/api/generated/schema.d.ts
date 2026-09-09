@@ -4,6 +4,40 @@
  */
 
 export interface paths {
+    "/collections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listCollections"];
+        put?: never;
+        post: operations["createCollection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/collections/{collectionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collectionId: string;
+            };
+            cookie?: never;
+        };
+        get: operations["getCollection"];
+        put?: never;
+        post?: never;
+        delete: operations["deleteCollection"];
+        options?: never;
+        head?: never;
+        patch: operations["updateCollection"];
+        trace?: never;
+    };
     "/auth/state": {
         parameters: {
             query?: never;
@@ -208,6 +242,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description Starts a governed AI rule-generation task. Optional operator guidance is treated as untrusted intent, is recorded on the AiRun, and may influence rule discovery and compilation without relaxing the selector dialect, source boundary, output contract, deterministic validation, or human-review gate. */
         post: operations["startCollectorExploration"];
         delete?: never;
         options?: never;
@@ -375,6 +410,23 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getAiRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Full-database aggregates for authenticated users. Calendar windows use the requested IANA timezone, weeks start Monday. Run timestamps are persisted created_at; success rates use completed runs only. Month entities are ranked like the entity list before filtering by the latest row's UTC persistence timestamp, not the legacy observedAt display string. No 200-row list cap applies. */
+        get: operations["getOverview"];
         put?: never;
         post?: never;
         delete?: never;
@@ -584,6 +636,69 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        CollectionInput: {
+            name: string;
+            intent: string;
+        };
+        CollectionUpdateInput: {
+            fieldDraft?: components["schemas"]["CollectionFieldDraft"];
+            revision: number;
+            name?: string;
+            intent?: string;
+            /** @enum {string} */
+            status?: "active" | "archived";
+        } & (unknown | (unknown | unknown | unknown));
+        CollectionField: {
+            key: string;
+            label: string;
+            /** @enum {string} */
+            type: "string" | "number" | "integer" | "boolean" | "date" | "datetime" | "url" | "html" | "object" | "array";
+            required: boolean;
+            identity: boolean;
+            fingerprint: boolean;
+            description: string;
+        };
+        CollectionFieldDraft: {
+            fields: components["schemas"]["CollectionField"][];
+        };
+        SourceFieldContract: {
+            sourceId: string;
+            sourceName: string;
+            /** @enum {string} */
+            state: "published" | "candidate" | "unavailable" | "empty";
+            ruleVersion: string | null;
+            fields: components["schemas"]["CollectionField"][];
+            schema: {
+                [key: string]: unknown;
+            };
+            quality: {
+                [key: string]: unknown;
+            };
+        };
+        Collection: {
+            fieldDraft?: components["schemas"]["CollectionFieldDraft"];
+            id: string;
+            name: string;
+            intent: string;
+            collectionVersion: string;
+            /** @enum {string} */
+            status: "active" | "archived";
+            revision: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            sourceCount: number;
+            publishedSourceCount: number;
+        };
+        CollectionDetail: {
+            sourceContracts?: components["schemas"]["SourceFieldContract"][];
+            sources: components["schemas"]["CollectorDetail"][];
+        } & components["schemas"]["Collection"];
+        CollectionPage: {
+            items: components["schemas"]["Collection"][];
+            total: number;
+        };
         AuthUser: {
             id: string;
             username: string;
@@ -648,7 +763,7 @@ export interface components {
         /** @enum {string} */
         OperationKind: "explore" | "run";
         /** @enum {string} */
-        OperationPhase: "queued" | "fetching_list" | "discovering_details" | "fetching_details" | "validating" | "finalizing" | "completed";
+        OperationPhase: "queued" | "fetching_list" | "analyzing_structure" | "discovering_details" | "fetching_details" | "compiling_rule" | "validating" | "finalizing" | "completed";
         /** @enum {string} */
         CollectionMode: "single" | "list_detail";
         /** @enum {string} */
@@ -752,7 +867,7 @@ export interface components {
          * @description Stable v1 error taxonomy. New codes may be added without changing existing meanings.
          * @enum {string}
          */
-        ErrorCode: "AUTH_REQUIRED" | "INVALID_CREDENTIALS" | "SETUP_ALREADY_COMPLETED" | "RATE_LIMITED" | "FORBIDDEN" | "VALIDATION_FAILED" | "INVALID_URL" | "HTTPS_REQUIRED" | "DUPLICATE_IN_BATCH" | "SOURCE_ALREADY_EXISTS" | "SOURCE_UNREACHABLE" | "COLLECTION_NOT_FOUND" | "COLLECTOR_NOT_FOUND" | "OPERATION_NOT_FOUND" | "AI_RUN_NOT_FOUND" | "RUN_NOT_FOUND" | "ITEM_NOT_FOUND" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "OPERATION_ALREADY_ACTIVE" | "REPAIR_NOT_APPLICABLE" | "RUN_ALREADY_ACTIVE" | "RULE_NOT_PUBLISHED" | "CANDIDATE_RULE_NOT_FOUND" | "CANDIDATE_VALIDATION_FAILED" | "RULE_ATTESTATION_INVALID" | "REVIEW_DECISION_INVALID" | "OPERATION_CANCELLED" | "OPERATION_TIMED_OUT" | "INVALID_CURSOR" | "EXPORT_TOO_LARGE" | "EVIDENCE_BUNDLE_ERROR" | "SINK_NOT_FOUND" | "USER_NOT_FOUND" | "USERNAME_TAKEN" | "LAST_ADMINISTRATOR" | "SELF_DISABLE" | "DELIVERY_NOT_FOUND" | "DELIVERY_IN_FLIGHT" | "INTERNAL_ERROR" | "UNEXPECTED_RESPONSE";
+        ErrorCode: "AUTH_REQUIRED" | "INVALID_CREDENTIALS" | "SETUP_ALREADY_COMPLETED" | "RATE_LIMITED" | "FORBIDDEN" | "VALIDATION_FAILED" | "INVALID_URL" | "HTTPS_REQUIRED" | "DUPLICATE_IN_BATCH" | "EXACT_ENTRY_REQUIRED" | "UNSUPPORTED_SOURCE_MODE" | "SOURCE_ALREADY_EXISTS" | "SOURCE_UNREACHABLE" | "COLLECTION_NOT_FOUND" | "COLLECTION_CONFLICT" | "COLLECTION_HAS_SOURCES" | "COLLECTION_ARCHIVED" | "COLLECTOR_NOT_FOUND" | "OPERATION_NOT_FOUND" | "AI_RUN_NOT_FOUND" | "RUN_NOT_FOUND" | "ITEM_NOT_FOUND" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "OPERATION_ALREADY_ACTIVE" | "REPAIR_NOT_APPLICABLE" | "RUN_ALREADY_ACTIVE" | "RULE_NOT_PUBLISHED" | "CANDIDATE_RULE_NOT_FOUND" | "CANDIDATE_VALIDATION_FAILED" | "RULE_ATTESTATION_INVALID" | "REVIEW_DECISION_INVALID" | "OPERATION_CANCELLED" | "OPERATION_TIMED_OUT" | "INVALID_CURSOR" | "EXPORT_TOO_LARGE" | "EVIDENCE_BUNDLE_ERROR" | "SINK_NOT_FOUND" | "USER_NOT_FOUND" | "USERNAME_TAKEN" | "LAST_ADMINISTRATOR" | "SELF_DISABLE" | "DELIVERY_NOT_FOUND" | "DELIVERY_IN_FLIGHT" | "INTERNAL_ERROR" | "UNEXPECTED_RESPONSE";
         OperationMetrics: {
             listPagesFetched: number;
             detailUrlsDiscovered: number;
@@ -763,6 +878,18 @@ export interface components {
             updatedItems: number;
             unchangedItems: number;
             warningCount: number;
+        };
+        /** @enum {string} */
+        ActivityStatus: "running" | "succeeded" | "failed";
+        OperationActivity: {
+            phase: components["schemas"]["OperationPhase"];
+            status: components["schemas"]["ActivityStatus"];
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            finishedAt: string | null;
+            durationMs: number | null;
+            metrics: components["schemas"]["OperationMetrics"];
         };
         Operation: {
             id: string;
@@ -775,6 +902,15 @@ export interface components {
             resourceId: string;
             statusUrl: string;
             pollAfterMs: number;
+            /**
+             * Format: date-time
+             * @description UTC time when the operation entered the durable queue. Older migrated operations may omit it.
+             */
+            queuedAt?: string;
+            /** @description Stable AI task identifier for exploration operations. Run operations omit this field. */
+            aiRunId?: string;
+            /** @description Sanitized, append-only phase history for live progress and post-run audit. Older migrated operations may omit it. */
+            activity?: components["schemas"]["OperationActivity"][];
             metrics: components["schemas"]["OperationMetrics"];
             error: components["schemas"]["PlatformError"] | null;
         } & (unknown & unknown & unknown & unknown);
@@ -858,8 +994,12 @@ export interface components {
             validationSummary: components["schemas"]["AiValidationSummary"];
             candidateRuleDigest: string | null;
             publishedRuleVersionId: string | null;
-            /** @description Optional reason recorded when the run was triggered as a repair. */
+            /** @description Optional operator guidance recorded and applied when the run was triggered as a repair. */
             note?: string | null;
+            /** @description Optional operator guidance recorded and applied to rule discovery and compilation. */
+            guidance?: string | null;
+            /** @description Sanitized phase history. It never contains raw prompts, source bodies, model responses, or credentials. */
+            activity?: components["schemas"]["OperationActivity"][];
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -931,6 +1071,8 @@ export interface components {
              */
             sourceUrl: string;
             sourceHost: string;
+            /** @description Optional source-specific hint used while compiling the Collector rule; it does not change the Collection data contract. */
+            scopeHint?: string;
             status: components["schemas"]["CollectorStatus"];
             /** @description Stable Collection identity used to group Collectors that share one business requirement. */
             collectionId: string;
@@ -976,8 +1118,12 @@ export interface components {
             intent: string;
         };
         RepairInput: {
-            /** @description Optional reason for the repair, stored on the rule_repair AI run for the AI task history. */
+            /** @description Optional operator guidance for the repair, stored on the rule_repair AI run and supplied to the constrained compiler. */
             note?: string;
+        };
+        ExplorationInput: {
+            /** @description Optional one-run instruction for discovery and compilation. It cannot relax safety, contract, validation, or review gates. */
+            guidance?: string;
         };
         CandidateRuleEditInput: {
             listSelector: string;
@@ -991,12 +1137,28 @@ export interface components {
             key: string;
             selector: string;
         };
+        CollectorSourceInput: {
+            /**
+             * Format: uri
+             * @description Exact HTTP(S) list entry URL. A bare site root is not accepted.
+             */
+            entryUrl: string;
+            /**
+             * @description Optional import mode. Omission defaults to exact; discovery mode is not yet supported.
+             * @enum {string}
+             */
+            mode?: "exact";
+            /** @description Optional user-visible Collector name; the source host is used when omitted. */
+            name?: string;
+            /** @description Optional source-specific scope used during rule compilation. */
+            scopeHint?: string;
+        };
         CreateCollectorsInput: {
             /** @description Existing Collection identity to reuse. When present, the server uses its canonical name, intent, and version. */
             collectionId?: string;
             collectionName: string;
             intent: string;
-            sourceUrls: string[];
+            sources: components["schemas"]["CollectorSourceInput"][];
         };
         BatchCollectorImportItem: {
             sourceUrl: string;
@@ -1178,6 +1340,44 @@ export interface components {
             recoveryAction: string;
             items: components["schemas"]["HarvestResult"][];
         } & unknown;
+        OverviewBucket: {
+            key: string;
+            /** Format: date */
+            labelDate: string;
+            /** Format: date-time */
+            start: string;
+            /** Format: date-time */
+            end: string;
+            runs: number;
+            completed: number;
+            successful: number;
+            partial: number;
+            failed: number;
+            active: number;
+            accepted: number;
+            rejected: number;
+        };
+        Overview: {
+            /** Format: date-time */
+            generatedAt: string;
+            timezone: string;
+            today: components["schemas"]["OverviewBucket"];
+            week: components["schemas"]["OverviewBucket"];
+            monthEntities: {
+                total: number;
+                accepted: number;
+                rejected: number;
+            };
+            collectors: {
+                total: number;
+                published: number;
+            };
+            trends: {
+                day: components["schemas"]["OverviewBucket"][];
+                week: components["schemas"]["OverviewBucket"][];
+                month: components["schemas"]["OverviewBucket"][];
+            };
+        };
         RunPage: {
             items: components["schemas"]["Run"][];
             page: components["schemas"]["PageMeta"];
@@ -1187,6 +1387,16 @@ export interface components {
             page: components["schemas"]["PageMeta"];
         };
         ItemPage: {
+            /** @description Total matching entities before cursor pagination; present for view=entities. */
+            total?: number;
+            /** @description Available filters across all latest entities, not just the current page; present for view=entities. */
+            facets?: {
+                sourceHosts: string[];
+                collectors: {
+                    id: string;
+                    name: string;
+                }[];
+            };
             items: components["schemas"]["HarvestResult"][];
             page: components["schemas"]["PageMeta"];
             /** @description Opaque continuation token for the next page in deterministic output-loop order; null on the last page. */
@@ -1847,6 +2057,12 @@ export interface components {
         };
     };
     parameters: {
+        /** @description Observations retain history. Entities select the latest observation per collectorId and entityKey before applying all filters. */
+        ItemView: "observations" | "entities";
+        /** @description Trimmed, case-insensitive literal substring search across title, content, collectorName and entityKey. Percent and underscore are literal characters. */
+        ItemSearch: string;
+        /** @description Exact site host filter, shared by list and export. */
+        ItemSourceHost: string;
         CollectorId: string;
         OperationId: string;
         AiRunId: string;
@@ -1868,6 +2084,144 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listCollections: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description All requirement summaries, including archived and empty requirements. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionPage"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    createCollection: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionInput"];
+            };
+        };
+        responses: {
+            /** @description Independent requirement created. Engineer or administrator required. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Collection"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    getCollection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collectionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Requirement and all linked sources, without the collectors list limit. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionDetail"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    deleteCollection: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                collectionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    revision: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Empty requirement deleted. Associated sources block deletion with 409. Engineer or administrator required. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        /** @constant */
+                        deleted: true;
+                    };
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    updateCollection: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                collectionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionUpdateInput"];
+            };
+        };
+        responses: {
+            /** @description Metadata updated or archived/restored. Does not change existing extraction rules or stop runs. Engineer or administrator required. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Collection"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
     getAuthState: {
         parameters: {
             query?: never;
@@ -2351,7 +2705,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ExplorationInput"];
+            };
+        };
         responses: {
             /** @description Exploration accepted for asynchronous execution. */
             202: {
@@ -2668,6 +3026,30 @@ export interface operations {
             default: components["responses"]["PlatformError"];
         };
     };
+    getOverview: {
+        parameters: {
+            query?: {
+                /** @description IANA timezone. Unknown zones return 422. */
+                timezone?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Consistent database snapshot of overview metrics. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Overview"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
     listRuns: {
         parameters: {
             query?: {
@@ -2722,6 +3104,16 @@ export interface operations {
             query?: {
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
+                /** @description Observations retain history. Entities select the latest observation per collectorId and entityKey before applying all filters. */
+                view?: components["parameters"]["ItemView"];
+                /** @description Trimmed, case-insensitive literal substring search across title, content, collectorName and entityKey. Percent and underscore are literal characters. */
+                q?: components["parameters"]["ItemSearch"];
+                /** @description Exact site host filter, shared by list and export. */
+                sourceHost?: components["parameters"]["ItemSourceHost"];
+                collectorId?: string;
+                runId?: string;
+                decision?: components["schemas"]["ItemDecision"];
+                entityKey?: string;
             };
             header?: never;
             path?: never;
@@ -2729,7 +3121,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Accepted items and rejected candidates in deterministic output-loop order. */
+            /** @description Observations or latest entities in deterministic order. Entity selection precedes filtering; entities include total and global filter facets. */
             200: {
                 headers: {
                     "X-Request-ID": components["headers"]["RequestId"];
@@ -2754,6 +3146,12 @@ export interface operations {
     exportItems: {
         parameters: {
             query: {
+                /** @description Observations retain history. Entities select the latest observation per collectorId and entityKey before applying all filters. */
+                view?: components["parameters"]["ItemView"];
+                /** @description Trimmed, case-insensitive literal substring search across title, content, collectorName and entityKey. Percent and underscore are literal characters. */
+                q?: components["parameters"]["ItemSearch"];
+                /** @description Exact site host filter, shared by list and export. */
+                sourceHost?: components["parameters"]["ItemSourceHost"];
                 /** @description Export wire format. */
                 format: "csv" | "jsonl";
                 collectorId?: string;

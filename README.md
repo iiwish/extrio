@@ -3,44 +3,60 @@
 [![CI](https://github.com/iiwish/extrio/actions/workflows/ci.yml/badge.svg)](https://github.com/iiwish/extrio/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-Extrio turns a collection intent into a reviewable `GatherSpec`, publishes an
-immutable Ed25519-attested rule, and executes that fixed rule as a deterministic
-collection run. It is designed for teams that need to explain not only what was
-collected, but which rule, evidence, quality decision, and checkpoint produced
-each item.
+Extrio is a self-hosted, trusted web data pipeline for data operations teams. It
+turns public or authorized list/detail sources into reviewable extraction rules,
+then runs approved rules deterministically with item-level lineage and evidence.
+Its initial focus is tender, regulatory, and public-notice workflows where teams
+need to explain what was collected and exactly how it was produced.
 
 The repository contains a desktop React operations console and a Python control
 plane with exploration and execution workers, durable operations, SQLite state,
 and contract-first APIs.
 
-> **Project status:** v0.2 self-hosted public-alpha release candidate. Extrio includes multi-user local
-> accounts with role-based access control (administrator / engineer / reviewer / viewer) and first-run
-> administrator setup, but it is not a hardened multi-tenant service. Keep the API and
-> worker behind the bundled web proxy and review [SECURITY.md](SECURITY.md) before deployment.
+> **Project status:** v0.6 self-hosted public alpha. Current proof is repository-local: automated
+> tests, deterministic fixtures, contract checks, and desktop visual reviews. A hosted trial,
+> external-user validation, published scale benchmarks, and hardened multi-tenant operation are not
+> yet claimed. Keep the API and worker behind the bundled web proxy and review
+> [SECURITY.md](SECURITY.md) before deployment.
+
+Extrio's product boundary is deliberate: AI assists onboarding, a human approves
+the generated rule, and production runs execute the frozen rule without an LLM.
+Extrio is not a general crawler toolkit, webpage chatbot, or autonomous agent platform.
 
 ## What is included
 
 - Intent-driven collector creation with reusable collection requirements.
 - Batch collector creation from an imported URL list with per-URL validation.
 - Evidence-based rule review and immutable rule publication.
-- Durable AI rule-task history with attempts, model usage, and review status.
+- Durable AI rule-task history with a live structured activity timeline, attempts, model usage,
+  optional one-run operator guidance, and review status. Raw prompts, model reasoning, page bodies,
+  and model response bodies are not exposed as logs.
 - Two-stage list discovery and detail extraction with deterministic execution.
 - Scheduled and manual runs with incremental checkpoints and quality gates.
 - Multi-user local accounts with role-based access control: administrator (full access plus user
   management), engineer (collector, exploration, run, schedule, and sink operations), reviewer (rule
   review and publication), and viewer (read-only access with export).
 - Prometheus `/metrics` endpoint with scrape-time counters for collectors, runs, items, deliveries,
+  and sinks, plus build info (`EXTRIO_METRICS_ENABLED`; enabled by default and unauthenticated by
+  design, so bind it to an internal interface).
 - AI rule auto-repair: re-explore a changed site, preserve the frozen data contract, and route the
   repaired candidate through human review before publication.
 - Signed evidence-bundle export: a verifiable ZIP containing rules, attestations, runs, item
   lineage, and SHA256SUMS — signed with the same Ed25519 key as rule attestations.
 - MCP server for AI agents: governed collection creation and attested data queries over stdio or
   token-protected HTTP (see [MCP Server](#mcp-server)).
-  and sinks, plus build info (`EXTRIO_METRICS_ENABLED`, enabled by default, unauthenticated by
-  design — bind it to an internal interface).
 - Item lineage, revisions, rejection evidence, and operational dashboards.
 - Bilingual operations console (中文 / English) with an in-app language switcher.
 - Versioned JSON Schema and OpenAPI contracts under `docs/contracts`.
+
+## Product maturity
+
+- **Available now:** the self-hosted vertical workflow, constrained AI rule generation and repair,
+  human review and publication, deterministic runs, evidence export, Webhook delivery, and MCP access.
+- **Experimental:** broad compatibility across real-world websites, browser-rendered sources, drift
+  recovery quality, and operating limits beyond the repository fixtures.
+- **Planned:** a hosted evaluation environment, a curated public source corpus, published benchmarks,
+  onboarding templates, client SDKs, and production multi-tenant hardening.
 
 ## Console preview
 

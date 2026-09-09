@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Extrio Control Plane API
-  version: 1.14.0
+  version: 1.15.0
   description: Versioned browser-facing control-plane contract for Extrio, including the v0.3 output loop (item export, sinks, deliveries).
 x-contract-id: extrio.control-plane.v1
 servers:
@@ -9,6 +9,105 @@ servers:
 security:
   - sessionCookie: []
 paths:
+  /collections:
+    get:
+      operationId: listCollections
+      responses:
+        '200':
+          description: All requirement summaries, including archived and empty requirements.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionPage'
+        default:
+          $ref: '#/components/responses/PlatformError'
+    post:
+      operationId: createCollection
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectionInput'
+      responses:
+        '201':
+          description: Independent requirement created. Engineer or administrator required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Collection'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /collections/{collectionId}:
+    parameters:
+      - name: collectionId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getCollection
+      responses:
+        '200':
+          description: Requirement and all linked sources, without the collectors list limit.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionDetail'
+        default:
+          $ref: '#/components/responses/PlatformError'
+    patch:
+      operationId: updateCollection
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectionUpdateInput'
+      responses:
+        '200':
+          description: Metadata updated or archived/restored. Does not change existing extraction rules or stop runs. Engineer or administrator required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Collection'
+        default:
+          $ref: '#/components/responses/PlatformError'
+    delete:
+      operationId: deleteCollection
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [revision]
+              properties:
+                revision:
+                  type: integer
+                  minimum: 1
+      responses:
+        '200':
+          description: Empty requirement deleted. Associated sources block deletion with 409. Engineer or administrator required.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, deleted]
+                properties:
+                  id:
+                    type: string
+                  deleted:
+                    const: true
+        default:
+          $ref: '#/components/responses/PlatformError'
   /auth/state:
     get:
       operationId: getAuthState
@@ -373,9 +472,19 @@ paths:
   /collectors/{collectorId}/explorations:
     post:
       operationId: startCollectorExploration
+      description: >-
+        Starts a governed AI rule-generation task. Optional operator guidance is treated as untrusted intent,
+        is recorded on the AiRun, and may influence rule discovery and compilation without relaxing the
+        selector dialect, source boundary, output contract, deterministic validation, or human-review gate.
       parameters:
         - $ref: '#/components/parameters/CollectorId'
         - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExplorationInput'
       responses:
         '202':
           description: Exploration accepted for asynchronous execution.
@@ -661,6 +770,27 @@ paths:
                 $ref: '#/components/schemas/AiRunDetail'
         default:
           $ref: '#/components/responses/PlatformError'
+  /overview:
+    get:
+      operationId: getOverview
+      description: Full-database aggregates for authenticated users. Calendar windows use the requested IANA timezone, weeks start Monday. Run timestamps are persisted created_at; success rates use completed runs only. Month entities are ranked like the entity list before filtering by the latest row's UTC persistence timestamp, not the legacy observedAt display string. No 200-row list cap applies.
+      parameters:
+        - name: timezone
+          in: query
+          schema:
+            type: string
+            default: UTC
+            maxLength: 100
+          description: IANA timezone. Unknown zones return 422.
+      responses:
+        '200':
+          description: Consistent database snapshot of overview metrics.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Overview'
+        default:
+          $ref: '#/components/responses/PlatformError'
   /runs:
     get:
       operationId: listRuns
@@ -702,9 +832,28 @@ paths:
       parameters:
         - $ref: '#/components/parameters/Cursor'
         - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/ItemView'
+        - $ref: '#/components/parameters/ItemSearch'
+        - $ref: '#/components/parameters/ItemSourceHost'
+        - name: collectorId
+          in: query
+          schema:
+            type: string
+        - name: runId
+          in: query
+          schema:
+            type: string
+        - name: decision
+          in: query
+          schema:
+            $ref: '#/components/schemas/ItemDecision'
+        - name: entityKey
+          in: query
+          schema:
+            type: string
       responses:
         '200':
-          description: Accepted items and rejected candidates in deterministic output-loop order.
+          description: Observations or latest entities in deterministic order. Entity selection precedes filtering; entities include total and global filter facets.
           headers:
             X-Request-ID:
               $ref: '#/components/headers/RequestId'
@@ -730,6 +879,9 @@ paths:
         no body is streamed. CSV columns are the fixed columns followed by the alphabetical union
         of extractedData keys (missing values stay empty). The CSV body starts with a UTF-8 BOM.
       parameters:
+        - $ref: '#/components/parameters/ItemView'
+        - $ref: '#/components/parameters/ItemSearch'
+        - $ref: '#/components/parameters/ItemSourceHost'
         - name: format
           in: query
           required: true
@@ -1022,6 +1174,27 @@ components:
       in: cookie
       name: extrio_session
   parameters:
+    ItemView:
+      name: view
+      in: query
+      description: Observations retain history. Entities select the latest observation per collectorId and entityKey before applying all filters.
+      schema:
+        type: string
+        enum: [observations, entities]
+        default: observations
+    ItemSearch:
+      name: q
+      in: query
+      description: Trimmed, case-insensitive literal substring search across title, content, collectorName and entityKey. Percent and underscore are literal characters.
+      schema:
+        type: string
+        maxLength: 500
+    ItemSourceHost:
+      name: sourceHost
+      in: query
+      description: Exact site host filter, shared by list and export.
+      schema:
+        type: string
     CollectorId:
       name: collectorId
       in: path
@@ -1107,6 +1280,167 @@ components:
           schema:
             $ref: '#/components/schemas/PlatformError'
   schemas:
+    CollectionInput:
+      type: object
+      additionalProperties: false
+      required: [name, intent]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        intent:
+          type: string
+          minLength: 1
+          maxLength: 10000
+    CollectionUpdateInput:
+      type: object
+      additionalProperties: false
+      required: [revision]
+      properties:
+        fieldDraft:
+          $ref: '#/components/schemas/CollectionFieldDraft'
+        revision:
+          type: integer
+          minimum: 1
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        intent:
+          type: string
+          minLength: 1
+          maxLength: 10000
+        status:
+          type: string
+          enum: [active, archived]
+      oneOf:
+        - required: [status]
+          not:
+            anyOf:
+              - required: [name]
+              - required: [intent]
+              - required: [fieldDraft]
+        - not:
+            required: [status]
+          anyOf:
+            - required: [name]
+            - required: [intent]
+            - required: [fieldDraft]
+    CollectionField:
+      type: object
+      additionalProperties: false
+      required: [key, label, type, required, identity, fingerprint, description]
+      properties:
+        key:
+          type: string
+          pattern: '^[A-Za-z][A-Za-z0-9_]{0,63}$'
+        label:
+          type: string
+          minLength: 1
+          maxLength: 100
+        type:
+          type: string
+          enum: [string, number, integer, boolean, date, datetime, url, html, object, array]
+        required:
+          type: boolean
+        identity:
+          type: boolean
+        fingerprint:
+          type: boolean
+        description:
+          type: string
+          maxLength: 2000
+    CollectionFieldDraft:
+      type: object
+      additionalProperties: false
+      required: [fields]
+      properties:
+        fields:
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/CollectionField'
+    SourceFieldContract:
+      type: object
+      required: [sourceId, sourceName, state, ruleVersion, fields, schema, quality]
+      properties:
+        sourceId:
+          type: string
+        sourceName:
+          type: string
+        state:
+          type: string
+          enum: [published, candidate, unavailable, empty]
+        ruleVersion:
+          type: [string, 'null']
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CollectionField'
+        schema:
+          type: object
+          additionalProperties: true
+        quality:
+          type: object
+          additionalProperties: true
+    Collection:
+      type: object
+      required: [id, name, intent, collectionVersion, status, revision, createdAt, updatedAt, sourceCount, publishedSourceCount]
+      properties:
+        fieldDraft:
+          $ref: '#/components/schemas/CollectionFieldDraft'
+        id:
+          type: string
+        name:
+          type: string
+        intent:
+          type: string
+        collectionVersion:
+          type: string
+        status:
+          type: string
+          enum: [active, archived]
+        revision:
+          type: integer
+          minimum: 1
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        sourceCount:
+          type: integer
+          minimum: 0
+        publishedSourceCount:
+          type: integer
+          minimum: 0
+    CollectionDetail:
+      type: object
+      required: [sources]
+      allOf:
+        - $ref: '#/components/schemas/Collection'
+      properties:
+        sourceContracts:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceFieldContract'
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/CollectorDetail'
+    CollectionPage:
+      type: object
+      additionalProperties: false
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Collection'
+        total:
+          type: integer
     AuthUser:
       type: object
       additionalProperties: false
@@ -1247,7 +1581,7 @@ components:
       enum: [explore, run]
     OperationPhase:
       type: string
-      enum: [queued, fetching_list, discovering_details, fetching_details, validating, finalizing, completed]
+      enum: [queued, fetching_list, analyzing_structure, discovering_details, fetching_details, compiling_rule, validating, finalizing, completed]
     CollectionMode:
       type: string
       enum: [single, list_detail]
@@ -1469,9 +1803,14 @@ components:
         - INVALID_URL
         - HTTPS_REQUIRED
         - DUPLICATE_IN_BATCH
+        - EXACT_ENTRY_REQUIRED
+        - UNSUPPORTED_SOURCE_MODE
         - SOURCE_ALREADY_EXISTS
         - SOURCE_UNREACHABLE
         - COLLECTION_NOT_FOUND
+        - COLLECTION_CONFLICT
+        - COLLECTION_HAS_SOURCES
+        - COLLECTION_ARCHIVED
         - COLLECTOR_NOT_FOUND
         - OPERATION_NOT_FOUND
         - AI_RUN_NOT_FOUND
@@ -1533,6 +1872,29 @@ components:
         warningCount:
           type: integer
           minimum: 0
+    ActivityStatus:
+      type: string
+      enum: [running, succeeded, failed]
+    OperationActivity:
+      type: object
+      additionalProperties: false
+      required: [phase, status, startedAt, finishedAt, durationMs, metrics]
+      properties:
+        phase:
+          $ref: '#/components/schemas/OperationPhase'
+        status:
+          $ref: '#/components/schemas/ActivityStatus'
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: [string, 'null']
+          format: date-time
+        durationMs:
+          type: [integer, 'null']
+          minimum: 0
+        metrics:
+          $ref: '#/components/schemas/OperationMetrics'
     Operation:
       type: object
       additionalProperties: false
@@ -1561,6 +1923,18 @@ components:
           type: integer
           minimum: 100
           maximum: 10000
+        queuedAt:
+          type: string
+          format: date-time
+          description: UTC time when the operation entered the durable queue. Older migrated operations may omit it.
+        aiRunId:
+          type: string
+          description: Stable AI task identifier for exploration operations. Run operations omit this field.
+        activity:
+          type: array
+          description: Sanitized, append-only phase history for live progress and post-run audit. Older migrated operations may omit it.
+          items:
+            $ref: '#/components/schemas/OperationActivity'
         metrics:
           $ref: '#/components/schemas/OperationMetrics'
         error:
@@ -1785,7 +2159,15 @@ components:
           type: [string, 'null']
         note:
           type: [string, 'null']
-          description: Optional reason recorded when the run was triggered as a repair.
+          description: Optional operator guidance recorded and applied when the run was triggered as a repair.
+        guidance:
+          type: [string, 'null']
+          description: Optional operator guidance recorded and applied to rule discovery and compilation.
+        activity:
+          type: array
+          description: Sanitized phase history. It never contains raw prompts, source bodies, model responses, or credentials.
+          items:
+            $ref: '#/components/schemas/OperationActivity'
         createdAt:
           type: string
           format: date-time
@@ -1970,6 +2352,10 @@ components:
           description: HTTP(S) Source URL. Anonymous public HTTP requires server-side risk approval; credentials require HTTPS.
         sourceHost:
           type: string
+        scopeHint:
+          type: string
+          maxLength: 1000
+          description: Optional source-specific hint used while compiling the Collector rule; it does not change the Collection data contract.
         status:
           $ref: '#/components/schemas/CollectorStatus'
         collectionId:
@@ -2070,7 +2456,15 @@ components:
         note:
           type: string
           maxLength: 500
-          description: Optional reason for the repair, stored on the rule_repair AI run for the AI task history.
+          description: Optional operator guidance for the repair, stored on the rule_repair AI run and supplied to the constrained compiler.
+    ExplorationInput:
+      type: object
+      additionalProperties: false
+      properties:
+        guidance:
+          type: string
+          maxLength: 500
+          description: Optional one-run instruction for discovery and compilation. It cannot relax safety, contract, validation, or review gates.
     CandidateRuleEditInput:
       type: object
       additionalProperties: false
@@ -2117,10 +2511,32 @@ components:
           pattern: '^(css|jsonpath):'
           minLength: 5
           maxLength: 4096
+    CollectorSourceInput:
+      type: object
+      additionalProperties: false
+      required: [entryUrl]
+      properties:
+        entryUrl:
+          type: string
+          format: uri
+          description: Exact HTTP(S) list entry URL. A bare site root is not accepted.
+        mode:
+          type: string
+          enum: [exact]
+          description: Optional import mode. Omission defaults to exact; discovery mode is not yet supported.
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Optional user-visible Collector name; the source host is used when omitted.
+        scopeHint:
+          type: string
+          maxLength: 1000
+          description: Optional source-specific scope used during rule compilation.
     CreateCollectorsInput:
       type: object
       additionalProperties: false
-      required: [collectionName, intent, sourceUrls]
+      required: [collectionName, intent, sources]
       properties:
         collectionId:
           type: string
@@ -2132,14 +2548,12 @@ components:
         intent:
           type: string
           minLength: 1
-        sourceUrls:
+        sources:
           type: array
           minItems: 1
           maxItems: 1000
           items:
-            type: string
-            format: uri
-            description: HTTP(S) Source URL. Anonymous public HTTP requires server-side risk approval; credentials require HTTPS.
+            $ref: '#/components/schemas/CollectorSourceInput'
     BatchCollectorImportItem:
       type: object
       additionalProperties: false
@@ -2576,6 +2990,67 @@ components:
               operationId:
                 type: string
                 minLength: 1
+    OverviewBucket:
+      type: object
+      additionalProperties: false
+      required: [key, labelDate, start, end, runs, completed, successful, partial, failed, active, accepted, rejected]
+      properties:
+        key: {type: string}
+        labelDate: {type: string, format: date}
+        start: {type: string, format: date-time}
+        end: {type: string, format: date-time}
+        runs: {type: integer, minimum: 0}
+        completed: {type: integer, minimum: 0}
+        successful: {type: integer, minimum: 0}
+        partial: {type: integer, minimum: 0}
+        failed: {type: integer, minimum: 0}
+        active: {type: integer, minimum: 0}
+        accepted: {type: integer, minimum: 0}
+        rejected: {type: integer, minimum: 0}
+    Overview:
+      type: object
+      additionalProperties: false
+      required: [generatedAt, timezone, today, week, monthEntities, collectors, trends]
+      properties:
+        generatedAt: {type: string, format: date-time}
+        timezone: {type: string}
+        today: {$ref: '#/components/schemas/OverviewBucket'}
+        week: {$ref: '#/components/schemas/OverviewBucket'}
+        monthEntities:
+          type: object
+          additionalProperties: false
+          required: [total, accepted, rejected]
+          properties:
+            total: {type: integer, minimum: 0}
+            accepted: {type: integer, minimum: 0}
+            rejected: {type: integer, minimum: 0}
+        collectors:
+          type: object
+          additionalProperties: false
+          required: [total, published]
+          properties:
+            total: {type: integer, minimum: 0}
+            published: {type: integer, minimum: 0}
+        trends:
+          type: object
+          additionalProperties: false
+          required: [day, week, month]
+          properties:
+            day:
+              type: array
+              minItems: 14
+              maxItems: 14
+              items: {$ref: '#/components/schemas/OverviewBucket'}
+            week:
+              type: array
+              minItems: 12
+              maxItems: 12
+              items: {$ref: '#/components/schemas/OverviewBucket'}
+            month:
+              type: array
+              minItems: 12
+              maxItems: 12
+              items: {$ref: '#/components/schemas/OverviewBucket'}
     RunPage:
       type: object
       additionalProperties: false
@@ -2603,6 +3078,31 @@ components:
       additionalProperties: false
       required: [items, page, nextCursor]
       properties:
+        total:
+          type: integer
+          minimum: 0
+          description: Total matching entities before cursor pagination; present for view=entities.
+        facets:
+          type: object
+          additionalProperties: false
+          required: [sourceHosts, collectors]
+          description: Available filters across all latest entities, not just the current page; present for view=entities.
+          properties:
+            sourceHosts:
+              type: array
+              items:
+                type: string
+            collectors:
+              type: array
+              items:
+                type: object
+                additionalProperties: false
+                required: [id, name]
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
         items:
           type: array
           items:

@@ -3,24 +3,37 @@
 The roadmap communicates direction, not a delivery promise. Accepted work is tracked through
 issues and release milestones.
 
-## v0.2 public alpha
+## v0.6 public alpha
 
-- First-run local administrator authentication and revocable browser sessions.
-- Deterministic single-page and list-to-detail collectors with reviewable rules.
-- Scheduled incremental runs, checkpoints, quality evidence, and item lineage.
-- Docker Compose evaluation path and signed multi-architecture release images.
-- Contract, security, contribution, and governance foundations.
+- Self-hosted data-operations workflow for public and authorized list/detail sources.
+- Constrained AI rule generation and repair with one-run operator guidance.
+- Live, refresh-safe structured AI activity instead of raw prompts or reasoning logs.
+- Human rule review, immutable attestation, deterministic scheduled runs, checkpoints, quality
+  evidence, item lineage, Webhook delivery, and governed MCP access.
+- Local multi-user roles, Docker Compose evaluation, and signed release artifacts.
 
-## v0.3 operational hardening
+## Product validation
 
-- Supported database migration and backup/restore commands.
-- Session administration, administrator password rotation, and recovery procedure.
-- Improved collector diagnostics, artifact retention controls, and failure recovery.
-- Performance baselines and larger-source verification fixtures.
+These items turn repository evidence into evidence that prospective users can inspect. They are not
+claims about the current release.
 
-## Later production track
+- Publish a hosted evaluation environment after the local workflow is stable enough for unattended use.
+- Build a curated corpus of representative tender, regulatory, and public-notice sources with declared
+  support boundaries and repeatable success criteria.
+- Measure first-valid-sample time, no-code publication rate, rule durability, and recovery time with
+  external design partners.
+- Publish reproducible compatibility and performance results rather than capacity promises.
 
-- External OIDC, multi-user roles, tenant isolation, and step-up authentication.
-- Managed secret and signing-key integrations.
-- Distributed queues, object storage, delivery sinks, and high-availability scheduling.
-- Stable extension points for collection templates and runtimes.
+## Adoption and ecosystem
+
+- Guided source diagnostics and clearer recovery actions for the most common onboarding failures.
+- Reviewed rule templates and examples for the initial source categories.
+- Stable API clients, MCP examples, and extension documentation for downstream automation.
+- Contribution paths for source fixtures, templates, and compatibility reports.
+
+## Production hardening
+
+- Supported database migration, backup/restore, key rotation, and artifact retention controls.
+- External OIDC, tenant isolation, step-up authentication, and managed secret integrations.
+- Distributed queues, object storage, additional delivery sinks, and high-availability scheduling.
+- Production SLO evidence and capacity limits backed by published benchmarks.
