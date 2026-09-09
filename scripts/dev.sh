@@ -13,7 +13,7 @@ start_process() {
   if [[ -f "$pid_file" ]]; then
     local existing_pid
     existing_pid="$(cat "$pid_file")"
-    if [[ -n "$existing_pid" ]] \
+    if [[ "$existing_pid" =~ ^[1-9][0-9]*$ ]] \
       && kill -0 "$existing_pid" 2>/dev/null \
       && ps -p "$existing_pid" -o command= | grep -Fq "$ROOT"; then
       printf '%s already running (pid %s)\n' "$name" "$existing_pid"
@@ -21,13 +21,21 @@ start_process() {
     fi
     rm -f "$pid_file"
   fi
-  nohup "$@" >"$LOG_DIR/$name.log" 2>&1 </dev/null &
+  local log_file="$LOG_DIR/$name.log"
+  nohup "$@" >"$log_file" 2>&1 </dev/null &
   echo "$!" >"$pid_file"
+  sleep 0.5
+  if ! kill -0 "$!" 2>/dev/null; then
+    printf 'failed to start %s; recent log output:\n' "$name" >&2
+    tail -n 20 "$log_file" >&2 || true
+    rm -f "$pid_file"
+    exit 1
+  fi
   printf 'started %s (pid %s)\n' "$name" "$!"
 }
 
-start_process api env EXTRIO_ALLOW_HTTP_LOCALHOST=true EXTRIO_ALLOW_HTTP_PUBLIC=true uv run --project "$ROOT/backend" extrio-api
+start_process api env EXTRIO_AUTH_ENABLED="${EXTRIO_AUTH_ENABLED:-true}" EXTRIO_ALLOW_HTTP_LOCALHOST=true EXTRIO_ALLOW_HTTP_PUBLIC=true uv run --project "$ROOT/backend" extrio-api
 start_process worker env EXTRIO_ALLOW_HTTP_LOCALHOST=true EXTRIO_ALLOW_HTTP_PUBLIC=true uv run --project "$ROOT/backend" extrio-worker
-start_process web pnpm --dir "$ROOT/web" dev --host 127.0.0.1
+start_process web pnpm --dir "$ROOT/web" dev --host 127.0.0.1 --port 5173 --strictPort
 
 printf '\nExtrio: http://127.0.0.1:5173\nAPI:    http://127.0.0.1:8000/docs\nLogs:   %s\n' "$LOG_DIR"

@@ -163,6 +163,7 @@ class Crawl4AIExplorer:
         attempt_id: str | None = None,
         *,
         repair_spec: dict[str, Any] | None = None,
+        guidance: str | None = None,
     ) -> ExplorationResult:
         artifact_dir = self.artifact_path / operation_id
         artifact_dir.mkdir(parents=True, exist_ok=True)
@@ -187,7 +188,7 @@ class Crawl4AIExplorer:
         )
         browser_config = BrowserConfig(headless=True, verbose=False)
         async with AsyncWebCrawler(config=browser_config) as crawler:
-            await progress("fetching_list", 15, metrics)
+            await progress("fetching_list", 10, metrics)
             list_result = await crawler.arun(url=collector["sourceUrl"], config=config)
             if not list_result.success:
                 raise source_fetch_error(collector["sourceUrl"], list_result.error_message)
@@ -214,13 +215,17 @@ class Crawl4AIExplorer:
             rule_collector = {**collector, "sourceUrl": effective_url}
             discovery_plan = None
             if self.model_compiler and repair_spec is None:
+                await progress("analyzing_structure", 25, metrics)
                 feedback = None
-                for _attempt in range(2):
+                for discovery_attempt in range(2):
+                    if discovery_attempt:
+                        await progress("analyzing_structure", 35, metrics)
                     discovery_plan = await self.model_compiler.discover(
                         rule_collector,
                         effective_url,
                         list_html,
                         feedback,
+                        guidance=guidance,
                         ai_run_id=ai_run_id,
                         attempt_id=attempt_id,
                     )
@@ -251,42 +256,48 @@ class Crawl4AIExplorer:
             source_host = urlsplit(collector["sourceUrl"]).hostname
             detail_urls = [url for url in detail_urls if urlsplit(url).hostname == source_host][:4]
             metrics["detailUrlsDiscovered"] = len(detail_urls)
-            await progress("discovering_details", 40, metrics)
 
             samples: list[tuple[str, str]] = []
-            for index, detail_url in enumerate(detail_urls[:3], start=1):
-                result = await crawler.arun(url=detail_url, config=config)
-                if not result.success:
-                    continue
-                samples.append((detail_url, result.html))
-                (artifact_dir / f"detail-{index:03d}.html").write_text(result.html, encoding="utf-8")
+            if detail_urls:
+                await progress("discovering_details", 45, metrics)
+                await progress("fetching_details", 52, metrics)
+                for index, detail_url in enumerate(detail_urls[:3], start=1):
+                    result = await crawler.arun(url=detail_url, config=config)
+                    if not result.success:
+                        continue
+                    samples.append((detail_url, result.html))
+                    (artifact_dir / f"detail-{index:03d}.html").write_text(result.html, encoding="utf-8")
             metrics["detailPagesFetched"] = len(samples)
-            await progress("fetching_details", 70, metrics)
 
         rule_collector = {**collector, "sourceUrl": effective_url}
         compiled = None
         if self.model_compiler and discovery_plan:
+            await progress("compiling_rule", 70, metrics)
             compiled = await self.model_compiler.compile(
                 rule_collector,
                 effective_url,
                 list_html,
                 samples,
                 discovery_plan,
+                guidance=guidance,
                 ai_run_id=ai_run_id,
                 attempt_id=attempt_id,
             )
         elif self.model_compiler and repair_spec is not None:
+            await progress("compiling_rule", 70, metrics)
             compiled = await self.model_compiler.compile_repair_rule_plan(
                 rule_collector,
                 effective_url,
                 list_html,
                 samples,
                 repair_spec,
+                guidance=guidance,
                 ai_run_id=ai_run_id,
                 attempt_id=attempt_id,
             )
             if requires_browser:
                 compiled.plan["transport"] = "browser"
+        await progress("validating", 85, metrics)
         if compiled is not None:
             self.contracts.validate_rule_plan(compiled.plan)
             if compiled.plan["mode"] == "list_detail" and compiled.plan["list"]["pagination"]["type"] == "next_link":
@@ -337,5 +348,5 @@ class Crawl4AIExplorer:
         if not any(item["decision"] == "accepted" for item in preview_items):
             reason = preview_items[0].get("rejectionReason") if preview_items else "规则没有产生任何样本 Item"
             raise ModelCompileError(f"LLM 规则未通过确定性样本验证：{reason}")
-        await progress("validating", 90, metrics)
+        await progress("finalizing", 95, metrics)
         return ExplorationResult(candidate=candidate, preview_items=preview_items, metrics=metrics)

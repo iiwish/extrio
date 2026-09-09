@@ -90,7 +90,7 @@ def test_migration_002_applies_to_v05_database_without_the_row(tmp_path: Path) -
 
     with store.connect() as connection:
         applied = [str(row["id"]) for row in connection.execute("SELECT id FROM schema_migrations").fetchall()]
-    assert applied == ["000_baseline", "001_user_accounts", "002_platform_settings"]
+    assert applied == ["000_baseline", "001_user_accounts", "002_platform_settings", "003_collections"]
     assert store.get_platform_setting_value("allowAnonymousHttp") == "true"
 
 
@@ -175,9 +175,9 @@ def test_api_batch_rejects_anonymous_http_per_url_when_disabled(tmp_path: Path) 
                 json={
                     "collectionName": "混合批次",
                     "intent": "采集公开招标公告",
-                    "sourceUrls": [
-                        "http://a.example.gov.cn/notices",
-                        "https://b.example.gov.cn/notices",
+                    "sources": [
+                        {"entryUrl": "http://a.example.gov.cn/notices"},
+                        {"entryUrl": "https://b.example.gov.cn/notices"},
                     ],
                 },
             )

@@ -1,6 +1,7 @@
 import hashlib
 import json
 import re
+import unicodedata
 from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import urljoin, urlsplit
@@ -17,6 +18,8 @@ FIELD_RULES = {
     "publishedAt": ("发布日期", "css:time[datetime]::attr(datetime)", True),
     "budget": ("预算金额", "css:.notice-budget .amount::text", False),
 }
+
+TITLE_MISMATCH_REASON = "列表标题与详情标题不一致"
 
 DEFAULT_PROFILE: dict[str, Any] = {
     "name": "default_tender",
@@ -227,13 +230,19 @@ def discover_records_from_spec(html: str, base_url: str, list_spec: dict[str, An
     item_selector = str(list_spec["itemsSelector"])
     uses_json = item_selector.startswith("jsonpath:")
     document: Any = json.loads(html) if uses_json else BeautifulSoup(html, "html.parser")
-    items = jsonpath_values(document, item_selector) if uses_json else document.select(item_selector.removeprefix("css:"))
+    try:
+        items = jsonpath_values(document, item_selector) if uses_json else document.select(item_selector.removeprefix("css:"))
+    except Exception:
+        items = []
     records: list[dict[str, str]] = []
     for item in items:
         record: dict[str, Any] = {}
         for key, field in list_spec.get("fields", {}).items():
             selector = str(field["selector"])
-            matches = jsonpath_values(item, selector) if selector.startswith("jsonpath:") else selector_values(item, selector, base_url)
+            try:
+                matches = jsonpath_values(item, selector) if selector.startswith("jsonpath:") else selector_values(item, selector, base_url)
+            except Exception:
+                matches = []
             if field.get("multipleMatchPolicy") == "error" and len(matches) > 1:
                 matches = []
             value = matches[0] if matches else ""
@@ -246,11 +255,17 @@ def discover_records_from_spec(html: str, base_url: str, list_spec: dict[str, An
         return records, None
     selector = str(pagination["selector"])
     if selector.startswith("jsonpath:"):
-        matches = jsonpath_values(document, selector)
-        next_href = str(matches[0]).strip() if matches else ""
+        try:
+            matches = jsonpath_values(document, selector)
+            next_href = str(matches[0]).strip() if matches else ""
+        except Exception:
+            next_href = ""
     else:
         next_selector = selector.removeprefix("css:").split("::", 1)[0]
-        next_anchor = document.select_one(next_selector)
+        try:
+            next_anchor = document.select_one(next_selector)
+        except Exception:
+            next_anchor = None
         next_href = str(next_anchor.get("href", "")).strip() if next_anchor else ""
     return records, urljoin(base_url, next_href) if next_href else None
 
@@ -540,17 +555,28 @@ def build_candidate_from_plan(
     mode = str(plan["mode"])
     list_spec = gather_spec["collect"]["list"]
     detail_records, _ = discover_records_from_spec(list_html, collector["sourceUrl"], list_spec) if mode == "list_detail" else ([], None)
-    output_plan = plan["detail"]["fields"] if mode == "list_detail" else plan["list"]["fields"]
+    list_fields_plan = plan["list"]["fields"]
+    detail_fields_plan = plan["detail"]["fields"] if mode == "list_detail" else {}
+    output_plan = {**list_fields_plan, **detail_fields_plan} if mode == "list_detail" else dict(list_fields_plan)
     sample_url, sample_html = detail_samples[0] if detail_samples else (collector["sourceUrl"], list_html)
-    values = contract_field_values(sample_html, sample_url, {key: _execution_field(field) for key, field in output_plan.items()})
-    soup = BeautifulSoup(sample_html, "html.parser")
+    detail_execution_fields = {key: _execution_field(field) for key, field in detail_fields_plan.items()}
+    detail_values = contract_field_values(sample_html, sample_url, detail_execution_fields) if detail_fields_plan else {}
+    list_record = detail_records[0] if detail_records else {}
+    list_soup = BeautifulSoup(list_html, "html.parser")
+    detail_soup = BeautifulSoup(sample_html, "html.parser")
     fields = []
     for key, field in output_plan.items():
-        sample = values.get(key)
+        is_list = key in list_fields_plan and key not in detail_fields_plan
+        selector = str(field["selector"])
+        if is_list:
+            sample = list_record.get(key)
+            soup = list_soup
+        else:
+            sample = detail_values.get(key) if not _missing(detail_values.get(key)) else list_record.get(key)
+            soup = detail_soup
         display_sample = "字段缺失" if _missing(sample) else str(sample)
         if len(display_sample) > 240:
             display_sample = f"{display_sample[:240]}…"
-        selector = str(field["selector"])
         evidence = "JSON 字段证据"
         if selector.startswith("css:"):
             evidence_node = soup.select_one(selector.removeprefix("css:").split("::", 1)[0])
@@ -672,6 +698,12 @@ def make_item(
             return None
         stage, key = binding.split(".", 1)
         return (source_record or {}).get(key) if stage == "list" else values.get(key)
+
+    def detail_bound_value(role: str) -> Any:
+        binding = bindings.get(role)
+        if not isinstance(binding, str) or not binding.startswith("detail."):
+            return None
+        return values.get(binding.split(".", 1)[1])
     list_fields = collect["list"].get("fields", {}) if "detail" in collect else {}
     required_missing = next(
         (
@@ -684,7 +716,20 @@ def make_item(
         (key for key, field in field_specs.items() if field.get("required") and _missing(values.get(key))),
         None,
     )
-    decision = "rejected" if required_missing else "accepted"
+    detail_title = (
+        detail_bound_value("title")
+        or values.get("title")
+        or values.get("heading")
+        or values.get("projectName")
+        or values.get("name")
+    )
+    list_title = (
+        bound_value("listTitle")
+        or (source_record or {}).get("listTitle")
+        or ((source_record or {}).get("title") if bindings.get("title", "").startswith("list.") else None)
+    )
+    title_mismatch = bool(detail_title and list_title and not titles_consistent(str(detail_title), str(list_title)))
+    decision = "rejected" if required_missing or title_mismatch else "accepted"
     identity_fields = gather_spec.get("contract", {}).get("identityFields", [])
     identity_payload = {key: extracted_data.get(key) for key in identity_fields if not _missing(extracted_data.get(key))}
     entity_key = hashlib.sha256(stable_json(identity_payload or {"sourceUrl": source_url}).encode()).hexdigest()[:20]
@@ -692,15 +737,13 @@ def make_item(
     observation_id = f"obs_{run['id'].removeprefix('run_')}_{index:04d}" if decision == "accepted" else None
     observed_at = now_display()
     title = (
-        bound_value("title")
-        or values.get("title")
-        or values.get("projectName")
-        or values.get("name")
-        or (source_record or {}).get("listTitle")
+        detail_title
+        or bound_value("title")
+        or list_title
         or next((value for value in values.values() if isinstance(value, str) and value), None)
         or "未提取标题"
     )
-    list_title = bound_value("listTitle") or (source_record or {}).get("listTitle") or title
+    list_title = list_title or title
     return {
         "id": item_id,
         "collectorId": collector["id"],
@@ -724,7 +767,13 @@ def make_item(
         "sourceUrl": source_url,
         "decision": decision,
         "changeType": "new" if decision == "accepted" else None,
-        "rejectionReason": f"必填字段 {required_missing} 未通过非空质量门" if required_missing else None,
+        "rejectionReason": (
+            f"必填字段 {required_missing} 未通过非空质量门"
+            if required_missing
+            else TITLE_MISMATCH_REASON
+            if title_mismatch
+            else None
+        ),
         "entityKey": entity_key,
         "revision": 1 if decision == "accepted" else None,
         "observedAt": observed_at,
@@ -741,6 +790,16 @@ def make_item(
             "artifactId": f"artifact_{run['id']}_{index:04d}",
         },
     }
+
+
+def titles_consistent(detail_title: str, list_title: str) -> bool:
+    return _normalized_title(detail_title) == _normalized_title(list_title)
+
+
+def _normalized_title(value: str) -> str:
+    normalized = unicodedata.normalize("NFKC", value).strip().casefold()
+    normalized = re.sub(r"^[\[【(（][^\]】)）]{1,20}[\]】)）]", "", normalized).strip()
+    return re.sub(r"[\W_]+", "", normalized, flags=re.UNICODE)
 
 
 def stable_json(value: Any) -> str:

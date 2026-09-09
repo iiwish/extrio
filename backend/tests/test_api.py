@@ -51,13 +51,24 @@ def test_create_explore_command_and_idempotent_replay(tmp_path: Path) -> None:
             assert replay.headers["Idempotency-Replayed"] == "true"
             collector = response.json()
 
+            invalid_guidance = client.post(
+                f"/api/v1/collectors/{collector['id']}/explorations",
+                headers={"Idempotency-Key": "explore-invalid-guidance-0001"},
+                json={"guidance": "x" * 501},
+            )
+            assert invalid_guidance.status_code == 422
+            assert invalid_guidance.json()["pointer"] == "/guidance"
+
             accepted = client.post(
                 f"/api/v1/collectors/{collector['id']}/explorations",
                 headers={"Idempotency-Key": "explore-command-0001"},
+                json={"guidance": "优先识别公告标题和详情链接。"},
             )
             assert accepted.status_code == 202
             operation = client.get(accepted.json()["statusUrl"])
             assert operation.json()["status"] == "queued"
+            assert operation.json()["aiRunId"]
+            assert operation.json()["activity"][0]["phase"] == "queued"
             assert client.get(f"/api/v1/collectors/{collector['id']}").json()["status"] == "exploring"
 
             ai_runs = client.get("/api/v1/ai-runs?limit=50")
@@ -72,6 +83,8 @@ def test_create_explore_command_and_idempotent_replay(tmp_path: Path) -> None:
             ai_run = client.get(f"/api/v1/ai-runs/{ai_run_id}")
             assert ai_run.status_code == 200
             assert ai_run.json()["sourceUrl"] == "https://example.com/list"
+            assert ai_run.json()["guidance"] == "优先识别公告标题和详情链接。"
+            assert ai_run.json()["activity"] == operation.json()["activity"]
             assert ai_run.json()["attempts"] == []
     finally:
         app_module.store = original
@@ -89,9 +102,9 @@ def test_batch_collectors_share_collection_identity(tmp_path: Path) -> None:
                 json={
                     "collectionName": "全国公共资源交易标讯",
                     "intent": "采集公开招标公告与发布时间。",
-                    "sourceUrls": [
-                        "https://a.example.gov.cn/notices",
-                        "https://b.example.gov.cn/notices",
+                    "sources": [
+                        {"entryUrl": "https://a.example.gov.cn/notices", "name": "A 站公告", "scopeHint": "只采集公开招标"},
+                        {"entryUrl": "https://b.example.gov.cn/notices"},
                     ],
                 },
             )
@@ -103,7 +116,9 @@ def test_batch_collectors_share_collection_identity(tmp_path: Path) -> None:
             assert len(created) == 2
             assert {collector["collectionId"] for collector in created} == {result["collectionId"]}
             assert {collector["collectionName"] for collector in created} == {"全国公共资源交易标讯"}
-            assert all(collector["name"].startswith(collector["sourceHost"]) for collector in created)
+            assert created[0]["name"] == "A 站公告"
+            assert created[0]["scopeHint"] == "只采集公开招标"
+            assert created[1]["name"].startswith(created[1]["sourceHost"])
 
             reused = client.post(
                 "/api/v1/collectors/batch",
@@ -112,7 +127,7 @@ def test_batch_collectors_share_collection_identity(tmp_path: Path) -> None:
                     "collectionId": result["collectionId"],
                     "collectionName": "不会覆盖已有需求",
                     "intent": "不会覆盖已有采集意图",
-                    "sourceUrls": ["https://c.example.gov.cn/notices"],
+                    "sources": [{"entryUrl": "https://c.example.gov.cn/notices"}],
                 },
             )
 
@@ -122,6 +137,37 @@ def test_batch_collectors_share_collection_identity(tmp_path: Path) -> None:
             assert reused_result["collectionId"] == result["collectionId"]
             assert reused_result["collectionName"] == "全国公共资源交易标讯"
             assert reused_collector["intent"] == "采集公开招标公告与发布时间。"
+    finally:
+        app_module.store = original
+
+
+def test_batch_collectors_default_to_exact_and_reject_roots_or_discovery(tmp_path: Path) -> None:
+    original = app_module.store
+    app_module.store = Store(tmp_path / "api.db")
+    app_module.store.initialize()
+    try:
+        with TestClient(app_module.app) as client:
+            response = client.post(
+                "/api/v1/collectors/batch",
+                headers={"Idempotency-Key": "batch-exact-mode-validation-0001"},
+                json={
+                    "collectionName": "北京市采购意向",
+                    "intent": "采集市级和区级采购意向。",
+                    "sources": [
+                        {"entryUrl": "https://a.example.gov.cn/notices/list.html"},
+                        {"entryUrl": "https://b.example.gov.cn/"},
+                        {"entryUrl": "https://c.example.gov.cn/notices", "mode": "discover"},
+                    ],
+                },
+            )
+
+            assert response.status_code == 200
+            result = response.json()
+            assert [item["status"] for item in result["results"]] == ["created", "rejected", "rejected"]
+            assert result["results"][1]["error"]["code"] == "EXACT_ENTRY_REQUIRED"
+            assert result["results"][1]["error"]["pointer"] == "/sources/1/entryUrl"
+            assert result["results"][2]["error"]["code"] == "UNSUPPORTED_SOURCE_MODE"
+            assert result["results"][2]["error"]["pointer"] == "/sources/2/mode"
     finally:
         app_module.store = original
 

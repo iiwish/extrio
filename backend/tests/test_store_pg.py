@@ -18,6 +18,8 @@ from pathlib import Path
 
 import psycopg
 import pytest
+from test_item_query import seed_entity_query
+from test_overview import seed_overview
 
 from extrio.cli import create_backup, restore_backup
 from extrio.credentials import CredentialCipher
@@ -78,11 +80,11 @@ def make_item(
 def test_initialize_applies_baseline_migrations_idempotently(pg_store: Store) -> None:
     pg_store.initialize()
     with pg_store.connect() as connection:
-        applied = [str(row["id"]) for row in connection.execute("SELECT id FROM schema_migrations").fetchall()]
+        applied = [str(row["id"]) for row in connection.execute("SELECT id FROM schema_migrations ORDER BY id").fetchall()]
         tables = {str(row["table_name"]) for row in connection.execute(
             "SELECT table_name FROM information_schema.tables WHERE table_schema='public'"
         ).fetchall()}
-    assert applied == ["000_baseline", "001_user_accounts", "002_platform_settings"]
+    assert applied == ["000_baseline", "001_user_accounts", "002_platform_settings", "003_collections"]
     assert {
         "sinks",
         "deliveries",
@@ -101,8 +103,8 @@ def test_migration_002_applies_to_v05_database_without_the_row(pg_store: Store) 
     pg_store.initialize()
 
     with pg_store.connect() as connection:
-        applied = [str(row["id"]) for row in connection.execute("SELECT id FROM schema_migrations").fetchall()]
-    assert applied == ["000_baseline", "001_user_accounts", "002_platform_settings"]
+        applied = [str(row["id"]) for row in connection.execute("SELECT id FROM schema_migrations ORDER BY id").fetchall()]
+    assert applied == ["000_baseline", "001_user_accounts", "002_platform_settings", "003_collections"]
     assert pg_store.get_platform_setting_value("allowAnonymousHttp") == "true"
 
 
@@ -298,6 +300,20 @@ def test_items_cursor_pagination_walks_deterministic_order(pg_store: Store) -> N
     with pytest.raises(InvalidCursor) as invalid:
         pg_store.list_items_cursor(limit=2, cursor="!!!not-a-cursor!!!")
     assert invalid.value.code == "INVALID_CURSOR"
+
+
+def test_entity_pagination_search_and_export_on_postgres(pg_store: Store):
+    seed_entity_query(pg_store)
+    filters = {"view": "entities", "q": "hOsPiTaL 100%_", "source_host": "one.example.com", "decision": "accepted"}
+    first = pg_store.list_items_cursor(**filters, limit=200)
+    second = pg_store.list_items_cursor(**filters, limit=200, cursor=first["nextCursor"])
+    assert first["total"] == 204
+    assert second["nextCursor"] is None
+    assert len(first["items"] + second["items"]) == 204
+    assert len(first["facets"]["collectors"]) == 2
+    assert [item["id"] for item in pg_store.iter_items_export(**filters)] == [
+        item["id"] for item in first["items"] + second["items"]
+    ]
 
 
 def test_sink_crud_bumps_version_and_encrypts_secret(pg_store: Store, tmp_path: Path) -> None:
@@ -503,3 +519,16 @@ def test_evidence_store_queries_filter_windows_and_pair_attestations(pg_store: S
         "item_a1",
     ]
     assert list(pg_store.list_items_for_collector_window("collector_missing")) == []
+
+
+def test_overview_postgres_full_aggregate_and_entity_query(pg_store: Store) -> None:
+    collector = seed_overview(pg_store)
+    pg_store.save_items("overview_0", [make_item("overview_item", collector["id"], "overview_0", "2026-09-06T01:00:00Z", "entity")])
+    with pg_store.transaction() as connection:
+        connection.execute("UPDATE items SET created_at=? WHERE id=?", ("2026-09-06T00:00:00.001Z", "overview_item"))
+        connection.execute("UPDATE runs SET created_at=? WHERE id=?", ("2026-09-05T16:00:00.001Z", "overview_0"))
+    result = pg_store.overview(timezone="Asia/Shanghai", now=datetime(2026, 9, 6, 12, tzinfo=UTC))
+    assert result["today"]["runs"] == 205
+    assert result["today"]["accepted"] == 410
+    assert result["monthEntities"] == {"total": 1, "accepted": 1, "rejected": 0}
+    assert len(result["trends"]["day"]) == 14

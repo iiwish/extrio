@@ -417,7 +417,7 @@ async def test_repair_explore_updates_detail_selectors_and_preserves_contract(tm
         {
             "https://example.com/list": OLD_LIST_HTML,
             "https://example.com/detail/1": NEW_DETAIL_HTML,
-            "https://example.com/detail/2": NEW_DETAIL_HTML,
+            "https://example.com/detail/2": NEW_DETAIL_HTML.replace("项目A", "项目B"),
         },
     )
     compiler = ModelRuleCompiler(store, CredentialCipher(tmp_path / "cipher.key"))
@@ -464,8 +464,19 @@ async def test_worker_repair_job_reads_old_spec_and_returns_collector_to_review(
     captured: dict = {}
 
     class FakeExplorer:
-        async def explore(self, explored_collector, _operation_id, progress, _ai_run_id=None, _attempt_id=None, *, repair_spec=None):
+        async def explore(
+            self,
+            explored_collector,
+            _operation_id,
+            progress,
+            _ai_run_id=None,
+            _attempt_id=None,
+            *,
+            repair_spec=None,
+            guidance=None,
+        ):
             captured["repair_spec"] = copy.deepcopy(repair_spec)
+            captured["guidance"] = guidance
             await progress("fetching_list", 20, {"listPagesFetched": 1, "warningCount": 0})
             repaired = build_candidate(
                 explored_collector,
@@ -487,6 +498,7 @@ async def test_worker_repair_job_reads_old_spec_and_returns_collector_to_review(
     await worker.process(job)
 
     assert captured["repair_spec"] == old_gather_spec
+    assert captured["guidance"] is None
     updated = store.get_collector(collector["id"])
     assert updated["status"] == "ready_review"
     assert updated["reviewDecisions"] is None

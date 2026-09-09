@@ -91,6 +91,45 @@ def test_dom_evidence_removes_active_content_but_keeps_structure_and_text() -> N
     assert "项目 A" in evidence
 
 
+@pytest.mark.asyncio
+async def test_discovery_passes_bounded_operator_guidance_as_untrusted_evidence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    compiler = ModelRuleCompiler(Store(tmp_path / "guidance.db"), CredentialCipher(tmp_path / "key"))
+    captured: dict = {}
+    monkeypatch.setattr(
+        compiler,
+        "_model",
+        lambda: ActiveModel(provider="openai", base_url="https://models.example.com/v1", model="model-a", api_key="secret"),
+    )
+
+    async def fake_complete(_model, system, evidence, **_kwargs):
+        captured["system"] = system
+        captured["evidence"] = evidence
+        return {
+            "mode": "list_detail",
+            "transport": "http",
+            "list": {
+                "responseType": "html",
+                "itemsSelector": "li.notice",
+                "fields": {"detailUrl": {"selector": "a::attr(href)", "valueType": "url", "required": True}},
+                "pagination": {"type": "none"},
+            },
+        }
+
+    monkeypatch.setattr(compiler, "_complete_json", fake_complete)
+    await compiler.discover(
+        {"intent": "采集公告"},
+        "https://example.com/list",
+        '<li class="notice"><a href="/1">公告</a></li>',
+        guidance="优先识别每行的详情入口。",
+    )
+
+    assert captured["evidence"]["operatorGuidance"] == "优先识别每行的详情入口。"
+    assert "untrusted intent" in captured["system"]
+
+
 def test_discovery_plan_is_normalized_to_the_deterministic_selector_dialect() -> None:
     plan = normalize_discovery_plan(
         {
@@ -193,3 +232,166 @@ def test_final_plan_keeps_proven_browser_transport() -> None:
     )
 
     assert plan["transport"] == "browser"
+
+
+def test_normalize_rule_plan_resolves_stage_prefixed_identity_and_fingerprint_fields() -> None:
+    discovery = normalize_discovery_plan(
+        {
+            "mode": "list_detail",
+            "transport": "http",
+            "list": {
+                "responseType": "html",
+                "itemsSelector": "li.notice",
+                "fields": {
+                    "title": {"selector": "a::text", "required": True},
+                    "detailUrl": {"selector": "a::attr(href)", "required": True},
+                    "publishDate": {"selector": "span.date::text"},
+                },
+                "pagination": {"type": "none"},
+            },
+        }
+    )
+
+    plan = normalize_rule_plan(
+        {
+            "detail": {
+                "responseType": "html",
+                "fields": {
+                    "heading": {"selector": "h1::text", "required": True},
+                    "content": {"selector": "div.content::html"},
+                },
+            },
+            "identityFields": ["list.detailUrl"],
+            "fingerprintFields": ["list.title", "detail.heading"],
+        },
+        discovery,
+    )
+
+    assert plan["identityFields"] == ["detailUrl"]
+    assert "heading" in plan["fingerprintFields"]
+    assert "title" in plan["fingerprintFields"]
+    assert "content" in plan["fingerprintFields"]
+
+
+def test_normalize_rule_plan_falls_back_to_default_identity_when_unmatched() -> None:
+    discovery = normalize_discovery_plan(
+        {
+            "mode": "list_detail",
+            "transport": "http",
+            "list": {
+                "responseType": "html",
+                "itemsSelector": "li.notice",
+                "fields": {"detailUrl": {"selector": "a::attr(href)", "required": True}},
+                "pagination": {"type": "none"},
+            },
+        }
+    )
+
+    plan = normalize_rule_plan(
+        {
+            "detail": {
+                "responseType": "html",
+                "fields": {"heading": {"selector": "h1::text", "required": True}},
+            },
+            "identityFields": ["unknownField"],
+            "fingerprintFields": ["unknownFingerprint"],
+        },
+        discovery,
+    )
+
+    assert plan["identityFields"] == ["detailUrl"]
+    assert plan["fingerprintFields"] == ["heading"]
+
+
+def test_normalize_rule_plan_aliases_common_field_variants() -> None:
+    discovery = normalize_discovery_plan(
+        {
+            "mode": "list_detail",
+            "transport": "http",
+            "list": {
+                "responseType": "html",
+                "itemsSelector": "li.notice",
+                "fields": {
+                    "detailUrl": {"selector": "a::attr(href)", "required": True},
+                    "title": {"selector": "a::text", "required": True},
+                    "publishDate": {"selector": "span.date::text", "required": False},
+                },
+                "pagination": {"type": "none"},
+            },
+        }
+    )
+
+    plan = normalize_rule_plan(
+        {
+            "detail": {
+                "responseType": "html",
+                "fields": {
+                    "detailTitle": {"selector": "h1.title::text", "required": True},
+                    "detailPublishDate": {"selector": "span.time::text", "required": False},
+                    "detailContent": {"selector": "div.content::html", "required": True},
+                },
+            },
+            "identityFields": ["detailTitle"],
+            "fingerprintFields": ["detailTitle", "detailPublishDate", "detailContent"],
+        },
+        discovery,
+    )
+
+    assert "title" in plan["detail"]["fields"]
+    assert "publishDate" in plan["detail"]["fields"]
+    assert "content" in plan["detail"]["fields"]
+    assert "detailTitle" not in plan["detail"]["fields"]
+    assert plan["identityFields"] == ["title"]
+    assert "title" in plan["fingerprintFields"]
+    assert "publishDate" in plan["fingerprintFields"]
+    assert "content" in plan["fingerprintFields"]
+    assert plan["bindings"]["title"] == "detail.title"
+    assert plan["bindings"]["publishedAt"] == "detail.publishDate"
+    assert plan["bindings"]["content"] == "detail.content"
+
+
+def test_normalize_rule_plan_maps_to_expected_fields_from_requirement() -> None:
+    discovery = normalize_discovery_plan(
+        {
+            "mode": "single",
+            "transport": "http",
+            "list": {
+                "responseType": "html",
+                "itemsSelector": "div.row",
+                "fields": {
+                    "projName": {"selector": "h2::text", "required": True},
+                    "org": {"selector": "span.buyer::text", "required": False},
+                },
+                "pagination": {"type": "none"},
+            },
+        }
+    )
+
+    expected_fields = [
+        {"key": "title", "label": "项目名称", "type": "string", "required": True},
+        {"key": "purchaser", "label": "采购单位", "type": "string", "required": False},
+    ]
+
+    plan = normalize_rule_plan(
+        {
+            "list": {
+                "responseType": "html",
+                "itemsSelector": "div.row",
+                "fields": {
+                    "projName": {"selector": "h2::text", "required": True},
+                    "采购单位": {"selector": "span.buyer::text", "required": False},
+                },
+                "pagination": {"type": "none"},
+            },
+            "identityFields": ["projName"],
+            "fingerprintFields": ["projName", "采购单位"],
+        },
+        discovery,
+        expected_fields=expected_fields,
+    )
+
+    assert "title" in plan["list"]["fields"]
+    assert "purchaser" in plan["list"]["fields"]
+    assert plan["identityFields"] == ["title"]
+    assert "title" in plan["fingerprintFields"]
+    assert "purchaser" in plan["fingerprintFields"]

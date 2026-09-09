@@ -8,11 +8,11 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from bs4 import UnicodeDammit
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CacheMode, CrawlerRunConfig
-from crawlee import Request
+from crawlee import ConcurrencySettings, Request
 from crawlee.crawlers import ParselCrawler, ParselCrawlingContext
 from crawlee.storage_clients import MemoryStorageClient
 
-from extrio.harvest import discover_records_from_spec, looks_like_dynamic_list_shell, make_item
+from extrio.harvest import TITLE_MISMATCH_REASON, discover_records_from_spec, looks_like_dynamic_list_shell, make_item
 
 ProgressCallback = Callable[[str, int, dict[str, int]], Awaitable[None]]
 
@@ -71,6 +71,7 @@ class CrawleeRuntime:
             max_requests_per_crawl=max(1, len(urls)),
             max_request_retries=2,
             storage_client=MemoryStorageClient(),
+            concurrency_settings=ConcurrencySettings(min_concurrency=1, desired_concurrency=4, max_concurrency=4),
         )
 
         @crawler.router.default_handler
@@ -214,8 +215,16 @@ class CrawleeRuntime:
 
         items = []
         for index, (url, html, source_record) in enumerate(detail_pages, start=1):
+            item = make_item(collector, run, url, html, index, source_record=source_record)
+            if item["rejectionReason"] == TITLE_MISMATCH_REASON:
+                recovered_page = (await self._fetch_many([url], transport, browser_policy)).get(url)
+                if recovered_page is not None:
+                    recovered_item = make_item(collector, run, url, recovered_page, index, source_record=source_record)
+                    if recovered_item["rejectionReason"] != TITLE_MISMATCH_REASON:
+                        html = recovered_page
+                        item = recovered_item
             (artifact_dir / f"detail-{index:03d}.html").write_text(html, encoding="utf-8")
-            items.append(make_item(collector, run, url, html, index, source_record=source_record))
+            items.append(item)
         await progress("validating", 90, metrics)
         elapsed = max(0.01, monotonic() - started)
         return RunResult(

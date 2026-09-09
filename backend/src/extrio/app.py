@@ -13,7 +13,7 @@ from contextlib import asynccontextmanager, suppress
 from datetime import datetime, timedelta
 from typing import Any
 from urllib.parse import urlparse
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import uvicorn
 from bs4 import BeautifulSoup
@@ -36,6 +36,7 @@ from extrio.auth import (
     validate_username,
     verify_password,
 )
+from extrio.collection_fields import validate_field_draft
 from extrio.config import get_settings
 from extrio.contracts import ContractBundle
 from extrio.credentials import CredentialCipher
@@ -867,6 +868,92 @@ def gather_spec_schema() -> JSONResponse:
     return JSONResponse(contracts.gather_schema)
 
 
+COLLECTION_ERRORS = {
+    "COLLECTION_NOT_FOUND": (404, "采集需求不存在"),
+    "COLLECTION_CONFLICT": (409, "需求已被其他操作修改，请重新加载后再试"),
+    "COLLECTION_HAS_SOURCES": (409, "需求存在关联来源，不能删除；请使用归档保留采集成果"),
+    "COLLECTION_ARCHIVED": (409, "需求已归档，请先恢复后再修改或添加来源"),
+}
+
+
+@app.get("/api/v1/collections")
+def list_collections():
+    values = store.list_collections()
+    return {"items": values, "total": len(values)}
+
+
+@app.get("/api/v1/collections/{collection_id}")
+def collection_detail(collection_id: str, request: Request):
+    value = store.get_collection(collection_id)
+    if value is None:
+        return platform_error(request, "COLLECTION_NOT_FOUND", COLLECTION_ERRORS["COLLECTION_NOT_FOUND"][1], 404)
+    sources = store.collection_sources(collection_id)
+    return {**value, "sources": sources, "sourceContracts": store.collection_source_contracts(sources), "sourceCount": len(sources),
+            "publishedSourceCount": sum(bool(source.get("activeRuleVersion")) for source in sources)}
+
+
+async def execute_collection_command(request: Request, collection_id: str | None, key: str | None):
+    if error := require_idempotency(request, key):
+        return error
+    method = request.method
+    required = {"name", "intent"} if method == "POST" else {"revision"}
+    optional = {"name", "intent", "status", "fieldDraft"} if method == "PATCH" else set()
+    body, error = await read_contract_body(request, required=required, optional=optional)
+    if error:
+        return error
+    for field, maximum in (("name", 200), ("intent", 10000)):
+        if field in body:
+            if not isinstance(body[field], str) or not body[field].strip() or len(body[field].strip()) > maximum:
+                return platform_error(request, "VALIDATION_FAILED", f"{field} 必须包含 1 至 {maximum} 个字符", 422, pointer=f"/{field}")
+            body[field] = body[field].strip()
+    if method != "POST" and (type(body["revision"]) is not int or body["revision"] < 1):
+        return platform_error(request, "VALIDATION_FAILED", "revision 必须是正整数", 422, pointer="/revision")
+    if method == "PATCH":
+        if "fieldDraft" in body:
+            try:
+                validate_field_draft(body["fieldDraft"])
+            except ValueError as exc:
+                return platform_error(request, "VALIDATION_FAILED", str(exc), 422, pointer="/fieldDraft")
+        if len(body) == 1 or ("status" in body and (not isinstance(body["status"], str)
+                                                   or body["status"] not in {"active", "archived"} or len(body) != 2)):
+            return platform_error(request, "VALIDATION_FAILED", "名称/目标编辑与归档/恢复必须分别提交", 422)
+    try:
+        status, value, replayed = store.collection_command(method, collection_id, body, key, audit={
+            "tenantId": settings.tenant_id,
+            "actorId": request.state.auth_user["id"],
+            "requestId": request.state.request_id,
+        })
+    except IdempotencyConflict:
+        return platform_error(request, "IDEMPOTENCY_KEY_REUSED", "Idempotency-Key 已被不同请求占用", 409)
+    except ValueError as exc:
+        code = str(exc)
+        if code not in COLLECTION_ERRORS:
+            raise
+        status, message = COLLECTION_ERRORS[code]
+        return platform_error(request, code, message, status)
+    headers = {"Idempotency-Replayed": "true"} if replayed else {}
+    if method == "POST":
+        headers["Location"] = f"/api/v1/collections/{value['id']}"
+    return JSONResponse(value, status_code=status, headers=headers)
+
+
+@app.post("/api/v1/collections", dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
+async def create_collection(request: Request, idempotency_key: str | None = Header(None, alias="Idempotency-Key")):
+    return await execute_collection_command(request, None, idempotency_key)
+
+
+@app.patch("/api/v1/collections/{collection_id}", dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
+async def update_collection(collection_id: str, request: Request,
+                            idempotency_key: str | None = Header(None, alias="Idempotency-Key")):
+    return await execute_collection_command(request, collection_id, idempotency_key)
+
+
+@app.delete("/api/v1/collections/{collection_id}", dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
+async def delete_collection(collection_id: str, request: Request,
+                            idempotency_key: str | None = Header(None, alias="Idempotency-Key")):
+    return await execute_collection_command(request, collection_id, idempotency_key)
+
+
 @app.get("/api/v1/collectors")
 def list_collectors(limit: int = 50):
     return page(store.list_collectors(), limit)
@@ -1011,7 +1098,13 @@ async def update_platform_settings(request: Request, idempotency_key: str | None
 @app.get("/api/v1/collectors/{collector_id}")
 def get_collector(collector_id: str, request: Request):
     collector = store.get_collector(collector_id)
-    return collector if collector else platform_error(request, "COLLECTOR_NOT_FOUND", "Collector 不存在", 404)
+    if not collector:
+        return platform_error(request, "COLLECTOR_NOT_FOUND", "Collector 不存在", 404)
+    collection = store.get_collection(collector.get("collectionId", ""))
+    enriched = dict(collector)
+    if collection:
+        enriched["collectionFields"] = (collection.get("fieldDraft") or {}).get("fields", [])
+    return enriched
 
 
 @app.patch("/api/v1/collectors/{collector_id}", dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
@@ -1422,7 +1515,7 @@ async def create_collectors_batch(request: Request, idempotency_key: str | None 
         return error
     body, body_error = await read_contract_body(
         request,
-        required={"collectionName", "intent", "sourceUrls"},
+        required={"collectionName", "intent", "sources"},
         optional={"collectionId"},
     )
     if body_error:
@@ -1430,54 +1523,83 @@ async def create_collectors_batch(request: Request, idempotency_key: str | None 
     scope = "POST:/collectors/batch"
     if found := replay(scope, idempotency_key, body, request):
         return found
-    urls = body.get("sourceUrls") or []
+    sources = body.get("sources") or []
     if not str(body.get("collectionName", "")).strip() or not str(body.get("intent", "")).strip():
         return platform_error(request, "VALIDATION_FAILED", "collectionName 与 intent 不能为空", 422)
-    if not isinstance(urls, list) or not 1 <= len(urls) <= 1000:
-        return platform_error(request, "VALIDATION_FAILED", "sourceUrls 必须包含 1 至 1000 个网址", 422, pointer="/sourceUrls")
+    if not isinstance(sources, list) or not 1 <= len(sources) <= 1000:
+        return platform_error(request, "VALIDATION_FAILED", "sources 必须包含 1 至 1000 个精确入口", 422, pointer="/sources")
     requested_collection_id = str(body.get("collectionId", "")).strip()
     collection_name = str(body.get("collectionName", "")).strip()
     intent = str(body.get("intent", "")).strip()
     collection_version = "tender_notice_v4"
     if requested_collection_id:
-        reference = next((item for item in store.list_collectors() if item.get("collectionId") == requested_collection_id), None)
+        reference = store.get_collection(requested_collection_id)
         if reference is None:
             return platform_error(request, "COLLECTION_NOT_FOUND", "采集需求不存在", 404, pointer="/collectionId")
         collection_id = requested_collection_id
-        collection_name = reference["collectionName"]
+        if reference["status"] == "archived":
+            return platform_error(request, "COLLECTION_ARCHIVED", COLLECTION_ERRORS["COLLECTION_ARCHIVED"][1], 409)
+        collection_name = reference["name"]
         intent = reference["intent"]
         collection_version = reference["collectionVersion"]
     else:
         collection_id = stable_id("collection", f"{collection_name}_{uuid.uuid4().hex[:12]}", 40)
     seen: set[str] = set()
     results = []
-    for index, raw in enumerate(urls):
+    for index, raw in enumerate(sources):
+        source_input = raw if isinstance(raw, dict) else {}
+        raw_url = str(source_input.get("entryUrl", "")).strip()
+        pointer = f"/sources/{index}/entryUrl"
         try:
+            allowed_fields = {"entryUrl", "mode", "name", "scopeHint"}
+            if not isinstance(raw, dict) or set(raw) - allowed_fields:
+                raise SourceUrlError("VALIDATION_FAILED", "采集入口字段与 API 合同不一致")
+            mode = str(source_input.get("mode", "exact") or "exact").strip().lower()
+            if mode != "exact":
+                pointer = f"/sources/{index}/mode"
+                raise SourceUrlError("UNSUPPORTED_SOURCE_MODE", "当前版本仅支持 exact 模式")
+            pointer = f"/sources/{index}/entryUrl"
             source_url, source_host = normalize_source_url(
-                str(raw),
+                raw_url,
                 allow_http_localhost=settings.allow_http_localhost,
                 allow_http_public=store.effective_allow_http_public(),
             )
+            parsed_url = urlparse(source_url)
+            if parsed_url.path in {"", "/"} and not parsed_url.query:
+                raise SourceUrlError("EXACT_ENTRY_REQUIRED", "exact 模式需要具体列表页，不能使用站点根目录")
             if source_url in seen:
                 raise SourceUrlError("DUPLICATE_IN_BATCH", "批次内 URL 重复")
             seen.add(source_url)
             if store.source_exists(source_url):
                 raise SourceUrlError("SOURCE_ALREADY_EXISTS", "该 Source URL 已存在")
-            name = source_host
+            name = str(source_input.get("name", "")).strip() or source_host
+            scope_hint = str(source_input.get("scopeHint", "")).strip()
+            if len(name) > 200:
+                pointer = f"/sources/{index}/name"
+                raise SourceUrlError("VALIDATION_FAILED", "采集器名称不能超过 200 个字符")
+            if len(scope_hint) > 1000:
+                pointer = f"/sources/{index}/scopeHint"
+                raise SourceUrlError("VALIDATION_FAILED", "范围提示不能超过 1000 个字符")
             collector = store.create_collector(
                 name,
                 intent,
                 source_url,
                 source_host,
+                scope_hint=scope_hint,
                 collection_id=collection_id,
                 collection_name=collection_name,
                 collection_version=collection_version,
+                require_existing_collection=bool(requested_collection_id),
             )
-            results.append({"sourceUrl": str(raw).strip(), "status": "created", "collector": collector, "error": None})
-        except SourceUrlError as exc:
+            results.append({"sourceUrl": raw_url, "status": "created", "collector": collector, "error": None})
+        except (SourceUrlError, ValueError) as exc:
+            if not isinstance(exc, SourceUrlError):
+                if str(exc) not in COLLECTION_ERRORS:
+                    raise
+                exc = SourceUrlError(str(exc), COLLECTION_ERRORS[str(exc)][1])
             results.append(
                 {
-                    "sourceUrl": str(raw).strip(),
+                    "sourceUrl": raw_url,
                     "status": "rejected",
                     "collector": None,
                     "error": {
@@ -1485,7 +1607,7 @@ async def create_collectors_batch(request: Request, idempotency_key: str | None 
                         "message": str(exc),
                         "requestId": request.state.request_id,
                         "retryable": False,
-                        "pointer": f"/sourceUrls/{index}",
+                        "pointer": pointer,
                         "details": {},
                     },
                 }
@@ -1505,22 +1627,39 @@ async def create_collectors_batch(request: Request, idempotency_key: str | None 
 
 
 @app.post("/api/v1/collectors/{collector_id}/explorations", status_code=202, dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
-def start_exploration(
+async def start_exploration(
     collector_id: str,
     request: Request,
     response: Response,
     idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
 ):
+    body: dict[str, Any] = {}
+    if (await request.body()).strip():
+        body, body_error = await read_contract_body(request, required=set(), optional={"guidance"})
+        if body_error:
+            return body_error
     with mutation_lock:
-        return _start_exploration(collector_id, request, response, idempotency_key)
+        return _start_exploration(collector_id, request, response, idempotency_key, body)
 
 
-def _start_exploration(collector_id: str, request: Request, response: Response, idempotency_key: str | None):
+def _start_exploration(
+    collector_id: str,
+    request: Request,
+    response: Response,
+    idempotency_key: str | None,
+    body: dict[str, Any] | None = None,
+):
     if error := require_idempotency(request, idempotency_key):
         return error
-    body = {"collectorId": collector_id}
+    raw_guidance = (body or {}).get("guidance")
+    if raw_guidance is not None and (not isinstance(raw_guidance, str) or len(raw_guidance) > 500):
+        return platform_error(request, "VALIDATION_FAILED", "guidance 必须是不超过 500 字的字符串", 422, pointer="/guidance")
+    guidance = (raw_guidance.strip() or None) if isinstance(raw_guidance, str) else None
+    replay_body = {"collectorId": collector_id}
+    if guidance is not None:
+        replay_body["guidance"] = guidance
     scope = f"POST:/collectors/{collector_id}/explorations"
-    if found := replay(scope, idempotency_key, body, request):
+    if found := replay(scope, idempotency_key, replay_body, request):
         return found
     collector = store.get_collector(collector_id)
     if not collector:
@@ -1536,7 +1675,12 @@ def _start_exploration(collector_id: str, request: Request, response: Response, 
         collector_id=collector_id,
         resource_type="collector",
         resource_id=collector_id,
-        job_payload={"collectorId": collector_id, "previousStatus": collector["status"], "aiRunId": ai_run_id},
+        job_payload={
+            "collectorId": collector_id,
+            "previousStatus": collector["status"],
+            "aiRunId": ai_run_id,
+            "guidance": guidance,
+        },
         collector_changes={"status": "exploring", "updatedAt": "刚刚"},
         ai_run={
             "id": ai_run_id,
@@ -1546,10 +1690,11 @@ def _start_exploration(collector_id: str, request: Request, response: Response, 
             "kind": "rule_generation",
             "trigger": trigger,
             "initiatedBy": request.state.auth_user["id"] if request.state.auth_user else "system",
+            "guidance": guidance,
         },
     )
     response.headers["Location"] = operation["statusUrl"]
-    remember(scope, idempotency_key, body, 202, operation)
+    remember(scope, idempotency_key, replay_body, 202, operation)
     return operation
 
 
@@ -1578,7 +1723,10 @@ def _start_repair(
     idempotency_key: str | None,
     body: dict[str, Any],
 ):
-    note = str(body.get("note") or "").strip()[:500] or None
+    raw_note = body.get("note")
+    if raw_note is not None and (not isinstance(raw_note, str) or len(raw_note) > 500):
+        return platform_error(request, "VALIDATION_FAILED", "note 必须是不超过 500 字的字符串", 422, pointer="/note")
+    note = (raw_note.strip() or None) if isinstance(raw_note, str) else None
     replay_body = {"collectorId": collector_id, "note": note}
     scope = f"POST:/collectors/{collector_id}/repairs"
     if found := replay(scope, idempotency_key, replay_body, request):
@@ -1609,7 +1757,13 @@ def _start_repair(
         collector_id=collector_id,
         resource_type="collector",
         resource_id=collector_id,
-        job_payload={"collectorId": collector_id, "previousStatus": collector["status"], "aiRunId": ai_run_id, "repair": True},
+        job_payload={
+            "collectorId": collector_id,
+            "previousStatus": collector["status"],
+            "aiRunId": ai_run_id,
+            "repair": True,
+            "guidance": note,
+        },
         collector_changes={"status": "exploring", "updatedAt": "刚刚"},
         ai_run=ai_run,
     )
@@ -1833,6 +1987,15 @@ def _start_run(collector_id: str, request: Request, response: Response, idempote
     return operation
 
 
+@app.get("/api/v1/overview")
+def get_overview(request: Request, timezone: str = Query(default="UTC", max_length=100)):
+    try:
+        ZoneInfo(timezone)
+    except (ValueError, ZoneInfoNotFoundError):
+        return platform_error(request, "INVALID_REQUEST", "Unknown IANA timezone", 422, pointer="/timezone")
+    return store.overview(timezone=timezone)
+
+
 @app.get("/api/v1/runs")
 def list_runs(limit: int = 50):
     return page(store.list_runs(), limit)
@@ -1942,13 +2105,27 @@ def iter_export_jsonl(filters: dict[str, Any]) -> Iterator[str]:
 
 
 @app.get("/api/v1/items")
-def list_items(request: Request, limit: int = Query(50, ge=1, le=200), cursor: str | None = Query(None)):
+def list_items(
+    request: Request,
+    limit: int = Query(50, ge=1, le=200),
+    cursor: str | None = Query(None),
+    view: str = Query("observations", pattern="^(observations|entities)$"),
+    collector_id: str | None = Query(None, alias="collectorId"),
+    run_id: str | None = Query(None, alias="runId"),
+    decision: str | None = Query(None),
+    entity_key: str | None = Query(None, alias="entityKey"),
+    source_host: str | None = Query(None, alias="sourceHost"),
+    q: str | None = Query(None, max_length=500),
+):
     try:
-        result = store.list_items_cursor(limit=limit, cursor=cursor)
+        result = store.list_items_cursor(
+            limit=limit, cursor=cursor, view=view, collector_id=collector_id, run_id=run_id,
+            decision=decision, entity_key=entity_key, source_host=source_host, q=q,
+        )
     except InvalidCursor:
         return invalid_cursor_error(request)
     next_cursor = result["nextCursor"]
-    return {"items": result["items"], "page": {"nextCursor": next_cursor}, "nextCursor": next_cursor}
+    return {**result, "page": {"nextCursor": next_cursor}}
 
 
 @app.get("/api/v1/items/export")
@@ -1959,8 +2136,12 @@ def export_items(
     run_id: str | None = Query(None, alias="runId"),
     decision: str | None = Query(None),
     entity_key: str | None = Query(None, alias="entityKey"),
+    view: str = Query("observations", pattern="^(observations|entities)$"),
+    source_host: str | None = Query(None, alias="sourceHost"),
+    q: str | None = Query(None, max_length=500),
 ):
-    filters = {"collector_id": collector_id, "run_id": run_id, "decision": decision, "entity_key": entity_key}
+    filters = {"collector_id": collector_id, "run_id": run_id, "decision": decision, "entity_key": entity_key,
+               "view": view, "source_host": source_host, "q": q}
     probe = store.iter_items_export(**filters)
     count = 0
     extracted_columns: set[str] = set()

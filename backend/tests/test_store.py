@@ -56,6 +56,7 @@ def test_async_command_is_durable_and_activates_collector(tmp_path: Path) -> Non
         collector_changes={"status": "exploring"},
     )
     assert store.get_collector(collector["id"])["activeOperationId"] == operation["id"]
+    assert operation["queuedAt"].endswith("Z")
     job = store.claim_job(60)
     assert job and job["operationId"] == operation["id"]
     assert Store(store.path).get_operation(operation["id"])["status"] == "queued"
@@ -110,6 +111,20 @@ def test_ai_run_keeps_attempts_and_model_invocations_as_auditable_history(tmp_pa
     assert queued["status"] == "queued"
     assert queued["reviewStatus"] == "not_ready"
     assert queued["attempts"] == []
+    assert queued["activity"][0]["phase"] == "queued"
+    assert operation["aiRunId"] == "ai_run_demo"
+
+    updated_operation, updated_ai_run = store.update_ai_activity(
+        operation["id"],
+        "ai_run_demo",
+        status="running",
+        phase="analyzing_structure",
+        progress=35,
+        metrics={"listPagesFetched": 1},
+    )
+    assert updated_operation["phase"] == updated_ai_run["phase"] == "analyzing_structure"
+    assert [event["phase"] for event in updated_ai_run["activity"]] == ["queued", "analyzing_structure"]
+    assert updated_ai_run["activity"][-1]["metrics"]["listPagesFetched"] == 1
 
     attempt = store.start_ai_attempt("ai_run_demo")
     invocation = store.record_model_invocation(
@@ -130,6 +145,14 @@ def test_ai_run_keeps_attempts_and_model_invocations_as_auditable_history(tmp_pa
     )
     assert invocation["totalTokens"] == 150
     store.finish_ai_attempt(attempt["id"], status="succeeded", error=None)
+    store.update_ai_activity(
+        operation["id"],
+        "ai_run_demo",
+        status="succeeded",
+        phase="completed",
+        progress=100,
+        metrics={"listPagesFetched": 1},
+    )
     store.update_ai_run(
         "ai_run_demo",
         status="succeeded",
@@ -151,6 +174,7 @@ def test_ai_run_keeps_attempts_and_model_invocations_as_auditable_history(tmp_pa
         "estimatedCost": None,
     }
     assert detail["attempts"][0]["modelInvocations"][0]["purpose"] == "discover"
+    assert [event["phase"] for event in detail["activity"]] == ["queued", "analyzing_structure", "completed"]
     assert store.list_ai_runs()[0]["id"] == "ai_run_demo"
 
     store.mark_latest_ai_run_published(collector["id"], "rule_demo_v1")
@@ -359,7 +383,7 @@ def test_initialize_records_baseline_migration_and_replays_idempotently(tmp_path
     store.initialize()
     with store.connect() as connection:
         applied = [str(row["id"]) for row in connection.execute("SELECT id FROM schema_migrations").fetchall()]
-    assert applied == ["000_baseline", "001_user_accounts", "002_platform_settings"]
+    assert applied == ["000_baseline", "001_user_accounts", "002_platform_settings", "003_collections"]
 
 
 def test_initialize_applies_baseline_to_legacy_pre_migration_database(tmp_path: Path) -> None:

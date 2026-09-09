@@ -411,3 +411,51 @@ async def test_runtime_reports_missing_detail_pages_as_incomplete(tmp_path: Path
     assert result.metrics["detailPagesFetched"] == 1
     assert result.metrics["warningCount"] == 1
     assert [item["title"] for item in result.items] == ["A"]
+
+
+@pytest.mark.asyncio
+async def test_runtime_refetches_a_transient_list_detail_title_mismatch(tmp_path: Path) -> None:
+    class TransientMismatchRuntime(CrawleeRuntime):
+        detail_fetches = 0
+
+        async def _fetch_many(self, urls, transport="http", browser_policy=None):
+            if urls == ["https://example.com/list"]:
+                return {
+                    urls[0]: (
+                        '<ul class="notice-list"><li><a class="notice-title" href="/detail/a">Expected A</a>'
+                        '<time datetime="2026-08-30"></time></li></ul>'
+                    )
+                }
+            self.detail_fetches += 1
+            title = "Wrong cached page" if self.detail_fetches == 1 else "Expected A"
+            return {
+                "https://example.com/detail/a": (
+                    f'<h1 class="notice-title">{title}</h1><div class="meta"><span data-field="buyer">Buyer</span>'
+                    '<time datetime="2026-08-30"></time></div><p class="notice-budget"><span class="amount">100</span></p>'
+                )
+            }
+
+    async def progress(_phase: str, _value: int, _metrics: dict[str, int]) -> None:
+        return
+
+    spec = runtime_spec("https://example.com/list", mode="list_detail")
+    spec["sourceContext"]["allowedHosts"] = ["example.com"]
+    collector = {
+        "id": "collector_transient_mismatch",
+        "name": "Transient mismatch",
+        "sourceUrl": "https://example.com/list",
+        "sourceHost": "example.com",
+        "collectionVersion": "v1",
+        "candidate": {"mode": "list_detail", "gatherSpec": spec},
+    }
+    runtime = TransientMismatchRuntime(tmp_path / "artifacts")
+
+    result = await runtime.run(
+        collector,
+        {"id": "run_transient_mismatch", "ruleVersion": "rule_v1"},
+        progress,
+    )
+
+    assert runtime.detail_fetches == 2
+    assert result.items[0]["title"] == "Expected A"
+    assert result.items[0]["decision"] == "accepted"
