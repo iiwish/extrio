@@ -82,6 +82,38 @@ def test_item_classification_uses_declared_fingerprint_fields() -> None:
     assert current["changeSummary"] == []
 
 
+@pytest.mark.parametrize(("before", "after"), [
+    (None, 0), (None, False), (None, ""), (None, []), (None, {}),
+    (0, False), (False, ""), ([], {}), ({"enabled": False}, {"enabled": 0}),
+])
+def test_classification_preserves_json_value_types(before, after):
+    previous = {**accepted_item(run_id="before"), "extractedData": {"value": before}}
+    current = {**accepted_item(run_id="after"), "extractedData": {"value": after}}
+    assert classify_items([current], [previous], "collector_demo", ["value"])["updatedItems"] == 1
+    assert current["revision"] == 2
+    assert current["changeSummary"][0]["before"] != current["changeSummary"][0]["after"]
+
+
+def test_zero_value_change_is_queued_for_delivery(tmp_path):
+    store = Store(tmp_path / "zero-value.db")
+    store.initialize()
+    collector = store.create_collector("Demo", "Collect", "https://example.com/list", "example.com")
+    cipher = CredentialCipher(tmp_path / "cipher.key")
+    store.create_sink(collector["id"], cipher=cipher, url="https://hooks.example.com/a", secret="test-secret")
+    previous = {**accepted_item(run_id="before"), "collectorId": collector["id"], "extractedData": {"budget": None}}
+    current = {**accepted_item(run_id="after"), "collectorId": collector["id"], "extractedData": {"budget": 0}}
+    classify_items([current], [previous], collector["id"], ["budget"])
+    worker = Worker.__new__(Worker)
+    worker.store = store
+    assert worker.enqueue_run_deliveries(collector["id"], [current]) == 1
+
+
+def test_classification_ignores_json_object_order_and_equivalent_numbers():
+    previous = {**accepted_item(run_id="before"), "extractedData": {"value": {"a": 1, "b": False}}}
+    current = {**accepted_item(run_id="after"), "extractedData": {"value": {"b": False, "a": 1.0}}}
+    assert classify_items([current], [previous], "collector_demo", ["value"])["unchangedItems"] == 1
+
+
 @pytest.mark.parametrize(
     ("accepted", "rejected", "stop_reason", "expected"),
     [
@@ -126,8 +158,19 @@ def test_enqueue_run_deliveries_targets_only_accepted_new_updated_items_and_enab
 @pytest.mark.asyncio
 async def test_exploration_worker_finalizes_ai_run_without_marking_rule_published(tmp_path: Path) -> None:
     class FakeExplorer:
-        async def explore(self, collector, _operation_id, progress, _ai_run_id=None, _attempt_id=None, *, repair_spec=None):
+        async def explore(
+            self,
+            collector,
+            _operation_id,
+            progress,
+            _ai_run_id=None,
+            _attempt_id=None,
+            *,
+            repair_spec=None,
+            guidance=None,
+        ):
             assert repair_spec is None
+            assert guidance == "优先识别标题和详情链接。"
             await progress("fetching_list", 20, {"listPagesFetched": 1})
             candidate = build_candidate(
                 collector,
@@ -153,7 +196,12 @@ async def test_exploration_worker_finalizes_ai_run_without_marking_rule_publishe
         collector_id=collector["id"],
         resource_type="collector",
         resource_id=collector["id"],
-        job_payload={"collectorId": collector["id"], "previousStatus": "draft", "aiRunId": "ai_run_worker"},
+        job_payload={
+            "collectorId": collector["id"],
+            "previousStatus": "draft",
+            "aiRunId": "ai_run_worker",
+            "guidance": "优先识别标题和详情链接。",
+        },
         collector_changes={"status": "exploring"},
         ai_run={
             "id": "ai_run_worker",
@@ -163,6 +211,7 @@ async def test_exploration_worker_finalizes_ai_run_without_marking_rule_publishe
             "kind": "rule_generation",
             "trigger": "initial_generation",
             "initiatedBy": "user_demo",
+            "guidance": "优先识别标题和详情链接。",
         },
     )
     job = store.claim_job(60)
@@ -180,6 +229,8 @@ async def test_exploration_worker_finalizes_ai_run_without_marking_rule_publishe
     assert ai_run["reviewStatus"] == "ready_review"
     assert ai_run["validationSummary"] == {"acceptedSamples": 1, "rejectedSamples": 1, "warningCount": 1}
     assert ai_run["candidateRuleDigest"]
+    assert ai_run["guidance"] == "优先识别标题和详情链接。"
+    assert [event["phase"] for event in ai_run["activity"]] == ["queued", "fetching_list", "completed"]
     assert ai_run["attempts"][0]["status"] == "succeeded"
     assert store.get_collector(collector["id"])["status"] == "ready_review"
 

@@ -5,7 +5,7 @@ import re
 import threading
 import uuid
 from collections.abc import Iterator
-from contextlib import AbstractContextManager
+from contextlib import AbstractContextManager, nullcontext
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -39,10 +39,100 @@ DEFAULT_COLLECTION_NAME = "全国公共资源交易标讯"
 SINK_TYPES = ("webhook",)
 DELIVERY_STATUSES = ("pending", "delivering", "delivered", "failed", "dead_lettered")
 EXPORT_ITEMS_CAP = 100_000
+OPERATION_METRIC_KEYS = (
+    "listPagesFetched",
+    "detailUrlsDiscovered",
+    "detailPagesFetched",
+    "recordsOutsideWindow",
+    "duplicateDetailUrls",
+    "newItems",
+    "updatedItems",
+    "unchangedItems",
+    "warningCount",
+)
 
 
 def utc_now() -> str:
     return datetime.now(UTC).isoformat().replace("+00:00", "Z")
+
+
+def empty_operation_metrics() -> dict[str, int]:
+    return {key: 0 for key in OPERATION_METRIC_KEYS}
+
+
+def _elapsed_ms(started_at: str, finished_at: str) -> int:
+    started = datetime.fromisoformat(started_at.replace("Z", "+00:00"))
+    finished = datetime.fromisoformat(finished_at.replace("Z", "+00:00"))
+    return max(0, int((finished - started).total_seconds() * 1000))
+
+
+def advance_activity(
+    current: list[dict[str, Any]],
+    *,
+    phase: str,
+    metrics: dict[str, int],
+    now: str,
+    terminal_status: str | None = None,
+) -> list[dict[str, Any]]:
+    """Advance the sanitized phase history without storing model or source bodies."""
+    activity = [{**entry, "metrics": dict(entry.get("metrics") or {})} for entry in current]
+    if not activity:
+        activity.append(
+            {
+                "phase": phase,
+                "status": terminal_status or "running",
+                "startedAt": now,
+                "finishedAt": now if terminal_status else None,
+                "durationMs": 0 if terminal_status else None,
+                "metrics": dict(metrics),
+            }
+        )
+        return activity
+
+    latest = activity[-1]
+    if terminal_status:
+        if latest.get("status") == "running":
+            latest.update(
+                status="failed" if terminal_status == "failed" else "succeeded",
+                finishedAt=now,
+                durationMs=_elapsed_ms(str(latest["startedAt"]), now),
+                metrics=dict(metrics),
+            )
+        if terminal_status == "succeeded" and latest.get("phase") != "completed":
+            activity.append(
+                {
+                    "phase": "completed",
+                    "status": "succeeded",
+                    "startedAt": now,
+                    "finishedAt": now,
+                    "durationMs": 0,
+                    "metrics": dict(metrics),
+                }
+            )
+        return activity
+
+    if latest.get("phase") == phase and latest.get("status") == "running":
+        latest["metrics"] = dict(metrics)
+        return activity
+
+    if latest.get("status") == "running":
+        latest.update(
+            status="succeeded",
+            finishedAt=now,
+            durationMs=_elapsed_ms(str(latest["startedAt"]), now),
+            metrics=dict(metrics),
+        )
+    activity.append(
+        {
+            "phase": phase,
+            "status": "running",
+            "startedAt": now,
+            "finishedAt": None,
+            "durationMs": None,
+            "metrics": dict(metrics),
+        }
+    )
+    return activity
 
 
 def stable_id(prefix: str, value: str | None = None, length: int = 16) -> str:
@@ -113,6 +203,7 @@ class Store:
                 self.path.parent.mkdir(parents=True, exist_ok=True)
             with self.connect() as connection:
                 self._run_migrations(connection)
+            self._backfill_collections()
             if self.dialect.name == "sqlite":
                 with self.connect() as connection:
                     self._backfill_ai_runs(connection)
@@ -452,16 +543,166 @@ class Store:
         run["startedAtIso"] = row["created_at"]
         return run
 
+    def _backfill_collections(self) -> None:
+        with self.transaction() as connection:
+            groups: dict[str, dict[str, Any]] = {}
+            rows = connection.execute("SELECT data FROM collectors ORDER BY created_at, id").fetchall()
+            for row in rows:
+                source = self._decode(row)
+                collection_id = source.get("collectionId", DEFAULT_COLLECTION_ID)
+                group = groups.setdefault(collection_id, {"source": source, "intents": []})
+                if source.get("intent") and source["intent"] not in group["intents"]:
+                    group["intents"].append(source["intent"])
+            for collection_id, group in groups.items():
+                source = group["source"]
+                self._insert_collection(connection, collection_id, source.get("collectionName", DEFAULT_COLLECTION_NAME),
+                                        "\n\n".join(group["intents"]), source.get("collectionVersion", "tender_notice_v4"))
+
+    def _insert_collection(self, connection: DialectConnection, collection_id: str, name: str,
+                           intent: str, version: str = "tender_notice_v4") -> None:
+        now = utc_now()
+        value = {"id": collection_id, "name": name, "intent": intent, "collectionVersion": version,
+                 "status": "active", "revision": 1, "createdAt": now, "updatedAt": now}
+        connection.execute(self.dialect.insert_or_ignore("INSERT INTO collections(id, data) VALUES(?, ?)"),
+                           (collection_id, self.dialect.json_param(value)))
+
+    def _collection_sources(self, collection_id: str, connection: DialectConnection) -> list[dict[str, Any]]:
+        identity = self.dialect.json_extract_text("data", "collectionId")
+        rows = connection.execute(f"SELECT data FROM collectors WHERE {identity}=? ORDER BY created_at, id",
+                                  (collection_id,)).fetchall()
+        return [self._decode(row) for row in rows]
+
+    def get_collection(self, collection_id: str, connection: DialectConnection | None = None) -> dict[str, Any] | None:
+        with nullcontext(connection) if connection is not None else self.connect() as conn:
+            value = self._decode(conn.execute("SELECT data FROM collections WHERE id=?", (collection_id,)).fetchone())
+            if value is None:
+                return None
+            sources = self._collection_sources(collection_id, conn)
+            return {**value, "sourceCount": len(sources),
+                    "publishedSourceCount": sum(bool(source.get("activeRuleVersion")) for source in sources)}
+
+    def collection_sources(self, collection_id: str) -> list[dict[str, Any]]:
+        with self.connect() as connection:
+            value = self.get_collection(collection_id, connection)
+            return [{**source, "collectionName": value["name"]} for source in self._collection_sources(collection_id, connection)]
+
+    def collection_source_contracts(self, sources: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        from extrio.collection_fields import project_source_contract
+
+        with self.connect() as connection:
+            return [project_source_contract(source, self.get_rule_version(source["activeRuleVersion"], connection)
+                                            if source.get("activeRuleVersion") else None) for source in sources]
+
+    def list_collections(self) -> list[dict[str, Any]]:
+        with self.connect() as connection:
+            rows = connection.execute("SELECT data FROM collections ORDER BY id").fetchall()
+            counts: dict[str, list[int]] = {}
+            for row in connection.execute("SELECT data FROM collectors").fetchall():
+                source = self._decode(row)
+                count = counts.setdefault(source.get("collectionId", DEFAULT_COLLECTION_ID), [0, 0])
+                count[0] += 1
+                count[1] += int(bool(source.get("activeRuleVersion")))
+            values = [self._decode(row) for row in rows]
+            return sorted([{**value, "sourceCount": counts.get(value["id"], [0, 0])[0],
+                            "publishedSourceCount": counts.get(value["id"], [0, 0])[1]} for value in values],
+                          key=lambda value: (value["createdAt"], value["id"]), reverse=True)
+
+    def _lock_collection(self, connection: DialectConnection, collection_id: str) -> None:
+        suffix = " FOR UPDATE" if self.dialect.name == "postgresql" else ""
+        if not connection.execute(f"SELECT id FROM collections WHERE id=?{suffix}", (collection_id,)).fetchone():
+            raise ValueError("COLLECTION_NOT_FOUND")
+
+    def create_collection(self, name: str, intent: str, connection: DialectConnection | None = None) -> dict[str, Any]:
+        with nullcontext(connection) if connection is not None else self.transaction() as conn:
+            collection_id = stable_id("collection", uuid.uuid4().hex, 40)
+            self._insert_collection(conn, collection_id, name, intent)
+            return self.get_collection(collection_id, conn)
+
+    def change_collection(self, collection_id: str, revision: int, changes: dict[str, Any],
+                          connection: DialectConnection | None = None) -> dict[str, Any]:
+        with nullcontext(connection) if connection is not None else self.transaction() as conn:
+            self._lock_collection(conn, collection_id)
+            value = self.get_collection(collection_id, conn)
+            if value["revision"] != revision:
+                raise ValueError("COLLECTION_CONFLICT")
+            if value["status"] == "archived" and any(key in changes for key in ("name", "intent", "fieldDraft")):
+                raise ValueError("COLLECTION_ARCHIVED")
+            if "fieldDraft" in changes:
+                from extrio.collection_fields import validate_field_draft
+
+                validate_field_draft(changes["fieldDraft"])
+            value.update(changes, revision=revision + 1, updatedAt=utc_now())
+            stored = {key: item for key, item in value.items() if key not in {"sourceCount", "publishedSourceCount"}}
+            conn.execute("UPDATE collections SET data=? WHERE id=?", (self.dialect.json_param(stored), collection_id))
+            return value
+
+    def delete_collection(self, collection_id: str, revision: int, connection: DialectConnection | None = None) -> None:
+        with nullcontext(connection) if connection is not None else self.transaction() as conn:
+            self._lock_collection(conn, collection_id)
+            value = self.get_collection(collection_id, conn)
+            if value["revision"] != revision:
+                raise ValueError("COLLECTION_CONFLICT")
+            if value["sourceCount"]:
+                raise ValueError("COLLECTION_HAS_SOURCES")
+            conn.execute("DELETE FROM collections WHERE id=?", (collection_id,))
+
+    def collection_command(self, method: str, collection_id: str | None, body: dict[str, Any], key: str,
+                           audit: dict[str, Any] | None = None) -> tuple[int, dict, bool]:
+        scope = f"{method}:/collections/{collection_id or ''}"
+        with self.transaction() as connection:
+            # Serialize equal idempotency keys across API processes, and commit receipt with the mutation.
+            if self.dialect.name == "postgresql":
+                lock_id = int.from_bytes(hashlib.sha256(f"{scope}:{key}".encode()).digest()[:8], signed=True)
+                connection.execute("SELECT pg_advisory_xact_lock(?)", (lock_id,))
+            receipt = connection.execute("SELECT * FROM idempotency WHERE scope=? AND key=?", (scope, key)).fetchone()
+            if receipt:
+                if receipt["request_hash"] != payload_hash(body):
+                    raise IdempotencyConflict(key)
+                return receipt["status_code"], self.dialect.decode_json(receipt["response"]), True
+            before = None
+            if collection_id is not None:
+                self._lock_collection(connection, collection_id)
+                before = self.get_collection(collection_id, connection)
+            if method == "POST":
+                value = self.create_collection(body["name"], body["intent"], connection)
+            elif method == "PATCH":
+                value = self.change_collection(collection_id, body["revision"],
+                                               {k: v for k, v in body.items() if k != "revision"}, connection)
+            else:
+                self.delete_collection(collection_id, body["revision"], connection)
+                value = {"id": collection_id, "deleted": True}
+            if audit is not None:
+                action = {"POST": "created", "PATCH": "updated", "DELETE": "deleted"}[method]
+                if method == "PATCH" and "status" in body:
+                    action = "archived" if body["status"] == "archived" else "restored"
+                self._append_audit_event(
+                    connection, tenant_id=audit["tenantId"], target_type="collection", target_id=value["id"],
+                    audit={**audit, "action": f"collection.{action}"},
+                    before_digest=f"sha256:{payload_hash(before)}" if before else None,
+                    after_digest=f"sha256:{payload_hash(value)}" if method != "DELETE" else None,
+                )
+            status = 201 if method == "POST" else 200
+            connection.execute(
+                "INSERT INTO idempotency(scope, key, request_hash, status_code, response, created_at) VALUES(?, ?, ?, ?, ?, ?)",
+                (scope, key, payload_hash(body), status, self.dialect.json_param(value), utc_now()))
+            return status, value, False
+
     def list_collectors(self) -> list[dict[str, Any]]:
         with self.connect() as connection:
             rows = connection.execute("SELECT data FROM collectors ORDER BY created_at DESC").fetchall()
-        return [self.dialect.decode_json(row["data"]) for row in rows]
+            names = {row["id"]: self._decode(row)["name"] for row in connection.execute("SELECT id, data FROM collections").fetchall()}
+        values = [self.dialect.decode_json(row["data"]) for row in rows]
+        return [{**value, "collectionName": names.get(value.get("collectionId"), value.get("collectionName", DEFAULT_COLLECTION_NAME))}
+                for value in values]
 
     def get_collector(self, collector_id: str, connection: DialectConnection | None = None) -> dict[str, Any] | None:
-        if connection is not None:
-            return self._decode(connection.execute("SELECT data FROM collectors WHERE id=?", (collector_id,)).fetchone())
-        with self.connect() as own:
-            return self._decode(own.execute("SELECT data FROM collectors WHERE id=?", (collector_id,)).fetchone())
+        with nullcontext(connection) if connection is not None else self.connect() as conn:
+            value = self._decode(conn.execute("SELECT data FROM collectors WHERE id=?", (collector_id,)).fetchone())
+            if value:
+                requirement = self._decode(conn.execute("SELECT data FROM collections WHERE id=?", (value.get("collectionId"),)).fetchone())
+                if requirement:
+                    value["collectionName"] = requirement["name"]
+            return value
 
     def save_collector(self, collector: dict[str, Any], connection: DialectConnection | None = None) -> None:
         now = utc_now()
@@ -502,9 +743,11 @@ class Store:
         source_url: str,
         source_host: str,
         *,
+        scope_hint: str = "",
         collection_id: str = DEFAULT_COLLECTION_ID,
         collection_name: str = DEFAULT_COLLECTION_NAME,
         collection_version: str = "tender_notice_v4",
+        require_existing_collection: bool = False,
     ) -> dict[str, Any]:
         collector = {
             "id": stable_id("collector", f"{source_host}_{uuid.uuid4().hex[:8]}", 40),
@@ -512,6 +755,7 @@ class Store:
             "intent": intent,
             "sourceUrl": source_url,
             "sourceHost": source_host,
+            "scopeHint": scope_hint,
             "status": "draft",
             "collectionId": collection_id,
             "collectionName": collection_name,
@@ -527,7 +771,18 @@ class Store:
             "collectionPolicy": None,
             "checkpoint": None,
         }
-        self.save_collector(collector)
+        with self.transaction() as connection:
+            if not require_existing_collection:
+                self._insert_collection(connection, collection_id, collection_name, intent, collection_version)
+            self._lock_collection(connection, collection_id)
+            requirement = self.get_collection(collection_id, connection)
+            if requirement["status"] == "archived":
+                raise ValueError("COLLECTION_ARCHIVED")
+            collector["collectionName"] = requirement["name"]
+            if require_existing_collection:
+                collector["intent"] = requirement["intent"]
+                collector["collectionVersion"] = requirement["collectionVersion"]
+            self.save_collector(collector, connection)
         self.create_collection_policy(collector["id"], DEFAULT_COLLECTION_POLICY)
         return self.ensure_schedule(collector["id"])
 
@@ -1059,6 +1314,56 @@ class Store:
             self.save_operation(operation, connection=connection, collector_id=self.operation_collector_id(operation_id, connection))
             return operation
 
+    def update_ai_activity(
+        self,
+        operation_id: str,
+        ai_run_id: str,
+        *,
+        status: str,
+        phase: str,
+        progress: int,
+        metrics: dict[str, int] | None = None,
+        error: dict[str, Any] | None = None,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        """Atomically keep the live Operation and durable AiRun phase history aligned."""
+        now = utc_now()
+        with self.transaction() as connection:
+            operation = self.get_operation(operation_id, connection)
+            if operation is None:
+                raise KeyError(operation_id)
+            merged_metrics = empty_operation_metrics()
+            merged_metrics.update(operation.get("metrics") or {})
+            merged_metrics.update(metrics or {})
+            terminal_status = status if status in TERMINAL_OPERATION_STATUSES else None
+            operation.update(status=status, phase=phase, progress=progress, metrics=merged_metrics, error=error)
+            operation["activity"] = advance_activity(
+                operation.get("activity") or [],
+                phase=phase,
+                metrics=merged_metrics,
+                now=now,
+                terminal_status=terminal_status,
+            )
+            collector_id = self.operation_collector_id(operation_id, connection)
+            self.save_operation(operation, collector_id, connection)
+
+            row = connection.execute(
+                "SELECT operation_id, collector_id, data FROM ai_runs WHERE id=?",
+                (ai_run_id,),
+            ).fetchone()
+            if row is None:
+                raise KeyError(ai_run_id)
+            ai_run = self.dialect.decode_json(row["data"])
+            ai_run.update(status=status, phase=phase, progress=progress, error=error)
+            ai_run["activity"] = advance_activity(
+                ai_run.get("activity") or [],
+                phase=phase,
+                metrics=merged_metrics,
+                now=now,
+                terminal_status=terminal_status,
+            )
+            self.save_ai_run(ai_run, str(row["collector_id"]), str(row["operation_id"]), connection)
+            return operation, ai_run
+
     @staticmethod
     def operation_collector_id(operation_id: str, connection: DialectConnection) -> str:
         row = connection.execute("SELECT collector_id FROM operations WHERE id=?", (operation_id,)).fetchone()
@@ -1080,6 +1385,7 @@ class Store:
         activate_collector: bool = True,
     ) -> dict[str, Any]:
         operation_id = stable_id("op", uuid.uuid4().hex)
+        queued_at = utc_now()
         operation = {
             "id": operation_id,
             "kind": kind,
@@ -1090,19 +1396,22 @@ class Store:
             "resourceId": resource_id,
             "statusUrl": f"/api/v1/operations/{operation_id}",
             "pollAfterMs": 400,
-            "metrics": {
-                "listPagesFetched": 0,
-                "detailUrlsDiscovered": 0,
-                "detailPagesFetched": 0,
-                "recordsOutsideWindow": 0,
-                "duplicateDetailUrls": 0,
-                "newItems": 0,
-                "updatedItems": 0,
-                "unchangedItems": 0,
-                "warningCount": 0,
-            },
+            "queuedAt": queued_at,
+            "metrics": empty_operation_metrics(),
             "error": None,
         }
+        if ai_run is not None:
+            operation["aiRunId"] = ai_run["id"]
+            operation["activity"] = [
+                {
+                    "phase": "queued",
+                    "status": "running",
+                    "startedAt": queued_at,
+                    "finishedAt": None,
+                    "durationMs": None,
+                    "metrics": empty_operation_metrics(),
+                }
+            ]
         with self.transaction() as connection:
             if collector_changes or activate_collector:
                 collector = self.get_collector(collector_id, connection)
@@ -1142,11 +1451,12 @@ class Store:
                     "finishedAt": None,
                     "durationMs": None,
                     "error": None,
+                    "activity": [{**entry, "metrics": dict(entry["metrics"])} for entry in operation["activity"]],
                 }
                 self.save_ai_run(ai_run, collector_id, operation_id, connection)
             connection.execute(
                 "INSERT INTO jobs(operation_id, kind, payload, status, available_at) VALUES(?, ?, ?, 'queued', ?)",
-                (operation_id, kind, self.dialect.json_param(job_payload), utc_now()),
+                (operation_id, kind, self.dialect.json_param(job_payload), queued_at),
             )
         return operation
 
@@ -1188,6 +1498,86 @@ class Store:
         with self.connect() as connection:
             rows = connection.execute("SELECT data, created_at FROM runs ORDER BY created_at DESC").fetchall()
         return [run for row in rows if (run := self._decode_run(row)) is not None]
+
+    def overview(self, *, timezone: str = "UTC", now: datetime | None = None) -> dict[str, Any]:
+        local_now = (now or datetime.now(UTC)).astimezone(ZoneInfo(timezone))
+        today = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+        monday = today - timedelta(days=today.weekday())
+        month = today.replace(day=1)
+
+        def shift_month(value: datetime, offset: int) -> datetime:
+            year, month_index = divmod(value.year * 12 + value.month - 1 + offset, 12)
+            return value.replace(year=year, month=month_index + 1, day=1)
+
+        def period(key: str, start: datetime, end: datetime) -> dict[str, str]:
+            return {
+                "key": key, "labelDate": start.date().isoformat(),
+                "start": start.astimezone(UTC).isoformat().replace("+00:00", "Z"),
+                "end": end.astimezone(UTC).isoformat().replace("+00:00", "Z"),
+            }
+
+        periods = [period("today", today, today + timedelta(days=1)), period("week", monday, monday + timedelta(days=7))]
+        for index in range(14):
+            start = today + timedelta(days=index - 13)
+            periods.append(period(f"day-{index}", start, start + timedelta(days=1)))
+        for index in range(12):
+            start = monday + timedelta(weeks=index - 11)
+            periods.append(period(f"week-{index}", start, start + timedelta(days=7)))
+            start = shift_month(month, index - 11)
+            periods.append(period(f"month-{index}", start, shift_month(start, 1)))
+
+        field = self.dialect.json_extract_text
+        status = field("r.data", "status")
+        columns = {
+            "successful": f"CASE WHEN {status}='succeeded' THEN 1 ELSE 0 END",
+            "partial": f"CASE WHEN {status}='partially_succeeded' THEN 1 ELSE 0 END",
+            "failed": f"CASE WHEN {status} IN ('failed','cancelled','timed_out') THEN 1 ELSE 0 END",
+            "active": f"CASE WHEN {status} IN ('queued','running','finalizing') THEN 1 ELSE 0 END",
+            "accepted": f"CAST(COALESCE({field('r.data', 'acceptedCount')}, '0') AS BIGINT)",
+            "rejected": f"CAST(COALESCE({field('r.data', 'rejectedCount')}, '0') AS BIGINT)",
+        }
+        # Calendar boundaries use second prefixes so both whole and fractional UTC timestamps compare correctly.
+        bounds = " UNION ALL ".join("SELECT ? AS bucket, ? AS start_at, ? AS end_at" for _ in periods)
+        params = tuple(value for p in periods for value in (p["key"], p["start"][:-1], p["end"][:-1]))
+        aggregates = ", ".join(f"COALESCE(SUM({expression}), 0) AS {key}" for key, expression in columns.items())
+        with self.connect() as connection:
+            connection.execute("BEGIN" if self.dialect.name == "sqlite" else "BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY")
+            rows = connection.execute(
+                f"WITH periods AS ({bounds}) SELECT p.bucket, COUNT(r.id) AS runs, {aggregates} "
+                "FROM periods p LEFT JOIN runs r ON r.created_at >= p.start_at AND r.created_at < p.end_at GROUP BY p.bucket",
+                params,
+            ).fetchall()
+            collector_counts = connection.execute(
+                f"SELECT COUNT(*) AS total, COALESCE(SUM(CASE WHEN {field('data', 'status')}='published' THEN 1 ELSE 0 END), 0) "
+                "AS published FROM collectors"
+            ).fetchone()
+            # Latest identity matches the entity list; month membership uses its precise UTC persistence timestamp,
+            # not the legacy observedAt display string whose source timezone is unavailable.
+            current_items = self._item_query_source("entities")
+            month_bounds = period("month", month, shift_month(month, 1))
+            entity_counts = connection.execute(
+                f"SELECT COUNT(*) AS total, "
+                f"COALESCE(SUM(CASE WHEN {field('current_items.data', 'decision')}='accepted' THEN 1 ELSE 0 END), 0) AS accepted, "
+                f"COALESCE(SUM(CASE WHEN {field('current_items.data', 'decision')}='rejected' THEN 1 ELSE 0 END), 0) AS rejected "
+                f"FROM {current_items} JOIN items recorded ON recorded.id=current_items.id "
+                "WHERE recorded.created_at >= ? AND recorded.created_at < ?",
+                (month_bounds["start"][:-1], month_bounds["end"][:-1]),
+            ).fetchone()
+            connection.rollback()
+        by_key = {}
+        for row in rows:
+            counts = {key: int(row[key]) for key in ("runs", *columns)}
+            counts["completed"] = counts["successful"] + counts["partial"] + counts["failed"]
+            by_key[row["bucket"]] = counts
+        buckets = {p["key"]: {**p, **by_key[p["key"]]} for p in periods}
+        return {
+            "generatedAt": local_now.astimezone(UTC).isoformat().replace("+00:00", "Z"),
+            "timezone": timezone,
+            "today": buckets["today"], "week": buckets["week"],
+            "monthEntities": {key: int(entity_counts[key]) for key in ("total", "accepted", "rejected")},
+            "collectors": {key: int(collector_counts[key]) for key in ("total", "published")},
+            "trends": {unit: [buckets[f"{unit}-{i}"] for i in range(14 if unit == "day" else 12)] for unit in ("day", "week", "month")},
+        }
 
     def get_run(self, run_id: str, connection: DialectConnection | None = None) -> dict[str, Any] | None:
         if connection is not None:
@@ -1239,6 +1629,8 @@ class Store:
         run_id: str | None,
         decision: str | None,
         entity_key: str | None,
+        source_host: str | None = None,
+        q: str | None = None,
     ) -> tuple[list[str], list[Any]]:
         clauses: list[str] = []
         params: list[Any] = []
@@ -1254,7 +1646,45 @@ class Store:
         if entity_key is not None:
             clauses.append(f"{self.dialect.json_extract_text('data', 'entityKey')}=?")
             params.append(entity_key)
+        if source_host is not None:
+            clauses.append(f"{self.dialect.json_extract_text('data', 'sourceHost')}=?")
+            params.append(source_host)
+        if q and q.strip():
+            pattern = "%" + q.strip().lower().replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%"
+            fields = ("title", "content", "collectorName", "entityKey")
+            clauses.append("(" + " OR ".join(
+                f"LOWER(COALESCE({self.dialect.json_extract_text('data', field)}, '')) LIKE ? ESCAPE '!'"
+                for field in fields
+            ) + ")")
+            params.extend([pattern] * len(fields))
         return clauses, params
+
+    def _item_query_source(self, view: str) -> str:
+        if view == "observations":
+            return "items"
+        if view != "entities":
+            raise ValueError("unsupported item view")
+        field = self.dialect.json_extract_text
+        # Rank before filtering so an older matching observation cannot replace current state.
+        return (
+            "(SELECT id, run_id, data FROM (SELECT id, run_id, data, ROW_NUMBER() OVER ("
+            f"PARTITION BY {field('data', 'collectorId')}, {field('data', 'entityKey')} "
+            f"ORDER BY {field('data', 'observedAt')} DESC, id DESC) AS entity_rank "
+            "FROM items) ranked WHERE entity_rank=1) current_items"
+        )
+
+    def _item_facets(self, connection: DialectConnection, source: str) -> dict[str, Any]:
+        field = self.dialect.json_extract_text
+        rows = connection.execute(
+            f"SELECT DISTINCT {field('data', 'sourceHost')} AS host, "
+            f"{field('data', 'collectorId')} AS collector_id, {field('data', 'collectorName')} AS name "
+            f"FROM {source} ORDER BY host, collector_id, name"
+        ).fetchall()
+        collectors = {str(row["collector_id"]): str(row["name"]) for row in rows}
+        return {
+            "sourceHosts": sorted({str(row["host"]) for row in rows}),
+            "collectors": [{"id": key, "name": name} for key, name in collectors.items()],
+        }
 
     def list_items_cursor(
         self,
@@ -1266,6 +1696,9 @@ class Store:
         sort_key: str = "observed_at",
         limit: int = 50,
         cursor: str | None = None,
+        view: str = "observations",
+        source_host: str | None = None,
+        q: str | None = None,
     ) -> dict[str, Any]:
         """Page items in the deterministic output-loop order.
 
@@ -1285,12 +1718,17 @@ class Store:
             raise ValueError("limit must be positive")
         observed_at = self.dialect.json_extract_text("data", "observedAt")
         entity_key_expression = self.dialect.json_extract_text("data", "entityKey")
+        source = self._item_query_source(view)
         clauses, params = self._item_filter_clauses(
             collector_id=collector_id,
             run_id=run_id,
             decision=decision,
             entity_key=entity_key,
+            source_host=source_host,
+            q=q,
         )
+        filter_where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        filter_params = tuple(params)
         if cursor is not None:
             cursor_observed_at, cursor_entity_key, cursor_item_id = decode_item_cursor(cursor)
             clauses.append(f"({observed_at}, {entity_key_expression}, id) < (?, ?, ?)")
@@ -1298,17 +1736,23 @@ class Store:
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
         with self.connect() as connection:
             rows = connection.execute(
-                f"SELECT data FROM items {where} "
+                f"SELECT data FROM {source} {where} "
                 f"ORDER BY {observed_at} DESC, {entity_key_expression} DESC, id DESC LIMIT ?",
                 (*params, limit + 1),
             ).fetchall()
+            metadata = {}
+            if view == "entities":
+                metadata["total"] = int(connection.execute(
+                    f"SELECT COUNT(*) AS total FROM {source} {filter_where}", filter_params,
+                ).fetchone()["total"])
+                metadata["facets"] = self._item_facets(connection, source)
         has_more = len(rows) > limit
         items = [self.dialect.decode_json(row["data"]) for row in rows[:limit]]
         next_cursor = None
         if has_more and items:
             last = items[-1]
             next_cursor = encode_item_cursor(str(last["observedAt"]), str(last["entityKey"]), str(last["id"]))
-        return {"items": items, "nextCursor": next_cursor}
+        return {"items": items, "nextCursor": next_cursor, **metadata}
 
     def iter_items_export(
         self,
@@ -1317,6 +1761,9 @@ class Store:
         run_id: str | None = None,
         decision: str | None = None,
         entity_key: str | None = None,
+        view: str = "observations",
+        source_host: str | None = None,
+        q: str | None = None,
     ) -> Iterator[dict[str, Any]]:
         """Yield items in the same deterministic order as ``list_items_cursor``.
 
@@ -1327,17 +1774,20 @@ class Store:
 
         observed_at = self.dialect.json_extract_text("data", "observedAt")
         entity_key_expression = self.dialect.json_extract_text("data", "entityKey")
+        source = self._item_query_source(view)
         clauses, params = self._item_filter_clauses(
             collector_id=collector_id,
             run_id=run_id,
             decision=decision,
             entity_key=entity_key,
+            source_host=source_host,
+            q=q,
         )
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
         connection = self.connect()
         try:
             cursor = connection.execute(
-                f"SELECT data FROM items {where} ORDER BY {observed_at} DESC, {entity_key_expression} DESC, id DESC",
+                f"SELECT data FROM {source} {where} ORDER BY {observed_at} DESC, {entity_key_expression} DESC, id DESC",
                 tuple(params),
             )
             while batch := cursor.fetchmany(500):
@@ -1461,6 +1911,9 @@ class Store:
         before_digest: str | None,
         after_digest: str | None,
     ) -> dict[str, Any]:
+        if self.dialect.name == "postgresql":
+            lock_id = int.from_bytes(hashlib.sha256(f"audit:{tenant_id}".encode()).digest()[:8], signed=True)
+            connection.execute("SELECT pg_advisory_xact_lock(?)", (lock_id,))
         previous_row = connection.execute(
             "SELECT id, event_hash FROM audit_events WHERE tenant_id=? ORDER BY sequence DESC LIMIT 1",
             (tenant_id,),

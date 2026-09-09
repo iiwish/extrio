@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useMemo, useState } from 'react'
 import type { TFunction } from 'i18next'
 import { ArrowRight, Braces, CheckCircle2, ExternalLink, FileText, Fingerprint, GitCompareArrows, History, Link2, Network, ShieldCheck } from 'lucide-react'
 import { Link, useParams } from 'react-router-dom'
@@ -11,13 +12,21 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { QueryError } from '@/components/query-error'
+import { useWorkspaceLink, useWorkspaceSection } from '@/lib/workspace-navigation'
+import { readableContent } from '@/lib/content-presentation'
 
 export function ItemPage() {
   const { t } = useTranslation('items')
   const { itemId = '' } = useParams()
+  const workspaceLink = useWorkspaceLink()
+  const [section, setSection] = useWorkspaceSection(['content','revisions','quality','lineage'], 'content')
+  const [rawContent, setRawContent] = useState(false)
   const query = useQuery({ queryKey: ['item', itemId], queryFn: () => api.item(itemId) })
+  const body = useMemo(() => readableContent(query.data?.content ?? ''), [query.data?.content])
   if (query.isLoading) return <div className="page-frame"><Skeleton className="h-96 w-full" /></div>
   const item = query.data
+  if (!item && query.error) return <div className="page-frame"><QueryError error={query.error} onRetry={() => void query.refetch()} retrying={query.isFetching} /></div>
   if (!item) return <div className="empty-state"><h1>{t('detail.notFound')}</h1><Button asChild><Link to="/items">{t('detail.backToItems')}</Link></Button></div>
 
   const revisionLabel = item.revision === null ? t('detail.revisionMissing') : t('detail.revision', { count: item.revision })
@@ -26,10 +35,12 @@ export function ItemPage() {
     [t('detail.factRegion'), item.region],
     [t('detail.factBudget'), item.budget],
   ].filter(([, value]) => hasUsefulBusinessValue(value))
+  const titleConsistent = titlesConsistent(item.title, item.listTitle)
 
   return (
     <div className="run-workbench item-workbench">
       <div className="run-page-main item-page-main">
+        <QueryError error={query.error} onRetry={() => void query.refetch()} retrying={query.isFetching} />
         <header className="run-page-header item-page-header">
           <div>
             <div className="title-line"><h1>{item.title}</h1><StatusBadge status={item.decision} /></div>
@@ -41,7 +52,7 @@ export function ItemPage() {
           <Button asChild variant="outline"><a href={item.sourceUrl} target="_blank" rel="noreferrer">{t('detail.openSource')} <ExternalLink /></a></Button>
         </header>
 
-        <Tabs defaultValue="content" className="run-workspace-tabs item-workspace-tabs">
+        <Tabs value={section} onValueChange={setSection} className="run-workspace-tabs item-workspace-tabs">
           <div className="run-workspace-nav item-workspace-nav">
             <TabsList variant="line" aria-label={t('detail.viewsAria')}>
               <TabsTrigger value="content"><FileText />{t('detail.tabContent')}</TabsTrigger>
@@ -70,8 +81,8 @@ export function ItemPage() {
                 {businessFacts.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
               </dl>}
               <div className={`item-body-reading${item.content ? '' : ' is-empty'}`}>
-                <h3>{t('detail.announcementBody')}</h3>
-                <p>{item.content || t('detail.bodyMissing')}</p>
+                <div className="item-body-toolbar"><h3>{t('detail.announcementBody')}</h3>{body.isHtml && <div className="segmented" role="group" aria-label={t('detail.bodyView')}><Button size="sm" variant={rawContent ? 'ghost' : 'secondary'} aria-pressed={!rawContent} onClick={() => setRawContent(false)}>{t('detail.readable')}</Button><Button size="sm" variant={rawContent ? 'secondary' : 'ghost'} aria-pressed={rawContent} onClick={() => setRawContent(true)}><Braces />HTML</Button></div>}</div>
+                {rawContent && body.isHtml ? <pre className="item-raw-content">{item.content}</pre> : <p>{body.text || t('detail.bodyMissing')}</p>}
               </div>
             </section>
           </TabsContent>
@@ -84,7 +95,7 @@ export function ItemPage() {
 
             <section className="run-detail-section">
               <header><div><h2>{t('detail.observationTitle')}</h2><p>{t('detail.observationSubtitle')}</p></div></header>
-              {item.observationHistory.length > 0 ? <div className="observation-list item-observation-list">{item.observationHistory.map((observation, index) => <div key={observation.id}><span className="observation-marker">{index === item.observationHistory.length - 1 ? <CheckCircle2 /> : <History />}</span><div><strong>{observation.observedAt}</strong><StatusBadge status={observation.outcome} /><small><Link to={`/runs/${observation.runId}`}>{t('detail.viewObservationRun')} <ArrowRight /></Link></small></div></div>)}</div> : <div className="card-empty">{t('detail.observationEmpty')}</div>}
+              {item.observationHistory.length > 0 ? <div className="observation-list item-observation-list">{item.observationHistory.map((observation, index) => <div key={observation.id}><span className="observation-marker">{index === item.observationHistory.length - 1 ? <CheckCircle2 /> : <History />}</span><div><strong>{observation.observedAt}</strong><StatusBadge status={observation.outcome} /><small><Link to={workspaceLink(`/runs/${observation.runId}`)}>{t('detail.viewObservationRun')} <ArrowRight /></Link></small></div></div>)}</div> : <div className="card-empty">{t('detail.observationEmpty')}</div>}
             </section>
           </TabsContent>
 
@@ -94,7 +105,7 @@ export function ItemPage() {
               {item.rejectionReason && <div className="rejection-banner item-quality-rejection"><strong>{t('detail.rejectionReason')}</strong><p>{item.rejectionReason}</p></div>}
               <div className="run-proof-grid item-quality-grid">
                 <article className={item.decision === 'accepted' ? 'verified' : 'warning'}><ShieldCheck /><span><strong>{item.decision === 'accepted' ? t('detail.qualityGatePassed') : t('detail.qualityGateRejected')}</strong><small>{item.decision === 'accepted' ? t('detail.qualityGatePassedDetail') : t('detail.qualityGateRejectedDetail')}</small></span></article>
-                <article className={item.title === item.listTitle ? 'verified' : 'warning'}><CheckCircle2 /><span><strong>{item.title === item.listTitle ? t('detail.titleMatch') : t('detail.titleMismatch')}</strong><small>{item.title === item.listTitle ? t('detail.titleConsistent') : t('detail.titleInconsistent')}</small></span></article>
+                <article className={titleConsistent ? 'verified' : 'warning'}><CheckCircle2 /><span><strong>{titleConsistent ? t('detail.titleMatch') : t('detail.titleMismatch')}</strong><small>{titleConsistent ? t('detail.titleConsistent') : t('detail.titleInconsistent')}</small></span></article>
                 <article className="verified"><Network /><span><strong>{t('detail.sourceBoundaryPassed')}</strong><small>{item.sourceHost}</small></span></article>
                 <article className={item.content ? 'verified' : 'neutral'}><FileText /><span><strong>{item.content ? t('detail.bodyExtracted') : t('detail.bodyNotExtracted')}</strong><small>{item.content ? t('detail.bodyAvailable') : t('detail.bodyOptional')}</small></span></article>
               </div>
@@ -105,9 +116,9 @@ export function ItemPage() {
             <section className="run-detail-section item-lineage-section">
               <header><div><h2>{t('detail.lineageTitle')}</h2><p>{t('detail.lineageSubtitle')}</p></div><Fingerprint /></header>
               <div className="item-lineage-links">
-                <article><Network /><span><small>{t('detail.collectorLabel')}</small><Link to={`/collectors/${item.collectorId}`}>{collectorSourceLabel(item.collectorName, item.sourceHost)} <ArrowRight /></Link></span></article>
+                <article><Network /><span><small>{t('detail.collectorLabel')}</small><Link to={workspaceLink(`/collectors/${item.collectorId}`)}>{collectorSourceLabel(item.collectorName, item.sourceHost)} <ArrowRight /></Link></span></article>
                 <article><Link2 /><span><small>{t('detail.sourceLabel')}</small><a href={item.sourceUrl} target="_blank" rel="noreferrer">{item.sourceUrl} <ExternalLink /></a></span></article>
-                <article><History /><span><small>{t('detail.latestRunLabel')}</small><Link to={`/runs/${item.lineage.runId}`}>{t('detail.viewRunRecord')} <ArrowRight /></Link></span></article>
+                <article><History /><span><small>{t('detail.latestRunLabel')}</small><Link to={workspaceLink(`/runs/${item.lineage.runId}`)}>{t('detail.viewRunRecord')} <ArrowRight /></Link></span></article>
               </div>
               <details className="run-technical-details item-technical-details">
                 <summary><Braces /><span><strong>{t('detail.technicalTitle')}</strong><small>{t('detail.technicalSubtitle')}</small></span><ArrowRight /></summary>
@@ -127,6 +138,19 @@ export function ItemPage() {
       </div>
     </div>
   )
+}
+
+function titlesConsistent(detailTitle: string, listTitle: string) {
+  return normalizeTitle(detailTitle) === normalizeTitle(listTitle)
+}
+
+function normalizeTitle(value: string) {
+  return value
+    .normalize('NFKC')
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/^(?:【[^】]{1,20}】|\[[^\]]{1,20}\]|\([^)]{1,20}\)|（[^）]{1,20}）)/u, '')
+    .replace(/[^\p{L}\p{N}]+/gu, '')
 }
 
 function changeTypeLabel(type: NonNullable<HarvestItem['changeType']>, t: TFunction) {

@@ -42,7 +42,7 @@ describe('ItemsPage operational list', () => {
     expect(screen.getByRole('heading', { name: '数据' })).toHaveClass('sr-only')
     expect(screen.queryByLabelText('数据概览')).not.toBeInTheDocument()
     expect(toolbar.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(within(toolbar).getByRole('combobox', { name: '按 Source 筛选' }).compareDocumentPosition(within(toolbar).getByRole('textbox', { name: '搜索 Item' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(within(toolbar).getByRole('combobox', { name: '按站点域名筛选' }).compareDocumentPosition(within(toolbar).getByRole('textbox', { name: '搜索 Item' })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(within(list).getByText('变化 / Revision')).toBeInTheDocument()
     expect(rows[0]).toHaveClass('object-row')
     expect(rows[0]).not.toHaveClass('entity-card')
@@ -60,8 +60,8 @@ describe('ItemsPage operational list', () => {
     await user.type(screen.getByRole('textbox', { name: '搜索 Item' }), targetTitle.slice(0, 5))
 
     expect(within(list).getAllByRole('link').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getByRole('combobox', { name: '按 Source 筛选' })).toBeInTheDocument()
-    expect(screen.getByRole('combobox', { name: '按 Collector 筛选' })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: '按站点域名筛选' })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: '按采集来源筛选' })).toBeInTheDocument()
     expect(screen.getByRole('group', { name: '质量决定筛选' })).toBeInTheDocument()
   })
 
@@ -76,7 +76,7 @@ describe('ItemsPage operational list', () => {
       }
       return json({ items: seedRuns[0].items, page: { nextCursor: null } })
     }))
-    renderPage('/items?collector=collector_shanghai_procurement&decision=accepted&q=KEY-2026')
+    renderPage('/items?collector=collector_shanghai_procurement&decision=accepted&source=example.com&q=KEY-2026')
 
     await user.click(screen.getByRole('button', { name: '导出当前筛选的数据' }))
     await user.click(await screen.findByText('导出 CSV'))
@@ -89,7 +89,10 @@ describe('ItemsPage operational list', () => {
     expect(exportUrl.searchParams.get('format')).toBe('csv')
     expect(exportUrl.searchParams.get('collectorId')).toBe('collector_shanghai_procurement')
     expect(exportUrl.searchParams.get('decision')).toBe('accepted')
-    expect(exportUrl.searchParams.get('entityKey')).toBe('KEY-2026')
+    expect(exportUrl.searchParams.get('q')).toBe('KEY-2026')
+    expect(exportUrl.searchParams.get('sourceHost')).toBe('example.com')
+    expect(exportUrl.searchParams.get('view')).toBe('entities')
+    expect(exportUrl.searchParams.has('entityKey')).toBe(false)
     expect(URL.createObjectURL).toHaveBeenCalledTimes(1)
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:export-mock')
   })
@@ -110,5 +113,37 @@ describe('ItemsPage operational list', () => {
     await user.click(await screen.findByText('导出 JSONL'))
 
     expect(await screen.findByText('导出数据量超过上限，请缩小筛选范围')).toBeInTheDocument()
+  })
+
+  it('loads the next entity page and searches on the server instead of the loaded page', async () => {
+    const user = userEvent.setup()
+    const original = seedRuns[0].items[0]
+    const older = { ...original, id: 'older', entityKey: 'older-key', title: 'Older result' }
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input), 'http://localhost')
+      const next = url.searchParams.has('cursor') || url.searchParams.has('q')
+      return json({ items: [next ? older : original], nextCursor: next ? null : 'next-page',
+        page: { nextCursor: next ? null : 'next-page' }, total: url.searchParams.has('q') ? 1 : 2,
+        facets: { sourceHosts: ['old.example.com'], collectors: [{ id: 'old-source', name: 'Old source' }] } })
+    }))
+    renderPage()
+    await screen.findByText(original.title)
+    await user.click(screen.getByRole('button', { name: '加载更多' }))
+    expect(await screen.findByText('Older result')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '加载更多' })).not.toBeInTheDocument()
+    await user.type(screen.getByRole('textbox', { name: '搜索 Item' }), 'Older')
+    await waitFor(() => expect(screen.queryByText(original.title)).not.toBeInTheDocument())
+    const calls = vi.mocked(fetch).mock.calls.map(([input]) => new URL(String(input), 'http://localhost'))
+    expect(calls.every(url => url.searchParams.get('view') === 'entities')).toBe(true)
+    expect(calls.some(url => url.searchParams.get('cursor') === 'next-page')).toBe(true)
+    expect(calls.some(url => url.searchParams.get('q') === 'Older' && !url.searchParams.has('cursor'))).toBe(true)
+  })
+
+  it('shows a retryable error rather than an empty list on query failure', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ code: 'INTERNAL_ERROR', message: 'Query unavailable', requestId: 'req_test', retryable: true }), { status: 503 })))
+    renderPage()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Query unavailable')
+    expect(screen.getByRole('button', { name: '重试' })).toBeInTheDocument()
+    expect(screen.queryByText('暂无匹配当前筛选与搜索的数据。')).not.toBeInTheDocument()
   })
 })

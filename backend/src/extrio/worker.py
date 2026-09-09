@@ -10,7 +10,7 @@ from extrio.contracts import ContractBundle
 from extrio.credentials import CredentialCipher
 from extrio.delivery import OUTCOME_DELIVERED, WebhookDispatcher
 from extrio.explorer import Crawl4AIExplorer
-from extrio.integrity import IntegrityError, verify_rule_attestation
+from extrio.integrity import IntegrityError, canonical_bytes, verify_rule_attestation
 from extrio.model_gateway import ModelRepairNotApplicableError, ModelRuleCompiler
 from extrio.runtime import CrawleeRuntime
 from extrio.store import DEFAULT_COLLECTOR_SCHEDULE, Store
@@ -31,6 +31,10 @@ def _revision_values(item: dict[str, Any], fingerprint_fields: list[str] | None 
             return {field: extracted.get(field) for field in fingerprint_fields}
         return extracted
     return {field: item.get(field) for field in REVISION_FIELDS}
+
+
+def _change_value(value: Any) -> str:
+    return value if isinstance(value, str) else canonical_bytes(value).decode("utf-8")
 
 
 def classify_items(
@@ -63,9 +67,9 @@ def classify_items(
         previous_values = _revision_values(previous, fingerprint_fields)
         current_values = _revision_values(item, fingerprint_fields)
         changes = [
-            {"field": field, "before": str(previous_values.get(field) or ""), "after": str(current_values.get(field) or "")}
+            {"field": field, "before": _change_value(previous_values.get(field)), "after": _change_value(current_values.get(field))}
             for field in sorted({*previous_values, *current_values})
-            if (previous_values.get(field) or "") != (current_values.get(field) or "")
+            if canonical_bytes(previous_values.get(field)) != canonical_bytes(current_values.get(field))
         ]
         item["changeSummary"] = changes
         item["observationHistory"] = [*previous.get("observationHistory", []), *item.get("observationHistory", [])][-50:]
@@ -108,9 +112,18 @@ class Worker:
         metrics: dict[str, int],
         ai_run_id: str | None = None,
     ) -> None:
-        self.store.update_operation(operation_id, status="running", phase=phase, progress=progress, metrics=metrics, error=None)
         if ai_run_id:
-            self.store.update_ai_run(ai_run_id, status="running", phase=phase, progress=progress, error=None)
+            self.store.update_ai_activity(
+                operation_id,
+                ai_run_id,
+                status="running",
+                phase=phase,
+                progress=progress,
+                metrics=metrics,
+                error=None,
+            )
+            return
+        self.store.update_operation(operation_id, status="running", phase=phase, progress=progress, metrics=metrics, error=None)
 
     def _complete_ai_run(self, ai_run_id: str, **changes: Any) -> dict[str, Any]:
         ai_run = self.store.get_ai_run(ai_run_id)
@@ -142,6 +155,17 @@ class Worker:
         if job["kind"] == "explore":
             if not ai_run_id:
                 raise RuntimeError("exploration job is missing its AI run")
+            collection_id = collector.get("collectionId")
+            expected_fields: list[dict[str, Any]] = []
+            if collection_id:
+                try:
+                    collection = self.store.get_collection(collection_id)
+                    if collection and isinstance(collection.get("fieldDraft"), dict):
+                        expected_fields = collection["fieldDraft"].get("fields") or []
+                except Exception:
+                    expected_fields = []
+            if expected_fields:
+                collector = {**collector, "expectedFields": expected_fields}
             # Repairs reuse the exploration pipeline end to end; the old
             # GatherSpec is read at processing time so the frozen contract
             # always comes from the collector's current published/candidate rule.
@@ -153,7 +177,13 @@ class Worker:
             attempt = self.store.start_ai_attempt(ai_run_id)
             job["payload"]["aiAttemptId"] = attempt["id"]
             result = await self.explorer.explore(
-                collector, operation_id, progress, ai_run_id, attempt["id"], repair_spec=repair_spec
+                collector,
+                operation_id,
+                progress,
+                ai_run_id,
+                attempt["id"],
+                repair_spec=repair_spec,
+                guidance=job["payload"].get("guidance"),
             )
             collector.update(
                 status="ready_review",
@@ -164,8 +194,14 @@ class Worker:
                 updatedAt="刚刚",
             )
             self.store.save_collector(collector)
-            self.store.update_operation(
-                operation_id, status="succeeded", phase="completed", progress=100, metrics=result.metrics, error=None
+            self.store.update_ai_activity(
+                operation_id,
+                ai_run_id,
+                status="succeeded",
+                phase="completed",
+                progress=100,
+                metrics=result.metrics,
+                error=None,
             )
             accepted_samples = sum(item.get("decision") == "accepted" for item in result.preview_items)
             rejected_samples = sum(item.get("decision") == "rejected" for item in result.preview_items)
@@ -366,9 +402,19 @@ class Worker:
             "details": {"jobKind": job["kind"]},
         }
         try:
-            self.store.update_operation(operation_id, status="failed", phase="completed", progress=100, error=error)
             ai_run_id = job["payload"].get("aiRunId")
             ai_attempt_id = job["payload"].get("aiAttemptId")
+            if ai_run_id:
+                self.store.update_ai_activity(
+                    operation_id,
+                    ai_run_id,
+                    status="failed",
+                    phase="completed",
+                    progress=100,
+                    error=error,
+                )
+            else:
+                self.store.update_operation(operation_id, status="failed", phase="completed", progress=100, error=error)
             if ai_attempt_id:
                 self.store.finish_ai_attempt(ai_attempt_id, status="failed", error=error)
             if ai_run_id:
