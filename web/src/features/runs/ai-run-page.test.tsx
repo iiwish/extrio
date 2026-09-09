@@ -46,4 +46,18 @@ describe('AiRunPage', () => {
     expect(screen.getByText('规则编译')).toBeInTheDocument()
     expect(screen.getByText('不保存原始提示词与响应正文', { exact: false })).toBeInTheDocument()
   })
+
+  it('shows bounded operator guidance and structured activity instead of a chat transcript', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText('候选规则等待审核')
+    await user.click(screen.getByRole('tab', { name: '执行过程' }))
+
+    expect(screen.getByText('本次操作指引')).toBeInTheDocument()
+    expect(screen.getByText('优先识别公告标题、发布日期和每行的详情入口。')).toBeInTheDocument()
+    expect(screen.getByText('AI 分析页面结构')).toBeInTheDocument()
+    expect(screen.getByText('识别分页与详情链接')).toBeInTheDocument()
+    expect(screen.getByText('验证候选规则')).toBeInTheDocument()
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+  })
 })

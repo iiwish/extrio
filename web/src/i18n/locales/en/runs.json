@@ -9,12 +9,12 @@
     "aria": "Runs toolbar",
     "filterAria": "Run status filter",
     "searchLabel": "Search runs",
-    "searchPlaceholder": "Search by collector name or Run ID",
+    "searchPlaceholder": "Search by source name or Run ID",
     "sortHint": "Newest first",
     "aiAria": "AI tasks toolbar",
     "aiFilterAria": "AI task status filter",
     "aiSearchLabel": "Search AI tasks",
-    "aiSearchPlaceholder": "Search by collector or source URL"
+    "aiSearchPlaceholder": "Search by source or source URL"
   },
   "filter": {
     "all": "All",
@@ -35,7 +35,7 @@
   },
   "aiList": {
     "aria": "AI task list",
-    "colCollector": "Collector",
+    "colCollector": "Source",
     "colTask": "Task",
     "colStatus": "Status",
     "colResult": "Result",
@@ -68,8 +68,10 @@
   "phase": {
     "queued": "Waiting to run",
     "fetching_list": "Reading source",
-    "discovering_details": "Analyzing pages",
+    "analyzing_structure": "AI analyzing structure",
+    "discovering_details": "Discovering detail links",
     "fetching_details": "Collecting samples",
+    "compiling_rule": "AI compiling rule",
     "validating": "Validating rule",
     "finalizing": "Finalizing results",
     "completed": "Completed"
@@ -104,7 +106,7 @@
   "detail": {
     "notFound": "Run not found",
     "backToRuns": "Back to runs",
-    "viewCollector": "View collector",
+    "viewCollector": "View source",
     "tabsAria": "Run detail views",
     "tab": {
       "results": "Results",

@@ -1,4 +1,9 @@
 {
+  "tabs": {
+    "system": "系统设置",
+    "models": "模型设置",
+    "modelReadOnly": "仅管理员可修改模型配置"
+  },
   "toolbar": {
     "overviewAria": "模型配置概况",
     "defaultModel": "默认模型",

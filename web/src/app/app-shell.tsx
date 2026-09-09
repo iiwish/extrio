@@ -1,13 +1,13 @@
-import { ArrowLeft, Database, Layers3, LayoutDashboard, LogOut, PlayCircle, Settings2 } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Database, FileText, Layers3, LayoutDashboard, PlayCircle, Settings2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { useAuth } from '@/features/auth/auth-gate'
+import { returnTarget } from '@/lib/workspace-navigation'
 
 const primaryNavItems = [
   { to: '/', key: 'nav.overview', icon: LayoutDashboard },
+  { to: '/collections', key: 'nav.collections', icon: FileText },
   { to: '/collectors', key: 'nav.collectors', icon: Layers3 },
   { to: '/runs', key: 'nav.runs', icon: PlayCircle },
   { to: '/items', key: 'nav.items', icon: Database },
@@ -30,7 +30,6 @@ function MainNav() {
 }
 
 export function AppShell() {
-  const { user, logout } = useAuth()
   const { t, i18n } = useTranslation(['common', 'app'])
   const location = useLocation()
   useEffect(() => {
@@ -44,16 +43,45 @@ export function AppShell() {
       ? t('nav.runs')
     : activeNavItem ? t(activeNavItem.key) : t('workbench', { ns: 'app' })
   const collectorDetail = location.pathname.startsWith('/collectors/') && location.pathname !== '/collectors/new'
+  const collectionDetail = location.pathname.startsWith('/collections/') && location.pathname !== '/collections/new'
   const runDetail = location.pathname.startsWith('/runs/')
   const aiRunDetail = location.pathname.startsWith('/ai-runs/')
   const itemDetail = location.pathname.startsWith('/items/')
   const [detailBackTarget, setTopbarBackTarget] = useState<string | null>(null)
-  const topbarBackTarget = collectorDetail ? detailBackTarget ?? '/collectors' : runDetail ? '/runs' : aiRunDetail ? '/runs?view=ai' : itemDetail ? '/items' : null
+  const requirementParams = new URLSearchParams(location.search)
+  const requirementSearch = new URLSearchParams()
+  for (const key of ['q', 'status', 'sort']) if (requirementParams.has(key)) requirementSearch.set(key, requirementParams.get(key)!)
+  const topbarBackTarget = collectionDetail ? `/collections${requirementSearch.size ? `?${requirementSearch}` : ''}` : collectorDetail ? detailBackTarget ?? '/collectors' : runDetail ? '/runs' : aiRunDetail ? '/runs?view=ai' : itemDetail ? '/items' : null
   const topbarBackLabel = runDetail || aiRunDetail
     ? t('action.detailBack', { target: t('nav.runs') })
-    : itemDetail
+      : itemDetail
       ? t('action.detailBack', { target: t('nav.items') })
-      : t('action.backToRequirement')
+      : collectionDetail ? t('action.detailBack', { target: t('nav.collections') })
+      : detailBackTarget ? t('action.backToRequirement') : t('action.detailBack', { target: t('nav.collectors') })
+  const collectionCreate = location.pathname === '/collections/new'
+  const collectorCreate = location.pathname === '/collectors/new' || collectionCreate
+  const requestedCollectionId = new URLSearchParams(location.search).get('collection')?.trim()
+  const collectorCreateBackTarget = collectionCreate ? '/collections' : requestedCollectionId
+    ? `/collections/${encodeURIComponent(requestedCollectionId)}`
+    : '/collectors'
+  const fallbackBackTarget = collectorCreate ? collectorCreateBackTarget : topbarBackTarget
+  const contextualBackTarget = fallbackBackTarget ? returnTarget(requirementParams, fallbackBackTarget) : null
+  const returnArea = contextualBackTarget?.startsWith('/ai-runs/') ? t('nav.runs') : navItems.find(item => item.to !== '/' && contextualBackTarget?.startsWith(item.to))
+  const returnAreaLabel = typeof returnArea === 'string' ? returnArea : returnArea ? t(returnArea.key) : currentArea
+  const contextualBackLabel = requirementParams.has('returnTo')
+    ? t('action.detailBack', { target: returnAreaLabel })
+    : collectorCreate ? (requestedCollectionId ? t('action.backToRequirement') : t('action.detailBack', { target: t(collectionCreate ? 'nav.collections' : 'nav.collectors') })) : topbarBackLabel
+  const subpage = collectorCreate
+    ? t(collectionCreate ? 'collections.create' : 'subnav.newCollector')
+    : collectionDetail ? t('collections.detail') : collectorDetail
+      ? t('subnav.collectorDetail')
+      : runDetail
+        ? t('subnav.runDetail')
+        : aiRunDetail
+          ? t('subnav.aiRunDetail')
+          : itemDetail
+            ? t('subnav.itemDetail')
+            : null
 
   return (
     <div className="app-shell">
@@ -74,15 +102,14 @@ export function AppShell() {
       <div className="app-column">
         <header className="topbar">
           <div className="topbar-context" aria-label={t('aria.currentPage')}>
-            {topbarBackTarget && <NavLink className="topbar-back" to={topbarBackTarget} aria-label={topbarBackLabel} title={topbarBackLabel}><ArrowLeft /></NavLink>}
-            <strong>{currentArea}</strong>
-          </div>
-          <div className="topbar-actions">
-            <span className="role-pill">{t(`roles.${user.role}`)}</span>
-            <span className="user-avatar" aria-label={t('aria.currentUser', { name: user.displayName })}>{user.displayName.slice(0, 1).toUpperCase()}</span>
-            <Button type="button" variant="ghost" size="icon-sm" onClick={logout} title={t('topbar.logout')} aria-label={t('topbar.logout')}>
-              <LogOut />
-            </Button>
+            {contextualBackTarget && <NavLink end className="topbar-back" to={contextualBackTarget} aria-label={contextualBackLabel} title={contextualBackLabel}><ArrowLeft /></NavLink>}
+            {subpage && contextualBackTarget
+              ? <nav className="topbar-trail" aria-label={t('aria.secondaryNavigation')}>
+                <NavLink end to={contextualBackTarget}>{returnAreaLabel}</NavLink>
+                <ChevronRight aria-hidden="true" />
+                <strong aria-current="page">{subpage}</strong>
+              </nav>
+              : <strong>{currentArea}</strong>}
           </div>
         </header>
         <main className="app-main">

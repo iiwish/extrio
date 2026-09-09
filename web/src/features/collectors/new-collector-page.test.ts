@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { collectorCreationContext, inspectSourceUrls, mergeSourceLines, parseImportedSourceUrls } from './new-collector-page'
+import { collectorCreationContext, inspectSourceDrafts, inspectSourceUrls } from './new-collector-page'
+import { SourceFileError, parseSourceFile } from './source-file-import'
 
 describe('collectorCreationContext', () => {
   it('starts a new requirement when the list is not filtered', () => {
@@ -14,7 +15,7 @@ describe('collectorCreationContext', () => {
     expect(collectorCreationContext(new URLSearchParams('collection=collection_procurement'))).toEqual({
       collectionId: 'collection_procurement',
       mode: 'existing',
-      returnPath: '/collectors?collection=collection_procurement',
+      returnPath: '/collections/collection_procurement',
     })
   })
 })
@@ -41,53 +42,98 @@ describe('inspectSourceUrls', () => {
     expect(rows).toHaveLength(1)
     expect(rows[0].status).toBe('valid')
   })
-})
-
-describe('parseImportedSourceUrls', () => {
-  it('splits file content on newlines, commas and semicolons while trimming and dropping empties', () => {
-    const fileText = [
-      'https://a.example.gov.cn/notices',
-      '',
-      'https://b.example.gov.cn/list, https://c.example.gov.cn/detail;',
-      '  https://d.example.gov.cn/rank  ',
-      ',;',
-    ].join('\n')
-
-    expect(parseImportedSourceUrls(fileText)).toEqual([
-      'https://a.example.gov.cn/notices',
-      'https://b.example.gov.cn/list',
-      'https://c.example.gov.cn/detail',
-      'https://d.example.gov.cn/rank',
-    ])
-  })
-
-  it('dedupes within the file and preserves first-seen order', () => {
-    const fileText = 'https://a.example.gov.cn,https://b.example.gov.cn\nhttps://a.example.gov.cn\nHTTPS://A.EXAMPLE.GOV.CN'
-    expect(parseImportedSourceUrls(fileText)).toEqual([
-      'https://a.example.gov.cn',
-      'https://b.example.gov.cn',
-      'HTTPS://A.EXAMPLE.GOV.CN',
+  it('rejects bare site roots and unsupported import modes', () => {
+    const drafts = parseSourceFile('sources.csv', [
+      'entryUrl,mode',
+      'https://a.example.gov.cn/,',
+      'https://a.example.gov.cn/notices,discover',
+    ].join('\n'))
+    expect(inspectSourceDrafts(drafts).map((row) => row.status)).toEqual(['invalid', 'invalid'])
+    expect(inspectSourceDrafts(drafts).map((row) => row.message)).toEqual([
+      '请填写具体列表页，不要使用站点根目录',
+      '当前仅支持 exact 模式',
     ])
   })
 })
 
-describe('mergeSourceLines', () => {
-  it('keeps existing lines, skips duplicates and reports added and skipped counts', () => {
-    const merged = mergeSourceLines(
-      'https://a.example.gov.cn\nhttps://b.example.gov.cn',
-      ['https://b.example.gov.cn', 'https://c.example.gov.cn', 'https://d.example.gov.cn'],
-    )
+describe('parseSourceFile', () => {
+  it('parses a real CSV by header and preserves quoted commas and semicolons', () => {
+    const rows = parseSourceFile('collectors.csv', [
+      '\uFEFFentryUrl,mode,name,scopeHint,notes',
+      '"https://a.example.gov.cn/notices",,"市级,采购意向","货物；服务","not a URL, still metadata"',
+      '"https://b.example.gov.cn/list",exact,区级采购意向,工程,second',
+    ].join('\r\n'))
 
-    expect(merged).toEqual({
-      text: 'https://a.example.gov.cn\nhttps://b.example.gov.cn\nhttps://c.example.gov.cn\nhttps://d.example.gov.cn',
-      added: 2,
-      skipped: 1,
+    expect(rows).toHaveLength(2)
+    expect(rows[0]).toMatchObject({
+      entryUrl: 'https://a.example.gov.cn/notices',
+      mode: 'exact',
+      name: '市级,采购意向',
+      scopeHint: '货物；服务',
+      lineNumber: 2,
     })
   })
 
-  it('trims existing lines, drops blanks and compares after trim', () => {
-    const merged = mergeSourceLines('  https://a.example.gov.cn  \n\n', ['https://a.example.gov.cn'])
+  it('accepts legacy URL, name and scope header aliases', () => {
+    const rows = parseSourceFile('collectors.csv', 'sourceUrl,siteName,contentScope\nhttps://a.example.gov.cn/notices,A站,公开招标')
+    expect(rows[0]).toMatchObject({ entryUrl: 'https://a.example.gov.cn/notices', name: 'A站', scopeHint: '公开招标' })
+  })
 
-    expect(merged).toEqual({ text: 'https://a.example.gov.cn', added: 0, skipped: 1 })
+  it('accepts the minimal one-column CSV contract', () => {
+    const rows = parseSourceFile('collectors.csv', 'entryUrl\nhttps://a.example.gov.cn/notices')
+    expect(rows[0]).toMatchObject({ entryUrl: 'https://a.example.gov.cn/notices', mode: 'exact' })
+  })
+
+  it('treats TXT as one URL per line instead of splitting punctuation', () => {
+    const rows = parseSourceFile('collectors.txt', 'https://a.example.gov.cn/list?q=a,b;c\nhttps://b.example.gov.cn/notices')
+    expect(rows.map((row) => row.entryUrl)).toEqual([
+      'https://a.example.gov.cn/list?q=a,b;c',
+      'https://b.example.gov.cn/notices',
+    ])
+  })
+
+  it('reports a missing URL column with a stable error code', () => {
+    expect(() => parseSourceFile('collectors.csv', 'name,notes\nA,missing URL')).toThrowError(SourceFileError)
+    try {
+      parseSourceFile('collectors.csv', 'name,notes\nA,missing URL')
+    } catch (error) {
+      expect(error).toMatchObject({ code: 'missingUrlColumn' })
+    }
+  })
+
+  it('rejects unquoted cells that create extra CSV columns', () => {
+    const malformedCsv = [
+      'entryUrl,name',
+      'https://a.example.gov.cn/notices,Procurement,unexpected',
+    ].join('\n')
+    expect(() => parseSourceFile('collectors.csv', malformedCsv)).toThrowError(SourceFileError)
+    try {
+      parseSourceFile('collectors.csv', malformedCsv)
+    } catch (error) {
+      expect(error).toMatchObject({ code: 'parseFailed' })
+    }
+  })
+
+  it.each([
+    ['collectors.json', '[]', 'unsupportedFormat'],
+    ['collectors.csv', 'entryUrl\n', 'empty'],
+    ['collectors.csv', 'entryUrl\nhttps://a.example.gov.cn/\uFFFD', 'encoding'],
+  ])('reports %s import failures with stable error codes', (fileName, contents, code) => {
+    try {
+      parseSourceFile(fileName, contents)
+      expect.fail('expected the import to fail')
+    } catch (error) {
+      expect(error).toMatchObject({ code })
+    }
+  })
+
+  it('rejects files over the 1000-row contract', () => {
+    const rows = Array.from({ length: 1001 }, (_, index) => `https://a.example.gov.cn/notices/${index}`)
+    try {
+      parseSourceFile('collectors.txt', rows.join('\n'))
+      expect.fail('expected the import to fail')
+    } catch (error) {
+      expect(error).toMatchObject({ code: 'tooManyRows' })
+    }
   })
 })

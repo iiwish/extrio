@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Bot, Check, ChevronDown, CircleAlert, Eye, EyeOff, KeyRound, MoreHorizontal, Pencil, Plus, Power, ShieldCheck, Star, Trash2, Users } from 'lucide-react'
+import { Bot, Check, ChevronDown, CircleAlert, Eye, EyeOff, KeyRound, LogOut, MoreHorizontal, Pencil, Plus, Power, RefreshCw, ShieldCheck, Star, Trash2, Users } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ApiRequestError, api } from '@/api/client'
+import { useDialogReturnFocus } from '@/lib/dialog-return-focus'
+import { ApiRequestError, api, apiEnvironmentLabel } from '@/api/client'
 import type {
   CreateUserInput,
   ModelConfiguration,
@@ -26,6 +27,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { Skeleton } from '@/components/ui/skeleton'
 
 type ProviderOption = { key: string; value: ModelProvider; labelKey: string; baseUrl: string }
 
@@ -79,6 +81,29 @@ function Status({ enabled, ready }: { enabled: boolean; ready?: boolean }) {
   return <span className="settings-status success"><Check />{t('status.enabled')}</span>
 }
 
+export function SystemSettingsPage() {
+  const { t } = useTranslation('settings')
+  const { user: currentUser, logout } = useAuth()
+  const logoutMutation = useMutation({mutationFn:logout})
+  return <div className="settings-page">
+    <div className="settings-preferences">
+      <label className="field-group grid-flow-col items-center">
+        <span>{t('language.label')}</span>
+        <Select value={getAppLanguage()} onValueChange={(value) => setAppLanguage(value as AppLanguage)}>
+          <SelectTrigger aria-label={t('language.label')} className="h-7 w-36"><SelectValue /></SelectTrigger>
+          <SelectContent>{APP_LANGUAGES.map((language) => <SelectItem key={language.code} value={language.code}>{language.label}</SelectItem>)}</SelectContent>
+        </Select>
+      </label>
+      <span className="settings-account"><strong>{currentUser.displayName || currentUser.username}</strong><span>{t(`common:roles.${currentUser.role}`)}</span></span>
+      <span className="settings-environment">{apiEnvironmentLabel()}</span>
+      <Button type="button" variant="ghost" size="icon-sm" disabled={logoutMutation.isPending} onClick={() => logoutMutation.mutate()} title={t('common:topbar.logout')} aria-label={t('common:topbar.logout')}><LogOut /></Button>
+    </div>
+    {logoutMutation.error && <Alert variant="destructive"><AlertDescription>{logoutMutation.error.message}</AlertDescription></Alert>}
+    {currentUser.role === 'administrator' && <CollectionPolicySection />}
+    {currentUser.role === 'administrator' && <UsersSection currentUserId={currentUser.id} />}
+  </div>
+}
+
 export function ModelSettingsPage() {
   const { t } = useTranslation('settings')
   const queryClient = useQueryClient()
@@ -92,14 +117,18 @@ export function ModelSettingsPage() {
   const [showApiKey, setShowApiKey] = useState(false)
   const [modelDraft, setModelDraft] = useState<ModelDraft | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget>(null)
+  const { containerRef, onClickCapture, onCloseAutoFocus } = useDialogReturnFocus<HTMLDivElement>(Boolean(providerDraft || modelDraft || deleteTarget))
   const [collapsedProviderIds, setCollapsedProviderIds] = useState<Set<string>>(new Set())
 
   const mutation = useMutation({
     mutationFn: api.updateModelConfiguration,
     onSuccess: (value) => queryClient.setQueryData(['model-configuration'], value),
   })
+  const readOnly = currentUser.role !== 'administrator'
+  const editingDisabled = readOnly || query.isPending || query.isError || mutation.isPending
 
   function persist(input: ModelConfigurationInput, onSuccess?: () => void) {
+    if (editingDisabled) return
     mutation.mutate(input, { onSuccess })
   }
 
@@ -194,23 +223,12 @@ export function ModelSettingsPage() {
     return model.enabled && provider?.enabled
   })
 
-  return <div className="page-frame settings-page">
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-      <label className="field-group grid-flow-col items-center">
-        <span>{t('language.label')}</span>
-        <Select value={getAppLanguage()} onValueChange={(value) => setAppLanguage(value as AppLanguage)}>
-          <SelectTrigger aria-label={t('language.label')} className="h-7 w-36"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {APP_LANGUAGES.map((language) => <SelectItem key={language.code} value={language.code}>{language.label}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </label>
-      <small className="credential-help">{t('language.description')}</small>
-    </div>
+  return <div className="settings-page" ref={containerRef} onClickCapture={onClickCapture}>
+    {readOnly && <p className="text-muted-foreground text-sm">{t('tabs.modelReadOnly')}</p>}
     <div className="settings-ai-toolbar" aria-label={t('toolbar.overviewAria')}>
       <div className="settings-default-model">
         <span><Star />{t('toolbar.defaultModel')}</span>
-        <Select value={configuration.defaultModelId ?? ''} onValueChange={(value) => persist(configurationInput(providers, models, value))} disabled={availableModels.length === 0 || mutation.isPending}>
+        <Select value={configuration.defaultModelId ?? ''} onValueChange={(value) => persist(configurationInput(providers, models, value))} disabled={availableModels.length === 0 || editingDisabled}>
           <SelectTrigger aria-label={t('toolbar.defaultModel')}><SelectValue placeholder={t('toolbar.defaultModelPlaceholder')} /></SelectTrigger>
           <SelectContent align="end">
             {availableModels.map((model) => {
@@ -220,10 +238,11 @@ export function ModelSettingsPage() {
           </SelectContent>
         </Select>
       </div>
-      <Button onClick={() => openProvider()}><Plus />{t('provider.add')}</Button>
+      <Button disabled={editingDisabled} onClick={() => openProvider()}><Plus />{t('provider.add')}</Button>
     </div>
 
-    {query.isError && <Alert variant="destructive"><AlertDescription>{query.error.message}</AlertDescription></Alert>}
+    {query.isError && <Alert variant="destructive"><AlertDescription>{query.error.message}<Button variant="outline" size="sm" onClick={() => query.refetch()}><RefreshCw />{t('common:action.retry')}</Button></AlertDescription></Alert>}
+    {query.isPending && <Skeleton className="h-32 w-full" aria-label={t('common:state.loading')} />}
     {mutation.error && <Alert variant="destructive"><AlertDescription>{mutation.error.message}</AlertDescription></Alert>}
 
     <div className="settings-provider-list" aria-label={t('toolbar.providerListAria')}>
@@ -238,9 +257,9 @@ export function ModelSettingsPage() {
             <Status enabled={provider.enabled} ready={provider.credentialConfigured} />
             <span className={`settings-secret${provider.credentialConfigured ? '' : ' warning'}`}><KeyRound />{provider.credentialConfigured ? t('provider.credentialConfigured') : t('provider.credentialMissing')}</span>
             <span className="settings-provider-count">{t('provider.modelCount', { count: providerModels.length })}</span>
-            <Button variant="outline" size="sm" className="settings-provider-add-model" onClick={() => openModel(undefined, provider.id)}><Plus />{t('model.add')}</Button>
+            <Button disabled={editingDisabled} variant="outline" size="sm" className="settings-provider-add-model" onClick={() => openModel(undefined, provider.id)}><Plus />{t('model.add')}</Button>
             <DropdownMenu>
-              <DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={t('provider.actionsAria', { name: provider.name })}><MoreHorizontal /></Button></DropdownMenuTrigger>
+              <DropdownMenuTrigger asChild><Button disabled={editingDisabled} variant="ghost" size="icon-sm" aria-label={t('provider.actionsAria', { name: provider.name })}><MoreHorizontal /></Button></DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onSelect={() => openProvider(provider)}><Pencil />{t('provider.edit')}</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => toggleProvider(provider)}><Power />{provider.enabled ? t('provider.disable') : t('provider.enable')}</DropdownMenuItem>
@@ -253,11 +272,11 @@ export function ModelSettingsPage() {
             {providerModels.map((model) => {
               const usable = Boolean(model.enabled && provider.enabled)
               return <div className="settings-model-row" key={model.id}>
-                <button type="button" className={`settings-model-default${model.isDefault ? ' is-active' : ''}`} aria-label={model.isDefault ? t('model.isDefaultAria', { name: model.modelId }) : t('model.setAsDefaultAria', { name: model.modelId })} disabled={!usable} onClick={() => persist(configurationInput(providers, models, model.id))}><Star /></button>
+                <button type="button" className={`settings-model-default${model.isDefault ? ' is-active' : ''}`} aria-label={model.isDefault ? t('model.isDefaultAria', { name: model.modelId }) : t('model.setAsDefaultAria', { name: model.modelId })} disabled={!usable || editingDisabled} onClick={() => persist(configurationInput(providers, models, model.id))}><Star /></button>
                 <span className="settings-model-identity"><strong>{model.modelId}</strong><small>{model.isDefault ? t('model.defaultTag') : t('model.tag')}</small></span>
                 <Status enabled={usable} />
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={t('model.actionsAria', { name: model.modelId })}><MoreHorizontal /></Button></DropdownMenuTrigger>
+                  <DropdownMenuTrigger asChild><Button disabled={editingDisabled} variant="ghost" size="icon-sm" aria-label={t('model.actionsAria', { name: model.modelId })}><MoreHorizontal /></Button></DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onSelect={() => openModel(model)}><Pencil />{t('model.edit')}</DropdownMenuItem>
                     {!model.isDefault && <DropdownMenuItem disabled={!usable} onSelect={() => persist(configurationInput(providers, models, model.id))}><Star />{t('model.setAsDefault')}</DropdownMenuItem>}
@@ -271,15 +290,11 @@ export function ModelSettingsPage() {
           </div>
         </section>
       })}
-      {!query.isLoading && configuration.providers.length === 0 && <div className="settings-empty"><Bot /><strong>{t('provider.emptyTitle')}</strong><Button onClick={() => openProvider()}><Plus />{t('provider.add')}</Button></div>}
+      {query.isSuccess && configuration.providers.length === 0 && <div className="settings-empty"><Bot /><strong>{t('provider.emptyTitle')}</strong></div>}
     </div>
 
-    {currentUser.role === 'administrator' && <CollectionPolicySection />}
-
-    {currentUser.role === 'administrator' && <UsersSection currentUserId={currentUser.id} />}
-
     <Dialog open={providerDraft !== null} onOpenChange={(open) => { if (!open && !mutation.isPending) setProviderDraft(null) }}>
-      <DialogContent className="settings-dialog">
+      <DialogContent className="settings-dialog" onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader><DialogTitle>{configuration.providers.some((provider) => provider.id === providerDraft?.id) ? t('provider.edit') : t('provider.add')}</DialogTitle><DialogDescription>{t('dialog.providerDescription')}</DialogDescription></DialogHeader>
         {providerDraft && <form id="provider-settings-form" className="settings-dialog-form" onSubmit={saveProvider}>
           <div className="field-group"><label htmlFor="provider-name">{t('dialog.nameLabel')}</label><Input id="provider-name" value={providerDraft.name} onChange={(event) => setProviderDraft({ ...providerDraft, name: event.target.value })} required autoFocus /></div>
@@ -311,7 +326,7 @@ export function ModelSettingsPage() {
     </Dialog>
 
     <Dialog open={modelDraft !== null} onOpenChange={(open) => { if (!open && !mutation.isPending) setModelDraft(null) }}>
-      <DialogContent className="settings-dialog">
+      <DialogContent className="settings-dialog" onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader><DialogTitle>{configuration.models.some((model) => model.id === modelDraft?.id) ? t('model.edit') : t('model.add')}</DialogTitle><DialogDescription>{t('dialog.modelDescription')}</DialogDescription></DialogHeader>
         {modelDraft && <form id="model-settings-form" className="settings-dialog-form" onSubmit={saveModel}>
           <div className="field-group"><label htmlFor="model-provider">{t('dialog.providerLabel')}</label><Select value={modelDraft.providerId} onValueChange={(value) => setModelDraft({ ...modelDraft, providerId: value })}><SelectTrigger id="model-provider" aria-label={t('dialog.modelProviderAria')}><SelectValue /></SelectTrigger><SelectContent>{configuration.providers.map((provider) => <SelectItem key={provider.id} value={provider.id}>{provider.name}</SelectItem>)}</SelectContent></Select></div>
@@ -323,7 +338,7 @@ export function ModelSettingsPage() {
     </Dialog>
 
     <Dialog open={deleteTarget !== null} onOpenChange={(open) => { if (!open && !mutation.isPending) setDeleteTarget(null) }}>
-      <DialogContent>
+      <DialogContent onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader><DialogTitle>{t('dialog.deleteTitle')}</DialogTitle><DialogDescription>{t('dialog.deleteDescription', { name: deleteTarget?.label ?? '' })}</DialogDescription></DialogHeader>
         <DialogFooter><Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={mutation.isPending}>{t('common:action.cancel')}</Button><Button variant="destructive" onClick={confirmDelete} disabled={mutation.isPending}><Trash2 />{t('dialog.deleteAction')}</Button></DialogFooter>
       </DialogContent>
@@ -385,6 +400,7 @@ function UsersSection({ currentUserId }: { currentUserId: string }) {
   const [passwordTarget, setPasswordTarget] = useState<User | null>(null)
   const [newPassword, setNewPassword] = useState('')
   const [toggleTarget, setToggleTarget] = useState<User | null>(null)
+  const { containerRef, onClickCapture, onCloseAutoFocus } = useDialogReturnFocus<HTMLElement>(Boolean(userDraft || passwordTarget || toggleTarget))
 
   const isLastActiveAdministrator = (row: User) => row.role === 'administrator' && row.enabled && activeAdministratorCount <= 1
   const isSelf = (row: User) => row.id === currentUserId
@@ -460,7 +476,7 @@ function UsersSection({ currentUserId }: { currentUserId: string }) {
 
   const toggleActionLabel = toggleTarget?.enabled ? t('users.actions.disable') : t('users.actions.enable')
 
-  return <section className="settings-users" aria-label={t('users.listAria')}>
+  return <section className="settings-users" aria-label={t('users.listAria')} ref={containerRef} onClickCapture={onClickCapture}>
     <header className="settings-users-toolbar">
       <div>
         <h2><Users aria-hidden="true" />{t('users.title')}</h2>
@@ -503,10 +519,10 @@ function UsersSection({ currentUserId }: { currentUserId: string }) {
         </span>
       </div>
     })}
-    {!query.isLoading && users.length === 0 && <div className="settings-users-none">{t('users.empty')}</div>}
+    {query.isSuccess && users.length === 0 && <div className="settings-users-none">{t('users.empty')}</div>}
 
     <Dialog open={userDraft !== null} onOpenChange={(open) => { if (!open && !pending) setUserDraft(null) }}>
-      <DialogContent className="settings-dialog">
+      <DialogContent className="settings-dialog" onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>{userDraft?.id ? t('users.dialog.editTitle') : t('users.dialog.addTitle')}</DialogTitle>
           <DialogDescription>{userDraft?.id ? t('users.dialog.editDescription') : t('users.dialog.addDescription')}</DialogDescription>
@@ -569,7 +585,7 @@ function UsersSection({ currentUserId }: { currentUserId: string }) {
     </Dialog>
 
     <Dialog open={passwordTarget !== null} onOpenChange={(open) => { if (!open && !updateMutation.isPending) setPasswordTarget(null) }}>
-      <DialogContent className="settings-dialog">
+      <DialogContent className="settings-dialog" onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>{t('users.dialog.resetTitle')}</DialogTitle>
           <DialogDescription>{t('users.dialog.resetDescription')}</DialogDescription>
@@ -605,7 +621,7 @@ function UsersSection({ currentUserId }: { currentUserId: string }) {
     </Dialog>
 
     <Dialog open={toggleTarget !== null} onOpenChange={(open) => { if (!open && !updateMutation.isPending) setToggleTarget(null) }}>
-      <DialogContent>
+      <DialogContent onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader>
           <DialogTitle>{t('users.dialog.toggleTitle', { action: toggleActionLabel })}</DialogTitle>
           <DialogDescription>{t('users.dialog.toggleDescription', { action: toggleActionLabel, name: toggleTarget?.displayName ?? '' })}</DialogDescription>

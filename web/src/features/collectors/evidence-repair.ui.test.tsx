@@ -44,6 +44,11 @@ interface RepairCall {
   body: { note?: string } | null
 }
 
+interface ExplorationCall {
+  idempotencyKey: string | null
+  body: { guidance?: string } | null
+}
+
 function jsonResponse(data: unknown, status = 200, headers: Record<string, string> = {}) {
   return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', ...headers } })
 }
@@ -104,7 +109,7 @@ describe('Collector evidence bundle and AI repair', () => {
 
     renderPage()
     const user = userEvent.setup()
-    await user.click(await screen.findByRole('button', { name: '导出该采集器的签名证据包（ZIP）' }))
+    await user.click(await screen.findByRole('button', { name: '导出该采集来源的签名证据包（ZIP）' }))
 
     await waitFor(() => expect(URL.createObjectURL).toHaveBeenCalledTimes(1))
     const blob = (URL.createObjectURL as ReturnType<typeof vi.fn>).mock.calls[0][0] as Blob
@@ -112,6 +117,44 @@ describe('Collector evidence bundle and AI repair', () => {
     const evidenceCall = fetchMock.mock.calls.find((call) => String(call[0]).endsWith('/evidence-bundle'))
     expect(evidenceCall).toBeDefined()
     expect(String(evidenceCall![0])).toContain(`/api/v1/collectors/${collectorId}/evidence-bundle`)
+  })
+
+  it('starts rule generation with one-run guidance instead of opening a chat', async () => {
+    const collector = {
+      ...structuredClone(seedCollectors[0]),
+      status: 'draft' as const,
+      candidate: null,
+      previewItems: [],
+    }
+    const explorationCalls: ExplorationCall[] = []
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const path = new URL(String(input), 'http://localhost').pathname
+      if (path === `/api/v1/collectors/${collectorId}` && init?.method !== 'POST') return jsonResponse(collector)
+      if (path === '/api/v1/ai-runs') return jsonResponse({ items: [], page: { nextCursor: null } })
+      if (path === `/api/v1/collectors/${collectorId}/explorations`) {
+        explorationCalls.push({
+          idempotencyKey: new Headers(init?.headers).get('Idempotency-Key'),
+          body: JSON.parse(String(init?.body)) as { guidance?: string },
+        })
+        return jsonResponse(operationQueued, 202, { Location: operationQueued.statusUrl })
+      }
+      if (path === operationQueued.statusUrl) return jsonResponse(operationSucceeded)
+      return jsonResponse({ message: 'Not found' }, 404)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    renderPage()
+    const user = userEvent.setup()
+    await user.click(await screen.findByRole('button', { name: '生成候选规则' }))
+
+    expect(await screen.findByRole('dialog')).toHaveTextContent('结果必须经过人工审核才能发布')
+    await user.type(screen.getByLabelText('本次希望 AI 重点关注什么（可选）'), '标题在公告名称列。')
+    await user.click(screen.getByRole('button', { name: '开始生成' }))
+
+    await waitFor(() => expect(explorationCalls).toHaveLength(1))
+    expect(explorationCalls[0].idempotencyKey).toBeTruthy()
+    expect(explorationCalls[0].body).toEqual({ guidance: '标题在公告名称列。' })
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
   })
 
   it('starts the AI rule repair with the note and refreshes the collector after the operation', async () => {
@@ -173,7 +216,29 @@ describe('Collector evidence bundle and AI repair', () => {
     await user.click(await screen.findByRole('button', { name: '启动 AI 规则修复' }))
     await user.click(await screen.findByRole('button', { name: '启动修复' }))
 
-    await screen.findByText('该采集器没有可修复的规则')
+    await screen.findByText('该采集来源没有可修复的规则')
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('explains how to recover when a queued operation has not been claimed', async () => {
+    const collector = {
+      ...structuredClone(seedCollectors[0]),
+      status: 'exploring' as const,
+      activeOperationId: operationQueued.id,
+    }
+    const stalledOperation = { ...operationQueued, queuedAt: '2026-09-04T00:00:00Z' }
+    const fetchMock = vi.fn(async (input: string | URL | Request) => {
+      const path = new URL(String(input), 'http://localhost').pathname
+      if (path === `/api/v1/collectors/${collectorId}`) return jsonResponse(collector)
+      if (path === '/api/v1/ai-runs') return jsonResponse({ items: [], page: { nextCursor: null } })
+      if (path === stalledOperation.statusUrl) return jsonResponse(stalledOperation)
+      return jsonResponse({ message: 'Not found' }, 404)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    renderPage()
+
+    expect(await screen.findByText('等待 Worker 超时')).toBeInTheDocument()
+    expect(screen.getByText(/extrio-worker 正在运行/)).toBeInTheDocument()
   })
 })

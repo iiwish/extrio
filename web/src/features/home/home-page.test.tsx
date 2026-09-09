@@ -21,6 +21,10 @@ describe('HomePage operational dashboard', () => {
     const dashboardItems = dashboardRuns.flatMap((run) => run.items.map((item) => ({ ...item, observedAt: startedAtIso })))
     vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request) => {
       const path = new URL(String(input), 'http://localhost').pathname
+      if (path.endsWith('/overview')) {
+        const bucket = { key: 'today', labelDate: '2026-09-06', start: '2026-09-06T00:00:00Z', end: '2026-09-07T00:00:00Z', runs: 1, completed: 1, successful: 0, partial: 1, failed: 0, active: 0, accepted: 2050, rejected: 10 }
+        return json({ generatedAt: startedAtIso, timezone: 'UTC', today: bucket, week: bucket, collectors: {total: 2, published: 1}, monthEntities: {total: 800, accepted: 790, rejected: 10}, trends: Object.fromEntries(['day','week','month'].map(unit => [unit, Array.from({length: unit === 'day' ? 14 : 12}, (_,i) => ({...bucket, key: `${unit}-${i}`, ...(i ? {runs:0, completed:0, partial:0, accepted:0, rejected:0} : {})}))])) })
+      }
       if (path.endsWith('/collectors')) return json({ items: seedCollectors, page: { nextCursor: null } })
       if (path.endsWith('/runs')) return json({ items: dashboardRuns, page: { nextCursor: null } })
       if (path.endsWith('/items')) return json({ items: dashboardItems, page: { nextCursor: null } })
@@ -38,9 +42,12 @@ describe('HomePage operational dashboard', () => {
 
     expect(await screen.findByText('今日采集')).toBeInTheDocument()
     expect(await screen.findByText('1/2')).toBeInTheDocument()
+    expect(screen.getByText('2050')).toBeInTheDocument()
+    expect(screen.getByText('790')).toBeInTheDocument()
+    expect(vi.mocked(fetch).mock.calls.some(([url]) => String(url).includes('/items'))).toBe(false)
     expect(screen.queryByText('采集运营')).not.toBeInTheDocument()
     expect(screen.queryByText('产出、质量与需要介入的异常')).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: '新建采集器' })).toHaveAttribute('href', '/collectors/new')
+    expect(screen.getByRole('link', { name: '新建采集来源' })).toHaveAttribute('href', '/collectors/new')
     const periodControl = screen.getByRole('group', { name: '趋势聚合口径' })
     expect(within(periodControl).getByRole('button', { name: '按日' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('heading', { name: '概览' })).toHaveClass('sr-only')
@@ -55,6 +62,16 @@ describe('HomePage operational dashboard', () => {
     expect(screen.queryByRole('heading', { name: '系统状态' })).not.toBeInTheDocument()
     expect(screen.queryByText('当前最优先')).not.toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: '最近数据' })).not.toBeInTheDocument()
+  })
+
+  it('does not report zero or healthy when the overview cannot load and offers retry', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({message:'Unavailable'}), {status:503})))
+    renderPage()
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(screen.getByRole('button', {name:'刷新'})).toBeInTheDocument()
+    expect(screen.queryByText('所有采集来源均已发布')).not.toBeInTheDocument()
+    expect(screen.queryByText('运行正常')).not.toBeInTheDocument()
+    expect(screen.queryByText('0 次运行 · 0 条拒绝')).not.toBeInTheDocument()
   })
 
   it('uses an aggregated trend and a short exception list without exposing technical IDs', async () => {

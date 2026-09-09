@@ -13,6 +13,8 @@ import {
   Globe2,
   Plus,
   Search,
+  RefreshCw,
+  X,
 } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -25,6 +27,8 @@ import { collectorDisplayName, sourceLocationLabel } from './collector-presentat
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { QueryError } from '@/components/query-error'
+import { useWorkspaceLink } from '@/lib/workspace-navigation'
 
 type CollectorFilter = 'all' | 'attention' | 'published'
 
@@ -34,6 +38,7 @@ function actionFor(collector: CollectorDetail, latestRun: Run | undefined, t: TF
   if (collector.status === 'draft') return { label: t('list.nextStep.startExploration'), detail: t('list.nextStep.startExplorationDetail'), tone: 'warning' as const, icon: Globe2 }
   if (collector.status === 'ready_review') return { label: t('list.nextStep.finishReview'), detail: t('list.nextStep.finishReviewDetail'), tone: 'warning' as const, icon: FileCheck2 }
   if (!collector.activeRuleVersion) return { label: t('list.nextStep.checkPublish'), detail: t('list.nextStep.checkPublishDetail'), tone: 'danger' as const, icon: AlertTriangle }
+  if (!latestRun && collector.latestRunId) return { label: t('list.nextStep.handleLatestRun'), detail: t('common:state.unavailable'), tone: 'warning' as const, icon: CircleAlert }
   if (!latestRun) return { label: t('list.nextStep.firstRun'), detail: t('list.nextStep.firstRunDetail'), tone: 'primary' as const, icon: Activity }
   if (attentionRunStatuses.has(latestRun.status) || latestRun.rejectedCount > 0) {
     return { label: t('list.nextStep.handleLatestRun'), detail: t('list.run.acceptedRejected', { accepted: latestRun.acceptedCount, rejected: latestRun.rejectedCount }), tone: 'danger' as const, icon: CircleAlert }
@@ -48,11 +53,13 @@ function needsAttention(collector: CollectorDetail, latestRun?: Run) {
 export function CollectorsPage() {
   const { t } = useTranslation('collectors')
   const { user } = useAuth()
-  const canCreateCollector = user.role !== 'viewer'
+  const canCreateCollector = user.role === 'engineer' || user.role === 'administrator'
   const query = useQuery({ queryKey: ['collectors'], queryFn: api.collectors })
   const runsQuery = useQuery({ queryKey: ['runs'], queryFn: api.runs })
   const [searchParams, setSearchParams] = useSearchParams()
-  const filter = (searchParams.get('view') as CollectorFilter | null) ?? 'all'
+  const requestedView = searchParams.get('view')
+  const filter: CollectorFilter = requestedView === 'attention' || requestedView === 'published' ? requestedView : 'all'
+  const search = searchParams.get('q') ?? ''
   const collectionFilter = searchParams.get('collection') ?? 'all'
   const collectors = query.data ?? []
   const runsById = new Map((runsQuery.data ?? []).map((run) => [run.id, run]))
@@ -65,10 +72,14 @@ export function CollectorsPage() {
   const filtered = collectors.filter((collector) => {
     const matchesCollection = collectionFilter === 'all' || collector.collectionId === collectionFilter
     const matchesView = filter === 'all' || (filter === 'attention' ? needsAttention(collector, latestRunFor(collector)) : collector.status === 'published')
-    return matchesCollection && matchesView
+    const matchesSearch = `${collector.name} ${collector.sourceUrl} ${collector.collectionName}`.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())
+    return matchesCollection && matchesView && matchesSearch
   })
   const attentionCount = collectors.filter((collector) => needsAttention(collector, latestRunFor(collector))).length
   const publishedCount = collectors.filter((collector) => collector.status === 'published').length
+  const ready = Boolean(query.data && runsQuery.data)
+  const count = (value: number) => ready ? value : '—'
+  function refresh() { void query.refetch(); void runsQuery.refetch() }
   const createCollectorPath = collectionFilter === 'all'
     ? '/collectors/new'
     : `/collectors/new?collection=${encodeURIComponent(collectionFilter)}`
@@ -88,23 +99,26 @@ export function CollectorsPage() {
       <h1 className="sr-only">{t('common:nav.collectors')}</h1>
       <div className="filter-card collector-toolbar" aria-label={t('list.toolbarAria')}>
         <div className="segmented" role="group" aria-label={t('list.filterGroupAria')}>
-          <Button variant={filter === 'all' ? 'secondary' : 'ghost'} size="sm" onClick={() => setFilter('all')}>{t('list.filterAll')} <span>{collectors.length}</span></Button>
-          <Button variant={filter === 'attention' ? 'secondary' : 'ghost'} size="sm" onClick={() => setFilter('attention')}>{t('list.filterAttention')} <span>{attentionCount}</span></Button>
-          <Button variant={filter === 'published' ? 'secondary' : 'ghost'} size="sm" onClick={() => setFilter('published')}>{t('list.filterPublished')} <span>{publishedCount}</span></Button>
+          <Button aria-pressed={filter === 'all'} variant={filter === 'all' ? 'secondary' : 'ghost'} size="sm" onClick={() => setFilter('all')}>{t('list.filterAll')} <span>{count(collectors.length)}</span></Button>
+          <Button aria-pressed={filter === 'attention'} variant={filter === 'attention' ? 'secondary' : 'ghost'} size="sm" onClick={() => setFilter('attention')}>{t('list.filterAttention')} <span>{count(attentionCount)}</span></Button>
+          <Button aria-pressed={filter === 'published'} variant={filter === 'published' ? 'secondary' : 'ghost'} size="sm" onClick={() => setFilter('published')}>{t('list.filterPublished')} <span>{count(publishedCount)}</span></Button>
         </div>
         <div className="collector-view-controls">
+          <div className="toolbar-search source-list-search"><Search size={16} /><Input aria-label={t('list.search')} placeholder={t('list.search')} value={search} onChange={event => updateParams({q:event.target.value})} />{search && <Button variant="ghost" size="icon-sm" aria-label={t('common:action.clearSearch')} title={t('common:action.clearSearch')} onClick={() => updateParams({q:null})}><X /></Button>}</div>
           <CollectionCombobox value={collectionFilter} collections={collections} onValueChange={(value) => updateParams({ collection: value === 'all' ? null : value })} />
+          <Button size="icon-sm" variant="outline" aria-label={t('common:action.refresh')} title={t('common:action.refresh')} disabled={query.isFetching || runsQuery.isFetching} onClick={refresh}><RefreshCw /></Button>
           {canCreateCollector && <Button asChild size="sm"><Link to={createCollectorPath}><Plus />{t('list.create')}</Link></Button>}
         </div>
       </div>
+      <QueryError error={query.error ?? runsQuery.error} onRetry={refresh} retrying={query.isFetching || runsQuery.isFetching} />
 
       <section className="object-list collector-object-list" aria-label={t('list.aria')}>
         <div className="object-list-head collector-list-grid" aria-hidden="true">
-          <span>{t('list.columns.collector')}</span><span>{t('list.columns.requirement')}</span><span>{t('list.columns.status')}</span><span>{t('list.columns.activeRule')}</span><span>{t('list.columns.latestRun')}</span><span>{t('list.columns.nextStep')}</span><span />
+          <span>{t('list.columns.collector')}</span><span>{t('list.columns.requirement')}</span><span>{t('list.columns.status')}</span><span>{t('list.columns.latestRun')}</span><span>{t('list.columns.nextStep')}</span><span />
         </div>
         {(query.isLoading || runsQuery.isLoading) && Array.from({ length: 5 }, (_, index) => <Skeleton className="collector-list-skeleton" key={index} />)}
         {!query.isLoading && !runsQuery.isLoading && filtered.map((collector) => <CollectorRow collector={collector} latestRun={latestRunFor(collector)} key={collector.id} />)}
-        {!query.isLoading && !runsQuery.isLoading && filtered.length === 0 && <div className="card-empty collector-list-empty">{t('list.empty')}</div>}
+        {ready && filtered.length === 0 && <div className="card-empty collector-list-empty">{t('list.empty')}</div>}
       </section>
     </div>
   )
@@ -159,14 +173,14 @@ function CollectionCombobox({ value, collections, onValueChange }: {
 
 function CollectorRow({ collector, latestRun }: { collector: CollectorDetail; latestRun?: Run }) {
   const { t } = useTranslation('collectors')
+  const workspaceLink = useWorkspaceLink()
   const action = actionFor(collector, latestRun, t)
   const ActionIcon = action.icon
-  return <Link className="object-row collector-list-grid collector-list-row" to={`/collectors/${collector.id}`}>
+  return <Link className="object-row collector-list-grid collector-list-row" to={workspaceLink(`/collectors/${collector.id}`)}>
     <span className="object-primary"><span className="source-icon"><Globe2 /></span><span><strong>{collectorDisplayName(collector.name)}</strong><small>{sourceLocationLabel(collector.sourceUrl, collector.sourceHost)}</small></span></span>
     <span className="collector-list-collection"><strong>{collector.collectionName}</strong><small>{collector.collectionVersion}</small></span>
-    <StatusBadge status={collector.status} />
-    <span className="collector-list-fact"><strong>{collector.activeRuleVersion ?? t('list.rule.notPublished')}</strong><small>{collector.collectionPolicy ? t('list.rule.policyVersion', { version: collector.collectionPolicy.version }) : t('list.rule.noPolicy')}</small></span>
-    <span className={`collector-list-fact ${latestRun && (attentionRunStatuses.has(latestRun.status) || latestRun.rejectedCount > 0) ? 'danger' : ''}`}><strong>{latestRun ? `${latestRun.status === 'succeeded' ? t('list.run.succeeded') : latestRun.status} · ${latestRun.duration}` : t('list.run.none')}</strong><small>{latestRun ? t('list.run.acceptedRejected', { accepted: latestRun.acceptedCount, rejected: latestRun.rejectedCount }) : t('list.run.awaitingFirst')}</small></span>
+    <span className="collector-list-fact" title={collector.activeRuleVersion ?? t('list.rule.notPublished')}><StatusBadge status={collector.status} /><small>{collector.collectionPolicy ? t('list.rule.policyVersion', { version: collector.collectionPolicy.version }) : t('list.rule.noPolicy')}</small></span>
+    <span className={`collector-list-fact ${latestRun && (attentionRunStatuses.has(latestRun.status) || latestRun.rejectedCount > 0) ? 'danger' : ''}`}><strong>{latestRun ? <><StatusBadge status={latestRun.status} /> · {latestRun.duration}</> : collector.latestRunId ? t('common:state.unavailable') : t('list.run.none')}</strong><small>{latestRun ? t('list.run.acceptedRejected', { accepted: latestRun.acceptedCount, rejected: latestRun.rejectedCount }) : collector.latestRunId ? '—' : t('list.run.awaitingFirst')}</small></span>
     <span className={`collector-action-cell ${action.tone}`}><ActionIcon /><span><strong>{action.label}</strong><small>{action.detail}</small></span></span>
     <ArrowRight className="row-arrow" />
   </Link>

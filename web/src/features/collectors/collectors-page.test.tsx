@@ -10,11 +10,11 @@ function json(data: unknown) {
   return new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json' } })
 }
 
-function renderPage() {
+function renderPage(entry = '/collectors') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[entry]}>
         <CollectorsPage />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -44,13 +44,13 @@ describe('CollectorsPage operational list', () => {
   it('renders a fixed-column list without layout switching or redundant labels', async () => {
     renderPage()
 
-    const list = await screen.findByLabelText('Collector 列表')
+    const list = await screen.findByLabelText('采集来源列表')
     await within(list).findByRole('link', { name: /北京市公共资源交易标讯/ })
-    const toolbar = screen.getByLabelText('采集器工具栏')
-    expect(within(toolbar).getByRole('link', { name: '新建采集器' })).toHaveAttribute('href', '/collectors/new')
-    expect(screen.queryByLabelText('采集器概览')).not.toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: '采集器' })).toHaveClass('sr-only')
-    expect(within(toolbar).queryByRole('group', { name: 'Collector 列表布局' })).not.toBeInTheDocument()
+    const toolbar = screen.getByLabelText('采集来源工具栏')
+    expect(within(toolbar).getByRole('link', { name: '新建采集来源' })).toHaveAttribute('href', '/collectors/new')
+    expect(screen.queryByLabelText('采集来源概览')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '采集来源' })).toHaveClass('sr-only')
+    expect(within(toolbar).queryByRole('group', { name: '采集来源列表布局' })).not.toBeInTheDocument()
     expect(within(toolbar).queryByText('采集需求')).not.toBeInTheDocument()
     expect(within(list).getByText('所属需求')).toBeInTheDocument()
     expect(within(list).getAllByRole('link')).toHaveLength(2)
@@ -72,6 +72,25 @@ describe('CollectorsPage operational list', () => {
 
     await user.click(within(listbox).getByRole('option', { name: /政府采购公告/ }))
     expect(combobox).toHaveTextContent('政府采购公告')
-    expect(screen.getByRole('link', { name: '新建采集器' })).toHaveAttribute('href', '/collectors/new?collection=collection_procurement')
+    expect(screen.getByRole('link', { name: '新建采集来源' })).toHaveAttribute('href', '/collectors/new?collection=collection_procurement')
+  })
+
+  it('searches sources and clears only the search, preserving the selected view', async () => {
+    const user = userEvent.setup()
+    renderPage('/collectors?view=attention&q=北京市')
+    const row = await screen.findByRole('link', {name:/北京市公共资源交易标讯/})
+    expect(row.getAttribute('href')).toContain('returnTo=')
+    expect(screen.getByRole('button', {name:/需处理/})).toHaveAttribute('aria-pressed', 'true')
+    await user.click(screen.getByRole('button', {name:'清空搜索'}))
+    expect(screen.getByRole('textbox', {name:'搜索采集来源'})).toHaveValue('')
+    expect(screen.getByRole('button', {name:/需处理/})).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('shows a retryable failure rather than an empty or healthy list', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({message:'Unavailable'}), {status:503})))
+    renderPage()
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(screen.getByRole('button', {name:'刷新'})).toBeInTheDocument()
+    expect(screen.queryByText('当前筛选下没有采集来源。')).not.toBeInTheDocument()
   })
 })

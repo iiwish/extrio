@@ -2,6 +2,16 @@ import type { components } from './generated/schema'
 
 type Schemas = components['schemas']
 
+export type Overview = Schemas['Overview']
+export type OverviewBucket = Schemas['OverviewBucket']
+
+export type Collection = Schemas['Collection']
+export type CollectionInput = Schemas['CollectionInput']
+export type CollectionField = Schemas['CollectionField']
+export type SourceFieldContract = Schemas['SourceFieldContract']
+export type CollectionUpdateInput = Schemas['CollectionUpdateInput']
+export type CollectionDetail = Omit<Schemas['CollectionDetail'], 'sources'> & { sources: CollectorDetail[] }
+
 export type CollectorStatus = Schemas['CollectorStatus']
 export type RunStatus = Schemas['RunStatus']
 export type OperationStatus = Schemas['OperationStatus']
@@ -22,6 +32,7 @@ export type UpdateUserInput = Schemas['UpdateUserInput']
 
 export type PlatformError = Schemas['PlatformError']
 export type Operation = Schemas['Operation']
+export type OperationActivity = Schemas['OperationActivity']
 export type CandidateField = Schemas['CandidateField']
 export type GatherSpec = Omit<Schemas['gather-spec.schema'], '$defs'>
 export type CandidateRule = Omit<Schemas['CandidateRule'], 'gatherSpec'> & { gatherSpec: GatherSpec }
@@ -37,9 +48,12 @@ export type CollectionPolicy = Schemas['CollectionPolicy']
 export type CollectionPolicyInput = Schemas['CollectionPolicyInput']
 export type CollectorSchedule = Schemas['CollectorSchedule']
 export type CollectorScheduleInput = Schemas['CollectorScheduleInput']
-export type CollectorCheckpoint = Schemas['CollectorCheckpoint']
-export type CollectorDetail = Omit<Schemas['CollectorDetail'], 'candidate'> & { candidate: CandidateRule | null }
+export type CollectorDetail = Omit<Schemas['CollectorDetail'], 'candidate'> & {
+  candidate: CandidateRule | null
+  collectionFields?: CollectionField[]
+}
 export type CreateCollectorInput = Schemas['CreateCollectorInput']
+export type ExplorationInput = Schemas['ExplorationInput']
 export type UpdateCollectorInput = Schemas['UpdateCollectorInput']
 export type CandidateRuleEditInput = Schemas['CandidateRuleEditInput']
 export type CreateCollectorsInput = Schemas['CreateCollectorsInput']

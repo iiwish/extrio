@@ -9,12 +9,12 @@
     "aria": "运行工具栏",
     "filterAria": "Run 状态筛选",
     "searchLabel": "搜索运行",
-    "searchPlaceholder": "搜索采集器名称或 Run ID",
+    "searchPlaceholder": "搜索采集来源名称或 Run ID",
     "sortHint": "按开始时间倒序",
     "aiAria": "AI 任务工具栏",
     "aiFilterAria": "AI 任务状态筛选",
     "aiSearchLabel": "搜索 AI 任务",
-    "aiSearchPlaceholder": "搜索采集器或来源 URL"
+    "aiSearchPlaceholder": "搜索采集来源或来源 URL"
   },
   "filter": {
     "all": "全部",
@@ -35,7 +35,7 @@
   },
   "aiList": {
     "aria": "AI 任务列表",
-    "colCollector": "采集器",
+    "colCollector": "采集来源",
     "colTask": "任务",
     "colStatus": "状态",
     "colResult": "结果",
@@ -68,8 +68,10 @@
   "phase": {
     "queued": "等待执行",
     "fetching_list": "读取来源",
-    "discovering_details": "分析页面",
+    "analyzing_structure": "AI 分析结构",
+    "discovering_details": "发现详情链接",
     "fetching_details": "采集样本",
+    "compiling_rule": "AI 编译规则",
     "validating": "验证规则",
     "finalizing": "整理结果",
     "completed": "已完成"
@@ -104,7 +106,7 @@
   "detail": {
     "notFound": "Run 不存在",
     "backToRuns": "返回运行",
-    "viewCollector": "查看采集器",
+    "viewCollector": "查看采集来源",
     "tabsAria": "运行详情视图",
     "tab": {
       "results": "结果",

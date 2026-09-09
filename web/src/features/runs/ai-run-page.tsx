@@ -1,22 +1,34 @@
 import { useQuery } from '@tanstack/react-query'
 import type { TFunction } from 'i18next'
-import { ArrowRight, Bot, Braces, Check, Clock3, FileCheck2, Fingerprint, ListChecks, Route, ShieldCheck, Sparkles, TriangleAlert } from 'lucide-react'
+import { ArrowRight, Bot, Braces, Check, Clock3, FileCheck2, Fingerprint, ListChecks, LoaderCircle, MessageSquareText, Route, ShieldCheck, Sparkles, TriangleAlert } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '@/api/client'
-import type { AiRunDetail, ModelInvocation } from '@/api/types'
+import type { AiRunDetail, ModelInvocation, OperationActivity } from '@/api/types'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { QueryError } from '@/components/query-error'
+import { useWorkspaceLink, useWorkspaceSection } from '@/lib/workspace-navigation'
 
 export function AiRunPage() {
   const { t } = useTranslation('aiRuns')
   const { aiRunId = '' } = useParams()
-  const query = useQuery({ queryKey: ['ai-run', aiRunId], queryFn: () => api.aiRunDetail(aiRunId) })
+  const workspaceLink = useWorkspaceLink()
+  const query = useQuery({
+    queryKey: ['ai-run', aiRunId],
+    queryFn: () => api.aiRunDetail(aiRunId),
+    refetchInterval: (current) => {
+      const status = current.state.data?.status
+      return status && ['queued', 'running', 'finalizing'].includes(status) ? 500 : false
+    },
+  })
+  const [section, setSection] = useWorkspaceSection(['result','process','models','evidence'], ['queued','running','finalizing'].includes(query.data?.status ?? '') ? 'process' : 'result')
 
   if (query.isLoading) return <div className="page-frame"><Skeleton className="h-80 w-full" /></div>
   const run = query.data
+  if (!run && query.error) return <div className="page-frame"><QueryError error={query.error} onRetry={() => void query.refetch()} retrying={query.isFetching} /></div>
   if (!run) return <div className="empty-state"><h1>{t('detail.notFound')}</h1><Button asChild><Link to="/runs?view=ai">{t('detail.backToAiRuns')}</Link></Button></div>
 
   const source = sourcePresentation(run.sourceUrl, run.collectorName)
@@ -26,6 +38,7 @@ export function AiRunPage() {
 
   return <div className="run-workbench ai-run-workbench">
     <div className="run-page-main">
+      <QueryError error={query.error} onRetry={() => void query.refetch()} retrying={query.isFetching} />
       <header className="run-page-header ai-run-page-header">
         <div>
           <div className="title-line"><h1 title={source.full}>{source.root}</h1><AiRunState run={run} /></div>
@@ -35,13 +48,13 @@ export function AiRunPage() {
           </div>
         </div>
         <Button asChild variant={run.reviewStatus === 'ready_review' ? 'default' : 'outline'}>
-          <Link to={`/collectors/${run.collectorId}`}>
+          <Link to={workspaceLink(`/collectors/${run.collectorId}${run.reviewStatus === 'ready_review' ? '?section=rule' : ''}`)}>
             {run.reviewStatus === 'ready_review' ? t('detail.reviewCandidate') : t('detail.viewCollector')} <ArrowRight />
           </Link>
         </Button>
       </header>
 
-      <Tabs defaultValue="result" className="run-workspace-tabs">
+      <Tabs value={section} onValueChange={setSection} className="run-workspace-tabs">
         <div className="run-workspace-nav">
           <TabsList variant="line" aria-label={t('detail.tabsAria')}>
             <TabsTrigger value="result"><Sparkles />{t('detail.tab.result')}</TabsTrigger>
@@ -67,6 +80,11 @@ export function AiRunPage() {
         </TabsContent>
 
         <TabsContent value="process" className="run-tab-panel">
+          <section className="run-detail-section ai-activity-section">
+            <header><div><h2>{t('detail.activityHeading')}</h2><p>{t('detail.activitySub')}</p></div>{active && <Badge variant="outline" className="ai-status-badge running"><span />{t('detail.activityStatus.running')}</Badge>}</header>
+            {(run.guidance || run.note) && <div className="ai-run-guidance"><MessageSquareText /><span><strong>{t('detail.guidanceHeading')}</strong><small>{t('detail.guidanceSub')}</small><p>{run.guidance ?? run.note}</p></span></div>}
+            <AiActivityTimeline activity={run.activity ?? []} />
+          </section>
           <section className="run-detail-section">
             <header><div><h2>{t('detail.attemptsHeading')}</h2><p>{t('detail.attemptsSub')}</p></div></header>
             <div className="ai-attempt-list">
@@ -147,6 +165,21 @@ function ModelInvocationRow({ invocation }: { invocation: ModelInvocation }) {
   </div>
 }
 
+function AiActivityTimeline({ activity }: { activity: OperationActivity[] }) {
+  const { t } = useTranslation('aiRuns')
+  if (activity.length === 0) return <div className="card-empty">{t('detail.activityEmpty')}</div>
+  return <ol className="ai-activity-timeline">
+    {activity.map((event, index) => {
+      const metric = activityMetric(t, event)
+      return <li className={event.status} key={`${event.phase}:${event.startedAt}:${index}`}>
+        <span className="ai-activity-marker">{event.status === 'running' ? <LoaderCircle className="animate-spin" /> : event.status === 'failed' ? <TriangleAlert /> : <Check />}</span>
+        <span className="ai-activity-copy"><strong>{phaseLabel(t, event.phase)}</strong><small>{formatDateTime(event.startedAt)} · {durationLabel(t, event.durationMs)}</small>{metric && <em>{metric}</em>}</span>
+        <Badge variant="outline">{t(`detail.activityStatus.${event.status}`)}</Badge>
+      </li>
+    })}
+  </ol>
+}
+
 function AiRunState({ run }: { run: AiRunDetail }) {
   const { t } = useTranslation('aiRuns')
   const active = ['queued', 'running', 'finalizing'].includes(run.status)
@@ -186,7 +219,15 @@ function reviewLabel(t: TFunction, status: AiRunDetail['reviewStatus']) {
 }
 
 function phaseLabel(t: TFunction, phase: AiRunDetail['phase']) {
-  return { queued: t('phase.queued'), fetching_list: t('phase.fetching_list'), discovering_details: t('phase.discovering_details'), fetching_details: t('phase.fetching_details'), validating: t('phase.validating'), finalizing: t('phase.finalizing'), completed: t('phase.completed') }[phase]
+  return { queued: t('phase.queued'), fetching_list: t('phase.fetching_list'), analyzing_structure: t('phase.analyzing_structure'), discovering_details: t('phase.discovering_details'), fetching_details: t('phase.fetching_details'), compiling_rule: t('phase.compiling_rule'), validating: t('phase.validating'), finalizing: t('phase.finalizing'), completed: t('phase.completed') }[phase]
+}
+
+function activityMetric(t: TFunction, event: OperationActivity) {
+  if (event.phase === 'fetching_list') return t('detail.activityMetric.listPages', { count: event.metrics.listPagesFetched })
+  if (event.phase === 'discovering_details') return t('detail.activityMetric.detailUrls', { count: event.metrics.detailUrlsDiscovered })
+  if (event.phase === 'fetching_details') return t('detail.activityMetric.detailPages', { count: event.metrics.detailPagesFetched })
+  if (event.phase === 'validating' || event.phase === 'finalizing' || event.phase === 'completed') return t('detail.activityMetric.warnings', { count: event.metrics.warningCount })
+  return null
 }
 
 function attemptStatusLabel(t: TFunction, status: AiRunDetail['attempts'][number]['status']) {

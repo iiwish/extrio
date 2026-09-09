@@ -1,8 +1,8 @@
 {
   "notFound": {
     "title": "无法打开对象",
-    "backToCollectors": "返回采集器",
-    "missingCollector": "Collector 不存在"
+    "backToCollectors": "返回采集来源",
+    "missingCollector": "采集来源不存在"
   },
   "header": {
     "currentPhase": "当前阶段：",
@@ -12,7 +12,7 @@
     "runningNow": "正在运行",
     "runNow": "立即运行",
     "operationIncomplete": "操作未完成",
-    "viewsAria": "采集器详情视图",
+    "viewsAria": "采集来源详情视图",
     "ruleReviewTab": "规则审核",
     "ruleTab": "规则",
     "configTab": "采集配置"
@@ -22,6 +22,7 @@
     "description": "查看当前字段、规则或 Item 的采集证据与谱系。"
   },
   "overview": {
+    "needsAttention": "最近运行需要处理",
     "pagination": {
       "maxPages": "最多 {{maxPages}} 页",
       "nextLink": "连续翻页，最多 {{maxPages}} 页",
@@ -30,7 +31,7 @@
     },
     "runningTitle": "正在执行采集任务",
     "state": {
-      "published": "采集器已就绪",
+      "published": "采集来源已就绪",
       "readyReview": "候选规则等待审核",
       "exploring": "正在生成候选规则",
       "draft": "来源定义已保存"
@@ -133,7 +134,23 @@
     "excludeOption": "排除字段",
     "viewFieldEvidence": "查看{{label}}证据",
     "samplesTitle": "样本数据与质量结论",
-    "samplesDescription": "选择一条样本查看 Item 谱系、详情 URL 和采集版本。"
+    "samplesDescription": "选择一条样本查看 Item 谱系、详情 URL 和采集版本。",
+    "contractCoverageLabel": "契约覆盖度",
+    "missingRequiredLabel": "必填缺口",
+    "contractGapTitle": "{{total}} 个必填需求字段缺失",
+    "contractGapDetail": "未在当前来源网页中提取到，属于阻断性契约缺口，需人工核对或修改需求。",
+    "matchedContract": "已对齐契约",
+    "extraField": "新发现字段",
+    "missingFieldsTitle": "需求未覆盖字段（契约缺口）",
+    "missingFieldsDescription": "所属需求已定义但当前采集源未能提取到的字段。发布后将在入库时自动补空。",
+    "missingCount": "共 {{total}} 个未覆盖",
+    "requirementStatus": "需求状态",
+    "runtimeTreatment": "运行时处理",
+    "gapSeverity": "缺口影响",
+    "sourceNotProvided": "源站未提供",
+    "fillsNull": "自动补空 (null)",
+    "gapBlocker": "阻断 (必填缺失)",
+    "gapOptional": "安全 (选填缺口)"
   },
   "flow": {
     "singleAria": "单阶段采集流程",
@@ -164,16 +181,16 @@
     "detailUrlSamples": "发现的详情 URL 样本"
   },
   "config": {
-    "gridAria": "采集器定义与规则工作区",
+    "gridAria": "采集来源定义与规则工作区",
     "definition": {
-      "title": "采集器定义",
+      "title": "采集来源定义",
       "requirement": "所属需求",
       "intent": "来源采集说明",
       "dataContract": "数据合同",
       "edit": "编辑",
-      "dialogTitle": "编辑采集器定义",
-      "dialogDescription": "所属需求与数据合同保持不变；采集器名称用于识别来源，来源采集说明和入口网址共同决定候选规则。",
-      "name": "采集器名称",
+      "dialogTitle": "编辑采集来源定义",
+      "dialogDescription": "所属需求与数据合同保持不变；采集来源名称用于识别来源，来源采集说明和入口网址共同决定候选规则。",
+      "name": "采集来源名称",
       "newRuleTitle": "需要生成新规则",
       "newRuleDescription": "当前候选将失效，已发布规则保持不可变并留作历史证据。",
       "saveOnly": "仅保存定义",
@@ -214,6 +231,14 @@
       "dialogDescription": "系统会重新访问 Source 并替换当前候选。已发布规则和历史 Run 不会改变；新候选必须重新审核和发布。",
       "confirm": "确认重新生成"
     },
+    "generate": {
+      "dialogTitle": "生成候选规则",
+      "dialogDescription": "系统将访问 Source、分析页面结构、编译受约束规则并执行确定性样本验证。结果必须经过人工审核才能发布。",
+      "guidanceLabel": "本次希望 AI 重点关注什么（可选）",
+      "guidancePlaceholder": "例如：标题在公告名称列，详情链接由每行的“查看”按钮打开",
+      "guidanceHint": "仅用于本次任务，最多 500 字。它不会放宽网络、安全、数据合同、验证或人工审核门。",
+      "confirm": "开始生成"
+    },
     "editor": {
       "editRule": "编辑规则",
       "dialogDescription": "修改 selector 与分页，保存后生成新的待审核候选。",
@@ -249,7 +274,7 @@
   "schedule": {
     "panelAria": "定时运行计划",
     "title": "定时运行",
-    "description": "控制采集器何时自动执行；已有运行尚未结束时跳过本次，不并发重复采集。",
+    "description": "控制采集来源何时自动执行；已有运行尚未结束时跳过本次，不并发重复采集。",
     "configure": "配置计划",
     "dialogTitle": "配置定时运行",
     "dialogDescription": "使用常用频率即可，Cron 仅在自定义模式下需要填写。",
@@ -331,6 +356,10 @@
         "titleList": "正在获取列表入口",
         "detail": "传输协议与主机边界已确认，正在读取 Source 响应。"
       },
+      "analyzingStructure": {
+        "title": "AI 正在分析页面结构",
+        "detail": "模型正在识别重复记录、字段位置和可执行的列表规则。"
+      },
       "discoveringDetails": {
         "title": "正在识别分页与详情链接",
         "detail": "正在生成列表 selector、分页策略和 detail URL 规则。"
@@ -338,6 +367,10 @@
       "fetchingDetails": {
         "title": "正在采集详情样本",
         "detail": "每个 detail URL 都在重新执行网络边界和请求预算检查。"
+      },
+      "compilingRule": {
+        "title": "AI 正在编译候选规则",
+        "detail": "模型正在把意图和样本转换为受约束的 RulePlan。"
       },
       "validating": {
         "titleSingle": "正在验证直接提取字段",
@@ -356,17 +389,26 @@
     "stage": {
       "queued": "排队",
       "fetch": "获取入口",
+      "analysis": "AI 结构分析",
+      "compile": "AI 规则编译",
       "validate": "字段验证",
       "finale": "候选终结"
     },
     "stageList": {
       "queued": "排队",
       "listPages": "列表分页",
+      "analysis": "AI 结构分析",
       "detailDiscovery": "详情发现",
       "detailFetch": "详情采集",
+      "compile": "AI 规则编译",
       "validate": "字段验证",
       "finale": "候选终结"
-    }
+    },
+    "viewDetails": "查看实时执行详情"
+  },
+  "queueStalled": {
+    "title": "等待 Worker 超时",
+    "detail": "任务尚未被领取。请确认 extrio-worker 正在运行，并与 API 使用同一数据库；Worker 恢复后任务会自动继续。"
   },
   "runs": {
     "phase": {
@@ -441,14 +483,14 @@
     "dialogDescription": "AI 将重新探索站点并生成修复候选规则。修复保留原数据契约（输出字段与质量门不变），必须经过人工审核后才能发布。",
     "noteLabel": "修复原因（可选）",
     "notePlaceholder": "例如：站点改版导致列表 selector 失效",
-    "notApplicable": "该采集器没有可修复的规则",
+    "notApplicable": "该采集来源没有可修复的规则",
     "confirm": "启动修复",
     "repairing": "正在启动修复"
   },
   "evidence": {
     "export": "导出证据包",
     "exporting": "正在导出",
-    "exportAria": "导出该采集器的签名证据包（ZIP）",
+    "exportAria": "导出该采集来源的签名证据包（ZIP）",
     "bundleError": "证据包生成失败，请调整范围后重试"
   }
 }

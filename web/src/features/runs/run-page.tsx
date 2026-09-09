@@ -11,9 +11,14 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { QueryError } from '@/components/query-error'
+import { useWorkspaceLink, useWorkspaceSection } from '@/lib/workspace-navigation'
+import { runTimestamp } from '@/lib/content-presentation'
 
 export function RunPage() {
-  const { t } = useTranslation('runs')
+  const { t, i18n } = useTranslation('runs')
+  const workspaceLink = useWorkspaceLink()
+  const [section, setSection] = useWorkspaceSection(['results','process','scope','quality'], 'results')
   const { runId = '' } = useParams()
   const queryClient = useQueryClient()
   const query = useQuery({ queryKey: ['run', runId], queryFn: () => api.runDetail(runId) })
@@ -43,6 +48,7 @@ export function RunPage() {
 
   if (query.isLoading) return <div className="page-frame"><Skeleton className="h-80 w-full" /></div>
   const run = query.data
+  if (!run && query.error) return <div className="page-frame"><QueryError error={query.error} onRetry={() => void query.refetch()} retrying={query.isFetching} /></div>
   if (!run) return <div className="empty-state"><h1>{t('detail.notFound')}</h1><Button asChild><Link to="/runs">{t('detail.backToRuns')}</Link></Button></div>
 
   const rejected = run.items.filter((item) => item.decision === 'rejected')
@@ -66,18 +72,19 @@ export function RunPage() {
   return (
     <div className="run-workbench">
       <div className="run-page-main">
+        <QueryError error={query.error} onRetry={() => void query.refetch()} retrying={query.isFetching} />
         <header className="run-page-header">
           <div>
             <div className="title-line"><h1 title={source.full}>{source.root}</h1><StatusBadge status={run.status} /></div>
             <div className="run-header-subtitle">
               {source.path && <span className="run-source-path" title={source.full}>{source.path}</span>}
-              <span className="run-header-meta">{t('detail.headerMeta', { started: run.startedAt, duration: run.duration, mode: executionModeLabel(t, run.executionMode) })}</span>
+              <span className="run-header-meta">{t('detail.headerMeta', { started: runTimestamp(run, i18n.language), duration: run.duration, mode: executionModeLabel(t, run.executionMode) })}</span>
             </div>
           </div>
-          <Button asChild variant="outline"><Link to={`/collectors/${run.collectorId}`}>{t('detail.viewCollector')} <ArrowRight /></Link></Button>
+          <Button asChild variant="outline"><Link to={workspaceLink(`/collectors/${run.collectorId}`)}>{t('detail.viewCollector')} <ArrowRight /></Link></Button>
         </header>
 
-        <Tabs defaultValue="results" className="run-workspace-tabs">
+        <Tabs value={section} onValueChange={setSection} className="run-workspace-tabs">
           <div className="run-workspace-nav">
             <TabsList variant="line" aria-label={t('detail.tabsAria')}>
               <TabsTrigger value="results"><ListTree />{t('detail.tab.results')}<span className="tab-count neutral">{run.acceptedCount + run.rejectedCount}</span></TabsTrigger>
@@ -108,7 +115,7 @@ export function RunPage() {
               <Alert className="run-diagnosis border-[#efd3a8] bg-[#fffaf1]">
                 <AlertTriangle className="text-[#b56a09]" />
                 <AlertTitle>{t('detail.partialTitle')}</AlertTitle>
-                <AlertDescription><strong>{run.summary}</strong><span>{run.recoveryAction}</span><span className="diagnosis-actions">{rejected[0] && <Button asChild size="sm"><Link to={`/items/${rejected[0].id}`}>{t('detail.viewRejected')} <ArrowRight /></Link></Button>}<Button asChild size="sm" variant="outline"><Link to={`/collectors/${run.collectorId}`}>{t('detail.reviseRule')}</Link></Button></span></AlertDescription>
+                <AlertDescription><strong>{run.summary}</strong><span>{run.recoveryAction}</span><span className="diagnosis-actions">{rejected[0] && <Button asChild size="sm"><Link to={workspaceLink(`/items/${rejected[0].id}`)}>{t('detail.viewRejected')} <ArrowRight /></Link></Button>}<Button asChild size="sm" variant="outline"><Link to={workspaceLink(`/collectors/${run.collectorId}?section=rule`)}>{t('detail.reviseRule')}</Link></Button></span></AlertDescription>
               </Alert>
             )}
             {unsuccessful && <Alert variant="destructive" className="run-diagnosis"><AlertTriangle /><AlertTitle>{t('detail.unsuccessfulTitle', { status: terminalLabel })}</AlertTitle><AlertDescription><strong>{run.summary}</strong><span>{run.recoveryAction}</span></AlertDescription></Alert>}
@@ -116,7 +123,7 @@ export function RunPage() {
             <section className="run-detail-section run-items-section">
               <header><div><h2>{t('detail.itemsHeading')}</h2><p>{t('detail.acceptedRejected', { accepted: run.acceptedCount, rejected: run.rejectedCount })}</p></div></header>
               {run.items.length > 0
-                ? <div className="sample-list item-results">{run.items.map((item) => <Link key={item.id} to={`/items/${item.id}`}><StatusBadge status={item.decision} /><span><strong>{item.title}</strong><small>{item.changeType ? `${changeTypeLabel(t, item.changeType)} · ` : ''}{t('detail.itemMeta', { published: item.publishedAt, observed: item.observedAt })}{item.rejectionReason ? ` · ${item.rejectionReason}` : ''}</small></span><ArrowRight /></Link>)}</div>
+                ? <div className="sample-list item-results">{run.items.map((item) => <Link key={item.id} to={workspaceLink(`/items/${item.id}`)}><StatusBadge status={item.decision} /><span><strong>{item.title}</strong><small>{item.changeType ? `${changeTypeLabel(t, item.changeType)} · ` : ''}{t('detail.itemMeta', { published: item.publishedAt, observed: item.observedAt })}{item.rejectionReason ? ` · ${item.rejectionReason}` : ''}</small></span><ArrowRight /></Link>)}</div>
                 : <div className="card-empty">{t('detail.noItems')}</div>}
             </section>
           </TabsContent>

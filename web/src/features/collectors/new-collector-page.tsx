@@ -1,19 +1,29 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import i18next from 'i18next'
-import { ArrowLeft, ArrowRight, CheckCircle2, CircleAlert, FileUp, Globe2, Layers3, ListPlus, XCircle } from 'lucide-react'
+import { ArrowRight, CheckCircle2, CircleAlert, Download, FileUp, Globe2, Layers3, ListPlus, Trash2, XCircle } from 'lucide-react'
 import { useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useBeforeUnload, useBlocker, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '@/api/client'
 import type { BatchCollectorImportResult } from '@/api/types'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
+import { returnTarget } from '@/lib/workspace-navigation'
+import {
+  MAX_SOURCE_FILE_BYTES,
+  MAX_SOURCE_ROWS,
+  SourceFileError,
+  manualSourceDrafts,
+  parseSourceFile,
+  type SourceDraft,
+} from './source-file-import'
 
-export interface SourceLineInspection {
+export interface SourceLineInspection extends SourceDraft {
   raw: string
   normalized?: string
   host?: string
@@ -26,25 +36,38 @@ export function collectorCreationContext(searchParams: URLSearchParams) {
   return {
     collectionId,
     mode: collectionId ? 'existing' as const : 'new' as const,
-    returnPath: collectionId ? `/collectors?collection=${encodeURIComponent(collectionId)}` : '/collectors',
+    returnPath: returnTarget(searchParams, collectionId ? `/collections/${encodeURIComponent(collectionId)}` : '/collectors'),
   }
 }
 
-export function inspectSourceUrls(value: string): SourceLineInspection[] {
+export function inspectSourceDrafts(drafts: SourceDraft[]): SourceLineInspection[] {
   const seen = new Set<string>()
-  return value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((raw) => {
+  return drafts.map((draft, index) => {
+    const raw = draft.entryUrl
+    const base = { ...draft, raw }
+    if (index >= MAX_SOURCE_ROWS) return { ...base, status: 'invalid', message: i18next.t('collectors:create.validation.rowLimit') }
+    if (draft.mode !== 'exact') return { ...base, status: 'invalid', message: i18next.t('collectors:create.validation.unsupportedMode') }
+    if (draft.name.length > 200) return { ...base, status: 'invalid', message: i18next.t('collectors:create.validation.nameTooLong') }
+    if (draft.scopeHint.length > 1000) return { ...base, status: 'invalid', message: i18next.t('collectors:create.validation.scopeTooLong') }
     let url: URL
     try {
       url = new URL(raw)
     } catch {
-      return { raw, status: 'invalid', message: i18next.t('collectors:create.validation.invalidFormat') }
+      return { ...base, status: 'invalid', message: i18next.t('collectors:create.validation.invalidFormat') }
     }
-    if (!['http:', 'https:'].includes(url.protocol)) return { raw, status: 'invalid', message: i18next.t('collectors:create.validation.unsupportedProtocol') }
+    if (!['http:', 'https:'].includes(url.protocol)) {
+      return { ...base, status: 'invalid', message: i18next.t('collectors:create.validation.unsupportedProtocol') }
+    }
     const normalized = url.toString()
-    if (seen.has(normalized)) return { raw, normalized, host: url.host, status: 'duplicate', message: i18next.t('collectors:create.validation.duplicate') }
+    if ((url.pathname === '' || url.pathname === '/') && !url.search) {
+      return { ...base, normalized, host: url.host, status: 'invalid', message: i18next.t('collectors:create.validation.exactEntryRequired') }
+    }
+    if (seen.has(normalized)) {
+      return { ...base, normalized, host: url.host, status: 'duplicate', message: i18next.t('collectors:create.validation.duplicate') }
+    }
     seen.add(normalized)
     return {
-      raw,
+      ...base,
       normalized,
       host: url.host,
       status: 'valid',
@@ -53,32 +76,22 @@ export function inspectSourceUrls(value: string): SourceLineInspection[] {
   })
 }
 
-export function parseImportedSourceUrls(fileText: string): string[] {
-  const seen = new Set<string>()
-  const parsed: string[] = []
-  for (const part of fileText.split(/[\r\n;,]+/)) {
-    const line = part.trim()
-    if (!line || seen.has(line)) continue
-    seen.add(line)
-    parsed.push(line)
-  }
-  return parsed
+export function inspectSourceUrls(value: string): SourceLineInspection[] {
+  return inspectSourceDrafts(manualSourceDrafts(value))
 }
 
-export function mergeSourceLines(existing: string, imported: string[]): { text: string; added: number; skipped: number } {
-  const existingLines = existing.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
-  const seen = new Set(existingLines)
-  const added: string[] = []
-  let skipped = 0
-  for (const line of imported) {
-    if (seen.has(line)) {
-      skipped += 1
-      continue
-    }
-    seen.add(line)
-    added.push(line)
-  }
-  return { text: [...existingLines, ...added].join('\n'), added: added.length, skipped }
+function downloadCsvTemplate() {
+  const content = [
+    'entryUrl,mode,name,scopeHint',
+    'http://www.ccgp-beijing.gov.cn/yxgk/sjcgyx/A002003001index_1.htm,exact,北京市级采购意向,采集北京市级预算单位采购意向',
+    'http://www.ccgp-beijing.gov.cn/yxgk/qjcgyx/A002003002index_1.htm,,北京区级采购意向,采集北京市区级预算单位采购意向',
+  ].join('\r\n')
+  const url = URL.createObjectURL(new Blob([`\uFEFF${content}`], { type: 'text/csv;charset=utf-8' }))
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = 'extrio-collector-import.csv'
+  anchor.click()
+  URL.revokeObjectURL(url)
 }
 
 export function NewCollectorPage() {
@@ -86,44 +99,54 @@ export function NewCollectorPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [searchParams] = useSearchParams()
+  const location = useLocation()
   const creationContext = collectorCreationContext(searchParams)
   const requestedCollectionId = creationContext.collectionId
-  const collectorsQuery = useQuery({ queryKey: ['collectors'], queryFn: api.collectors })
+  const collectorsQuery = useQuery({ queryKey: ['collections'], queryFn: api.collections })
   const [collectionMode, setCollectionMode] = useState<'existing' | 'new'>(creationContext.mode)
   const [selectedCollectionId, setSelectedCollectionId] = useState(requestedCollectionId)
   const [collectionName, setCollectionName] = useState('')
   const [sourceInput, setSourceInput] = useState('')
+  const [importedSources, setImportedSources] = useState<SourceDraft[]>([])
+  const [sourceFilter, setSourceFilter] = useState<'all' | 'valid' | 'issues'>('all')
   const [intent, setIntent] = useState('')
-  const [error, setError] = useState('')
+  const [formErrors, setFormErrors] = useState<{ collection?: string; intent?: string; sources?: string }>({})
   const [importResult, setImportResult] = useState<BatchCollectorImportResult | null>(null)
+  const submittedRef = useRef(false)
+  const dirty = Boolean(sourceInput.trim() || importedSources.length || collectionName.trim() || intent.trim())
+  const blocker = useBlocker(({currentLocation,nextLocation}) => !submittedRef.current && dirty && `${currentLocation.pathname}${currentLocation.search}` !== `${nextLocation.pathname}${nextLocation.search}`)
+  useBeforeUnload(event => { if (dirty && !submittedRef.current) { event.preventDefault(); event.returnValue = '' } })
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [sourceImportFeedback, setSourceImportFeedback] = useState('')
-  const sources = useMemo(() => inspectSourceUrls(sourceInput), [sourceInput])
+  const collectionNameRef = useRef<HTMLInputElement>(null)
+  const intentRef = useRef<HTMLTextAreaElement>(null)
+  const sourceInputRef = useRef<HTMLTextAreaElement>(null)
+  const [importedFileName, setImportedFileName] = useState('')
+  const [sourceImportError, setSourceImportError] = useState('')
+  const sourceDrafts = useMemo(() => [...importedSources, ...manualSourceDrafts(sourceInput)], [sourceInput, importedSources])
+  const sources = useMemo(() => inspectSourceDrafts(sourceDrafts), [sourceDrafts])
   const collections = useMemo(() => {
-    const byId = new Map<string, { id: string; name: string; intent: string; version: string; collectorCount: number }>()
-    for (const collector of collectorsQuery.data ?? []) {
-      const current = byId.get(collector.collectionId)
-      if (current) current.collectorCount += 1
-      else byId.set(collector.collectionId, {
-        id: collector.collectionId,
-        name: collector.collectionName,
-        intent: collector.intent,
-        version: collector.collectionVersion,
-        collectorCount: 1,
-      })
-    }
-    return [...byId.values()]
+    return (collectorsQuery.data ?? []).filter((value) => value.status === 'active').map((value) => ({
+      id: value.id, name: value.name, intent: value.intent, version: value.collectionVersion, collectorCount: value.sourceCount,
+    }))
   }, [collectorsQuery.data])
   const selectedCollection = collections.find((collection) => collection.id === selectedCollectionId)
     ?? (selectedCollectionId ? undefined : collections[0])
-  const activeCollectionMode = !collectorsQuery.isLoading && collections.length === 0 ? 'new' : collectionMode
+  const activeCollectionMode = !requestedCollectionId && collectorsQuery.isSuccess && collections.length === 0 ? 'new' : collectionMode
   const useExistingCollection = activeCollectionMode === 'existing' && Boolean(selectedCollection)
-  const validCount = sources.filter((source) => source.status === 'valid').length
+  const validSources = sources.filter((source) => source.status === 'valid')
+  const validCount = validSources.length
   const issueCount = sources.length - validCount
+  const visibleSources = sources.filter((source) => sourceFilter === 'all'
+    || (sourceFilter === 'valid' ? source.status === 'valid' : source.status !== 'valid'))
+  const requirementReady = useExistingCollection || Boolean(collectionName.trim() && intent.trim())
+
   const mutation = useMutation({
     mutationFn: api.createCollectors,
     onSuccess: (result) => {
+      submittedRef.current = true
       queryClient.invalidateQueries({ queryKey: ['collectors'] })
+      queryClient.invalidateQueries({ queryKey: ['collections'] })
+      queryClient.invalidateQueries({ queryKey: ['collection'] })
       if (result.total === 1 && result.createdCount === 1 && result.results[0].collector) {
         navigate(`/collectors/${result.results[0].collector.id}`)
         return
@@ -131,19 +154,38 @@ export function NewCollectorPage() {
       setImportResult(result)
     },
   })
+  const canSubmit = requirementReady && validCount > 0 && !mutation.isPending && !collectorsQuery.isError
+    && (activeCollectionMode !== 'existing' || Boolean(selectedCollection))
 
   function submit(event: FormEvent) {
     event.preventDefault()
-    setError('')
-    if (activeCollectionMode === 'existing' && !selectedCollection) return setError(t('create.error.selectRequirement'))
-    if (!useExistingCollection && (!collectionName.trim() || !intent.trim())) return setError(t('create.error.completeNameAndIntent'))
-    if (sources.length === 0) return setError(t('create.error.enterUrl'))
-    if (validCount === 0) return setError(t('create.error.noImportableUrls'))
+    if (mutation.isPending) return
+    const nextErrors: typeof formErrors = {}
+    if (activeCollectionMode === 'existing' && !selectedCollection) nextErrors.collection = t('create.error.selectRequirement')
+    if (!useExistingCollection && !collectionName.trim()) nextErrors.collection = t('create.error.requirementName')
+    if (!useExistingCollection && !intent.trim()) nextErrors.intent = t('create.error.intent')
+    if (sources.length === 0) nextErrors.sources = t('create.error.enterUrl')
+    else if (validCount === 0) nextErrors.sources = t('create.error.noImportableUrls')
+    setFormErrors(nextErrors)
+    if (collectorsQuery.isError) return
+    if (Object.keys(nextErrors).length > 0) {
+      requestAnimationFrame(() => {
+        if (nextErrors.collection && !useExistingCollection) collectionNameRef.current?.focus()
+        else if (nextErrors.intent) intentRef.current?.focus()
+        else if (nextErrors.sources) sourceInputRef.current?.focus()
+      })
+      return
+    }
     mutation.mutate({
       ...(useExistingCollection ? { collectionId: selectedCollection!.id } : {}),
       collectionName: useExistingCollection ? selectedCollection!.name : collectionName.trim(),
       intent: useExistingCollection ? selectedCollection!.intent : intent.trim(),
-      sourceUrls: sources.map((source) => source.raw),
+      sources: validSources.map((source) => ({
+        entryUrl: source.normalized ?? source.entryUrl,
+        mode: 'exact',
+        ...(source.name ? { name: source.name } : {}),
+        ...(source.scopeHint ? { scopeHint: source.scopeHint } : {}),
+      })),
     })
   }
 
@@ -151,75 +193,151 @@ export function NewCollectorPage() {
     const file = event.target.files?.[0]
     if (!file) return
     event.target.value = ''
-    setSourceImportFeedback('')
+    setSourceImportError('')
+    if (file.size > MAX_SOURCE_FILE_BYTES) {
+      setSourceImportError(t('create.sources.fileError', { fileName: file.name, message: t('create.sources.errors.fileTooLarge') }))
+      return
+    }
     try {
-      const parsed = parseImportedSourceUrls(await file.text())
-      if (parsed.length === 0) {
-        setSourceImportFeedback(t('create.sources.fileEmpty'))
-        return
-      }
-      const merged = mergeSourceLines(sourceInput, parsed)
-      setSourceInput(merged.text)
-      setSourceImportFeedback(t('create.sources.fileResult', { total: parsed.length, added: merged.added, skipped: merged.skipped }))
-    } catch {
-      setSourceImportFeedback(t('create.sources.fileReadFailed'))
+      const batchId = `${Date.now()}-${file.name}`
+      const parsed = parseSourceFile(file.name, await file.text()).map((source) => ({ ...source, id: `${batchId}-${source.id}` }))
+      setImportedSources(parsed)
+      setImportedFileName(file.name)
+      setSourceFilter('all')
+      setFormErrors((current) => ({ ...current, sources: undefined }))
+    } catch (error) {
+      const code = error instanceof SourceFileError ? error.code : 'parseFailed'
+      setSourceImportError(t('create.sources.fileError', { fileName: file.name, message: t(`create.sources.errors.${code}`) }))
     }
   }
 
+  function removeSource(source: SourceLineInspection) {
+    if (source.origin === 'file') {
+      const nextSources = importedSources.filter((item) => item.id !== source.id)
+      setImportedSources(nextSources)
+      if (nextSources.length === 0) setImportedFileName('')
+      return
+    }
+    const lines = sourceInput.split(/\r?\n/)
+    lines.splice(source.lineNumber - 1, 1)
+    setSourceInput(lines.join('\n'))
+  }
+
+  function clearImportedSources() {
+    setImportedSources([])
+    setImportedFileName('')
+    setSourceImportError('')
+    setSourceFilter('all')
+  }
+
+  const readiness = !requirementReady
+    ? t('create.readiness.requirement')
+    : validCount === 0
+      ? t('create.readiness.sources')
+      : issueCount > 0
+        ? t('create.readiness.partial', { count: validCount, issues: issueCount })
+        : t('create.readiness.ready', { count: validCount })
+
   if (importResult) {
-    return <ImportResult result={importResult} onContinue={() => { setImportResult(null); setSourceInput(''); mutation.reset() }} />
+    return <ImportResult result={importResult} onContinue={() => {
+      submittedRef.current = false
+      setImportResult(null)
+      setSourceInput('')
+      setImportedSources([])
+      setImportedFileName('')
+      setSourceImportError('')
+      mutation.reset()
+    }} />
   }
 
   return (
     <div className="page-frame narrow-page">
-      <Link className="back-link" to={creationContext.returnPath}><ArrowLeft />{t('action.backToCollectors')}</Link>
-      <header className="page-header form-header">
-        <div><h1>{t('create.title')}</h1><p>{t('create.subtitle')}</p></div>
-      </header>
+      <h1 className="sr-only">{location.pathname === '/collections/new' ? t('common:collections.create') : t('create.title')}</h1>
 
       <form className="collector-form collector-create-form" onSubmit={submit} noValidate>
+        {collectorsQuery.isError && <Alert variant="destructive"><AlertDescription>{collectorsQuery.error.message}<Button type="button" variant="outline" onClick={() => collectorsQuery.refetch()}>{t('common:action.retry')}</Button></AlertDescription></Alert>}
+        {requestedCollectionId && collectorsQuery.isSuccess && !collections.some((value) => value.id === requestedCollectionId)
+          && <Alert><AlertDescription>{t('common:collections.unavailable')}</AlertDescription></Alert>}
         <section className="collector-create-section">
           <div className="collector-create-heading"><h2>{t('create.requirement.heading')}</h2></div>
-          <Tabs value={activeCollectionMode} onValueChange={(value) => setCollectionMode(value as 'existing' | 'new')} className="collection-mode-tabs">
+          <Tabs value={activeCollectionMode} onValueChange={(value) => { setCollectionMode(value as 'existing' | 'new'); setFormErrors({}) }} className="collection-mode-tabs">
             <TabsList aria-label={t('create.requirement.sourceAria')}><TabsTrigger value="existing" disabled={!collectorsQuery.isLoading && collections.length === 0}>{t('create.requirement.existing')}</TabsTrigger><TabsTrigger value="new">{t('create.requirement.new')}</TabsTrigger></TabsList>
             <TabsContent value="existing" className="collection-mode-panel">
-              <label className="field-group"><span>{t('create.requirement.select')}</span><Select value={selectedCollection?.id ?? ''} onValueChange={setSelectedCollectionId}><SelectTrigger aria-label={t('create.requirement.selectExistingAria')}><SelectValue placeholder={collectorsQuery.isLoading ? t('common:state.loading') : t('create.requirement.select')} /></SelectTrigger><SelectContent>{collections.map((collection) => <SelectItem key={collection.id} value={collection.id}>{collection.name}</SelectItem>)}</SelectContent></Select></label>
+              <label className="field-group"><span>{t('create.requirement.select')}</span><Select disabled={collectorsQuery.isLoading} value={selectedCollectionId || selectedCollection?.id || ''} onValueChange={(value) => { if (!value) return; setSelectedCollectionId(value); setFormErrors((current) => ({ ...current, collection: undefined })) }}><SelectTrigger aria-label={t('create.requirement.selectExistingAria')} aria-invalid={Boolean(formErrors.collection)}><SelectValue placeholder={collectorsQuery.isLoading ? t('common:state.loading') : t('create.requirement.select')} /></SelectTrigger><SelectContent>{collections.map((collection) => <SelectItem key={collection.id} value={collection.id}>{collection.name}</SelectItem>)}</SelectContent></Select>{formErrors.collection && <small className="field-error">{formErrors.collection}</small>}</label>
               {selectedCollection && <div className="existing-collection-summary"><span><small>{t('create.requirement.intentLabel')}</small><p>{selectedCollection.intent}</p></span><span><small>{t('create.requirement.contractLabel')}</small><code>{selectedCollection.version}</code></span><span><small>{t('create.requirement.collectorLabel')}</small><strong>{selectedCollection.collectorCount}</strong></span></div>}
             </TabsContent>
             <TabsContent value="new" className="collection-mode-panel new-collection-fields">
-              <label className="field-group" htmlFor="collection-name"><span>{t('create.requirement.nameLabel')}</span><Input id="collection-name" value={collectionName} onChange={(event) => setCollectionName(event.target.value)} placeholder={t('create.requirement.namePlaceholder')} /></label>
-              <label className="field-group" htmlFor="intent"><span>{t('create.requirement.intentLabel')}</span><Textarea id="intent" value={intent} onChange={(event) => setIntent(event.target.value)} placeholder={t('create.requirement.intentPlaceholder')} rows={4} /></label>
+              <label className="field-group" htmlFor="collection-name"><span>{t('create.requirement.nameLabel')}</span><Input ref={collectionNameRef} id="collection-name" value={collectionName} aria-invalid={Boolean(formErrors.collection)} aria-describedby={formErrors.collection ? 'collection-name-error' : undefined} onChange={(event) => { setCollectionName(event.target.value); setFormErrors((current) => ({ ...current, collection: undefined })) }} placeholder={t('create.requirement.namePlaceholder')} />{formErrors.collection && <small id="collection-name-error" className="field-error">{formErrors.collection}</small>}</label>
+              <label className="field-group" htmlFor="intent"><span>{t('create.requirement.intentLabel')}</span><Textarea ref={intentRef} id="intent" value={intent} aria-invalid={Boolean(formErrors.intent)} aria-describedby={formErrors.intent ? 'intent-error' : undefined} onChange={(event) => { setIntent(event.target.value); setFormErrors((current) => ({ ...current, intent: undefined })) }} placeholder={t('create.requirement.intentPlaceholder')} rows={4} />{formErrors.intent && <small id="intent-error" className="field-error">{formErrors.intent}</small>}</label>
             </TabsContent>
           </Tabs>
         </section>
 
         <section className="collector-create-section source-entry-section">
-          <div className="collector-create-heading"><h2>{t('create.sources.heading')}</h2>{sources.length > 0 && <span>{t('create.sources.countSummary', { valid: validCount, issues: issueCount })}</span>}<Button type="button" variant="outline" size="sm" aria-label={t('create.sources.importAria')} onClick={() => fileInputRef.current?.click()}><FileUp />{t('create.sources.import')}</Button><input ref={fileInputRef} className="sr-only" type="file" accept=".txt,.csv,text/plain,text/csv" aria-label={t('create.sources.importAria')} onChange={(event) => void importSourceFile(event)} />{sourceImportFeedback && <span className="source-import-feedback" role="status">{sourceImportFeedback}</span>}</div>
-          <div className="form-fields">
-            <div className="field-group">
-              <div className="source-batch-input"><Globe2 /><Textarea id="source-urls" value={sourceInput} onChange={(event) => setSourceInput(event.target.value)} placeholder={'http://www.ccgp-beijing.gov.cn/yxgk/sjcgyx/A002003001index_1.htm\nhttps://ggzy.beijing.gov.cn/notices\nhttps://example.gov.cn/tender/list'} rows={7} /></div>
+          <div className="collector-create-heading source-heading">
+            <div><h2>{t('create.sources.heading')}</h2><p>{t('create.sources.headingHelp')}</p></div>
+            <div className="source-file-actions">
+              <Button type="button" variant="ghost" size="sm" onClick={downloadCsvTemplate}><Download />{t('create.sources.template')}</Button>
+              <Button type="button" variant="outline" size="sm" aria-label={t('create.sources.importAria')} onClick={() => fileInputRef.current?.click()}><FileUp />{t('create.sources.import')}</Button>
+              <input ref={fileInputRef} hidden tabIndex={-1} type="file" accept=".txt,.csv,text/plain,text/csv" onChange={(event) => void importSourceFile(event)} />
             </div>
+          </div>
+          <div className="source-format-note" id="source-format-note">
+            <strong>{t('create.sources.formatTitle')}</strong>
+            <span>{t('create.sources.formatHelp')}</span>
+          </div>
+          {sourceImportError && <Alert className="source-import-error" variant="destructive" role="alert"><AlertDescription>{sourceImportError}</AlertDescription></Alert>}
+          <div className="form-fields source-form-fields">
+            <label className="field-group" htmlFor="source-urls">
+              <span>{t('create.sources.manualLabel')}</span>
+              <div className="source-batch-input"><Globe2 /><Textarea ref={sourceInputRef} id="source-urls" value={sourceInput} aria-invalid={Boolean(formErrors.sources)} aria-describedby={`source-format-note${formErrors.sources ? ' source-error' : ''}`} onChange={(event) => { setSourceInput(event.target.value); setFormErrors((current) => ({ ...current, sources: undefined })) }} placeholder={'http://www.ccgp-beijing.gov.cn/yxgk/sjcgyx/A002003001index_1.htm\nhttp://www.ccgp-beijing.gov.cn/yxgk/qjcgyx/A002003002index_1.htm'} rows={6} /></div>
+              {formErrors.sources && <small id="source-error" className="field-error">{formErrors.sources}</small>}
+            </label>
 
-            {sources.length > 0 && <div className="source-import-preview" aria-label={t('create.sources.previewAria')}>
-              {sources.slice(0, 8).map((source, index) => <div className={source.status} key={`${source.raw}-${index}`}>
-                <span>{source.status === 'valid' ? <CheckCircle2 /> : source.status === 'duplicate' ? <CircleAlert /> : <XCircle />}</span>
-                <code>{source.raw}</code>
-                <small>{source.message}</small>
-              </div>)}
-              {sources.length > 8 && <p>{t('create.sources.moreCount', { count: sources.length - 8 })}</p>}
+            {sources.length > 0 && <div className="source-import-summary" role="status">
+              <span>{importedFileName ? t('create.sources.fileResult', { fileName: importedFileName, total: importedSources.length }) : t('create.sources.manualSummary')}</span>
+              <div className="source-import-summary-actions">
+                <strong>{t('create.sources.countSummary', { total: sources.length, valid: validCount, issues: issueCount })}</strong>
+                {importedFileName && <Button type="button" variant="ghost" size="sm" onClick={clearImportedSources}><Trash2 />{t('create.sources.clearFile')}</Button>}
+              </div>
+            </div>}
+
+            {sources.length > 0 && <div className="source-preview-shell">
+              <div className="source-preview-toolbar">
+                <div className="segmented" role="group" aria-label={t('create.sources.filterAria')}>
+                  {(['all', 'valid', 'issues'] as const).map((filter) => <Button type="button" key={filter} variant={sourceFilter === filter ? 'secondary' : 'ghost'} size="sm" aria-pressed={sourceFilter === filter} onClick={() => setSourceFilter(filter)}>{t(`create.sources.filters.${filter}`, { count: filter === 'all' ? sources.length : filter === 'valid' ? validCount : issueCount })}</Button>)}
+                </div>
+                <span>{t('create.sources.exactOnly')}</span>
+              </div>
+              <div className="source-import-preview" role="table" aria-label={t('create.sources.previewAria')}>
+                <div className="source-preview-header" role="row"><span role="columnheader">{t('create.sources.columns.row')}</span><span role="columnheader">{t('create.sources.columns.source')}</span><span role="columnheader">{t('create.sources.columns.name')}</span><span role="columnheader">{t('create.sources.columns.mode')}</span><span role="columnheader">{t('create.sources.columns.status')}</span><span role="columnheader" aria-label={t('create.sources.columns.actions')} /></div>
+                {visibleSources.map((source) => <div className={`source-preview-row ${source.status}`} role="row" key={source.id}>
+                  <span className="source-row-number" role="cell">{source.origin === 'file' ? t('create.sources.fileRow', { row: source.lineNumber }) : source.lineNumber}</span>
+                  <code role="cell" title={source.entryUrl}>{source.entryUrl || t('create.sources.missingUrl')}</code>
+                  <span className="source-row-name" role="cell"><strong>{source.name || source.host || '—'}</strong>{source.scopeHint && <small title={source.scopeHint}>{source.scopeHint}</small>}</span>
+                  <span role="cell"><span className="source-mode">{source.mode || 'exact'}</span></span>
+                  <span className="source-status" role="cell">{source.status === 'valid' ? <CheckCircle2 /> : source.status === 'duplicate' ? <CircleAlert /> : <XCircle />}<small>{source.message}</small></span>
+                  <span className="source-row-action" role="cell"><Button type="button" variant="ghost" size="icon-sm" title={t('create.sources.remove')} aria-label={t('create.sources.removeRow', { row: source.lineNumber })} onClick={() => removeSource(source)}><Trash2 /></Button></span>
+                </div>)}
+                {visibleSources.length === 0 && <p>{t('create.sources.filterEmpty')}</p>}
+              </div>
             </div>}
           </div>
         </section>
 
-        {(error || mutation.error) && <Alert variant="destructive"><AlertDescription>{error || mutation.error?.message}</AlertDescription></Alert>}
+        {mutation.error && <Alert variant="destructive"><AlertDescription>{mutation.error.message}</AlertDescription></Alert>}
 
-        <div className="form-actions">
-          <Button asChild variant="ghost"><Link to={creationContext.returnPath}>{t('common:action.cancel')}</Link></Button>
-          <Button type="submit" size="lg" disabled={mutation.isPending}>
-            {mutation.isPending ? t('create.creating') : <><ListPlus />{t('create.createCount', { count: validCount || 0 })}<ArrowRight /></>}
+        <div className="form-actions collector-create-actions">
+          <span className={canSubmit ? 'form-readiness ready' : 'form-readiness'}>{readiness}</span>
+          <Button asChild variant="ghost"><Link to={location.pathname === '/collections/new' ? '/collections' : creationContext.returnPath}>{t('common:action.cancel')}</Link></Button>
+          <Button type="submit" size="lg" disabled={!canSubmit}>
+            {mutation.isPending ? t('create.creating') : <><ListPlus />{t('create.createCount', { count: validCount })}<ArrowRight /></>}
           </Button>
         </div>
       </form>
+      <Dialog open={blocker.state === 'blocked'} onOpenChange={open => { if (!open && blocker.state === 'blocked') blocker.reset() }}>
+        <DialogContent onCloseAutoFocus={event => { event.preventDefault(); sourceInputRef.current?.focus() }}><DialogHeader><DialogTitle>{t('leave.title')}</DialogTitle><DialogDescription>{t('leave.description')}</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" disabled={mutation.isPending} onClick={() => blocker.state === 'blocked' && blocker.reset()}>{t('common:fields.keepEditing')}</Button><Button variant="destructive" disabled={mutation.isPending} onClick={() => blocker.state === 'blocked' && blocker.proceed()}>{t('common:fields.discardLeave')}</Button></DialogFooter></DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -227,7 +345,6 @@ export function NewCollectorPage() {
 function ImportResult({ result, onContinue }: { result: BatchCollectorImportResult; onContinue: () => void }) {
   const { t } = useTranslation('collectors')
   return <div className="page-frame narrow-page">
-    <Link className="back-link" to="/collectors"><ArrowLeft />{t('action.backToCollectors')}</Link>
     <header className="page-header"><div><span className="eyebrow">BATCH IMPORT RESULT</span><h1>{t('result.title')}</h1><p>{result.collectionName} · {result.collectionVersion}</p></div><Button variant="outline" onClick={onContinue}><ListPlus />{t('result.continue')}</Button></header>
     <section className="import-collection-context" aria-label={t('result.contextAria')}><span className="collection-mark"><Layers3 /></span><div><small>{t('result.requirementLabel')}</small><strong>{result.collectionName}</strong><code>{result.collectionVersion}</code></div><span><small>{t('result.individualCollectors')}</small><strong>{result.createdCount}</strong></span></section>
     <div className="import-result-summary"><span><small>{t('result.total')}</small><strong>{result.total}</strong></span><span className="success"><small>{t('result.created')}</small><strong>{result.createdCount}</strong></span><span className={result.rejectedCount > 0 ? 'danger' : ''}><small>{t('result.rejected')}</small><strong>{result.rejectedCount}</strong></span></div>
@@ -239,6 +356,6 @@ function ImportResult({ result, onContinue }: { result: BatchCollectorImportResu
         {item.collector ? <Button asChild size="sm" variant="outline"><Link to={`/collectors/${item.collector.id}`}>{t('result.startExploring')}<ArrowRight /></Link></Button> : <span />}
       </div>)}
     </section>
-    <div className="form-actions"><Button asChild><Link to={`/collectors?collection=${encodeURIComponent(result.collectionId)}`}>{t('result.viewCollectors')}<ArrowRight /></Link></Button></div>
+    <div className="form-actions"><Button asChild><Link to={`/collections/${encodeURIComponent(result.collectionId)}`}>{t('result.viewCollectors')}<ArrowRight /></Link></Button></div>
   </div>
 }

@@ -1,8 +1,8 @@
 {
   "notFound": {
     "title": "Object unavailable",
-    "backToCollectors": "Back to collectors",
-    "missingCollector": "Collector not found"
+    "backToCollectors": "Back to sources",
+    "missingCollector": "Source not found"
   },
   "header": {
     "currentPhase": "Current phase: ",
@@ -12,7 +12,7 @@
     "runningNow": "Running",
     "runNow": "Run now",
     "operationIncomplete": "Operation not completed",
-    "viewsAria": "Collector detail views",
+    "viewsAria": "Source detail views",
     "ruleReviewTab": "Rule review",
     "ruleTab": "Rules",
     "configTab": "Configuration"
@@ -22,6 +22,7 @@
     "description": "View collection evidence and lineage for the current field, rule, or item."
   },
   "overview": {
+    "needsAttention": "Latest run needs attention",
     "pagination": {
       "maxPages": "Up to {{maxPages}} pages",
       "nextLink": "Continuous paging, up to {{maxPages}} pages",
@@ -30,7 +31,7 @@
     },
     "runningTitle": "Collection task in progress",
     "state": {
-      "published": "Collector is ready",
+      "published": "Source is ready",
       "readyReview": "Candidate rule awaiting review",
       "exploring": "Generating candidate rules",
       "draft": "Source definition saved"
@@ -133,7 +134,23 @@
     "excludeOption": "Exclude field",
     "viewFieldEvidence": "View evidence for {{label}}",
     "samplesTitle": "Samples and quality conclusions",
-    "samplesDescription": "Select a sample to view item lineage, detail URL, and collection version."
+    "samplesDescription": "Select a sample to view item lineage, detail URL, and collection version.",
+    "contractCoverageLabel": "Contract Coverage",
+    "missingRequiredLabel": "Missing Required",
+    "contractGapTitle": "{{total}} required contract fields missing",
+    "contractGapDetail": "were not extracted from this source. This is a blocking gap that requires review or requirement adjustment.",
+    "matchedContract": "Contract Aligned",
+    "extraField": "Discovered",
+    "missingFieldsTitle": "Uncovered Requirement Fields (Contract Gaps)",
+    "missingFieldsDescription": "Fields defined in the collection requirement but not extracted by this source. Monitored as contract gaps and filled with null at runtime.",
+    "missingCount": "{{total}} uncovered",
+    "requirementStatus": "Requirement Status",
+    "runtimeTreatment": "Runtime Treatment",
+    "gapSeverity": "Gap Impact",
+    "sourceNotProvided": "Not provided by source",
+    "fillsNull": "Filled with null",
+    "gapBlocker": "Blocker (Missing Required)",
+    "gapOptional": "Safe (Optional Gap)"
   },
   "flow": {
     "singleAria": "Single-stage collection flow",
@@ -164,16 +181,16 @@
     "detailUrlSamples": "Discovered detail URL samples"
   },
   "config": {
-    "gridAria": "Collector definition and rule workspace",
+    "gridAria": "Source definition and rule workspace",
     "definition": {
-      "title": "Collector definition",
+      "title": "Source definition",
       "requirement": "Requirement",
       "intent": "Source collection brief",
       "dataContract": "Data contract",
       "edit": "Edit",
-      "dialogTitle": "Edit collector definition",
-      "dialogDescription": "The requirement and data contract stay unchanged; the collector name identifies the source, while the source collection brief and entry URL jointly determine the candidate rule.",
-      "name": "Collector name",
+      "dialogTitle": "Edit source definition",
+      "dialogDescription": "The requirement and data contract stay unchanged; the source name identifies the source, while the source collection brief and entry URL jointly determine the candidate rule.",
+      "name": "Source name",
       "newRuleTitle": "New rule required",
       "newRuleDescription": "The current candidate becomes invalid; the published rule stays immutable and is kept as historical evidence.",
       "saveOnly": "Save definition only",
@@ -214,6 +231,14 @@
       "dialogDescription": "The system revisits the Source and replaces the current candidate. Published rules and historical runs are unchanged; the new candidate must be reviewed and published again.",
       "confirm": "Confirm regeneration"
     },
+    "generate": {
+      "dialogTitle": "Generate candidate rule",
+      "dialogDescription": "The system visits the Source, analyzes its structure, compiles a constrained rule, and runs deterministic sample validation. The result still requires human review before publication.",
+      "guidanceLabel": "What should AI focus on this time? (optional)",
+      "guidancePlaceholder": "For example: the title is in the notice-name column and each row's View button opens the detail page",
+      "guidanceHint": "Used only for this task, up to 500 characters. It cannot relax network, safety, data-contract, validation, or human-review gates.",
+      "confirm": "Start generation"
+    },
     "editor": {
       "editRule": "Edit rule",
       "dialogDescription": "Modify selectors and pagination; saving produces a new candidate for review.",
@@ -249,7 +274,7 @@
   "schedule": {
     "panelAria": "Scheduled run plan",
     "title": "Scheduled runs",
-    "description": "Controls when the collector runs automatically; if a previous run is still in progress, this round is skipped and never collected concurrently.",
+    "description": "Controls when the source runs automatically; if a previous run is still in progress, this round is skipped and never collected concurrently.",
     "configure": "Configure plan",
     "dialogTitle": "Configure scheduled runs",
     "dialogDescription": "Common frequencies are enough; cron is only needed in custom mode.",
@@ -331,6 +356,10 @@
         "titleList": "Fetching the list entry",
         "detail": "Transport protocol and host boundary confirmed; reading the Source response."
       },
+      "analyzingStructure": {
+        "title": "AI is analyzing page structure",
+        "detail": "The model is identifying repeated records, field locations, and executable list rules."
+      },
       "discoveringDetails": {
         "title": "Identifying pagination and detail links",
         "detail": "Generating the list selector, pagination strategy, and detail URL rules."
@@ -338,6 +367,10 @@
       "fetchingDetails": {
         "title": "Collecting detail samples",
         "detail": "Each detail URL re-runs network boundary and request budget checks."
+      },
+      "compilingRule": {
+        "title": "AI is compiling the candidate rule",
+        "detail": "The model is converting intent and samples into a constrained RulePlan."
       },
       "validating": {
         "titleSingle": "Validating direct extraction fields",
@@ -356,17 +389,26 @@
     "stage": {
       "queued": "Queued",
       "fetch": "Fetch entry",
+      "analysis": "AI structure analysis",
+      "compile": "AI rule compilation",
       "validate": "Field validation",
       "finale": "Finalize candidate"
     },
     "stageList": {
       "queued": "Queued",
       "listPages": "List paging",
+      "analysis": "AI structure analysis",
       "detailDiscovery": "Detail discovery",
       "detailFetch": "Detail collection",
+      "compile": "AI rule compilation",
       "validate": "Field validation",
       "finale": "Finalize candidate"
-    }
+    },
+    "viewDetails": "View live execution details"
+  },
+  "queueStalled": {
+    "title": "Worker wait is taking too long",
+    "detail": "The task has not been claimed. Confirm extrio-worker is running and uses the same database as the API; the task will continue automatically when the worker recovers."
   },
   "runs": {
     "phase": {
@@ -441,14 +483,14 @@
     "dialogDescription": "AI will re-explore the site and generate a repair candidate rule. The repair preserves the original data contract (output fields and quality gates unchanged) and must pass human review before it can be published.",
     "noteLabel": "Repair reason (optional)",
     "notePlaceholder": "e.g. the site was redesigned and the list selector broke",
-    "notApplicable": "This collector has no repairable rule",
+    "notApplicable": "This source has no repairable rule",
     "confirm": "Start repair",
     "repairing": "Starting repair"
   },
   "evidence": {
     "export": "Export evidence bundle",
     "exporting": "Exporting",
-    "exportAria": "Export the signed evidence bundle (ZIP) for this collector",
+    "exportAria": "Export the signed evidence bundle (ZIP) for this source",
     "bundleError": "The evidence bundle could not be built. Adjust the scope and try again."
   }
 }

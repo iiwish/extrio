@@ -1,18 +1,20 @@
 {
+  "leave": {"title":"Discard unsaved sources?","description":"Your entries and import preview will be lost. Saved requirements and sources are not affected."},
   "action": {
-    "backToCollectors": "Back to collectors"
+    "backToCollectors": "Back to sources"
   },
   "list": {
-    "toolbarAria": "Collector toolbar",
-    "filterGroupAria": "Collector filters",
+    "search": "Search sources",
+    "toolbarAria": "Source toolbar",
+    "filterGroupAria": "Source filters",
     "filterAll": "All",
     "filterAttention": "Needs attention",
     "filterPublished": "Published",
-    "create": "New collector",
-    "aria": "Collector list",
-    "empty": "No collectors match the current filters.",
+    "create": "New source",
+    "aria": "Source list",
+    "empty": "No sources match the current filters.",
     "columns": {
-      "collector": "Collector",
+      "collector": "Source",
       "requirement": "Requirement",
       "status": "Status",
       "activeRule": "Active rule",
@@ -65,22 +67,29 @@
     }
   },
   "create": {
-    "title": "New collector",
+    "title": "New source",
     "subtitle": "Choose a requirement and add one or more entry URLs.",
     "creating": "Creating…",
-    "createCount": "Create {{count}} collectors",
+    "createCount": "Create {{count}} sources",
     "error": {
       "selectRequirement": "Select an existing requirement.",
       "completeNameAndIntent": "Complete the requirement name and collection intent.",
+      "requirementName": "Enter a requirement name.",
+      "intent": "Enter a collection intent.",
       "enterUrl": "Enter at least one entry URL.",
       "noImportableUrls": "No importable HTTP(S) URLs in this batch."
     },
     "validation": {
       "invalidFormat": "Invalid URL format",
       "unsupportedProtocol": "Only HTTP or HTTPS is supported",
+      "unsupportedMode": "Only exact mode is currently supported",
+      "exactEntryRequired": "Enter a specific list page, not the site root",
       "duplicate": "Duplicate within the batch",
       "valid": "Importable",
-      "validHttpRisk": "Importable · anonymous HTTP risk flagged"
+      "validHttpRisk": "Importable · anonymous HTTP risk flagged",
+      "rowLimit": "Exceeds the 1,000-row limit",
+      "nameTooLong": "Name must be 200 characters or fewer",
+      "scopeTooLong": "Scope hint must be 1,000 characters or fewer"
     },
     "requirement": {
       "heading": "Requirement",
@@ -91,21 +100,61 @@
       "selectExistingAria": "Select existing requirement",
       "intentLabel": "Collection intent",
       "contractLabel": "Data contract",
-      "collectorLabel": "Collectors",
+      "collectorLabel": "Sources",
       "nameLabel": "Requirement name",
       "namePlaceholder": "e.g. National public resource trading notices",
       "intentPlaceholder": "Describe the content to collect and the key fields"
     },
     "sources": {
-      "heading": "Entry URLs",
-      "countSummary": "{{valid}} ready · {{issues}} with issues",
-      "import": "Import",
-      "importAria": "Import URLs from file",
-      "previewAria": "Source import preview",
-      "moreCount": "{{count}} more URLs will be processed one by one after submission.",
-      "fileEmpty": "No valid URLs found in the file",
-      "fileResult": "Imported {{total}} URLs, added {{added}}, skipped {{skipped}} duplicates",
-      "fileReadFailed": "Failed to read the file, please try again"
+      "heading": "Exact list entries",
+      "headingHelp": "Each list entry creates an independent source; pagination is handled by its rule.",
+      "countSummary": "{{total}} rows · {{valid}} ready · {{issues}} with issues",
+      "import": "Import file",
+      "importAria": "Import source entry file",
+      "template": "Download template",
+      "formatTitle": "CSV / TXT",
+      "formatHelp": "UTF-8, up to 2 MB and 1,000 rows. CSV requires entryUrl; optional columns are mode (defaults to exact), name, and scopeHint. URL aliases sourceUrl, url, 网址, and 入口网址 are accepted. Re-importing replaces the current file entries.",
+      "manualLabel": "Add manually, one exact list page per line",
+      "manualSummary": "Entries detected from manual input",
+      "previewAria": "Source entry import preview",
+      "filterAria": "Filter import preview",
+      "exactOnly": "Only valid exact entries will be submitted",
+      "fileResult": "{{fileName}} · {{total}} current rows",
+      "fileError": "{{fileName}} was not imported: {{message}}",
+      "clearFile": "Clear file",
+      "missingUrl": "Not provided",
+      "fileRow": "CSV {{row}}",
+      "remove": "Remove row",
+      "removeRow": "Remove row {{row}}",
+      "filterEmpty": "No entries match this filter.",
+      "filters": {
+        "all": "All {{count}}",
+        "valid": "Ready {{count}}",
+        "issues": "Issues {{count}}"
+      },
+      "columns": {
+        "row": "Row",
+        "source": "Entry URL",
+        "name": "Source name",
+        "mode": "Mode",
+        "status": "Validation",
+        "actions": "Actions"
+      },
+      "errors": {
+        "empty": "The file contains no data rows.",
+        "encoding": "The file is not valid UTF-8. Convert it and try again.",
+        "missingUrlColumn": "CSV is missing entryUrl; sourceUrl, url, 网址, or 入口网址 also works.",
+        "parseFailed": "The CSV could not be parsed. Check its quotes, delimiter, and header.",
+        "tooManyRows": "The file exceeds 1,000 rows. Split it before importing.",
+        "unsupportedFormat": "Only .csv and .txt files are supported.",
+        "fileTooLarge": "The file exceeds 2 MB. Split it before importing."
+      }
+    },
+    "readiness": {
+      "requirement": "Complete the requirement before creating sources",
+      "sources": "Add at least one valid exact list page",
+      "partial": "{{count}} sources will be created; {{issues}} issue entries will be ignored",
+      "ready": "Ready to create {{count}} sources"
     }
   },
   "result": {
@@ -113,13 +162,13 @@
     "continue": "Import more",
     "contextAria": "Collection requirement",
     "requirementLabel": "Requirement",
-    "individualCollectors": "Individual collectors",
+    "individualCollectors": "Individual sources",
     "total": "Total",
     "created": "Created",
     "rejected": "Rejected",
     "failed": "Import failed",
     "startExploring": "Start exploration",
-    "viewCollectors": "View this requirement's collectors",
+    "viewCollectors": "View requirement details",
     "perItemAria": "Per-item import results"
   },
   "webhook": {

@@ -1,4 +1,5 @@
 {
+  "snapshot": "{{timezone}} · 更新于 {{time}}",
   "granularity": {
     "day": "按日",
     "week": "按周",
@@ -10,13 +11,15 @@
     "month": "最近 12 个月"
   },
   "action": {
-    "newCollector": "新建采集器"
+    "newCollector": "新建采集来源"
   },
   "error": {
     "loadFailed": "部分运营数据加载失败，请刷新后重试。"
   },
   "kpi": {
     "ariaLabel": "核心运营指标",
+    "monthBasis": "按实体最新记录的入库时间统计，使用当前时区的自然月。",
+    "noCollectors": "尚无采集来源",
     "todayCollect": "今日采集",
     "todayCollectDetail": "{{runs}} 次运行 · {{rejected}} 条拒绝",
     "weekSuccessRate": "本周运行成功率",
@@ -25,7 +28,7 @@
     "monthValidDetail": "{{entities}} 个实体 · {{rejected}} 条拒绝",
     "ruleCoverage": "规则覆盖",
     "ruleCoverageUnpublished": "{{count}} 个尚未发布",
-    "ruleCoverageAll": "所有采集器均已发布"
+    "ruleCoverageAll": "所有采集来源均已发布"
   },
   "trend": {
     "title": "采集产出趋势",
@@ -41,6 +44,7 @@
   },
   "quality": {
     "title": "运行质量",
+    "active": "{{count}} 次进行中，不计入成功率",
     "barAria": "{{success}} 成功，{{partial}} 部分成功，{{failed}} 失败",
     "success": "成功",
     "partial": "部分成功",
@@ -48,13 +52,14 @@
     "dataPassRate": "数据通过率"
   },
   "attention": {
+    "inspectRun": "检查最近运行",
     "title": "需要关注",
     "loading": "正在加载",
     "count": "{{count}} 项需要人工推进",
-    "none": "当前没有阻断",
+    "none": "当前来源列表未发现待处理项",
     "viewAll": "查看全部",
-    "emptyTitle": "运行正常",
-    "emptyDetail": "当前没有需要人工处理的事项。",
+    "emptyTitle": "暂无待处理项",
+    "emptyDetail": "当前已读取的来源与最近运行中，没有需要人工处理的事项。",
     "fixFailedRun": "修复运行失败",
     "partialRun": "处理部分成功运行",
     "partialDetailFetch": "详情抓取 {{fetched}}/{{discovered}}，{{missing}} 个未完成",

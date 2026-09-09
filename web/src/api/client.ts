@@ -1,6 +1,11 @@
 import i18next from 'i18next'
 
 import type {
+  Overview,
+  Collection,
+  CollectionDetail,
+  CollectionInput,
+  CollectionUpdateInput,
   BatchCollectorImportResult,
   AuthLoginInput,
   AuthSetupInput,
@@ -12,6 +17,7 @@ import type {
   CollectorScheduleInput,
   CreateCollectorInput,
   CreateCollectorsInput,
+  ExplorationInput,
   CreateUserInput,
   UpdateUserInput,
   User,
@@ -117,20 +123,32 @@ function requestError(response: Response): ApiRequestError {
   })
 }
 
-export interface ItemsExportQuery {
-  format: ExportFormat
+export interface ItemsQuery {
+  view?: 'observations' | 'entities'
   collectorId?: string
   runId?: string
   decision?: string
   entityKey?: string
+  sourceHost?: string
+  q?: string
 }
 
-export async function exportItemsDownload(query: ItemsExportQuery): Promise<Blob> {
-  const params = new URLSearchParams({ format: query.format })
-  for (const key of ['collectorId', 'runId', 'decision', 'entityKey'] as const) {
+export interface ItemsExportQuery extends ItemsQuery {
+  format: ExportFormat
+}
+
+function itemQueryParams(query: ItemsQuery) {
+  const params = new URLSearchParams()
+  for (const key of ['view', 'collectorId', 'runId', 'decision', 'entityKey', 'sourceHost', 'q'] as const) {
     const value = query[key]?.trim()
     if (value) params.set(key, value)
   }
+  return params
+}
+
+export async function exportItemsDownload(query: ItemsExportQuery): Promise<Blob> {
+  const params = itemQueryParams(query)
+  params.set('format', query.format)
   let response: Response
   try {
     response = await fetch(`${API_BASE_URL}/items/export?${params.toString()}`, {
@@ -239,6 +257,14 @@ export async function waitForOperation(
 }
 
 export const api = {
+  overview: (timezone = Intl.DateTimeFormat().resolvedOptions().timeZone) => request<Overview>(`/overview?timezone=${encodeURIComponent(timezone)}`),
+  collections: () => request<{ items: Collection[]; total: number }>('/collections').then((result) => result.items),
+  collection: (id: string) => request<CollectionDetail>(`/collections/${encodeURIComponent(id)}`),
+  createCollection: (input: CollectionInput, key?: string) => command<Collection>('/collections', {
+    body: JSON.stringify(input), ...(key ? { headers: { 'Idempotency-Key': key } } : {}),
+  }),
+  updateCollection: (id: string, input: CollectionUpdateInput) => command<Collection>(`/collections/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(input) }),
+  deleteCollection: (id: string, revision: number) => command<{ id: string; deleted: true }>(`/collections/${encodeURIComponent(id)}`, { method: 'DELETE', body: JSON.stringify({ revision }) }),
   authState: () => request<AuthState>('/auth/state'),
   setupAuth: (input: AuthSetupInput) => request<AuthState>('/auth/setup', { method: 'POST', body: JSON.stringify(input) }),
   login: (input: AuthLoginInput) => request<AuthState>('/auth/login', { method: 'POST', body: JSON.stringify(input) }),
@@ -264,7 +290,8 @@ export const api = {
     command<CollectorDetail>(`/collectors/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
   createCollectors: (input: CreateCollectorsInput) =>
     command<BatchCollectorImportResult>('/collectors/batch', { body: JSON.stringify(input) }),
-  startExploration: (id: string) => command<Operation>(`/collectors/${id}/explorations`),
+  startExploration: (id: string, input: ExplorationInput = {}) =>
+    command<Operation>(`/collectors/${id}/explorations`, { body: JSON.stringify(input) }),
   startRepair: (id: string, input: RepairInput = {}) =>
     command<Operation>(`/collectors/${id}/repairs`, { body: JSON.stringify(input) }),
   saveCollectionPolicy: (id: string, input: CollectionPolicyInput) =>
@@ -282,10 +309,11 @@ export const api = {
   aiRuns: (collectorId?: string) => request<AiRunPage>(`/ai-runs?limit=200${collectorId ? `&collectorId=${encodeURIComponent(collectorId)}` : ''}`).then((result) => result.items),
   aiRunDetail: (id: string) => request<AiRunDetail>(`/ai-runs/${id}`),
   items: () => request<ItemPage>('/items?limit=200').then((result) => result.items),
-  itemsPage: (query: { limit?: number; cursor?: string } = {}) => {
-    const params = new URLSearchParams({ limit: String(query.limit ?? 50) })
+  itemsPage: (query: ItemsQuery & { limit?: number; cursor?: string } = {}, signal?: AbortSignal) => {
+    const params = itemQueryParams(query)
+    params.set('limit', String(query.limit ?? 50))
     if (query.cursor) params.set('cursor', query.cursor)
-    return request<ItemPage>(`/items?${params.toString()}`)
+    return request<ItemPage>(`/items?${params.toString()}`, { signal })
   },
   item: (id: string) => request<HarvestItem>(`/items/${id}`),
   sinks: (collectorId: string) =>

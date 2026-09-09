@@ -1,18 +1,20 @@
 {
+  "leave": {"title":"放弃未保存的来源？","description":"离开会丢失本次录入和导入预览，已保存的需求和来源不受影响。"},
   "action": {
-    "backToCollectors": "返回采集器"
+    "backToCollectors": "返回采集来源"
   },
   "list": {
-    "toolbarAria": "采集器工具栏",
-    "filterGroupAria": "Collector 筛选",
+    "search": "搜索采集来源",
+    "toolbarAria": "采集来源工具栏",
+    "filterGroupAria": "采集来源筛选",
     "filterAll": "全部",
     "filterAttention": "需处理",
     "filterPublished": "已发布",
-    "create": "新建采集器",
-    "aria": "Collector 列表",
-    "empty": "当前筛选下没有采集器。",
+    "create": "新建采集来源",
+    "aria": "采集来源列表",
+    "empty": "当前筛选下没有采集来源。",
     "columns": {
-      "collector": "采集器",
+      "collector": "采集来源",
       "requirement": "所属需求",
       "status": "状态",
       "activeRule": "活动规则",
@@ -65,22 +67,29 @@
     }
   },
   "create": {
-    "title": "新建采集器",
+    "title": "新建采集来源",
     "subtitle": "选择需求并添加一个或多个入口网址。",
     "creating": "正在创建…",
-    "createCount": "创建 {{count}} 个采集器",
+    "createCount": "创建 {{count}} 个采集来源",
     "error": {
       "selectRequirement": "请选择一个已有需求。",
       "completeNameAndIntent": "请补全需求名称与采集意图。",
+      "requirementName": "请输入需求名称。",
+      "intent": "请输入采集意图。",
       "enterUrl": "请至少输入一个采集入口 URL。",
       "noImportableUrls": "当前批次没有可导入的 HTTP(S) URL。"
     },
     "validation": {
       "invalidFormat": "URL 格式无效",
       "unsupportedProtocol": "仅支持 HTTP 或 HTTPS",
+      "unsupportedMode": "当前仅支持 exact 模式",
+      "exactEntryRequired": "请填写具体列表页，不要使用站点根目录",
       "duplicate": "批次内重复",
       "valid": "可导入",
-      "validHttpRisk": "可导入 · 匿名 HTTP 风险已标记"
+      "validHttpRisk": "可导入 · 匿名 HTTP 风险已标记",
+      "rowLimit": "超过 1000 行上限",
+      "nameTooLong": "名称不能超过 200 个字符",
+      "scopeTooLong": "范围提示不能超过 1000 个字符"
     },
     "requirement": {
       "heading": "归属需求",
@@ -91,21 +100,61 @@
       "selectExistingAria": "选择已有需求",
       "intentLabel": "采集意图",
       "contractLabel": "数据合同",
-      "collectorLabel": "采集器",
+      "collectorLabel": "采集来源",
       "nameLabel": "需求名称",
       "namePlaceholder": "例如：全国公共资源交易标讯",
       "intentPlaceholder": "描述需要采集的内容与关键字段"
     },
     "sources": {
-      "heading": "入口网址",
-      "countSummary": "{{valid}} 可创建 · {{issues}} 有问题",
-      "import": "导入",
-      "importAria": "从文件导入网址",
-      "previewAria": "Source 导入预览",
-      "moreCount": "另有 {{count}} 条 URL，将在提交后逐项处理。",
-      "fileEmpty": "文件中未找到有效网址",
-      "fileResult": "已导入 {{total}} 条，新增 {{added}} 条，跳过 {{skipped}} 条重复",
-      "fileReadFailed": "文件读取失败，请重试"
+      "heading": "精确列表入口",
+      "headingHelp": "每个列表入口创建一个独立采集来源；分页由规则自动处理。",
+      "countSummary": "{{total}} 行 · {{valid}} 可创建 · {{issues}} 有问题",
+      "import": "导入文件",
+      "importAria": "导入采集入口文件",
+      "template": "下载模板",
+      "formatTitle": "CSV / TXT",
+      "formatHelp": "UTF-8，最大 2 MB、1000 行。CSV 必填 entryUrl；可选 mode（默认 exact）、name（采集来源名称）、scopeHint（该入口范围提示）。URL 列兼容 sourceUrl、url、网址、入口网址；重新导入会替换当前文件条目。",
+      "manualLabel": "手动添加，每行一个具体列表页",
+      "manualSummary": "已从手动输入识别入口",
+      "previewAria": "采集入口导入预览",
+      "filterAria": "筛选导入预览",
+      "exactOnly": "仅提交可创建的 exact 入口",
+      "fileResult": "{{fileName}} · 当前 {{total}} 行",
+      "fileError": "{{fileName}} 未导入：{{message}}",
+      "clearFile": "清除文件",
+      "missingUrl": "未填写",
+      "fileRow": "CSV {{row}}",
+      "remove": "移除此行",
+      "removeRow": "移除第 {{row}} 行",
+      "filterEmpty": "当前筛选下没有入口。",
+      "filters": {
+        "all": "全部 {{count}}",
+        "valid": "可创建 {{count}}",
+        "issues": "有问题 {{count}}"
+      },
+      "columns": {
+        "row": "行",
+        "source": "入口网址",
+        "name": "采集来源名称",
+        "mode": "模式",
+        "status": "校验",
+        "actions": "操作"
+      },
+      "errors": {
+        "empty": "文件中没有可读取的数据行。",
+        "encoding": "文件不是有效的 UTF-8 编码，请转换后重试。",
+        "missingUrlColumn": "CSV 缺少 entryUrl 列；也可以使用 sourceUrl、url、网址或入口网址。",
+        "parseFailed": "CSV 结构无法解析，请检查引号、分隔符和表头。",
+        "tooManyRows": "文件超过 1000 行，请拆分后导入。",
+        "unsupportedFormat": "仅支持 .csv 和 .txt 文件。",
+        "fileTooLarge": "文件超过 2 MB，请拆分后导入。"
+      }
+    },
+    "readiness": {
+      "requirement": "完成归属需求后即可创建",
+      "sources": "添加至少一个有效的具体列表页",
+      "partial": "将创建 {{count}} 个采集来源，忽略 {{issues}} 个问题项",
+      "ready": "已准备创建 {{count}} 个采集来源"
     }
   },
   "result": {
@@ -113,13 +162,13 @@
     "continue": "继续导入",
     "contextAria": "采集需求归属",
     "requirementLabel": "采集需求",
-    "individualCollectors": "独立采集器",
+    "individualCollectors": "独立采集来源",
     "total": "总数",
     "created": "已创建",
     "rejected": "已拒绝",
     "failed": "导入失败",
     "startExploring": "开始探索",
-    "viewCollectors": "查看此需求的 Collector",
+    "viewCollectors": "查看需求明细",
     "perItemAria": "逐项导入结果"
   },
   "webhook": {

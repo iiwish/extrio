@@ -38,8 +38,10 @@
   "phase": {
     "queued": "Waiting to run",
     "fetching_list": "Reading source pages",
-    "discovering_details": "Analyzing page structure",
+    "analyzing_structure": "AI analyzing page structure",
+    "discovering_details": "Identifying pagination and detail links",
     "fetching_details": "Collecting validation samples",
+    "compiling_rule": "AI compiling candidate rule",
     "validating": "Validating candidate rule",
     "finalizing": "Finalizing task results",
     "completed": "Execution completed"
@@ -85,7 +87,7 @@
     "notFound": "AI task not found",
     "backToAiRuns": "Back to AI tasks",
     "reviewCandidate": "Review candidate rule",
-    "viewCollector": "View collector",
+    "viewCollector": "View source",
     "tabsAria": "AI task detail views",
     "tab": {
       "result": "Results",
@@ -105,7 +107,23 @@
     "noCandidateTitle": "No reviewable candidate rule was produced",
     "noCandidateFallback": "Check the process and model invocations to locate the failed stage, then regenerate.",
     "activeHint": "The task runs in the background and is not interrupted by leaving this page.",
-    "attemptsHeading": "Execution attempts",
+    "guidanceHeading": "Operator guidance",
+    "guidanceSub": "Guidance applies only to this task and cannot change safety, data-contract, validation, or human-review gates",
+    "activityHeading": "Live execution record",
+    "activitySub": "Only stages, time, duration, and non-sensitive outcomes are recorded; raw prompts, reasoning, and page bodies are never shown",
+    "activityEmpty": "No recoverable phase record exists for this historical task.",
+    "activityStatus": {
+      "running": "In progress",
+      "succeeded": "Completed",
+      "failed": "Failed"
+    },
+    "activityMetric": {
+      "listPages": "{{count}} source pages",
+      "detailUrls": "{{count}} detail links",
+      "detailPages": "{{count}} detail samples",
+      "warnings": "{{count}} quality warnings"
+    },
+    "attemptsHeading": "Worker attempts",
     "attemptsSub": "Failed retries never overwrite history; every attempt is recorded independently",
     "attemptNo": "Attempt {{no}}",
     "attemptInvocations": "{{count}} model invocations",

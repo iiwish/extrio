@@ -1,4 +1,9 @@
 {
+  "tabs": {
+    "system": "System settings",
+    "models": "Model settings",
+    "modelReadOnly": "Only administrators can edit model configuration"
+  },
   "toolbar": {
     "overviewAria": "Model configuration overview",
     "defaultModel": "Default model",
