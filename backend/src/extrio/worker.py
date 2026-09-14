@@ -5,21 +5,27 @@ import signal
 from datetime import UTC, datetime
 from typing import Any
 
+from extrio.collector_lifecycle import LifecycleError, require_active
 from extrio.config import get_settings
 from extrio.contracts import ContractBundle
 from extrio.credentials import CredentialCipher
 from extrio.delivery import OUTCOME_DELIVERED, WebhookDispatcher
 from extrio.explorer import Crawl4AIExplorer
+from extrio.instance_guard import instance_lock
 from extrio.integrity import IntegrityError, canonical_bytes, verify_rule_attestation
-from extrio.model_gateway import ModelRepairNotApplicableError, ModelRuleCompiler
+from extrio.job_control import JobCancelled, JobLeaseLost, JobTimedOut, finish_resources, owned_transaction, renew_job
+from extrio.model_budget import BudgetError
+from extrio.model_gateway import CompilationContextError, ModelRepairNotApplicableError, ModelRuleCompiler
 from extrio.runtime import CrawleeRuntime
+from extrio.runtime_health import HEARTBEAT_SECONDS, WorkerHeartbeat, deployment_digest
+from extrio.source_network import SourceNetworkError
 from extrio.store import DEFAULT_COLLECTOR_SCHEDULE, Store
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 logger = logging.getLogger("extrio.worker")
-NORMAL_STOP_REASONS = {"not_applicable", "next_link_exhausted", "time_window_reached", "checkpoint_reached"}
+NORMAL_STOP_REASONS = {"not_applicable", "next_link_exhausted", "time_window_reached", "checkpoint_reached", "max_pages"}
 REVISION_FIELDS = ("title", "publishedAt", "content", "buyer", "budget", "region")
-DELIVERY_BATCH_LIMIT = 10
+DELIVERY_BATCH_LIMIT = 1
 DELIVERABLE_CHANGE_TYPES = frozenset({"new", "updated"})
 CONSECUTIVE_FAILURE_PAUSE_THRESHOLD = 3
 
@@ -99,10 +105,14 @@ class Worker:
         self.contracts = ContractBundle(self.settings.contracts_path)
         self.cipher = CredentialCipher(self.settings.credential_encryption_key_path)
         compiler = ModelRuleCompiler(self.store, self.cipher)
-        self.explorer = Crawl4AIExplorer(self.contracts, self.settings.artifact_path, compiler)
-        self.runtime = CrawleeRuntime(self.settings.artifact_path)
+        self.model_compiler = compiler
+        self.explorer = Crawl4AIExplorer(
+            self.contracts, self.settings.artifact_path, compiler, allow_http=self.store.effective_allow_http_public
+        )
+        self.runtime = CrawleeRuntime(self.settings.artifact_path, allow_http=self.store.effective_allow_http_public)
         self.dispatcher = WebhookDispatcher(self.store, self.cipher)
         self.stop_event = asyncio.Event()
+        self.heartbeat = WorkerHeartbeat(self.store, deployment_digest(self.settings))
 
     async def _progress(
         self,
@@ -111,6 +121,7 @@ class Worker:
         progress: int,
         metrics: dict[str, int],
         ai_run_id: str | None = None,
+        connection=None,
     ) -> None:
         if ai_run_id:
             self.store.update_ai_activity(
@@ -121,12 +132,15 @@ class Worker:
                 progress=progress,
                 metrics=metrics,
                 error=None,
+                connection=connection,
             )
             return
-        self.store.update_operation(operation_id, status="running", phase=phase, progress=progress, metrics=metrics, error=None)
+        self.store.update_operation(
+            operation_id, status="running", phase=phase, progress=progress, metrics=metrics, error=None, connection=connection
+        )
 
-    def _complete_ai_run(self, ai_run_id: str, **changes: Any) -> dict[str, Any]:
-        ai_run = self.store.get_ai_run(ai_run_id)
+    def _complete_ai_run(self, ai_run_id: str, connection=None, **changes: Any) -> dict[str, Any]:
+        ai_run = self.store.get_ai_run(ai_run_id, connection)
         if ai_run is None:
             raise RuntimeError(f"AI run {ai_run_id} not found")
         finished_at = datetime.now(UTC).isoformat().replace("+00:00", "Z")
@@ -135,37 +149,61 @@ class Worker:
         finished = datetime.fromisoformat(finished_at.replace("Z", "+00:00"))
         return self.store.update_ai_run(
             ai_run_id,
+            connection=connection,
             finishedAt=finished_at,
             durationMs=max(0, int((finished - started).total_seconds() * 1000)),
             **changes,
         )
 
     async def process(self, job: dict[str, Any]) -> None:
+        if job["kind"] == "field_suggestion":
+            await self._process_owned(job)
+            return
+        renew_job(self.store, job)
+        task = asyncio.create_task(self._process_owned(job))
+        interval = min(0.5, job["leaseSeconds"] / 3)
+        try:
+            while not task.done():
+                await asyncio.wait({task}, timeout=interval)
+                if task.done():
+                    break
+                if getattr(self, "stop_event", None) and self.stop_event.is_set():
+                    raise JobLeaseLost("worker stopped; leave lease for recovery")
+                renew_job(self.store, job)
+            await task
+        finally:
+            if not task.done():
+                task.cancel()
+                await asyncio.gather(task, return_exceptions=True)
+
+    async def _process_owned(self, job: dict[str, Any]) -> None:
+        if job["kind"] == "field_suggestion":
+            from extrio.field_suggestions import finish_suggestion
+
+            fields = await asyncio.wait_for(
+                self.model_compiler.suggest_fields(job["payload"]["snapshot"], job["id"], job["payload"]["attempt"]), timeout=95
+            )
+            finish_suggestion(self.store, job, fields=fields)
+            return
         operation_id = job["operationId"]
         collector_id = job["payload"]["collectorId"]
         collector = self.store.get_collector(collector_id)
         if collector is None:
             raise RuntimeError(f"Collector {collector_id} not found")
+        require_active(collector)
+        if job["payload"].get("managementRevision", 0) != collector.get("managementRevision", 0):
+            raise LifecycleError("COLLECTOR_CONFLICT")
 
         ai_run_id = job["payload"].get("aiRunId")
 
         async def progress(phase: str, value: int, metrics: dict[str, int]) -> None:
-            await self._progress(operation_id, phase, value, metrics, ai_run_id)
+            with owned_transaction(self.store, job) as connection:
+                await self._progress(operation_id, phase, value, metrics, ai_run_id, connection)
 
         if job["kind"] == "explore":
             if not ai_run_id:
                 raise RuntimeError("exploration job is missing its AI run")
-            collection_id = collector.get("collectionId")
-            expected_fields: list[dict[str, Any]] = []
-            if collection_id:
-                try:
-                    collection = self.store.get_collection(collection_id)
-                    if collection and isinstance(collection.get("fieldDraft"), dict):
-                        expected_fields = collection["fieldDraft"].get("fields") or []
-                except Exception:
-                    expected_fields = []
-            if expected_fields:
-                collector = {**collector, "expectedFields": expected_fields}
+            compilation_context = self.store.collector_compilation_context(collector)
             # Repairs reuse the exploration pipeline end to end; the old
             # GatherSpec is read at processing time so the frozen contract
             # always comes from the collector's current published/candidate rule.
@@ -176,14 +214,28 @@ class Worker:
                     raise ModelRepairNotApplicableError("Collector 没有可修复的已发布规则或候选规则。")
             attempt = self.store.start_ai_attempt(ai_run_id)
             job["payload"]["aiAttemptId"] = attempt["id"]
-            result = await self.explorer.explore(
-                collector,
-                operation_id,
-                progress,
-                ai_run_id,
-                attempt["id"],
-                repair_spec=repair_spec,
-                guidance=job["payload"].get("guidance"),
+
+            async def diagnostic(summary):
+                with owned_transaction(self.store, job) as connection:
+                    self.store.update_ai_run(ai_run_id, connection, evidence=summary)
+
+            evidence_options = (
+                {"diagnostic": diagnostic, "prior_evidence": self.store.get_ai_run(ai_run_id).get("evidence")}
+                if isinstance(self.explorer, Crawl4AIExplorer)
+                else {}
+            )
+            result = await asyncio.wait_for(
+                self.explorer.explore(
+                    compilation_context,
+                    operation_id,
+                    progress,
+                    ai_run_id,
+                    attempt["id"],
+                    repair_spec=repair_spec,
+                    guidance=job["payload"].get("guidance"),
+                    **evidence_options,
+                ),
+                timeout=300,
             )
             collector.update(
                 status="ready_review",
@@ -193,34 +245,48 @@ class Worker:
                 reviewDecisions=None,
                 updatedAt="刚刚",
             )
-            self.store.save_collector(collector)
-            self.store.update_ai_activity(
-                operation_id,
-                ai_run_id,
-                status="succeeded",
-                phase="completed",
-                progress=100,
-                metrics=result.metrics,
-                error=None,
-            )
+            if collector.get("collectionMigration"):
+                collector["collectionMigration"] = {**collector["collectionMigration"], "status": "ready_review"}
             accepted_samples = sum(item.get("decision") == "accepted" for item in result.preview_items)
             rejected_samples = sum(item.get("decision") == "rejected" for item in result.preview_items)
-            self.store.finish_ai_attempt(attempt["id"], status="succeeded", error=None)
-            self._complete_ai_run(
-                ai_run_id,
-                status="succeeded",
-                phase="completed",
-                progress=100,
-                resultStatus="candidate_ready",
-                reviewStatus="ready_review",
-                candidateRuleDigest=result.candidate.get("digest"),
-                validationSummary={
-                    "acceptedSamples": accepted_samples,
-                    "rejectedSamples": rejected_samples,
-                    "warningCount": int(result.metrics.get("warningCount", 0)),
-                },
-                error=None,
-            )
+            with owned_transaction(self.store, job) as connection:
+                from extrio.collection_workflows import lock_collector
+
+                lock_collector(self.store, connection, collector_id)
+                current = self.store.get_collector(collector_id, connection)
+                fields = ("status", "activeOperationId", "candidate", "previewItems", "reviewDecisions", "updatedAt")
+                current.update({key: collector[key] for key in fields})
+                if collector.get("collectionMigration"):
+                    current["collectionMigration"] = collector["collectionMigration"]
+                self.store.save_collector(current, connection)
+                self.store.update_ai_activity(
+                    operation_id,
+                    ai_run_id,
+                    status="succeeded",
+                    phase="completed",
+                    progress=100,
+                    metrics=result.metrics,
+                    error=None,
+                    connection=connection,
+                )
+                self.store.finish_ai_attempt(attempt["id"], status="succeeded", error=None, connection=connection)
+                self._complete_ai_run(
+                    ai_run_id,
+                    connection=connection,
+                    status="succeeded",
+                    phase="completed",
+                    progress=100,
+                    resultStatus="candidate_ready",
+                    reviewStatus="ready_review",
+                    candidateRuleDigest=result.candidate.get("digest"),
+                    validationSummary={
+                        "acceptedSamples": accepted_samples,
+                        "rejectedSamples": rejected_samples,
+                        "warningCount": int(result.metrics.get("warningCount", 0)),
+                    },
+                    error=None,
+                )
+                self.store.finish_job(job["id"], connection)
             return
 
         if job["kind"] == "run":
@@ -252,18 +318,33 @@ class Worker:
             collector = copy.deepcopy(collector)
             collector["candidate"]["gatherSpec"] = rule_version["gatherSpec"]
             collector["collectionPolicy"] = policy
-            run.update(status="running", summary="Crawlee 正在执行固定版本规则。")
-            self.store.save_run(run)
-            result = await self.runtime.run(collector, run, progress)
+            run.update(
+                status="running",
+                summary="Crawlee 正在执行固定版本规则。",
+                localEvidenceRef=f"attempt_{job['attempts']}",
+                localEvidenceDigest=None,
+            )
+            with owned_transaction(self.store, job) as connection:
+                self.store.save_run(run, connection)
+            budget = rule_version["gatherSpec"]["collect"]["budget"]
+            try:
+                result = await asyncio.wait_for(self.runtime.run(collector, run, progress), timeout=budget.get("maxDurationSeconds", 300))
+            except TimeoutError as exc:
+                raise JobTimedOut("run duration budget exhausted") from exc
             fingerprint_fields = collector["candidate"]["gatherSpec"]["contract"]["fingerprintFields"]
             result.metrics.update(
-                classify_items(result.items, self.store.list_items(), collector_id, fingerprint_fields)
+                classify_items(
+                    result.items,
+                    self.store.latest_accepted_items(collector_id, {item["entityKey"] for item in result.items}),
+                    collector_id,
+                    fingerprint_fields,
+                )
             )
             accepted = sum(item["decision"] == "accepted" for item in result.items)
             rejected = len(result.items) - accepted
             final_status = final_run_status(accepted=accepted, rejected=rejected, stop_reason=result.pagination_stop_reason)
             checkpoint_after = None
-            if final_status == "succeeded" and result.watermark_candidate:
+            if final_status == "succeeded" and result.pagination_stop_reason != "max_pages" and result.watermark_candidate:
                 previous_watermark = (run.get("checkpointBefore") or {}).get("watermark")
                 watermark = max(filter(None, [previous_watermark, result.watermark_candidate]))
                 checkpoint_after = {
@@ -289,6 +370,8 @@ class Worker:
                 paginationStopReason=result.pagination_stop_reason,
                 checkpointAfter=checkpoint_after,
                 duration=result.duration,
+                localEvidenceDigest=result.evidence_digest,
+                artifactMode=result.artifact_mode,
                 items=result.items,
                 summary=(
                     f"{accepted} 个 accepted Item 已冻结；新增 {result.metrics['newItems']}、更新 {result.metrics['updatedItems']}、"
@@ -309,10 +392,15 @@ class Worker:
                 ),
             )
             collector.update(latestRunId=run_id, previewItems=result.items, activeOperationId=None, updatedAt="刚刚")
-            with self.store.transaction() as connection:
+            with owned_transaction(self.store, job) as connection:
+                from extrio.collection_workflows import lock_collector
+
+                lock_collector(self.store, connection, collector_id)
                 self.store.save_run(run, connection)
                 self.store.save_items(run_id, result.items, connection)
-                self.store.save_collector(collector, connection)
+                current = self.store.get_collector(collector_id, connection)
+                current.update({key: collector[key] for key in ("latestRunId", "previewItems", "activeOperationId", "updatedAt")})
+                self.store.save_collector(current, connection)
                 if checkpoint_after:
                     self.store.save_checkpoint(checkpoint_after, connection)
                 operation = self.store.get_operation(operation_id, connection)
@@ -320,7 +408,8 @@ class Worker:
                     raise RuntimeError(f"Operation {operation_id} not found")
                 operation.update(status="succeeded", phase="completed", progress=100, metrics=result.metrics, error=None)
                 self.store.save_operation(operation, collector_id, connection)
-            enqueued = self.enqueue_run_deliveries(collector_id, result.items)
+                enqueued = self.enqueue_run_deliveries(collector_id, result.items, connection)
+                self.store.finish_job(job["id"], connection)
             if enqueued:
                 logger.info("Enqueued %s webhook deliveries run=%s collector=%s", enqueued, run_id, collector_id)
             if final_status == "failed":
@@ -339,16 +428,34 @@ class Worker:
         and is a no-op when the schedule is already disabled.
         """
 
-        statuses = self.store.recent_run_statuses(collector_id, CONSECUTIVE_FAILURE_PAUSE_THRESHOLD)
-        if len(statuses) < CONSECUTIVE_FAILURE_PAUSE_THRESHOLD or any(status != "failed" for status in statuses):
-            return False
-        collector = self.store.get_collector(collector_id)
-        schedule = (collector or {}).get("schedule") or {}
-        if not schedule.get("enabled"):
-            return False
-        values = {key: schedule[key] for key in DEFAULT_COLLECTOR_SCHEDULE}
-        values["enabled"] = False
-        updated = self.store.save_schedule(collector_id, values)
+        from extrio.collection_workflows import lock_collector
+
+        with self.store.transaction() as connection:
+            lock_collector(self.store, connection, collector_id)
+            statuses = self.store.recent_run_statuses(collector_id, CONSECUTIVE_FAILURE_PAUSE_THRESHOLD, connection)
+            if len(statuses) < CONSECUTIVE_FAILURE_PAUSE_THRESHOLD or any(status != "failed" for status in statuses):
+                return False
+            collector = self.store.get_collector(collector_id, connection)
+            schedule = (collector or {}).get("schedule") or {}
+            if not schedule.get("enabled"):
+                return False
+            values = {key: schedule[key] for key in DEFAULT_COLLECTOR_SCHEDULE}
+            values["enabled"] = False
+            updated = self.store.save_schedule(collector_id, values, connection)
+            self.store._append_audit_event(
+                connection,
+                tenant_id=get_settings().tenant_id,
+                target_type="collector",
+                target_id=collector_id,
+                audit={
+                    "actorId": "system",
+                    "action": "schedule.auto_paused",
+                    "requestId": f"failure_pause_{collector_id}",
+                    "details": {"consecutiveFailures": CONSECUTIVE_FAILURE_PAUSE_THRESHOLD},
+                },
+                before_digest=None,
+                after_digest=None,
+            )
         logger.info(
             "schedule auto-paused after %d consecutive failures collector=%s schedule=%s",
             CONSECUTIVE_FAILURE_PAUSE_THRESHOLD,
@@ -357,7 +464,7 @@ class Worker:
         )
         return True
 
-    def enqueue_run_deliveries(self, collector_id: str, items: list[dict[str, Any]]) -> int:
+    def enqueue_run_deliveries(self, collector_id: str, items: list[dict[str, Any]], connection=None) -> int:
         """Enqueue one webhook delivery per accepted new/updated item and enabled sink.
 
         Rejected and unchanged items never produce deliveries; with no enabled
@@ -365,7 +472,7 @@ class Worker:
         ``(item_event_id, sink_id)``.
         """
 
-        sinks = [sink for sink in self.store.list_sinks_for_collector(collector_id) if sink["enabled"]]
+        sinks = [sink for sink in self.store.list_sinks_for_collector(collector_id, connection) if sink["enabled"]]
         if not sinks:
             return 0
         enqueued = 0
@@ -374,7 +481,9 @@ class Worker:
                 continue
             for sink in sinks:
                 try:
-                    self.store.enqueue_delivery(collector_id=collector_id, sink_id=sink["id"], item_event_id=str(item["id"]))
+                    self.store.enqueue_delivery(
+                        collector_id=collector_id, sink_id=sink["id"], item_event_id=str(item["id"]), connection=connection
+                    )
                     enqueued += 1
                 except KeyError:
                     logger.warning("Skipped delivery enqueue for removed sink=%s item=%s", sink["id"], item["id"])
@@ -391,68 +500,121 @@ class Worker:
         return len(claimed)
 
     def fail(self, job: dict[str, Any], exc: Exception) -> None:
+        if job["kind"] == "field_suggestion":
+            from extrio.field_suggestions import finish_suggestion
+
+            finish_suggestion(
+                self.store, job, error={"code": "FIELD_SUGGESTION_FAILED", "message": "字段建议生成失败，请检查默认模型配置并重新生成"}
+            )
+            return
         operation_id = job["operationId"]
-        collector_id = job["payload"].get("collectorId")
         error = {
             "code": getattr(exc, "code", "INTERNAL_ERROR"),
-            "message": str(exc)[:500] or type(exc).__name__,
+            "message": "任务执行失败，请根据错误代码检查实例状态和配置",
             "requestId": f"worker_{operation_id}",
             "retryable": bool(getattr(exc, "retryable", False)),
             "pointer": None,
             "details": {"jobKind": job["kind"]},
         }
+        if isinstance(exc, SourceNetworkError):
+            error["message"] = "来源网络、授权边界或结构校验失败"
+            reason = str(exc)
+            if reason == "browser_navigation_timed_out":
+                error["message"] = "来源页面加载超时，自动重试后仍未完成。请稍后重试当前任务。"
+                error["retryable"] = True
+            elif reason == "source_request_timed_out":
+                error["message"] = "来源请求超时，请稍后重试。"
+                error["retryable"] = True
+            elif reason == "browser_fetch_failed":
+                error["message"] = "来源浏览器加载失败，请查看任务详情并稍后重试。"
+            if reason.replace("_", "").isalnum() and len(reason) <= 80:
+                error["details"]["reason"] = reason
+        elif isinstance(exc, CompilationContextError):
+            error["message"] = "已验证的列表交接上下文无效，已停止调用模型。请重新探索来源；持续失败时检查编译器。"
+        elif isinstance(exc, IntegrityError):
+            error["message"] = "规则签名或受信任密钥校验失败，请重新审核规则与密钥状态"
+        elif isinstance(exc, BudgetError):
+            error["message"] = {
+                "MODEL_CONTEXT_INSUFFICIENT": "模型输入空间不足以容纳字段合同和必要证据，请检查模型上下文配置",
+                "MODEL_OUTPUT_BUDGET_EXCEEDED": "模型输出预算不足，无法生成完整规则，请检查模型输出配置",
+                "MODEL_CALL_BUDGET_EXCEEDED": "已达到本次 AI 任务调用上限，证据或字段验证仍未完成",
+                "MODEL_DISCOVERY_BUDGET_EXCEEDED": "规则发现阶段额度已用尽，未占用后续编译预留额度；请补充来源说明后重试",
+                "MODEL_NO_PROGRESS": "重复调用或验证纠错持续无进展，已停止尝试；请检查来源说明和验证反馈",
+                "MODEL_TOKEN_BUDGET_EXCEEDED": "已达到本次 AI 任务 token 预算，证据或字段验证仍未完成",
+                "MODEL_TIME_BUDGET_EXCEEDED": "已达到本次 AI 任务时间上限，未提交未验证的候选",
+            }.get(exc.code, "AI 任务预算不足，未提交未验证的候选")
+        if isinstance(exc, JobLeaseLost):
+            return
         try:
-            ai_run_id = job["payload"].get("aiRunId")
-            ai_attempt_id = job["payload"].get("aiAttemptId")
-            if ai_run_id:
-                self.store.update_ai_activity(
-                    operation_id,
-                    ai_run_id,
-                    status="failed",
-                    phase="completed",
-                    progress=100,
-                    error=error,
-                )
-            else:
-                self.store.update_operation(operation_id, status="failed", phase="completed", progress=100, error=error)
-            if ai_attempt_id:
-                self.store.finish_ai_attempt(ai_attempt_id, status="failed", error=error)
-            if ai_run_id:
-                self._complete_ai_run(
-                    ai_run_id,
-                    status="failed",
-                    phase="completed",
-                    progress=100,
-                    resultStatus="no_candidate",
-                    reviewStatus="not_ready",
-                    error=error,
-                )
-            collector = self.store.get_collector(collector_id) if collector_id else None
-            if collector:
-                collector["activeOperationId"] = None
-                if job["kind"] == "explore":
-                    collector["status"] = job["payload"].get("previousStatus", "draft")
-                self.store.save_collector(collector)
-            run_id = job["payload"].get("runId")
-            run = self.store.get_run(run_id) if run_id else None
-            if run:
-                run.update(
-                    status="failed",
-                    duration="—",
-                    summary=f"运行失败：{error['message']}",
-                    recoveryAction="检查 Worker 日志后重试。",
-                )
-                if isinstance(exc, IntegrityError):
+            with owned_transaction(self.store, job, allow_cancel=True) as connection:
+                cancelled = self.store.get_operation(operation_id, connection).get("cancelRequested") or isinstance(exc, JobCancelled)
+                status = "cancelled" if cancelled else "timed_out" if isinstance(exc, (JobTimedOut, TimeoutError)) else "failed"
+                if cancelled:
+                    error.update(code="JOB_CANCELLED", message="Job cancelled")
+                elif status == "timed_out":
+                    error.update(code="JOB_TIMED_OUT", message="Job duration budget exhausted")
+                finish_resources(self.store, connection, job, error, status=status)
+                if isinstance(exc, IntegrityError) and job["payload"].get("runId"):
+                    run = self.store.get_run(job["payload"]["runId"], connection)
                     run["integrityStatus"] = "invalid"
-                self.store.save_run(run)
-        finally:
-            self.store.fail_job(job["id"], str(exc))
+                    self.store.save_run(run, connection)
+        except JobLeaseLost:
+            logger.info("Ignoring stale failure operation=%s", operation_id)
+            return
+        if status == "failed" and job["payload"].get("runId"):
+            self.maybe_pause_schedule_after_failures(job["payload"]["collectorId"])
 
     async def serve(self) -> None:
+        with instance_lock(self.settings.artifact_path):
+            await self._serve_active()
+
+    async def _serve_active(self) -> None:
         self.store.initialize()
+        self.heartbeat.pulse()
+        heartbeat_task = asyncio.create_task(self._heartbeat_loop())
+        retention_task = asyncio.create_task(self._retention_loop())
+        try:
+            await self._serve_jobs()
+        finally:
+            heartbeat_task.cancel()
+            retention_task.cancel()
+            await asyncio.gather(heartbeat_task, retention_task, return_exceptions=True)
+            self.heartbeat.stop()
+
+    async def _retention_loop(self) -> None:
+        from extrio.local_evidence import prune_expired_evidence
+
+        while not self.stop_event.is_set():
+            try:
+                work = asyncio.create_task(asyncio.to_thread(prune_expired_evidence, self.settings.artifact_path))
+                try:
+                    result = await asyncio.shield(work)
+                except asyncio.CancelledError:
+                    await work
+                    raise
+                if result["invalidManifests"]:
+                    logger.warning("Retention skipped %s invalid evidence manifests", result["invalidManifests"])
+            except OSError:
+                logger.error("Evidence retention failed")
+            await asyncio.sleep(3600)
+
+    async def _heartbeat_loop(self) -> None:
+        while not self.stop_event.is_set():
+            await asyncio.sleep(HEARTBEAT_SECONDS)
+            try:
+                self.heartbeat.pulse()
+            except Exception:
+                logger.error("Worker heartbeat persistence failed")
+                self.stop_event.set()
+
+    async def _serve_jobs(self) -> None:
         logger.info("Worker started; database=%s", self.settings.database_path)
         while not self.stop_event.is_set():
             job = self.store.claim_job(self.settings.worker_lease_seconds)
+            if job is None:
+                from extrio.field_suggestions import claim_suggestion
+
+                job = claim_suggestion(self.store)
             if job is None:
                 processed = await self.process_due_deliveries()
                 if processed == 0:
@@ -464,9 +626,8 @@ class Worker:
             logger.info("Processing %s operation=%s", job["kind"], job["operationId"])
             try:
                 await self.process(job)
-                self.store.finish_job(job["id"])
             except Exception as exc:  # noqa: BLE001
-                logger.exception("Job failed operation=%s", job["operationId"])
+                logger.error("Job failed operation=%s type=%s", job["operationId"], type(exc).__name__)
                 self.fail(job, exc)
             await self.process_due_deliveries()
 

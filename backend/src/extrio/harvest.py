@@ -1,3 +1,4 @@
+import copy
 import hashlib
 import json
 import re
@@ -11,6 +12,7 @@ from jsonpath_ng.ext import parse as parse_jsonpath
 
 from extrio.contracts import ContractBundle, sha256_digest
 from extrio.integrity import calculate_rule_digest
+from extrio.pagination import navigation_url
 
 FIELD_RULES = {
     "title": ("项目名称", "css:h1.notice-title::text", True),
@@ -197,9 +199,7 @@ def contract_field_values(html: str, source_url: str, field_specs: dict[str, Any
     for key, field in field_specs.items():
         selector = str(field["selector"])
         matches = (
-            jsonpath_values(document, selector)
-            if selector.startswith("jsonpath:")
-            else selector_values(document, selector, source_url)
+            jsonpath_values(document, selector) if selector.startswith("jsonpath:") else selector_values(document, selector, source_url)
         )
         if field.get("multipleMatchPolicy") == "error" and len(matches) > 1:
             matches = []
@@ -266,7 +266,7 @@ def discover_records_from_spec(html: str, base_url: str, list_spec: dict[str, An
             next_anchor = document.select_one(next_selector)
         except Exception:
             next_anchor = None
-        next_href = str(next_anchor.get("href", "")).strip() if next_anchor else ""
+        return records, navigation_url(next_anchor, base_url)
     return records, urljoin(base_url, next_href) if next_href else None
 
 
@@ -392,7 +392,7 @@ def build_gather_spec(
                     "onError": "reject_item",
                     "multipleMatchPolicy": "error",
                     "transforms": ["trim", "absolute_url"],
-                }
+                },
             }
             if mode == "list_detail"
             else detail_fields
@@ -458,12 +458,32 @@ def _json_schema_type(value_type: str) -> str | list[str]:
     }.get(value_type, "string")
 
 
+def _merge_stage_fields(
+    list_fields: dict[str, Any],
+    detail_fields: dict[str, Any],
+    bindings: dict[str, Any],
+) -> dict[str, Any]:
+    """Explicit same-name bindings win over the default detail-stage precedence."""
+    merged = {**list_fields, **detail_fields}
+    for key in merged:
+        if bindings.get(key) == f"list.{key}":
+            merged[key] = list_fields.get(key)
+        elif bindings.get(key) == f"detail.{key}":
+            merged[key] = detail_fields.get(key)
+    return merged
+
+
 def build_gather_spec_from_plan(
     collector: dict[str, Any],
     contracts: ContractBundle,
     plan: dict[str, Any],
 ) -> dict[str, Any]:
     """Compile the constrained LLM RulePlan into a complete deterministic GatherSpec."""
+    frozen = collector.get("frozenCollectionVersion")
+    if frozen:
+        from extrio.collection_fields import constrain_rule_plan
+
+        plan = constrain_rule_plan(plan, frozen)
     contracts.validate_rule_plan(plan)
     mode = str(plan["mode"])
     spec = build_gather_spec(collector, contracts, mode=mode)
@@ -507,14 +527,12 @@ def build_gather_spec_from_plan(
             "request": {
                 "urlTemplate": "{{detailUrl}}",
                 "method": "GET",
-                "headers": {
-                    "Accept": "application/json" if detail_plan["responseType"] == "json" else "text/html,application/xhtml+xml"
-                },
+                "headers": {"Accept": "application/json" if detail_plan["responseType"] == "json" else "text/html,application/xhtml+xml"},
             },
             "responseType": detail_plan["responseType"],
             "fields": {key: _execution_field(field) for key, field in detail_plan["fields"].items()},
         }
-        output_fields = {**list_plan["fields"], **detail_plan["fields"]}
+        output_fields = _merge_stage_fields(list_plan["fields"], detail_plan["fields"], plan["bindings"])
     else:
         spec["collect"].pop("detail", None)
         output_fields = dict(list_plan["fields"])
@@ -538,6 +556,22 @@ def build_gather_spec_from_plan(
         "additionalProperties": False,
     }
     spec["contract"]["outputContractDigest"] = sha256_digest(spec["contract"]["normalizedItemSchema"])
+    if frozen:
+        spec["collectionVersionRef"] = {
+            "collectionId": frozen["collectionId"],
+            "collectionVersionId": frozen["id"],
+            "version": str(frozen["versionNumber"]),
+        }
+        for key in ("normalizedItemSchema", "identityFields", "fingerprintFields", "outputContractDigest"):
+            spec["contract"][key] = copy.deepcopy(frozen[key])
+        spec["compiler"]["inputDigest"] = sha256_digest(
+            {
+                "collectionVersion": frozen["id"],
+                "contract": frozen["outputContractDigest"],
+                "url": collector["sourceUrl"],
+                "intent": collector["intent"],
+            }
+        )
     spec["integrity"]["ruleDigest"] = calculate_rule_digest(spec)
     contracts.validate_gather_spec(spec)
     return spec
@@ -550,6 +584,10 @@ def build_candidate_from_plan(
     list_html: str,
     detail_samples: list[tuple[str, str]],
 ) -> dict[str, Any]:
+    if collector.get("frozenCollectionVersion"):
+        from extrio.collection_fields import constrain_rule_plan
+
+        plan = constrain_rule_plan(plan, collector["frozenCollectionVersion"])
     contracts.validate_rule_plan(plan)
     gather_spec = build_gather_spec_from_plan(collector, contracts, plan)
     mode = str(plan["mode"])
@@ -557,22 +595,31 @@ def build_candidate_from_plan(
     detail_records, _ = discover_records_from_spec(list_html, collector["sourceUrl"], list_spec) if mode == "list_detail" else ([], None)
     list_fields_plan = plan["list"]["fields"]
     detail_fields_plan = plan["detail"]["fields"] if mode == "list_detail" else {}
-    output_plan = {**list_fields_plan, **detail_fields_plan} if mode == "list_detail" else dict(list_fields_plan)
+    output_plan = (
+        _merge_stage_fields(list_fields_plan, detail_fields_plan, plan["bindings"]) if mode == "list_detail" else dict(list_fields_plan)
+    )
+    if collector.get("frozenCollectionVersion"):
+        output_plan = {
+            key: value for key, value in output_plan.items() if key in gather_spec["contract"]["normalizedItemSchema"]["properties"]
+        }
     sample_url, sample_html = detail_samples[0] if detail_samples else (collector["sourceUrl"], list_html)
     detail_execution_fields = {key: _execution_field(field) for key, field in detail_fields_plan.items()}
     detail_values = contract_field_values(sample_html, sample_url, detail_execution_fields) if detail_fields_plan else {}
     list_record = detail_records[0] if detail_records else {}
+    if mode == "single":
+        list_record = contract_field_values(list_html, collector["sourceUrl"], list_spec["fields"])
     list_soup = BeautifulSoup(list_html, "html.parser")
     detail_soup = BeautifulSoup(sample_html, "html.parser")
     fields = []
     for key, field in output_plan.items():
-        is_list = key in list_fields_plan and key not in detail_fields_plan
+        binding = plan["bindings"].get(key)
+        is_list = binding == f"list.{key}" or (key in list_fields_plan and key not in detail_fields_plan)
         selector = str(field["selector"])
         if is_list:
             sample = list_record.get(key)
             soup = list_soup
         else:
-            sample = detail_values.get(key) if not _missing(detail_values.get(key)) else list_record.get(key)
+            sample = detail_values.get(key) if binding == f"detail.{key}" or not _missing(detail_values.get(key)) else list_record.get(key)
             soup = detail_soup
         display_sample = "字段缺失" if _missing(sample) else str(sample)
         if len(display_sample) > 240:
@@ -621,6 +668,8 @@ def build_candidate(
     list_html: str,
     detail_samples: list[tuple[str, str]],
 ) -> dict[str, Any]:
+    if collector.get("frozenCollectionVersion"):
+        raise ValueError("Published field versions require model compilation; heuristic fallback is unavailable")
     profile = detect_profile(list_html)
     mode = "list_detail" if discover(list_html, collector["sourceUrl"], profile)[0] else "single"
     sample_url, sample_html = detail_samples[0] if detail_samples else (collector["sourceUrl"], list_html)
@@ -689,8 +738,24 @@ def make_item(
     collect = gather_spec["collect"]
     field_specs = collect["detail"]["fields"] if "detail" in collect else collect["list"]["fields"]
     values = contract_field_values(html, source_url, field_specs)
-    extracted_data = {**(source_record or {}), **values}
     bindings = gather_spec.get("contract", {}).get("fieldBindings", {})
+    extracted_data = _merge_stage_fields(source_record or {}, values, bindings) if "detail" in collect else dict(values)
+    frozen_schema = (
+        gather_spec.get("contract", {}).get("normalizedItemSchema", {})
+        if gather_spec.get("collectionVersionRef", {}).get("collectionVersionId", "").startswith("colver_")
+        else None
+    )
+    contract_error = None
+    if frozen_schema:
+        from jsonschema import Draft202012Validator, FormatChecker
+
+        required = frozen_schema.get("required", [])
+        extracted_data = {
+            key: None if key not in required and _missing(extracted_data.get(key)) else extracted_data.get(key)
+            for key in frozen_schema["properties"]
+        }
+        if next(Draft202012Validator(frozen_schema, format_checker=FormatChecker()).iter_errors(extracted_data), None):
+            contract_error = "提取结果不符合已发布字段合同"
 
     def bound_value(role: str) -> Any:
         binding = bindings.get(role)
@@ -704,24 +769,17 @@ def make_item(
         if not isinstance(binding, str) or not binding.startswith("detail."):
             return None
         return values.get(binding.split(".", 1)[1])
+
     list_fields = collect["list"].get("fields", {}) if "detail" in collect else {}
     required_missing = next(
-        (
-            key
-            for key, field in list_fields.items()
-            if field.get("required") and _missing((source_record or {}).get(key))
-        ),
+        (key for key, field in list_fields.items() if field.get("required") and _missing((source_record or {}).get(key))),
         None,
     ) or next(
         (key for key, field in field_specs.items() if field.get("required") and _missing(values.get(key))),
         None,
     )
     detail_title = (
-        detail_bound_value("title")
-        or values.get("title")
-        or values.get("heading")
-        or values.get("projectName")
-        or values.get("name")
+        detail_bound_value("title") or values.get("title") or values.get("heading") or values.get("projectName") or values.get("name")
     )
     list_title = (
         bound_value("listTitle")
@@ -729,7 +787,7 @@ def make_item(
         or ((source_record or {}).get("title") if bindings.get("title", "").startswith("list.") else None)
     )
     title_mismatch = bool(detail_title and list_title and not titles_consistent(str(detail_title), str(list_title)))
-    decision = "rejected" if required_missing or title_mismatch else "accepted"
+    decision = "rejected" if required_missing or title_mismatch or contract_error else "accepted"
     identity_fields = gather_spec.get("contract", {}).get("identityFields", [])
     identity_payload = {key: extracted_data.get(key) for key in identity_fields if not _missing(extracted_data.get(key))}
     entity_key = hashlib.sha256(stable_json(identity_payload or {"sourceUrl": source_url}).encode()).hexdigest()[:20]
@@ -772,7 +830,7 @@ def make_item(
             if required_missing
             else TITLE_MISMATCH_REASON
             if title_mismatch
-            else None
+            else contract_error
         ),
         "entityKey": entity_key,
         "revision": 1 if decision == "accepted" else None,

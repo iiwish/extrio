@@ -9,6 +9,18 @@ servers:
 security:
   - sessionCookie: []
 paths:
+  /runtime:
+    get:
+      operationId: getRuntimeDiagnostics
+      responses:
+        '200':
+          description: Authenticated deployment readiness without paths or secrets.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuntimeDiagnostics'
+        default:
+          $ref: '#/components/responses/PlatformError'
   /collections:
     get:
       operationId: listCollections
@@ -108,6 +120,260 @@ paths:
                     const: true
         default:
           $ref: '#/components/responses/PlatformError'
+  /collections/{collectionId}/publish-version:
+    parameters:
+      - name: collectionId
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: publishCollectionVersion
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectionVersionPublishInput'
+      responses:
+        '201':
+          description: Collection version published immutably. Reviewer or administrator required.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionVersion'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /collections/{collectionId}/versions:
+    parameters:
+      - name: collectionId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: listCollectionVersions
+      responses:
+        '200':
+          description: All published versions for a collection, ordered by versionNumber descending.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionVersionList'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /collections/{collectionId}/versions/{versionId}:
+    parameters:
+      - name: collectionId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: versionId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getCollectionVersion
+      responses:
+        '200':
+          description: Specified collection version details and frozen contract schema.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectionVersion'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /collection-templates:
+    get:
+      operationId: "collectionTemplates"
+      responses:
+        200:
+          description: "Collection field workflow result. Mutations require the documented engineer/reviewer role."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CollectionTemplateList"
+        default:
+          $ref: "#/components/responses/PlatformError"
+  /collections/{collectionId}/apply-template:
+    parameters:
+      -
+        name: "collectionId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+    post:
+      operationId: "applyCollectionTemplate"
+      parameters:
+        -
+          $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        200:
+          description: "Collection field workflow result. Mutations require the documented engineer/reviewer role."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Collection"
+        default:
+          $ref: "#/components/responses/PlatformError"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApplyTemplateInput"
+  /collections/{collectionId}/field-suggestions:
+    parameters:
+      -
+        name: "collectionId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+    get:
+      operationId: "listFieldSuggestions"
+      responses:
+        200:
+          description: "Collection field workflow result. Mutations require the documented engineer/reviewer role."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FieldSuggestionList"
+        default:
+          $ref: "#/components/responses/PlatformError"
+    post:
+      operationId: "startFieldSuggestion"
+      parameters:
+        -
+          $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        202:
+          description: "Collection field workflow result. Mutations require the documented engineer/reviewer role."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FieldSuggestion"
+        default:
+          $ref: "#/components/responses/PlatformError"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FieldSuggestionInput"
+  /collections/{collectionId}/field-suggestions/{suggestionId}/apply:
+    parameters:
+      -
+        name: "collectionId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+      -
+        name: "suggestionId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+    post:
+      operationId: "applyFieldSuggestion"
+      parameters:
+        -
+          $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        200:
+          description: "Collection field workflow result. Mutations require the documented engineer/reviewer role."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Collection"
+        default:
+          $ref: "#/components/responses/PlatformError"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApplySuggestionInput"
+  /collectors/{collectorId}/collection-migration:
+    parameters:
+      -
+        name: "collectorId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+    get:
+      operationId: "getCollectionMigration"
+      responses:
+        200:
+          description: "Collection field workflow result. Mutations require the documented engineer/reviewer role."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CollectionMigrationPlan"
+        default:
+          $ref: "#/components/responses/PlatformError"
+      parameters:
+        -
+          name: "targetVersionId"
+          in: "query"
+          required: true
+          schema:
+            type: "string"
+    post:
+      operationId: "migrateCollectionVersion"
+      parameters:
+        -
+          $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        200:
+          description: "Collection field workflow result. Mutations require the documented engineer/reviewer role."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CollectorDetail"
+        default:
+          $ref: "#/components/responses/PlatformError"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CollectionMigrationInput"
+  /collectors/{collectorId}/collection-migration/cancel:
+    parameters:
+      -
+        name: "collectorId"
+        in: "path"
+        required: true
+        schema:
+          type: "string"
+    post:
+      operationId: "cancelCollectionMigration"
+      parameters:
+        -
+          $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        200:
+          description: "Collection field workflow result. Mutations require the documented engineer/reviewer role."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CollectorDetail"
+        default:
+          $ref: "#/components/responses/PlatformError"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CancelCollectionMigrationInput"
   /auth/state:
     get:
       operationId: getAuthState
@@ -366,6 +632,12 @@ paths:
     get:
       operationId: listCollectors
       parameters:
+        - name: lifecycle
+          in: query
+          schema:
+            type: string
+            enum: [active, archived, all]
+            default: active
         - $ref: '#/components/parameters/Cursor'
         - $ref: '#/components/parameters/Limit'
       responses:
@@ -460,6 +732,91 @@ paths:
       responses:
         '200':
           description: Collector definition updated.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectorDetail'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /collectors/{collectorId}/lifecycle:
+    get:
+      operationId: getCollectorLifecyclePlan
+      parameters:
+        - $ref: '#/components/parameters/CollectorId'
+      responses:
+        '200':
+          description: Locked source lifecycle preview and deletion blockers.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectorLifecyclePlan'
+        default:
+          $ref: '#/components/responses/PlatformError'
+    post:
+      operationId: changeCollectorLifecycle
+      parameters:
+        - $ref: '#/components/parameters/CollectorId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectorLifecycleInput'
+      responses:
+        '200':
+          description: Archived or restored source, or source deletion receipt. Deletion retains history and releases the URL. Schedule remains disabled.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectorLifecycleResult'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /collectors/{collectorId}/reassignment:
+    get:
+      operationId: getCollectorReassignmentPlan
+      parameters:
+        - $ref: '#/components/parameters/CollectorId'
+        - name: targetCollectionId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Target version, field differences, frozen history and blockers.
+          headers:
+            X-Request-ID:
+              $ref: '#/components/headers/RequestId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollectorReassignmentPlan'
+        default:
+          $ref: '#/components/responses/PlatformError'
+    post:
+      operationId: reassignCollector
+      parameters:
+        - $ref: '#/components/parameters/CollectorId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectorReassignmentInput'
+      responses:
+        '200':
+          description: Source bound to target; execution invalidated, immutable history retained under its original requirement.
           headers:
             X-Request-ID:
               $ref: '#/components/headers/RequestId'
@@ -729,6 +1086,22 @@ paths:
                 $ref: '#/components/schemas/Operation'
         default:
           $ref: '#/components/responses/PlatformError'
+  /operations/{operationId}/cancel:
+    post:
+      operationId: cancelOperation
+      description: Engineer or administrator requests cancellation. Active work stops before terminal cancellation; completed operations are unchanged.
+      parameters:
+        - $ref: '#/components/parameters/OperationId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Durable cancellation request or terminal operation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Operation'
+        default:
+          $ref: '#/components/responses/PlatformError'
   /ai-runs:
     get:
       operationId: listAiRuns
@@ -807,6 +1180,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RunPage'
+        default:
+          $ref: '#/components/responses/PlatformError'
+  /runs/{runId}/evidence:
+    get:
+      operationId: getRunEvidence
+      parameters:
+        - $ref: '#/components/parameters/RunId'
+      responses:
+        '200':
+          description: Verified local sampled evidence availability. Does not authorize equivalent replay.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunEvidence'
         default:
           $ref: '#/components/responses/PlatformError'
   /runs/{runId}:
@@ -1280,6 +1667,55 @@ components:
           schema:
             $ref: '#/components/schemas/PlatformError'
   schemas:
+    RuntimeDiagnostics:
+      type: object
+      additionalProperties: false
+      required: [ready, reason, liveWorkers, mismatchedWorkers, workers, queue, heartbeatMaxAgeSeconds, checkedAt]
+      properties:
+        ready:
+          type: boolean
+        reason:
+          enum: [worker_unavailable, worker_deployment_mismatch, credential_key_unavailable, signing_key_unavailable, signing_key_mismatch, signing_key_not_trusted, null]
+        liveWorkers:
+          type: integer
+          minimum: 0
+        mismatchedWorkers:
+          type: integer
+          minimum: 0
+        workers:
+          type: array
+          maxItems: 50
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, lastSeen, deploymentMatches]
+            properties:
+              id:
+                type: string
+              lastSeen:
+                type: string
+                format: date-time
+              deploymentMatches:
+                type: boolean
+        queue:
+          type: object
+          additionalProperties: false
+          required: [queuedJobs, runningJobs, oldestDueSeconds]
+          properties:
+            queuedJobs:
+              type: integer
+              minimum: 0
+            runningJobs:
+              type: integer
+              minimum: 0
+            oldestDueSeconds:
+              type: integer
+              minimum: 0
+        heartbeatMaxAgeSeconds:
+          type: integer
+        checkedAt:
+          type: string
+          format: date-time
     CollectionInput:
       type: object
       additionalProperties: false
@@ -1361,6 +1797,321 @@ components:
           maxItems: 100
           items:
             $ref: '#/components/schemas/CollectionField'
+    CollectionTemplate:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "id"
+        - "name"
+        - "version"
+        - "fields"
+      properties:
+        id:
+          type: "string"
+        name:
+          type: "string"
+        version:
+          type: "integer"
+          minimum: 1
+        fields:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/CollectionField"
+    CollectionTemplateList:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "items"
+      properties:
+        items:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/CollectionTemplate"
+    FieldSuggestionInvocation:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "provider"
+        - "model"
+        - "purpose"
+        - "status"
+        - "promptVersion"
+        - "startedAt"
+        - "finishedAt"
+        - "durationMs"
+        - "promptTokens"
+        - "completionTokens"
+        - "totalTokens"
+        - "responseDigest"
+        - "error"
+        - "attempt"
+      properties:
+        provider:
+          type: "string"
+        model:
+          type: "string"
+        purpose:
+          const: "field_suggestion"
+        status:
+          enum:
+            - "succeeded"
+            - "failed"
+        promptVersion:
+          type: "string"
+        startedAt:
+          type: "string"
+        finishedAt:
+          type: "string"
+        durationMs:
+          type: "integer"
+        promptTokens:
+          type: "integer"
+        completionTokens:
+          type: "integer"
+        totalTokens:
+          type: "integer"
+        responseDigest:
+          type:
+            - "string"
+            - "null"
+        error:
+          anyOf:
+            -
+              type: "object"
+              additionalProperties: true
+            -
+              type: "null"
+        attempt:
+          type: "integer"
+          minimum: 1
+    FieldSuggestion:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "id"
+        - "collectionId"
+        - "baseRevision"
+        - "status"
+        - "fields"
+        - "error"
+        - "attempt"
+        - "createdAt"
+        - "finishedAt"
+        - "appliedAt"
+        - "modelInvocations"
+      properties:
+        id:
+          type: "string"
+        collectionId:
+          type: "string"
+        baseRevision:
+          type: "integer"
+          minimum: 1
+        status:
+          enum:
+            - "queued"
+            - "running"
+            - "succeeded"
+            - "failed"
+        fields:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/CollectionField"
+        error:
+          anyOf:
+            -
+              type: "object"
+              additionalProperties: false
+              required:
+                - "code"
+                - "message"
+              properties:
+                code:
+                  type: "string"
+                message:
+                  type: "string"
+            -
+              type: "null"
+        attempt:
+          type: "integer"
+          minimum: 0
+        createdAt:
+          type: "string"
+        finishedAt:
+          type:
+            - "string"
+            - "null"
+        appliedAt:
+          type:
+            - "string"
+            - "null"
+        modelInvocations:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/FieldSuggestionInvocation"
+    FieldSuggestionList:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "items"
+      properties:
+        items:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/FieldSuggestion"
+    FieldSuggestionInput:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "revision"
+      properties:
+        revision:
+          type: "integer"
+          minimum: 1
+    ApplyTemplateInput:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "revision"
+        - "templateId"
+      properties:
+        revision:
+          type: "integer"
+          minimum: 1
+        templateId:
+          type: "string"
+    ApplySuggestionInput:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "revision"
+        - "selectedKeys"
+      properties:
+        revision:
+          type: "integer"
+          minimum: 1
+        selectedKeys:
+          type: "array"
+          items:
+            type: "string"
+          minItems: 1
+          maxItems: 32
+          uniqueItems: true
+    CollectionMigrationState:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "fromVersionId"
+        - "targetVersionId"
+        - "targetVersionNumber"
+        - "status"
+        - "startedAt"
+      properties:
+        fromVersionId:
+          type: "string"
+        targetVersionId:
+          type: "string"
+        targetVersionNumber:
+          type: "integer"
+          minimum: 1
+        status:
+          enum:
+            - "awaiting_compile"
+            - "ready_review"
+            - "failed"
+        startedAt:
+          type: "string"
+    CollectionMigrationChange:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "key"
+        - "kind"
+        - "before"
+        - "after"
+        - "breaking"
+      properties:
+        key:
+          type: "string"
+        kind:
+          enum:
+            - "added"
+            - "removed"
+            - "changed"
+        before:
+          anyOf:
+            -
+              $ref: "#/components/schemas/CollectionField"
+            -
+              type: "null"
+        after:
+          anyOf:
+            -
+              $ref: "#/components/schemas/CollectionField"
+            -
+              type: "null"
+        breaking:
+          type: "boolean"
+    CollectionMigrationPlan:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "collectorId"
+        - "fromVersionId"
+        - "targetVersionId"
+        - "targetVersionNumber"
+        - "changes"
+        - "blockers"
+        - "requiresRecompile"
+        - "planDigest"
+      properties:
+        collectorId:
+          type: "string"
+        fromVersionId:
+          type: "string"
+        targetVersionId:
+          type: "string"
+        targetVersionNumber:
+          type: "integer"
+          minimum: 1
+        changes:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/CollectionMigrationChange"
+        blockers:
+          type: "array"
+          items:
+            type: "string"
+        requiresRecompile:
+          const: true
+        planDigest:
+          type: "string"
+    CollectionMigrationInput:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "targetVersionId"
+        - "planDigest"
+        - "confirmedChanges"
+      properties:
+        targetVersionId:
+          type: "string"
+        planDigest:
+          type: "string"
+        confirmedChanges:
+          type: "array"
+          items:
+            type: "string"
+          maxItems: 200
+          uniqueItems: true
+    CancelCollectionMigrationInput:
+      type: "object"
+      additionalProperties: false
+      required:
+        - "targetVersionId"
+      properties:
+        targetVersionId:
+          type: "string"
     SourceFieldContract:
       type: object
       required: [sourceId, sourceName, state, ruleVersion, fields, schema, quality]
@@ -1384,6 +2135,14 @@ components:
         quality:
           type: object
           additionalProperties: true
+        targetVersionNumber:
+          type: [integer, 'null']
+        sourceVersion:
+          type: [string, 'null']
+        sourceVersionNumber:
+          type: [integer, 'null']
+        isAligned:
+          type: boolean
     Collection:
       type: object
       required: [id, name, intent, collectionVersion, status, revision, createdAt, updatedAt, sourceCount, publishedSourceCount]
@@ -1414,6 +2173,95 @@ components:
           type: integer
           minimum: 0
         publishedSourceCount:
+          type: integer
+          minimum: 0
+        activeVersionId:
+          type: [string, 'null']
+        latestVersionNumber:
+          type: integer
+        activeVersion:
+          anyOf:
+            - $ref: '#/components/schemas/CollectionVersionSummary'
+            - type: 'null'
+    CollectionVersionSummary:
+      type: object
+      required: [id, versionNumber, fieldCount, outputContractDigest, publishedAt]
+      properties:
+        id:
+          type: string
+        versionNumber:
+          type: integer
+          minimum: 1
+        fieldCount:
+          type: integer
+          minimum: 0
+        outputContractDigest:
+          type: string
+        publishedAt:
+          type: string
+          format: date-time
+    CollectionVersionPublishInput:
+      type: object
+      additionalProperties: false
+      required: [revision]
+      properties:
+        revision:
+          type: integer
+          minimum: 1
+        note:
+          type: string
+          maxLength: 1000
+    CollectionVersion:
+      type: object
+      additionalProperties: false
+      required: [id, collectionId, versionNumber, fields, normalizedItemSchema, identityFields, fingerprintFields, outputContractDigest, publishedAt, publishedBy]
+      properties:
+        id:
+          type: string
+        collectionId:
+          type: string
+        versionNumber:
+          type: integer
+          minimum: 1
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CollectionField'
+        fieldCount:
+          type: integer
+          minimum: 0
+        normalizedItemSchema:
+          type: object
+          additionalProperties: true
+        identityFields:
+          type: array
+          items:
+            type: string
+        fingerprintFields:
+          type: array
+          items:
+            type: string
+        outputContractDigest:
+          type: string
+        publishedAt:
+          type: string
+          format: date-time
+        publishedBy:
+          type: string
+        note:
+          type: string
+    CollectionVersionList:
+      type: object
+      additionalProperties: false
+      required: [collectionId, items, total]
+      properties:
+        collectionId:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CollectionVersion'
+        total:
           type: integer
           minimum: 0
     CollectionDetail:
@@ -1641,11 +2489,34 @@ components:
         updatedAt:
           type: [string, 'null']
           format: date-time
+    ModelContextLimits:
+      type: object
+      additionalProperties: false
+      required: [contextTokens, maxInputTokens, maxOutputTokens, reasoningTokens]
+      properties:
+        contextTokens:
+          type: integer
+          minimum: 4096
+          maximum: 2000000
+        maxInputTokens:
+          type: integer
+          minimum: 1
+          maximum: 2000000
+        maxOutputTokens:
+          type: integer
+          minimum: 256
+          maximum: 2000000
+        reasoningTokens:
+          type: integer
+          minimum: 0
+          maximum: 2000000
     ModelConfigurationItemInput:
       type: object
       additionalProperties: false
       required: [id, providerId, modelId, enabled]
       properties:
+        limits:
+          $ref: '#/components/schemas/ModelContextLimits'
         id:
           type: string
           pattern: '^[A-Za-z0-9_-]{3,128}$'
@@ -1661,6 +2532,8 @@ components:
       additionalProperties: false
       required: [id, providerId, modelId, enabled, isDefault, updatedAt]
       properties:
+        limits:
+          $ref: '#/components/schemas/ModelContextLimits'
         id:
           type: string
         providerId:
@@ -1828,6 +2701,12 @@ components:
         - REVIEW_DECISION_INVALID
         - OPERATION_CANCELLED
         - OPERATION_TIMED_OUT
+        - JOB_CANCELLED
+        - JOB_TIMED_OUT
+        - JOB_LEASE_LOST
+        - JOB_ATTEMPTS_EXHAUSTED
+        - SOURCE_NETWORK_REJECTED
+        - KEY_MATERIAL_UNAVAILABLE
         - INVALID_CURSOR
         - EXPORT_TOO_LARGE
         - EVIDENCE_BUNDLE_ERROR
@@ -1900,6 +2779,14 @@ components:
       additionalProperties: false
       required: [id, kind, status, phase, progress, resourceType, resourceId, statusUrl, pollAfterMs, metrics, error]
       properties:
+        collectionAttribution:
+          $ref: '#/components/schemas/CollectionAttribution'
+        collectorDeleted:
+          type: boolean
+          description: The source was deleted; this historical record remains available.
+        cancelRequested:
+          type: boolean
+          description: Cancellation is persisted; running work remains active until its owning worker has stopped it or its lease expires.
         id:
           type: string
         kind:
@@ -2112,11 +2999,89 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ModelInvocation'
+    AdaptiveEvidenceSummary:
+      type: object
+      additionalProperties: false
+      required: [version, phase, budget, pages, reads, validation, validated, limitsSource]
+      properties:
+        version:
+          const: adaptive-dom-v1
+        phase:
+          type: string
+          enum: [indexing, locating, reading, validating, validated, failed, cancelled]
+        limitsSource:
+          type: string
+          enum: [configured, conservative_default]
+        validated:
+          type: boolean
+        budget:
+          type: object
+          additionalProperties: false
+          required: [calls, maxCalls, inputTokens, outputTokens, maxInputTokens, maxOutputTokens, contextTokens, tokenMethod, elapsedSeconds, maxSeconds, stopReason]
+          properties:
+            calls: {type: integer, minimum: 0}
+            maxCalls: {type: integer, minimum: 1}
+            inputTokens: {type: integer, minimum: 0}
+            outputTokens: {type: integer, minimum: 0}
+            maxInputTokens: {type: integer, minimum: 1}
+            maxOutputTokens: {type: integer, minimum: 1}
+            contextTokens: {type: integer, minimum: 1}
+            tokenMethod:
+              type: string
+              enum: [tiktoken_with_margin, utf8_upper_estimate]
+            elapsedSeconds: {type: number, minimum: 0}
+            startedAt: {type: string, format: date-time}
+            maxSeconds: {type: number, minimum: 0}
+            stopReason: {type: [string, 'null']}
+        pages:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [pageId, indexedNodes, readNodes, readFragmentChars]
+            properties:
+              pageId: {type: string}
+              indexedNodes: {type: integer, minimum: 0}
+              readNodes: {type: integer, minimum: 0}
+              readFragmentChars: {type: integer, minimum: 0}
+        reads:
+          type: array
+          maxItems: 48
+          items:
+            type: object
+            additionalProperties: false
+            required: [pageId, nodeId, action, digest, start, end, complete]
+            properties:
+              pageId: {type: string}
+              nodeId: {type: string}
+              action: {type: string, enum: [expand_nodes, read_nodes]}
+              digest: {type: string}
+              start: {type: integer, minimum: 0}
+              end: {type: integer, minimum: 0}
+              complete: {type: boolean}
+        validation:
+          type: array
+          maxItems: 32
+          items:
+            type: object
+            additionalProperties: false
+            properties:
+              code: {type: string}
+              field: {type: string}
+              sample: {type: integer, minimum: 0}
+              stage: {type: string}
     AiRun:
       type: object
       additionalProperties: false
       required: [id, operationId, collectorId, collectorName, sourceUrl, kind, trigger, initiatedBy, status, phase, progress, resultStatus, reviewStatus, attemptCount, modelSummary, validationSummary, candidateRuleDigest, publishedRuleVersionId, createdAt, startedAt, finishedAt, durationMs, error]
       properties:
+        collectorDeleted:
+          type: boolean
+          description: The source was deleted; this historical record remains available.
+        evidence:
+          $ref: '#/components/schemas/AdaptiveEvidenceSummary'
+        collectionAttribution:
+          $ref: '#/components/schemas/CollectionAttribution'
         id:
           type: string
         operationId:
@@ -2335,11 +3300,180 @@ components:
               detailLinkSelector:
                 type: string
                 minLength: 1
-    Collector:
+    CollectionAttribution:
       type: object
       additionalProperties: false
+      required: [collectionId, collectionName, collectionVersion]
+      properties:
+        collectionId:
+          type: string
+        collectionName:
+          type: string
+        collectionVersion:
+          type: string
+    CollectorLifecycleInput:
+      type: object
+      additionalProperties: false
+      required: [action, planDigest]
+      properties:
+        action:
+          type: string
+          enum: [archive, restore, delete]
+        planDigest:
+          type: string
+    CollectorLifecycleResult:
+      oneOf:
+        - $ref: '#/components/schemas/CollectorDetail'
+        - type: object
+          additionalProperties: false
+          required: [id, deleted]
+          properties:
+            id:
+              type: string
+            deleted:
+              type: boolean
+              const: true
+    CollectorLifecyclePlan:
+      type: object
+      additionalProperties: false
+      required: [collectorId, collectorName, sourceUrl, collectionName, lifecycle, blockers, deleteBlockers, hasHistory, historyCounts, scheduleEnabled, planDigest]
+      properties:
+        collectorId:
+          type: string
+        collectorName:
+          type: string
+        sourceUrl:
+          type: string
+        collectionName:
+          type: string
+        lifecycle:
+          type: string
+          enum: [active, archived]
+        blockers:
+          type: array
+          items:
+            type: string
+        deleteBlockers:
+          type: array
+          description: Active tasks, runs or migration only; retained history does not block deletion.
+          items:
+            type: string
+        hasHistory:
+          type: boolean
+        historyCounts:
+          type: object
+          additionalProperties: false
+          required: [operations, ai_runs, rules, runs, items, sinks, deliveries]
+          properties:
+            operations: {type: integer, minimum: 0}
+            ai_runs: {type: integer, minimum: 0}
+            rules: {type: integer, minimum: 0}
+            runs: {type: integer, minimum: 0}
+            items: {type: integer, minimum: 0}
+            sinks: {type: integer, minimum: 0}
+            deliveries: {type: integer, minimum: 0}
+        scheduleEnabled:
+          type: boolean
+        planDigest:
+          type: string
+    CollectorReassignmentInput:
+      type: object
+      additionalProperties: false
+      required: [targetCollectionId, planDigest, confirmedChanges]
+      properties:
+        targetCollectionId:
+          type: string
+        planDigest:
+          type: string
+        confirmedChanges:
+          type: array
+          uniqueItems: true
+          items:
+            type: string
+    CollectorReassignmentPlan:
+      type: object
+      additionalProperties: false
+      required: [collectorId, collectorName, sourceUrl, fromCollectionId, fromCollectionName, targetCollectionId, targetCollectionName, targetIntent, targetVersionId, targetRevision, changes, blockers, requiresRecompile, historyCounts, unresolvedHistory, planDigest]
+      properties:
+        collectorId:
+          type: string
+        collectorName:
+          type: string
+        sourceUrl:
+          type: string
+        fromCollectionId:
+          type: string
+        fromCollectionName:
+          type: string
+        targetCollectionId:
+          type: string
+        targetCollectionName:
+          type: string
+        targetIntent:
+          type: string
+        targetVersionId:
+          type: string
+        targetRevision:
+          type: integer
+        changes:
+          type: array
+          items:
+            $ref: '#/components/schemas/CollectorReassignmentFieldChange'
+        blockers:
+          type: array
+          items:
+            type: string
+        requiresRecompile:
+          type: boolean
+        historyCounts:
+          type: object
+          additionalProperties:
+            type: integer
+        unresolvedHistory:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [type, id]
+            properties:
+              type:
+                type: string
+              id:
+                type: string
+        planDigest:
+          type: string
+    CollectorReassignmentFieldChange:
+      type: object
+      additionalProperties: false
+      required: [key, kind, before, after]
+      properties:
+        key:
+          type: string
+        kind:
+          type: string
+          enum: [added, removed, changed]
+        before:
+          anyOf:
+            - $ref: '#/components/schemas/CollectionField'
+            - type: 'null'
+        after:
+          anyOf:
+            - $ref: '#/components/schemas/CollectionField'
+            - type: 'null'
+    Collector:
+      type: object
       required: [id, name, intent, sourceUrl, sourceHost, status, collectionId, collectionName, collectionVersion, activeRuleVersion, activeCollectionPolicyId, activeOperationId, latestRunId, updatedAt]
       properties:
+        lifecycle:
+          type: string
+          enum: [active, archived]
+          description: Missing on legacy payloads means active.
+        managementRevision:
+          type: integer
+          minimum: 0
+          description: Missing on legacy payloads means revision zero.
+        hasReassignmentHistory:
+          type: boolean
         id:
           type: string
         name:
@@ -2369,6 +3503,12 @@ components:
           type: string
         activeRuleVersion:
           type: [string, 'null']
+        pendingCollectionVersion:
+          type: [string, 'null']
+        collectionMigration:
+          anyOf:
+            - $ref: '#/components/schemas/CollectionMigrationState'
+            - type: 'null'
         activeCollectionPolicyId:
           type: [string, 'null']
         activeOperationId:
@@ -2378,12 +3518,17 @@ components:
         updatedAt:
           type: string
     CollectorDetail:
+      unevaluatedProperties: false
       allOf:
         - $ref: '#/components/schemas/Collector'
         - type: object
-          additionalProperties: false
           required: [candidate, previewItems, reviewDecisions, collectionPolicy, checkpoint, schedule]
           properties:
+            collectionFields:
+              type: array
+              description: Fields frozen in the pending migration target, or the source binding when no migration is pending. Never the mutable requirement draft.
+              items:
+                $ref: '#/components/schemas/CollectionField'
             candidate:
               anyOf:
                 - $ref: '#/components/schemas/CandidateRule'
@@ -2437,8 +3582,11 @@ components:
     UpdateCollectorInput:
       type: object
       additionalProperties: false
-      required: [name, sourceUrl, intent]
+      required: [name, sourceUrl, intent, managementRevision]
       properties:
+        managementRevision:
+          type: integer
+          minimum: 0
         name:
           type: string
           minLength: 1
@@ -2760,12 +3908,17 @@ components:
         observationId:
           type: [string, 'null']
         artifactId:
-          type: string
+          type: [string, 'null']
     HarvestResult:
       type: object
       additionalProperties: false
       required: [id, collectorId, collectorName, sourceHost, listTitle, title, buyer, region, publishedAt, budget, content, sourceUrl, decision, changeType, rejectionReason, entityKey, revision, observedAt, changeSummary, observationHistory, lineage]
       properties:
+        collectorDeleted:
+          type: boolean
+          description: The source was deleted; this historical record remains available.
+        collectionAttribution:
+          $ref: '#/components/schemas/CollectionAttribution'
         id:
           type: string
         collectorId:
@@ -2879,11 +4032,38 @@ components:
                 properties:
                   observationId:
                     type: 'null'
+    RunEvidence:
+      type: object
+      additionalProperties: false
+      required: [mode, state, fileCount, totalBytes, expiresAt, canReplay, replayReason]
+      properties:
+        mode:
+          enum: [sampled, metadata_only]
+        state:
+          enum: [available, missing, expired, invalid, incomplete]
+        fileCount:
+          type: integer
+          minimum: 0
+        totalBytes:
+          type: integer
+          minimum: 0
+        expiresAt:
+          type: [string, 'null']
+          format: date-time
+        canReplay:
+          const: false
+        replayReason:
+          const: complete_replayable_evidence_unavailable
     Run:
       type: object
       additionalProperties: false
       required: [id, operationId, collectorId, collectorName, collectionMode, status, startedAt, startedAtIso, duration, acceptedCount, rejectedCount, pagesFetched, listPagesFetched, detailUrlsDiscovered, detailPagesFetched, recordsOutsideWindow, duplicateDetailUrls, newItems, updatedItems, unchangedItems, paginationStopReason, ruleVersion, ruleDigest, ruleAttestationId, signingKeyId, trustRevision, integrityStatus, policyContextStatus, policyVersion, policyDigest, executionMode, windowStart, checkpointBefore, checkpointAfter, artifactMode, summary, recoveryAction, items]
       properties:
+        collectorDeleted:
+          type: boolean
+          description: The source was deleted; this historical record remains available.
+        collectionAttribution:
+          $ref: '#/components/schemas/CollectionAttribution'
         id:
           type: string
         operationId:
@@ -2972,6 +4152,11 @@ components:
             - type: 'null'
         artifactMode:
           $ref: '#/components/schemas/ArtifactMode'
+        localEvidenceRef:
+          type: [string, 'null']
+        localEvidenceDigest:
+          type: [string, 'null']
+          pattern: '^sha256:[0-9a-f]{64}$'
         summary:
           type: string
         recoveryAction:

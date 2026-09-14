@@ -1,5 +1,13 @@
 # Extrio 控制面 API 合同
 
+## 实例、取消与证据
+
+`GET /api/v1/runtime` 需认证，返回 ready/reason、liveWorkers/mismatchedWorkers、最多 50 个 Worker 的 ID/lastSeen/deploymentMatches、queuedJobs/runningJobs/oldestDueSeconds 和检查时间；不返回服务器路径、配置明文或凭据。公开 `/healthz` 是存活，`/readyz` 只返回 ready，未就绪使用 503。
+
+`POST /api/v1/operations/{id}/cancel` 要求 engineer/administrator 和 Idempotency-Key。排队任务可直接进入 cancelled；执行中先保存 cancelRequested，终态由持有租约的 Worker 完成，不能把响应成功理解为进程已停止。终态幂等，过期租约无提交权，取消/超时不推进 Checkpoint。
+
+`GET /api/v1/runs/{id}/evidence` 需认证，返回实际 mode/state、文件数、校验字节数、到期时间和 canReplay/replayReason。当前本地 sampled/metadata_only 始终 canReplay=false，缺失/过期/损坏不得显示完整证据。`Run.localEvidenceRef/localEvidenceDigest` 与 nullable `ItemLineage.artifactId` 保留真实引用边界。Worker 错误使用稳定类别与有界 reason，不返回原始网络/库异常。
+
 ## 全量概览
 
 `GET /overview?timezone=<IANA>` 对已认证用户提供全量数据库聚合，不使用 Run/Item 列表上限。默认时区 UTC；未知时区返回 422 / INVALID_REQUEST，定位 `/timezone`。响应包含 generatedAt、timezone、today、week、monthEntities、collectors 和日/周/月 14/12/12 个趋势桶。自然日、周一和自然月转换为 UTC 半开区间；运行按持久化 created_at 归桶，成功率分母只包含终态，cancelled/timed_out 计失败，queued/running/finalizing 单列。每个请求在一个数据库一致读事务内生成快照。
@@ -10,7 +18,7 @@
 
 `GET /items` 与 `GET /items/export` 共享 `view=observations|entities`、`collectorId`、`runId`、`decision`、精确 `entityKey`、精确 `sourceHost` 与最多 500 字的 `q`。`q` 按标题、正文、来源名称和 entity key 做字面子串搜索，`%`、`_` 不作为通配符。
 
-默认 `observations` 保持历史观测语义。`entities` 先按 `collectorId + entityKey` 取 observedAt 最新、id 降序打破同时间并列的观测，然后应用全部筛选；不同来源下相同 entity key 不合并。列表使用 observedAt/entityKey/id 降序游标，并返回筛选后、不含 cursor 限制的 `total` 和未筛选实体集的 `facets.sourceHosts`、`facets.collectors`。导出使用相同选择与排序，保留 CSV/JSONL 和导出上限合同。分页不提供跨请求快照隔离，持续写入时刷新以获得最新实体状态。
+默认 `observations` 保持历史观测语义。`entities` 先按 `collectorId + 历史 collectionId + entityKey` 取 observedAt 最新、id 降序打破同时间并列的观测，然后应用全部筛选；不同来源或不同历史需求下相同 entity key 不合并。列表使用 observedAt/entityKey/id 降序游标，并返回筛选后、不含 cursor 限制的 `total` 和未筛选实体集的 `facets.sourceHosts`、`facets.collectors`。导出使用相同选择与排序，保留 CSV/JSONL 和导出上限合同。分页不提供跨请求快照隔离，持续写入时刷新以获得最新实体状态。
 
 ## 需求字段草稿与预览
 
@@ -18,13 +26,25 @@
 
 `GET /collections/{collectionId}` 返回 `fieldDraft`（存在时）与 `sourceContracts`，每个来源合同包含 sourceId、sourceName、state、ruleVersion、fields、完整 schema 与 quality。state 为 published、candidate、unavailable 或 empty。活动版本无法读取时返回 unavailable，不使用候选字段替代；没有活动版本时才可显示 candidate。字段投影包含输出 Schema 中的所有属性，不仅限于详情页样本字段。草稿是需求编辑状态，不是可执行 CollectionVersion。
 
+## 字段版本、模板与建议
+
+`POST /collections/{id}/publish-version` 要求 reviewer/administrator、Idempotency-Key、当前 revision 和可选 note，返回 201 与不可变版本；读取使用 `GET /collections/{id}/versions` 和 `/versions/{versionId}`。版本冻结 fields、normalizedItemSchema、identityFields、fingerprintFields、outputContractDigest、发布者和时间。版本号在需求内单调递增，发布、需求活动指针、revision、审计和幂等回执原子提交；数据库禁止更新或删除版本行。列表 activeVersion 返回版本摘要，需求详情可返回完整版本。
+
+`GET /collection-templates` 返回版本化模板；`POST /collections/{id}/apply-template` 接受 revision 和 templateId，确认后替换草稿，不发布。`POST /collections/{id}/field-suggestions` 接受 revision，返回 202 与持久任务；`GET /collections/{id}/field-suggestions` 返回最近 20 项及模型调用审计。`POST /collections/{id}/field-suggestions/{suggestionId}/apply` 接受 revision、非空且无重复的 selectedKeys，按 key 合并到草稿。三类写入均要求 engineer/administrator、Idempotency-Key；过期建议、跨需求建议、已应用结果及归档需求不能修改草稿。任务状态为 queued/running/succeeded/failed，appliedAt 独立表示人工接受，不等于字段发布。
+
+## 来源绑定与迁移
+
+新来源绑定创建时需求的 activeVersionId；没有已发布字段版本时保留旧静态合同路径。`GET /collectors/{id}` 的 collectionFields 来源为待迁移目标或当前固定版本，不读取 fieldDraft。来源的 collectionVersion 是实际绑定，pendingCollectionVersion 只表示待审核目标。
+
+`GET /collectors/{id}/collection-migration?targetVersionId=...` 返回固定目标、逐字段 changes、blockers、planDigest。`POST` 同一路径要求 reviewer/administrator、Idempotency-Key、targetVersionId、planDigest 和全部 confirmedChanges，创建待重编译状态；活动运行或操作阻断迁移。迁移期间禁止新运行、旧候选发布及只修复旧规则的快捷入口，已有绑定与活动规则保留。候选的固定版本引用、Schema、identity、fingerprint 和摘要须匹配待迁移目标，人工发布时才原子切换绑定并清空旧 checkpoint。`POST /collectors/{id}/collection-migration/cancel` 接受 targetVersionId，活动操作期间拒绝；来源定义未修改时恢复迁移前候选，否则要求重新生成，活动规则不变。
+
 ## Collection 管理
 
 `GET /collections` 返回全部独立需求摘要及来源统计；`GET /collections/{id}` 返回需求及全部关联来源，不受来源列表 50 条默认上限影响。来源中的 collectionName 是当前需求名称的投影。
 
 `POST /collections` 接受 name（1–200 字符）和 intent（1–10000 字符），无需来源，返回 201。`PATCH /collections/{id}` 接受 revision 与 name/intent，或 revision 与 status（active/archived）；元数据编辑和归档/恢复分开提交。归档需求禁止修改元数据和接入来源；恢复后可继续使用。元数据编辑不改写已有 Collector.intent、候选规则、RuleVersion、Run 或 Item。
 
-`DELETE /collections/{id}` 接受 revision，成功返回 200 和 `{id, deleted: true}`。存在关联来源时返回 COLLECTION_HAS_SOURCES（409），不执行级联删除。归档只控制需求的管理状态，不停止已有来源的运行与定时计划。
+`DELETE /collections/{id}` 接受 revision，成功返回 200 和 `{id, deleted: true}`。存在关联来源时返回 COLLECTION_HAS_SOURCES（409），存在已发布版本或字段建议历史时返回 COLLECTION_HAS_HISTORY（409），不执行级联删除。归档只控制需求的管理状态，不停止已有来源的运行与定时计划。
 
 写操作要求 engineer/administrator 和 Idempotency-Key；幂等记录与需求写入在同一数据库事务提交。并发版本不匹配返回 COLLECTION_CONFLICT（409）；归档限制返回 COLLECTION_ARCHIVED（409）；不存在返回 COLLECTION_NOT_FOUND（404）。来源接入和需求删除/归档在相同 Collection 行锁下检查，禁止并发创建孤立来源。SQLite 使用写事务串行化，PostgreSQL 使用行锁与命令键事务锁。
 
@@ -82,6 +102,10 @@ Source URL 只接受 `http` 与 `https`。匿名公共 HTTP 默认允许，Tenan
 
 ### 5.1 模型设置
 
+模型输入与输出项允许可选 `limits` 对象，含四个必需整数：`contextTokens`（4096–2000000）、`maxInputTokens`（1–contextTokens）、`maxOutputTokens`（256–contextTokens）、`reasoningTokens`（0–contextTokens）。输出与推理预留及安全余量后必须仍有输入空间，未知字段、布尔或小数值拒绝。省略 limits 使用保守默认配置；GET 保留配置，PUT 为全量更新，客户端修改其他项目时必须保留 limits。
+
+`AiRun.evidence` 是可选 `AdaptiveEvidenceSummary`：包含协议版本、阶段、预算与计数方式、限额来源、页面索引/读取统计、最近 48 个读取动作、最多 32 条结构化验证反馈和 validated 状态。历史记录无该对象仍合法。停止原因区分上下文、调用次数、token、输出及时间预算；节点、范围和快照摘要可见，网页正文、原始提示词及模型响应不返回。
+
 `GET /settings/models` 返回供应商配置列表、模型配置列表、唯一默认模型 ID 和最近更新时间。供应商包含稳定 ID、唯一配置名称、供应商类型、HTTPS API 地址、启停状态和 `credentialConfigured`；模型包含稳定 ID、所属供应商 ID、真实模型 ID、启停状态和默认状态。`PUT /settings/models` 使用幂等键完整替换元数据，并允许供应商携带只写的可选 `apiKey`：非空值替换加密凭据，省略该字段保留原凭据。供应商允许零模型保存，模型必须引用存在的供应商，同一供应商下模型 ID 唯一，默认模型必须属于已启用供应商且自身已启用。
 
 API Key 仅允许出现在 `PUT /settings/models` 请求的 `apiKey` 字段中。服务端使用独立主密钥加密保存，幂等记录只保存请求摘要；响应、日志和模型元数据均不得包含明文或密文。`credentialConfigured` 只表示服务端持有可解密凭据。`GET/PUT /settings/model` 作为单供应商环境变量引用兼容接口保留；新界面和后续客户端使用 `/settings/models`。该配置只属于探索和候选规则编译边界，Run API 与执行 Worker 不读取它。
@@ -92,7 +116,21 @@ Source 首次导航失败返回 `SOURCE_UNREACHABLE`。错误正文包含 Source
 
 CandidateRule 包含适合审核的摘要和完整 `gatherSpec`。`gatherSpec` 必须通过 [`gather-spec.schema.json`](./gather-spec.schema.json)，前端只显示服务端返回的对象，不拼装或补全机器合同。
 
-`PATCH /collectors/{collectorId}` 接受完整的可编辑定义 `name + intent + sourceUrl`。名称变化只更新展示身份；意图或规范化 Source URL 变化必须把 Collector 置为 `draft`、清除候选与审核决定并阻断 Run，历史 `activeRuleVersion` 只作为可追溯引用保留。异步 Operation 或非终态 Run 存在时返回 `OPERATION_ALREADY_ACTIVE`。
+`PATCH /collectors/{collectorId}` 接受完整的可编辑定义 `name + intent + sourceUrl + managementRevision`，要求工程师或管理员及持久幂等键。名称变化只更新展示身份；意图或规范化 Source URL 变化原子关闭调度，把 Collector 置为 `draft`，清除候选、审核决定、`activeRuleVersion` 和 Checkpoint。已存 RuleVersion、Run 与 Item 保持不可变；后续运行必须重新探索、审核发布。旧 revision 返回 `COLLECTOR_CONFLICT`；实际排队或执行任务返回 `TASK_ALREADY_ACTIVE`，非终态 Run 返回 `RUN_ALREADY_ACTIVE`，待迁移版本返回 `MIGRATION_ALREADY_ACTIVE`。归档来源须先恢复。
+
+### 来源生命周期与归属
+
+Collector 的独立 `lifecycle=active|archived` 与探索/发布 `status` 分离；旧载荷缺省按 active 和 `managementRevision=0` 读取。`GET /collectors?lifecycle=active|archived|all` 默认只返回活动来源；需求详情仍关联已归档来源，但 publishedSourceCount 排除已归档来源。归档来源继续占用规范化 URL。
+
+`GET /collectors/{collectorId}/lifecycle` 返回最新名称、URL、生命周期、通用 blockers、deleteBlockers、hasHistory、historyCounts、scheduleEnabled 和 planDigest。historyCounts 列出 operations、ai_runs、rules、runs、items、sinks、deliveries 的保留数量；hasHistory 表示存在来源历史，不作为删除阻断。`POST` 同一路径接受 `action=archive|restore|delete` 与 planDigest，仅工程师/管理员可执行，并要求 Idempotency-Key。事务内重新锁定来源、检查摘要、实际持久队列、AI 任务、Run 和迁移。归档关闭调度并禁止探索、修复、候选编辑、策略修改、发布和运行；恢复不启动任务、不恢复调度、不重发历史投递。投递管理与已有 payload 不受归档影响。
+
+删除保留来源身份行和全部历史外键，写入 deleted_collectors 墓碑并关闭调度，不级联清理业务历史。deleteBlockers 只包含实际活动任务、运行和未完成迁移；数量与预览摘要一同复核。常规来源读取与所有执行入口对墓碑返回 COLLECTOR_NOT_FOUND；来源列表（包括 all）、需求关联和来源统计排除墓碑，规范化 URL 可以供新来源使用。新来源不继承历史身份，已删除来源不能恢复。归档来源继续占用 URL。
+
+Run、AI Run、Operation、Item 的读取投影可包含只读 collectorDeleted=true，原始历史 payload 不写回该标记。历史查询、数据导出、来源 evidence-bundle、sinks 和 deliveries 读取支持已删除来源的原 ID。已有投递仍按原合同执行，不因删除重发或取消。删除回执与审计在同一事务持久化，旧写入者不能复活来源。
+
+`GET /collectors/{collectorId}/reassignment?targetCollectionId=...` 返回原/目标需求、目标意图、固定版本与 revision、字段 changes、历史计数、无法核实的历史记录、blockers 和 planDigest。`POST` 接受 targetCollectionId、planDigest、confirmedChanges（全部差异字段 key），同样要求工程师/管理员、幂等键和事务内复核。目标必须是不同的活动需求。空来源直接绑定；有历史时逐项确认字段差异。命令保留来源名称和 URL，采用目标意图及固定合同，关闭调度、清除后续执行依据并要求重新探索、审核发布。
+
+旧历史不随当前来源重新归属。Run、AI Run、Operation、Item 可返回只读 `collectionAttribution={collectionId,collectionName,collectionVersion}`，由独立不可变归属记录生成，不写回旧规则、运行或 Item 原始 payload。运行归属只从存量归属或不可变规则解析；无法可靠还原时不猜测，预览列出具体 type/id，并以 `HISTORY_OWNERSHIP_UNRESOLVED` 阻断调整。实体合并和采集增量比较隔离不同历史需求；旧 Webhook 配置及历史投递 payload 保留。MCP 来源摘要明确 lifecycle，历史查询携带同一归属语义，执行走同一核心保护。
 
 Collector 列表与详情响应必须包含稳定 `collectionId`、`collectionName` 与 `collectionVersion`。`POST /collectors/batch` 为一次需求导入生成一个 Collection 身份，并把同一身份写入每个成功 Collector 和批量结果；逐项失败不改变已成功对象的归属。`name` 是 Source 级 Collector 展示名，`collectionName` 是共享业务需求名称，两者不得在客户端混用。可选 `scopeHint` 是 Source 特定的规则编译提示，不改变 CollectionVersion 的输出语义；模型发现、首次编译和修复均使用该提示，确定性 Run 不读取它。
 

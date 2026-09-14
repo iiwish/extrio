@@ -19,6 +19,7 @@ from typing import Any
 import httpx
 
 from extrio.credentials import CredentialCipher
+from extrio.job_control import JobLeaseLost
 from extrio.store import Store
 
 logger = logging.getLogger("extrio.delivery")
@@ -163,13 +164,15 @@ class WebhookDispatcher:
                 with self._new_client() as own_client:
                     return self._deliver(delivery, own_client)
             return self._deliver(delivery, client)
+        except JobLeaseLost:
+            return OUTCOME_ERROR
         except Exception as exc:  # noqa: BLE001 - one crashing delivery must not kill the worker
-            logger.exception("Delivery dispatch crashed delivery=%s sink=%s", delivery.get("id"), delivery.get("sinkId"))
+            logger.error("Delivery dispatch crashed delivery=%s type=%s", delivery.get("id"), type(exc).__name__)
             try:
-                message = f"dispatcher error: {type(exc).__name__}: {exc}"[:ERROR_TEXT_LIMIT]
+                message = f"dispatcher error: {type(exc).__name__}"[:ERROR_TEXT_LIMIT]
                 return self._record_failure(delivery, status_code=None, error=message)
             except Exception:  # noqa: BLE001
-                logger.exception("Failed to record crashed attempt delivery=%s", delivery.get("id"))
+                logger.error("Failed to record crashed attempt delivery=%s", delivery.get("id"))
                 return OUTCOME_ERROR
 
     def _new_client(self) -> httpx.Client:
@@ -177,6 +180,7 @@ class WebhookDispatcher:
 
     def _deliver(self, delivery: dict[str, Any], client: httpx.Client) -> str:
         delivery_id = str(delivery["id"])
+        self.store.check_delivery_lease(delivery)
         sink_id = str(delivery["sinkId"])
         sink = self.store.get_sink(sink_id, cipher=self.cipher)
         if sink is None:
@@ -185,7 +189,9 @@ class WebhookDispatcher:
             return self._dead_letter(delivery, error="sink disabled before delivery")
         if sink.get("type") != "webhook":
             return self._dead_letter(delivery, error=f"unsupported sink type: {sink.get('type')}")
-        if int(delivery.get("attemptCount", 0)) >= MAX_DELIVERY_ATTEMPTS:
+        if delivery["sinkVersionId"] != f"{sink_id}#v{sink['version']}":
+            return self._dead_letter(delivery, error="sink version changed before delivery")
+        if int(delivery["cycleAttempts"]) > MAX_DELIVERY_ATTEMPTS:
             return self._dead_letter(delivery, error=f"exceeded {MAX_DELIVERY_ATTEMPTS} delivery attempts")
 
         payload = self._build_payload(delivery)
@@ -197,13 +203,11 @@ class WebhookDispatcher:
         status_code, error = self._post(client, str(sink["url"]), body, headers)
 
         if error is None:
-            self.store.record_delivery_attempt(delivery_id, status_code=status_code)
-            self.store.mark_delivery_delivered(delivery_id)
+            self.store.finalize_delivery(delivery, status="delivered", status_code=status_code)
             logger.info("Delivered delivery=%s sink=%s status_code=%s", delivery_id, sink_id, status_code)
             return OUTCOME_DELIVERED
         if status_code is not None and 400 <= status_code < 500 and status_code != 429:
-            self.store.record_delivery_attempt(delivery_id, status_code=status_code, error=error)
-            return self._dead_letter(delivery, error=error)
+            return self._dead_letter(delivery, error=error, status_code=status_code, record_attempt=True)
         return self._record_failure(delivery, status_code=status_code, error=error)
 
     def _build_payload(self, delivery: dict[str, Any]) -> dict[str, Any] | None:
@@ -217,24 +221,23 @@ class WebhookDispatcher:
     @staticmethod
     def _post(client: httpx.Client, url: str, body: bytes, headers: dict[str, str]) -> tuple[int | None, str | None]:
         try:
-            response = client.post(url, content=body, headers=headers)
+            with client.stream("POST", url, content=body, headers=headers) as response:
+                status_code = int(response.status_code)
         except httpx.HTTPError as exc:
-            return None, f"request failed: {type(exc).__name__}: {exc}"[:ERROR_TEXT_LIMIT]
-        status_code = int(response.status_code)
+            return None, f"request failed: {type(exc).__name__}"[:ERROR_TEXT_LIMIT]
         if 200 <= status_code < 300:
             return status_code, None
         return status_code, f"unexpected response status {status_code}"
 
     def _record_failure(self, delivery: dict[str, Any], *, status_code: int | None, error: str) -> str:
         delivery_id = str(delivery["id"])
-        attempt_no = int(delivery.get("attemptCount", 0)) + 1
+        attempt_no = int(delivery["cycleAttempts"])
         if attempt_no >= MAX_DELIVERY_ATTEMPTS:
-            self.store.record_delivery_attempt(delivery_id, status_code=status_code, error=error[:ERROR_TEXT_LIMIT])
-            return self._dead_letter(delivery, error=error)
+            return self._dead_letter(delivery, error=error, status_code=status_code, record_attempt=True)
         delay = backoff_seconds(attempt_no)
         next_attempt_at = (datetime.now(UTC) + timedelta(seconds=delay)).isoformat().replace("+00:00", "Z")
-        self.store.record_delivery_attempt(
-            delivery_id, status_code=status_code, error=error[:ERROR_TEXT_LIMIT], next_attempt_at=next_attempt_at
+        self.store.finalize_delivery(
+            delivery, status="failed", status_code=status_code, error=error[:ERROR_TEXT_LIMIT], next_attempt_at=next_attempt_at
         )
         logger.warning(
             "Delivery failed delivery=%s sink=%s status_code=%s retry_in_seconds=%s",
@@ -245,7 +248,8 @@ class WebhookDispatcher:
         )
         return OUTCOME_RETRY_SCHEDULED
 
-    def _dead_letter(self, delivery: dict[str, Any], *, error: str) -> str:
-        self.store.mark_delivery_dead_lettered(str(delivery["id"]), error=error[:ERROR_TEXT_LIMIT])
+    def _dead_letter(self, delivery: dict[str, Any], *, error: str, status_code: int | None = None, record_attempt: bool = False) -> str:
+        self.store.finalize_delivery(delivery, status="dead_lettered", error=error[:ERROR_TEXT_LIMIT],
+                                     status_code=status_code, record_attempt=record_attempt)
         logger.warning("Dead-lettered delivery=%s sink=%s error=%s", delivery.get("id"), delivery.get("sinkId"), error[:ERROR_TEXT_LIMIT])
         return OUTCOME_DEAD_LETTERED

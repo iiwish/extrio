@@ -1,8 +1,85 @@
 """Requirement drafts are separate from immutable execution contracts."""
+
+import copy
 import re
 from typing import Any
 
 FIELD_TYPES = {"string", "number", "integer", "boolean", "date", "datetime", "url", "html", "object", "array"}
+
+DEFAULT_COLLECTION_FIELDS: list[dict[str, Any]] = [
+    {
+        "key": "title",
+        "label": "公告标题",
+        "type": "string",
+        "required": True,
+        "identity": True,
+        "fingerprint": True,
+        "description": "采购公告或变更公告的标准标题",
+    },
+    {
+        "key": "publishedAt",
+        "label": "发布时间",
+        "type": "string",
+        "required": True,
+        "identity": False,
+        "fingerprint": False,
+        "description": "公告发布的原始时间或标准日期",
+    },
+    {
+        "key": "buyer",
+        "label": "采购人",
+        "type": "string",
+        "required": False,
+        "identity": False,
+        "fingerprint": False,
+        "description": "招标单位或业主名称",
+    },
+    {
+        "key": "budget",
+        "label": "预算金额",
+        "type": "string",
+        "required": False,
+        "identity": False,
+        "fingerprint": False,
+        "description": "采购预算或最高限价",
+    },
+    {
+        "key": "sourceUrl",
+        "label": "详情链接",
+        "type": "string",
+        "required": True,
+        "identity": True,
+        "fingerprint": False,
+        "description": "详情页的完整访问地址",
+    },
+    {
+        "key": "region",
+        "label": "所属地区",
+        "type": "string",
+        "required": False,
+        "identity": False,
+        "fingerprint": False,
+        "description": "省级行政区或所属城市",
+    },
+    {
+        "key": "content",
+        "label": "公告正文",
+        "type": "string",
+        "required": False,
+        "identity": False,
+        "fingerprint": False,
+        "description": "公告全文的纯文本或 Markdown",
+    },
+    {
+        "key": "category",
+        "label": "采购类别",
+        "type": "string",
+        "required": False,
+        "identity": False,
+        "fingerprint": False,
+        "description": "工程、货物、服务或竞争性磋商等业务分类",
+    },
+]
 
 
 def validate_field_draft(value: Any) -> dict[str, Any]:
@@ -49,12 +126,121 @@ def project_source_contract(source: dict, version: dict | None) -> dict:
         if isinstance(schema_type, list):
             schema_type = next((item for item in schema_type if item != "null"), "string")
         value_type = rule.get("valueType", schema_type)
-        fields.append({"key": key, "label": rule.get("label") or definition.get("title") or key,
-                       "type": value_type if value_type in FIELD_TYPES else schema_type,
-                       "required": key in schema.get("required", []),
-                       "identity": key in contract.get("identityFields", []),
-                       "fingerprint": key in contract.get("fingerprintFields", []),
-                       "description": definition.get("description", "")})
-    return {"sourceId": source["id"], "sourceName": source["name"], "state": state,
-            "ruleVersion": active or candidate.get("id"), "fields": fields,
-            "schema": schema, "quality": contract.get("quality", {})}
+        if str(spec.get("collectionVersionRef", {}).get("collectionVersionId", "")).startswith("colver_"):
+            # HTML has a string schema without a format; keep its extraction semantics.
+            semantic_type = "html" if schema_type == "string" and value_type == "html" else schema_type
+            value_type = {"date": "date", "date-time": "datetime", "uri": "url"}.get(definition.get("format"), semantic_type)
+        fields.append(
+            {
+                "key": key,
+                "label": rule.get("label") or definition.get("title") or key,
+                "type": value_type if value_type in FIELD_TYPES else schema_type,
+                "required": key in schema.get("required", []),
+                "identity": key in contract.get("identityFields", []),
+                "fingerprint": key in contract.get("fingerprintFields", []),
+                "description": definition.get("description", ""),
+            }
+        )
+    return {
+        "sourceId": source["id"],
+        "sourceName": source["name"],
+        "state": state,
+        "ruleVersion": active or candidate.get("id"),
+        "fields": fields,
+        "schema": schema,
+        "quality": contract.get("quality", {}),
+    }
+
+
+def json_schema_type(value_type: str) -> str | list[str]:
+    return {
+        "integer": "integer",
+        "number": "number",
+        "boolean": "boolean",
+        "object": "object",
+        "array": "array",
+        "json": ["object", "array", "string", "number", "boolean", "null"],
+    }.get(value_type, "string")
+
+
+def build_collection_version_contract(draft_fields: list[dict[str, Any]]) -> dict[str, Any]:
+    from extrio.contracts import sha256_digest
+
+    validate_field_draft({"fields": draft_fields})
+    if not draft_fields:
+        raise ValueError("发布版本至少需要包含一个字段")
+    identity_fields = [f["key"] for f in draft_fields if f.get("identity")]
+    if not 1 <= len(identity_fields) <= 16:
+        raise ValueError("发布版本需要 1 至 16 个去重标识（identity）字段")
+    fingerprint_fields = [f["key"] for f in draft_fields if f.get("fingerprint")]
+    if not 1 <= len(fingerprint_fields) <= 64:
+        raise ValueError("发布版本需要 1 至 64 个变更检测（fingerprint）字段")
+
+    schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {
+            field["key"]: {
+                "type": json_schema_type(field["type"]) if field["required"] else [json_schema_type(field["type"]), "null"],
+                "title": field["label"],
+                **({"minLength": 1} if field["required"] and json_schema_type(field["type"]) == "string" else {}),
+                **(
+                    {"format": {"date": "date", "datetime": "date-time", "url": "uri"}[field["type"]]}
+                    if field["type"] in {"date", "datetime", "url"}
+                    else {}
+                ),
+                **({"description": field["description"]} if field.get("description") else {}),
+            }
+            for field in draft_fields
+        },
+        "required": [field["key"] for field in draft_fields if field.get("required")],
+        "additionalProperties": False,
+    }
+    return {
+        "fields": copy.deepcopy(draft_fields),
+        "normalizedItemSchema": schema,
+        "identityFields": identity_fields,
+        "fingerprintFields": fingerprint_fields,
+        "outputContractDigest": sha256_digest(
+            {"normalizedItemSchema": schema, "identityFields": identity_fields, "fingerprintFields": fingerprint_fields}
+        ),
+    }
+
+
+def constrain_rule_plan(plan: dict[str, Any], version: dict[str, Any]) -> dict[str, Any]:
+    """Only extraction mechanics come from the model; field semantics come from the version."""
+    plan = copy.deepcopy(plan)
+    fields = {field["key"]: field for field in version["fields"]}
+    stages = [plan["list"]] + ([plan["detail"]] if plan["mode"] == "list_detail" else [])
+    available = {key for stage in stages for key in stage["fields"]}
+    missing = fields.keys() - available
+    if missing:
+        raise ValueError("Frozen collection fields missing from rule: " + ", ".join(sorted(missing)))
+    for stage in stages:
+        for key in list(stage["fields"]):
+            if key not in fields:
+                if stage is plan["list"] and plan["mode"] == "list_detail" and key == "detailUrl":
+                    continue
+                del stage["fields"][key]
+                continue
+            field, rule = fields[key], stage["fields"][key]
+            rule.update(
+                label=field["label"][:64],
+                required=field["required"],
+                valueType={"date": "string", "object": "json", "array": "json"}.get(field["type"], field["type"]),
+                onError="reject_item" if field["required"] else "null",
+            )
+            if field["type"] == "datetime":
+                rule.setdefault("datetimeFormat", "RFC3339")
+                rule.setdefault("defaultTimezone", "UTC")
+            else:
+                rule.pop("datetimeFormat", None)
+                rule.pop("defaultTimezone", None)
+    plan["identityFields"] = list(version["identityFields"])
+    plan["fingerprintFields"] = list(version["fingerprintFields"])
+    plan["bindings"] = {
+        role: binding
+        for role, binding in plan["bindings"].items()
+        if binding.split(".", 1)[-1] in fields or binding == "list.detailUrl" and plan["mode"] == "list_detail"
+    }
+    return plan

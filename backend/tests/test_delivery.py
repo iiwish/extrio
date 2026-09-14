@@ -9,7 +9,9 @@ from typing import Any
 
 import httpx
 import pytest
+from test_collection_versions import client as client
 
+import extrio.app as app_module
 from extrio.credentials import CredentialCipher
 from extrio.delivery import (
     BACKOFF_SCHEDULE_SECONDS,
@@ -75,9 +77,9 @@ def http_sink() -> HTTPServer:
 
 
 def make_delivery_chain(
-    tmp_path: Path, http_sink: HTTPServer | None = None
+    tmp_path: Path, http_sink: HTTPServer | None = None, *, store_override: Store | None = None
 ) -> tuple[Store, CredentialCipher, dict[str, Any], dict[str, Any], dict[str, Any]]:
-    store = make_store(tmp_path)
+    store = store_override or make_store(tmp_path)
     cipher = CredentialCipher(tmp_path / "keys" / "cipher.key")
     collector = store.create_collector("Demo", "Collect notices", "https://example.com/list", "example.com")
     url = f"http://127.0.0.1:{http_sink.server_address[1]}/hook" if http_sink else "http://127.0.0.1:9/hook"
@@ -275,3 +277,81 @@ def test_test_kind_delivery_sends_minimal_synthetic_payload(tmp_path: Path, http
     headers = lower_headers(http_sink.requests[0]["headers"])
     body = http_sink.requests[0]["body"]
     assert headers["x-extrio-signature"] == "sha256=" + hmac.new(b"s3cret", body, hashlib.sha256).hexdigest()
+
+
+def test_reclaimed_delivery_ignores_old_response(client, tmp_path):
+    store, cipher, _, _, delivery = make_delivery_chain(tmp_path, store_override=app_module.store)
+    old = store.claim_due_deliveries(1)[0]
+    replacement = None
+
+    def handler(request):
+        nonlocal replacement
+        with store.transaction() as connection:
+            connection.execute("UPDATE deliveries SET lease_until=? WHERE id=?", ("2000-01-01T00:00:00Z", delivery["id"]))
+        replacement = store.claim_due_deliveries(1)[0]
+        return httpx.Response(200)
+
+    WebhookDispatcher(store, cipher, transport=httpx.MockTransport(handler)).process(old)
+    current = store.get_delivery(delivery["id"])
+    assert current["status"] == "delivering"
+    assert current["leaseUntil"] == replacement["leaseUntil"]
+    assert store.list_delivery_attempts(delivery["id"]) == []
+
+
+def test_changed_sink_does_not_redirect_an_existing_event(client, tmp_path):
+    store, cipher, _, sink, delivery = make_delivery_chain(tmp_path, store_override=app_module.store)
+    store.update_sink(sink["id"], url="https://another.example.com/hook")
+    sent = []
+    transport = httpx.MockTransport(lambda request: sent.append(request) or httpx.Response(200))
+    outcome = WebhookDispatcher(store, cipher, transport=transport).process(store.claim_due_deliveries(1)[0])
+    assert outcome == OUTCOME_DEAD_LETTERED
+    assert sent == []
+    assert "version" in store.get_delivery(delivery["id"])["lastError"]
+
+
+def test_manual_redelivery_gets_a_new_retry_cycle_without_erasing_history(client, tmp_path):
+    store, cipher, _, _, delivery = make_delivery_chain(tmp_path, store_override=app_module.store)
+    dispatcher = WebhookDispatcher(store, cipher, transport=httpx.MockTransport(lambda request: httpx.Response(500)))
+    for _ in range(5):
+        with store.transaction() as connection:
+            connection.execute("UPDATE deliveries SET next_attempt_at=? WHERE id=?", ("2000-01-01T00:00:00Z", delivery["id"]))
+        dispatcher.process(store.claim_due_deliveries(1)[0])
+    assert store.get_delivery(delivery["id"])["status"] == "dead_lettered"
+    store.redeliver_delivery(delivery["id"])
+    outcome = WebhookDispatcher(store, cipher, transport=httpx.MockTransport(lambda request: httpx.Response(200))).process(
+        store.claim_due_deliveries(1)[0]
+    )
+    assert outcome == OUTCOME_DELIVERED
+    assert len(store.list_delivery_attempts(delivery["id"])) == 6
+
+
+def test_delivery_outcome_rolls_back_its_attempt_with_the_state(client, tmp_path, monkeypatch):
+    store, cipher, _, _, delivery = make_delivery_chain(tmp_path, store_override=app_module.store)
+    claimed = store.claim_due_deliveries(1)[0]
+    original = store.record_delivery_attempt
+
+    def fail_after_append(*args, **kwargs):
+        original(*args, **kwargs)
+        raise RuntimeError("injected after attempt insert")
+
+    monkeypatch.setattr(store, "record_delivery_attempt", fail_after_append)
+    with pytest.raises(RuntimeError, match="injected"):
+        store.finalize_delivery(claimed, status="delivered", status_code=200)
+    assert store.list_delivery_attempts(delivery["id"]) == []
+    assert store.get_delivery(delivery["id"])["status"] == "delivering"
+
+
+def test_expired_delivery_does_not_send_and_recovery_is_bounded(client, tmp_path):
+    store, cipher, _, _, delivery = make_delivery_chain(tmp_path, store_override=app_module.store)
+    claimed = store.claim_due_deliveries(1)[0]
+    with store.transaction() as connection:
+        connection.execute("UPDATE deliveries SET lease_until=?, cycle_attempts=5 WHERE id=?", ("2000-01-01T00:00:00Z", delivery["id"]))
+    sent = []
+    dispatcher = WebhookDispatcher(
+        store, cipher, transport=httpx.MockTransport(lambda request: sent.append(request) or httpx.Response(200))
+    )
+    dispatcher.process(claimed)
+    assert sent == []
+    assert dispatcher.process(store.claim_due_deliveries(1)[0]) == OUTCOME_DEAD_LETTERED
+    assert sent == []
+    assert store.claim_due_deliveries(1) == []

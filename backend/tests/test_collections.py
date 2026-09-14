@@ -107,6 +107,10 @@ def test_empty_requirement_can_receive_sources_and_archive_preserves_them(client
     response = command(client, "POST", "/api/v1/collectors/batch", batch)
     assert response.status_code == 200, response.text
     source = response.json()["results"][0]["collector"]
+    assert source["collectionId"] == value["id"]
+    detail = client.get(path).json()
+    assert detail["sourceCount"] == 1
+    assert [item["id"] for item in detail["sources"]] == [source["id"]]
     assert source["collectionName"] == "Current" and source["intent"] == "Current goal"
     assert command(client, "DELETE", path, {"revision": 2}).json()["code"] == "COLLECTION_HAS_SOURCES"
     assert command(client, "PATCH", path, {"revision": 2, "status": "archived"}, "archive-command-key").status_code == 200

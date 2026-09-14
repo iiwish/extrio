@@ -91,6 +91,65 @@ def test_dom_evidence_removes_active_content_but_keeps_structure_and_text() -> N
     assert "项目 A" in evidence
 
 
+def test_detail_evidence_prioritizes_body_over_repeated_navigation() -> None:
+    navigation = "".join(f'<li><a href="/{i}">Navigation item {i}</a></li>' for i in range(400))
+    html = (
+        f'<body><div class="menu"><ul>{navigation}</ul></div><div id="record"><h1>Project title</h1>'
+        f'<div class="prose"><p>{"Actual project description. " * 40}</p></div></div></body>'
+    )
+    evidence = _dom_evidence(html, limit=14_000, stage="detail")
+    assert len(evidence) <= 14_000
+    assert 'id="record"' in evidence
+    assert 'class="prose"' in evidence
+    assert "Actual project description." in evidence
+    assert "<repeated-record-groups>" not in evidence
+
+
+def test_detail_evidence_bounds_long_text_without_losing_later_fields() -> None:
+    html = f'<article id="notice"><p>{"Long text " * 5000}</p><table><tr><td class="budget">12345</td></tr></table></article>'
+    evidence = _dom_evidence(html, limit=4000, stage="detail")
+    assert len(evidence) <= 4000
+    assert 'class="budget"' in evidence
+    assert "12345" in evidence
+    assert 'id="notice"' in evidence
+
+
+def test_detail_evidence_preserves_head_metadata_for_exact_titles() -> None:
+    html = '<html><head><meta name="ArticleTitle" content="Exact title"><title>Exact title - Portal</title></head>'
+    html += '<body><div class="title">Exact title<p>Transaction 123</p></div><article>Body text</article></body></html>'
+    evidence = _dom_evidence(html, limit=4000, stage="detail")
+    assert '<meta content="Exact title" name="ArticleTitle"/>' in evidence
+    assert "Transaction 123" in evidence
+    assert len(evidence) <= 4000
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("repair", [False, True])
+async def test_compile_and_repair_use_detail_specific_evidence(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, repair: bool) -> None:
+    compiler = ModelRuleCompiler(Store(tmp_path / "evidence.db"), CredentialCipher(tmp_path / "key"))
+    monkeypatch.setattr(compiler, "_model", lambda: None)
+    captured = {}
+
+    class EvidenceCaptured(Exception):
+        pass
+
+    async def capture(_model, _system, evidence, **_kwargs):
+        captured.update(evidence)
+        raise EvidenceCaptured
+
+    monkeypatch.setattr(compiler, "_complete_json", capture)
+    old_spec = {"collect": {"list": {"fields": {"detailUrl": {}}}, "detail": {"fields": {"content": {}}}},
+                "contract": {"identityFields": ["detailUrl"]}}
+    with pytest.raises(EvidenceCaptured):
+        method = compiler.compile_repair_rule_plan if repair else compiler.compile
+        discovery = normalize_discovery_plan({'mode': 'list_detail', 'list': {
+            'itemsSelector': 'li', 'fields': {'detailUrl': {'selector': 'css:a::attr(href)', 'valueType': 'url'}}}})
+        await method({}, "https://example.com", "<a href='/1'>List</a>",
+                     [("https://example.com/1", "<article>Detail body</article>")], old_spec if repair else discovery)
+    assert "<detail-content-sample>" in captured["detailSamples"][0]["domEvidence"]
+    assert "<repeated-record-groups>" in captured["listDomEvidence"]
+
+
 @pytest.mark.asyncio
 async def test_discovery_passes_bounded_operator_guidance_as_untrusted_evidence(
     tmp_path: Path,

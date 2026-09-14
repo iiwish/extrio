@@ -90,7 +90,19 @@ def test_migration_002_applies_to_v05_database_without_the_row(tmp_path: Path) -
 
     with store.connect() as connection:
         applied = [str(row["id"]) for row in connection.execute("SELECT id FROM schema_migrations").fetchall()]
-    assert applied == ["000_baseline", "001_user_accounts", "002_platform_settings", "003_collections"]
+    assert applied == [
+        "000_baseline",
+        "001_user_accounts",
+        "002_platform_settings",
+        "003_collections",
+        "004_collection_versions",
+        "005_collection_workflows",
+        "006_collection_version_immutability",
+        "007_runtime_recovery",
+        "008_item_entity_index",
+        "009_empty_source_policy",
+        "010_source_history_ownership",
+    ]
     assert store.get_platform_setting_value("allowAnonymousHttp") == "true"
 
 
@@ -130,9 +142,7 @@ def test_api_anonymous_http_allowed_by_default_then_disallowed_via_settings(tmp_
             )
             assert rejected.status_code == 422
             assert rejected.json()["code"] == "HTTPS_REQUIRED"
-            assert rejected.json()["message"] == (
-                "匿名 HTTP 来源默认已被允许；如被关闭，请由管理员在 设置 → 采集策略 中开启，或改用 HTTPS"
-            )
+            assert rejected.json()["message"] == ("匿名 HTTP 来源默认已被允许；如被关闭，请由管理员在 设置 → 采集策略 中开启，或改用 HTTPS")
 
             https_created = client.post(
                 "/api/v1/collectors",
@@ -215,9 +225,7 @@ def test_api_platform_setting_put_requires_administrator(tmp_path: Path) -> None
     original_settings = app_module.settings
     store = make_store(tmp_path)
     app_module.store = store
-    app_module.settings = original_settings.model_copy(
-        update={"auth_enabled": True, "auth_login_limit": "10/minute", "seed_demo": False}
-    )
+    app_module.settings = original_settings.model_copy(update={"auth_enabled": True, "auth_login_limit": "10/minute", "seed_demo": False})
     store.create_first_auth_user(username="root", display_name="Root", password_hash=hash_password("root-password-1"))
     store.create_user(
         username="engineer",
@@ -229,10 +237,7 @@ def test_api_platform_setting_put_requires_administrator(tmp_path: Path) -> None
         admin = TestClient(app_module.app)
         assert admin.post("/api/v1/auth/login", json={"username": "root", "password": "root-password-1"}).status_code == 200
         engineer = TestClient(app_module.app)
-        assert (
-            engineer.post("/api/v1/auth/login", json={"username": "engineer", "password": "engineer-password-1"}).status_code
-            == 200
-        )
+        assert engineer.post("/api/v1/auth/login", json={"username": "engineer", "password": "engineer-password-1"}).status_code == 200
 
         assert engineer.get("/api/v1/settings/platform").status_code == 200
         denied = engineer.put(

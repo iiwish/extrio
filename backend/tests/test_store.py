@@ -189,7 +189,7 @@ def test_new_ai_candidate_supersedes_previous_pending_review(tmp_path: Path) -> 
     collector = store.create_collector("Demo", "Collect notices", "https://example.com/list", "example.com")
 
     for ai_run_id in ("ai_run_first", "ai_run_second"):
-        store.create_async_command(
+        operation = store.create_async_command(
             kind="explore",
             collector_id=collector["id"],
             resource_type="collector",
@@ -205,6 +205,11 @@ def test_new_ai_candidate_supersedes_previous_pending_review(tmp_path: Path) -> 
                 "initiatedBy": "user_demo",
             },
         )
+
+        store.update_operation(operation["id"], status="succeeded")
+        store.update_ai_run(ai_run_id, status="succeeded")
+        with store.transaction() as connection:
+            connection.execute("UPDATE jobs SET status='completed' WHERE operation_id=?", (operation["id"],))
 
     store.update_ai_run("ai_run_first", reviewStatus="ready_review")
     store.update_ai_run("ai_run_second", reviewStatus="ready_review")
@@ -279,9 +284,7 @@ def test_collection_policy_versions_are_immutable_and_reset_checkpoint(tmp_path:
         ({"initialWindowDays": True}, "initialWindowDays is out of range"),
     ],
 )
-def test_collection_policy_rejects_unknown_modes_and_out_of_range_values(
-    tmp_path: Path, change: dict, message: str
-) -> None:
+def test_collection_policy_rejects_unknown_modes_and_out_of_range_values(tmp_path: Path, change: dict, message: str) -> None:
     store = make_store(tmp_path)
     collector = store.create_collector("Demo", "Collect notices", "https://example.com/list", "example.com")
     with pytest.raises(ValueError, match=message):
@@ -383,15 +386,25 @@ def test_initialize_records_baseline_migration_and_replays_idempotently(tmp_path
     store.initialize()
     with store.connect() as connection:
         applied = [str(row["id"]) for row in connection.execute("SELECT id FROM schema_migrations").fetchall()]
-    assert applied == ["000_baseline", "001_user_accounts", "002_platform_settings", "003_collections"]
+    assert applied == [
+        "000_baseline",
+        "001_user_accounts",
+        "002_platform_settings",
+        "003_collections",
+        "004_collection_versions",
+        "005_collection_workflows",
+        "006_collection_version_immutability",
+        "007_runtime_recovery",
+        "008_item_entity_index",
+        "009_empty_source_policy",
+        "010_source_history_ownership",
+    ]
 
 
 def test_initialize_applies_baseline_to_legacy_pre_migration_database(tmp_path: Path) -> None:
     database = tmp_path / "legacy.db"
     legacy = sqlite3.connect(database)
-    legacy.execute(
-        "CREATE TABLE collectors (id TEXT PRIMARY KEY, data TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)"
-    )
+    legacy.execute("CREATE TABLE collectors (id TEXT PRIMARY KEY, data TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)")
     legacy.commit()
     legacy.close()
 
@@ -428,11 +441,14 @@ def test_items_cursor_pagination_walks_deterministic_order(tmp_path: Path) -> No
         store.save_run({"id": run_id, "collectorId": collector["id"], "status": "succeeded"})
     store.save_run({"id": "run_other", "collectorId": other["id"], "status": "succeeded"})
 
-    store.save_items("run_one", [
-        make_item("item_a1", collector["id"], "run_one", "2026-09-01 10:00", "e1"),
-        make_item("item_a2", collector["id"], "run_one", "2026-09-01 10:00", "e2"),
-        make_item("item_a3", collector["id"], "run_one", "2026-09-01 09:00", "e3"),
-    ])
+    store.save_items(
+        "run_one",
+        [
+            make_item("item_a1", collector["id"], "run_one", "2026-09-01 10:00", "e1"),
+            make_item("item_a2", collector["id"], "run_one", "2026-09-01 10:00", "e2"),
+            make_item("item_a3", collector["id"], "run_one", "2026-09-01 09:00", "e3"),
+        ],
+    )
     store.save_items("run_two", [make_item("item_b1", collector["id"], "run_two", "2026-09-02 10:00", "e1")])
     store.save_items("run_other", [make_item("item_o1", other["id"], "run_other", "2026-09-03 10:00", "e9")])
 
@@ -476,11 +492,14 @@ def test_iter_items_export_streams_same_stable_order(tmp_path: Path) -> None:
     store = make_store(tmp_path)
     collector = store.create_collector("Demo", "Collect notices", "https://example.com/list", "example.com")
     store.save_run({"id": "run_one", "collectorId": collector["id"], "status": "succeeded"})
-    store.save_items("run_one", [
-        make_item("item_a1", collector["id"], "run_one", "2026-09-01 10:00", "e1"),
-        make_item("item_a2", collector["id"], "run_one", "2026-09-01 10:00", "e2"),
-        make_item("item_a3", collector["id"], "run_one", "2026-09-01 09:00", "e3"),
-    ])
+    store.save_items(
+        "run_one",
+        [
+            make_item("item_a1", collector["id"], "run_one", "2026-09-01 10:00", "e1"),
+            make_item("item_a2", collector["id"], "run_one", "2026-09-01 10:00", "e2"),
+            make_item("item_a3", collector["id"], "run_one", "2026-09-01 09:00", "e3"),
+        ],
+    )
 
     exported = list(store.iter_items_export(collector_id=collector["id"]))
     assert [item["id"] for item in exported] == ["item_a2", "item_a1", "item_a3"]

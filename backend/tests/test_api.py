@@ -296,6 +296,31 @@ def test_model_configuration_encrypts_provider_keys_and_supports_default_switchi
             )
             assert edited.status_code == 200
             assert all(provider["credentialConfigured"] for provider in edited.json()["providers"])
+            assert all("limits" not in model for model in edited.json()["models"])
+            limits = {"contextTokens": 16384, "maxInputTokens": 12000, "maxOutputTokens": 2048, "reasoningTokens": 1024}
+            edit["models"][0]["limits"] = limits
+            configured = client.put("/api/v1/settings/models", headers={"Idempotency-Key": "model-limits-valid-0001"}, json=edit)
+            assert configured.status_code == 200
+            assert configured.json()["models"][0]["limits"] == limits
+            assert client.get("/api/v1/settings/models").json()["models"][0]["limits"] == limits
+            for index, invalid in enumerate(
+                [
+                    None,
+                    {},
+                    {**limits, "extra": 1},
+                    {**limits, "contextTokens": True},
+                    {**limits, "contextTokens": 2048},
+                    {**limits, "maxInputTokens": 20000},
+                    {**limits, "maxOutputTokens": 0},
+                    {**limits, "reasoningTokens": -1},
+                    {**limits, "reasoningTokens": 16000},
+                    {**limits, "maxOutputTokens": 1.5},
+                ]
+            ):
+                edit["models"][0]["limits"] = invalid
+                rejected = client.put("/api/v1/settings/models", headers={"Idempotency-Key": f"model-limits-invalid-{index:04}"}, json=edit)
+                assert rejected.status_code == 422, rejected.text
+            assert client.get("/api/v1/settings/models").json()["models"][0]["limits"] == limits
     finally:
         app_module.store = original
         app_module.credential_cipher = original_cipher
@@ -399,7 +424,12 @@ def test_collector_definition_edit_preserves_name_only_and_invalidates_rule_inpu
             renamed = client.patch(
                 f"/api/v1/collectors/{collector['id']}",
                 headers={"Idempotency-Key": "rename-collector-0001"},
-                json={"name": "Renamed", "intent": published["intent"], "sourceUrl": published["sourceUrl"]},
+                json={
+                    "name": "Renamed",
+                    "intent": published["intent"],
+                    "sourceUrl": published["sourceUrl"],
+                    "managementRevision": published["managementRevision"],
+                },
             )
             assert renamed.status_code == 200
             assert renamed.json()["status"] == "published"
@@ -408,12 +438,17 @@ def test_collector_definition_edit_preserves_name_only_and_invalidates_rule_inpu
             changed = client.patch(
                 f"/api/v1/collectors/{collector['id']}",
                 headers={"Idempotency-Key": "change-collector-intent-0001"},
-                json={"name": "Renamed", "intent": "Collect a revised field set", "sourceUrl": published["sourceUrl"]},
+                json={
+                    "name": "Renamed",
+                    "intent": "Collect a revised field set",
+                    "sourceUrl": published["sourceUrl"],
+                    "managementRevision": renamed.json()["managementRevision"],
+                },
             )
             assert changed.status_code == 200
             assert changed.json()["status"] == "draft"
             assert changed.json()["candidate"] is None
-            assert changed.json()["activeRuleVersion"] == published["activeRuleVersion"]
+            assert changed.json()["activeRuleVersion"] is None
             blocked = client.post(
                 f"/api/v1/collectors/{collector['id']}/runs",
                 headers={"Idempotency-Key": "run-after-definition-edit"},
@@ -471,10 +506,7 @@ def test_direct_rule_edit_creates_new_candidate_without_mutating_published_rule(
                     }
                     for key, value in list_fields.items()
                 ],
-                "fields": [
-                    {"key": field["key"], "selector": output_fields[field["key"]]["selector"]}
-                    for field in candidate["fields"]
-                ],
+                "fields": [{"key": field["key"], "selector": output_fields[field["key"]]["selector"]} for field in candidate["fields"]],
             }
             edited = client.patch(
                 f"/api/v1/collectors/{collector['id']}/candidate-rule",
@@ -676,9 +708,10 @@ def test_publish_persists_integrity_bundle_and_run_freezes_it(tmp_path: Path) ->
             assert run["policyVersion"] == policy["id"]
             assert run["policyDigest"] == policy["digest"]
             assert run["executionMode"] == "initial"
-            assert run["windowStart"] == (
-                datetime.now(ZoneInfo("Asia/Shanghai")).date() - timedelta(days=policy["initialWindowDays"])
-            ).isoformat()
+            assert (
+                run["windowStart"]
+                == (datetime.now(ZoneInfo("Asia/Shanghai")).date() - timedelta(days=policy["initialWindowDays"])).isoformat()
+            )
             assert run["checkpointBefore"] is None
             assert run["checkpointAfter"] is None
             job = app_module.store.claim_job(60)

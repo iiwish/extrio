@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-PID_DIR="$ROOT/backend/data/pids"
+PID_DIR="${EXTRIO_INSTANCE_DIR:-$ROOT/backend/data}/pids"
 
 stop_tree() {
   local pid="$1"

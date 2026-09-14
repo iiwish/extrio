@@ -82,10 +82,20 @@ def test_item_classification_uses_declared_fingerprint_fields() -> None:
     assert current["changeSummary"] == []
 
 
-@pytest.mark.parametrize(("before", "after"), [
-    (None, 0), (None, False), (None, ""), (None, []), (None, {}),
-    (0, False), (False, ""), ([], {}), ({"enabled": False}, {"enabled": 0}),
-])
+@pytest.mark.parametrize(
+    ("before", "after"),
+    [
+        (None, 0),
+        (None, False),
+        (None, ""),
+        (None, []),
+        (None, {}),
+        (0, False),
+        (False, ""),
+        ([], {}),
+        ({"enabled": False}, {"enabled": 0}),
+    ],
+)
 def test_classification_preserves_json_value_types(before, after):
     previous = {**accepted_item(run_id="before"), "extractedData": {"value": before}}
     current = {**accepted_item(run_id="after"), "extractedData": {"value": after}}
@@ -119,8 +129,10 @@ def test_classification_ignores_json_object_order_and_equivalent_numbers():
     [
         (0, 0, "checkpoint_reached", "succeeded"),
         (1, 0, "time_window_reached", "succeeded"),
-        (1, 0, "max_pages", "partially_succeeded"),
-        (0, 0, "max_pages", "failed"),
+        (1, 0, "max_pages", "succeeded"),
+        (0, 0, "max_pages", "succeeded"),
+        (1, 1, "max_pages", "partially_succeeded"),
+        (0, 1, "max_pages", "failed"),
         (1, 0, "detail_fetch_incomplete", "partially_succeeded"),
         (1, 1, "next_link_exhausted", "partially_succeeded"),
     ],
@@ -236,7 +248,8 @@ async def test_exploration_worker_finalizes_ai_run_without_marking_rule_publishe
 
 
 @pytest.mark.asyncio
-async def test_worker_advances_checkpoint_only_after_successful_finalization(tmp_path: Path) -> None:
+@pytest.mark.parametrize("page_limited", [False, True])
+async def test_worker_advances_checkpoint_only_after_successful_finalization(tmp_path: Path, page_limited: bool) -> None:
     class FakeRuntime:
         async def run(self, _collector, run, _progress):
             item = accepted_item(run_id=run["id"], observed_at=f"observed-{run['id']}")
@@ -256,7 +269,11 @@ async def test_worker_advances_checkpoint_only_after_successful_finalization(tmp
                     "unchangedItems": 0,
                     "warningCount": 0,
                 },
-                pagination_stop_reason="time_window_reached" if run["executionMode"] == "initial" else "checkpoint_reached",
+                pagination_stop_reason="max_pages"
+                if page_limited
+                else "time_window_reached"
+                if run["executionMode"] == "initial"
+                else "checkpoint_reached",
                 duration="0.1s",
                 watermark_candidate="2026-08-30",
             )
@@ -268,9 +285,7 @@ async def test_worker_advances_checkpoint_only_after_successful_finalization(tmp
         with TestClient(app_module.app) as client:
             collector = app_module.store.create_collector("Source", "Collect", "https://example.com/list", "example.com")
             cipher = CredentialCipher(tmp_path / "keys" / "cipher.key")
-            sink = app_module.store.create_sink(
-                collector["id"], cipher=cipher, url="https://hooks.example.com/extrio", secret="s3cret"
-            )
+            sink = app_module.store.create_sink(collector["id"], cipher=cipher, url="https://hooks.example.com/extrio", secret="s3cret")
             list_html = (
                 '<ul class="notice-list"><li><a class="notice-title" href="/detail/a">Notice A</a>'
                 '<time datetime="2026-08-30"></time></li></ul>'
@@ -314,6 +329,11 @@ async def test_worker_advances_checkpoint_only_after_successful_finalization(tmp
             first_run = app_module.store.get_run(accepted.json()["resourceId"])
             assert first_run["status"] == "succeeded"
             assert first_run["newItems"] == 1
+            if page_limited:
+                assert first_run["checkpointAfter"] is None
+                assert app_module.store.get_checkpoint(collector["id"]) is None
+                assert first_run["recoveryAction"] == "无需操作。"
+                return
             assert first_run["checkpointAfter"]["watermark"] == "2026-08-30"
             assert app_module.store.get_checkpoint(collector["id"])["lastSuccessfulRunId"] == first_run["id"]
 
@@ -430,7 +450,7 @@ async def test_run_finalization_pauses_schedule_after_three_failed_runs(tmp_path
                     "unchangedItems": 0,
                     "warningCount": 0,
                 },
-                pagination_stop_reason="max_pages",
+                pagination_stop_reason="empty_page",
                 duration="0.1s",
                 watermark_candidate=None,
             )

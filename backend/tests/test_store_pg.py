@@ -25,13 +25,12 @@ from extrio.cli import create_backup, restore_backup
 from extrio.credentials import CredentialCipher
 from extrio.store import IdempotencyConflict, InvalidCursor, Store, UsernameTaken
 
-TEST_DATABASE_URL = os.environ.get(
-    "EXTRIO_TEST_DATABASE_URL",
-    "postgresql://postgres:extrio_test@127.0.0.1:5433/postgres",
-)
+TEST_DATABASE_URL = os.environ.get("EXTRIO_TEST_DATABASE_URL")
 
 
 def _postgres_available() -> bool:
+    if not TEST_DATABASE_URL:
+        return False
     try:
         with psycopg.connect(TEST_DATABASE_URL, connect_timeout=3):
             return True
@@ -41,12 +40,14 @@ def _postgres_available() -> bool:
 
 pytestmark = pytest.mark.skipif(
     not _postgres_available(),
-    reason=f"PostgreSQL test server unreachable at {TEST_DATABASE_URL}",
+    reason="No reachable explicitly configured PostgreSQL test server",
 )
 
 
 @pytest.fixture
 def pg_store(tmp_path: Path):
+    if not _postgres_available():
+        pytest.skip("No reachable explicitly configured PostgreSQL test server")
     database_name = f"extrio_test_{uuid.uuid4().hex[:12]}"
     base_url = TEST_DATABASE_URL.rsplit("/", 1)[0]
     with psycopg.connect(TEST_DATABASE_URL, autocommit=True, connect_timeout=3) as admin:
@@ -81,10 +82,23 @@ def test_initialize_applies_baseline_migrations_idempotently(pg_store: Store) ->
     pg_store.initialize()
     with pg_store.connect() as connection:
         applied = [str(row["id"]) for row in connection.execute("SELECT id FROM schema_migrations ORDER BY id").fetchall()]
-        tables = {str(row["table_name"]) for row in connection.execute(
-            "SELECT table_name FROM information_schema.tables WHERE table_schema='public'"
-        ).fetchall()}
-    assert applied == ["000_baseline", "001_user_accounts", "002_platform_settings", "003_collections"]
+        tables = {
+            str(row["table_name"])
+            for row in connection.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public'").fetchall()
+        }
+    assert applied == [
+        "000_baseline",
+        "001_user_accounts",
+        "002_platform_settings",
+        "003_collections",
+        "004_collection_versions",
+        "005_collection_workflows",
+        "006_collection_version_immutability",
+        "007_runtime_recovery",
+        "008_item_entity_index",
+        "009_empty_source_policy",
+        "010_source_history_ownership",
+    ]
     assert {
         "sinks",
         "deliveries",
@@ -92,6 +106,9 @@ def test_initialize_applies_baseline_migrations_idempotently(pg_store: Store) ->
         "audit_events",
         "collector_schedules",
         "platform_setting_values",
+        "collection_versions",
+        "collection_migrations",
+        "field_suggestions",
     }.issubset(tables)
 
 
@@ -104,7 +121,19 @@ def test_migration_002_applies_to_v05_database_without_the_row(pg_store: Store) 
 
     with pg_store.connect() as connection:
         applied = [str(row["id"]) for row in connection.execute("SELECT id FROM schema_migrations ORDER BY id").fetchall()]
-    assert applied == ["000_baseline", "001_user_accounts", "002_platform_settings", "003_collections"]
+    assert applied == [
+        "000_baseline",
+        "001_user_accounts",
+        "002_platform_settings",
+        "003_collections",
+        "004_collection_versions",
+        "005_collection_workflows",
+        "006_collection_version_immutability",
+        "007_runtime_recovery",
+        "008_item_entity_index",
+        "009_empty_source_policy",
+        "010_source_history_ownership",
+    ]
     assert pg_store.get_platform_setting_value("allowAnonymousHttp") == "true"
 
 
@@ -276,11 +305,14 @@ def test_items_cursor_pagination_walks_deterministic_order(pg_store: Store) -> N
         pg_store.save_run({"id": run_id, "collectorId": collector["id"], "status": "succeeded"})
     pg_store.save_run({"id": "run_other", "collectorId": other["id"], "status": "succeeded"})
 
-    pg_store.save_items("run_one", [
-        make_item("item_a1", collector["id"], "run_one", "2026-09-01 10:00", "e1"),
-        make_item("item_a2", collector["id"], "run_one", "2026-09-01 10:00", "e2"),
-        make_item("item_a3", collector["id"], "run_one", "2026-09-01 09:00", "e3"),
-    ])
+    pg_store.save_items(
+        "run_one",
+        [
+            make_item("item_a1", collector["id"], "run_one", "2026-09-01 10:00", "e1"),
+            make_item("item_a2", collector["id"], "run_one", "2026-09-01 10:00", "e2"),
+            make_item("item_a3", collector["id"], "run_one", "2026-09-01 09:00", "e3"),
+        ],
+    )
     pg_store.save_items("run_two", [make_item("item_b1", collector["id"], "run_two", "2026-09-02 10:00", "e1")])
     pg_store.save_items("run_other", [make_item("item_o1", other["id"], "run_other", "2026-09-03 10:00", "e9")])
 
@@ -311,9 +343,7 @@ def test_entity_pagination_search_and_export_on_postgres(pg_store: Store):
     assert second["nextCursor"] is None
     assert len(first["items"] + second["items"]) == 204
     assert len(first["facets"]["collectors"]) == 2
-    assert [item["id"] for item in pg_store.iter_items_export(**filters)] == [
-        item["id"] for item in first["items"] + second["items"]
-    ]
+    assert [item["id"] for item in pg_store.iter_items_export(**filters)] == [item["id"] for item in first["items"] + second["items"]]
 
 
 def test_sink_crud_bumps_version_and_encrypts_secret(pg_store: Store, tmp_path: Path) -> None:
