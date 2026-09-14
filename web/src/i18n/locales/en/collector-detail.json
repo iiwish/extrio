@@ -1,4 +1,25 @@
 {
+  "execution": {
+    "title": "Execution Log",
+    "view": "View execution log",
+    "collapse": "Minimize",
+    "details": "Task details",
+    "errorCode": "Error code",
+    "reason": "Reason",
+    "requestId": "Request ID",
+    "errors": {
+      "browser_navigation_timed_out": "The source page timed out again after one automatic retry. Retry the task later.",
+      "source_request_timed_out": "The source request timed out. Try again later.",
+      "browser_fetch_failed": "The source browser failed to load a verifiable page.",
+      "http_status_0": "The browser did not receive a valid page response. This historical record does not distinguish a timeout from other loading failures."
+    },
+    "result": {
+      "succeeded": "Execution completed",
+      "failed": "Execution failed",
+      "cancelled": "Execution cancelled",
+      "timed_out": "Execution timed out"
+    }
+  },
   "notFound": {
     "title": "Object unavailable",
     "backToCollectors": "Back to sources",
@@ -22,6 +43,9 @@
     "description": "View collection evidence and lineage for the current field, rule, or item."
   },
   "overview": {
+    "runLoading": "Loading latest run results",
+    "runUnavailable": "Latest run results unavailable",
+    "runUnavailableDetail": "Results are not inferred from samples. Retry loading or inspect the run details.",
     "needsAttention": "Latest run needs attention",
     "pagination": {
       "maxPages": "Up to {{maxPages}} pages",
@@ -110,6 +134,11 @@
   "review": {
     "blockingTitle": "{{total}} issues blocking publish",
     "blockingDetail": ": {{warning}}",
+    "recoveryExplanation": "This field has not passed sample validation; its content may still exist on the source page. AI repair collects fresh samples and checks selectors. Human review is still required.",
+    "recoveryConsequence": "Exclude an optional field only when it is not needed: it will be removed from the output. Accepting risk does not recover missing content.",
+    "repairField": "Repair field",
+    "repairFieldAria": "Ask AI to repair field {{key}}",
+    "repairGuidance": "Repair field {{key}} ({{label}}).\nIssue: {{warning}}\nCollect complete samples, locate the field and validate its selector again. Preserve all output fields, required constraints and quality gates. Do not resolve the issue by excluding fields, accepting risk or inventing placeholder values.",
     "warningJoin": ", ",
     "viewEvidence": "View evidence",
     "clearTitle": "Field risks resolved",
@@ -192,7 +221,7 @@
       "dialogDescription": "The requirement and data contract stay unchanged; the source name identifies the source, while the source collection brief and entry URL jointly determine the candidate rule.",
       "name": "Source name",
       "newRuleTitle": "New rule required",
-      "newRuleDescription": "The current candidate becomes invalid; the published rule stays immutable and is kept as historical evidence.",
+      "newRuleDescription": "Saving disables scheduling and clears the candidate, active rule and checkpoint. Historical rules stay immutable; future runs require exploration, review and publication.",
       "saveOnly": "Save definition only",
       "save": "Save details",
       "saveAndRegenerate": "Save and regenerate"
@@ -464,7 +493,6 @@
     "title": "Publish rule?",
     "description": "Rule content becomes immutable after publishing. Confirm field decisions and quality check results.",
     "reviewer": "Reviewer",
-    "reviewerName": "Lin Ran",
     "fieldDecisions": "Field decisions",
     "decisionSummary": "{{approved}} approved · {{riskAccepted}} risk accepted · {{excluded}} excluded",
     "qualityChecks": "Quality checks",

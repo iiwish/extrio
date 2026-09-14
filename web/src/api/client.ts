@@ -6,12 +6,29 @@ import type {
   CollectionDetail,
   CollectionInput,
   CollectionUpdateInput,
+  CollectionVersion,
+  CollectionVersionPublishInput,
+  CollectionVersionList,
+  CollectionTemplateList,
+  FieldSuggestion,
+  FieldSuggestionList,
+  FieldSuggestionInput,
+  ApplyTemplateInput,
+  ApplySuggestionInput,
+  CollectionMigrationPlan,
+  CollectionMigrationInput,
+  CancelCollectionMigrationInput,
   BatchCollectorImportResult,
   AuthLoginInput,
   AuthSetupInput,
   AuthState,
   CandidateRuleEditInput,
   CollectorDetail,
+  CollectorLifecyclePlan,
+  CollectorLifecycleInput,
+  CollectorLifecycleResult,
+  CollectorReassignmentPlan,
+  CollectorReassignmentInput,
   CollectorPage,
   CollectionPolicyInput,
   CollectorScheduleInput,
@@ -36,6 +53,8 @@ import type {
   ModelSetting,
   ModelSettingInput,
   Operation,
+  RuntimeDiagnostics,
+  RunEvidenceStatus,
   PlatformError,
   PlatformSettings,
   PlatformSettingsInput,
@@ -259,12 +278,30 @@ export async function waitForOperation(
 export const api = {
   overview: (timezone = Intl.DateTimeFormat().resolvedOptions().timeZone) => request<Overview>(`/overview?timezone=${encodeURIComponent(timezone)}`),
   collections: () => request<{ items: Collection[]; total: number }>('/collections').then((result) => result.items),
+  collectionTemplates: () => request<CollectionTemplateList>('/collection-templates').then((result) => result.items),
+  applyCollectionTemplate: (id: string, input: ApplyTemplateInput) => command<Collection>(`/collections/${encodeURIComponent(id)}/apply-template`, { body: JSON.stringify(input) }),
+  fieldSuggestions: (id: string) => request<FieldSuggestionList>(`/collections/${encodeURIComponent(id)}/field-suggestions`).then((result) => result.items),
+  startFieldSuggestion: (id: string, input: FieldSuggestionInput) => command<FieldSuggestion>(`/collections/${encodeURIComponent(id)}/field-suggestions`, { body: JSON.stringify(input) }),
+  applyFieldSuggestion: (id: string, suggestionId: string, input: ApplySuggestionInput) => command<Collection>(`/collections/${encodeURIComponent(id)}/field-suggestions/${encodeURIComponent(suggestionId)}/apply`, { body: JSON.stringify(input) }),
+  collectionMigrationPlan: (id: string, targetVersionId: string) => request<CollectionMigrationPlan>(`/collectors/${encodeURIComponent(id)}/collection-migration?targetVersionId=${encodeURIComponent(targetVersionId)}`),
+  migrateCollectionVersion: (id: string, input: CollectionMigrationInput) => command<CollectorDetail>(`/collectors/${encodeURIComponent(id)}/collection-migration`, { body: JSON.stringify(input) }),
+  cancelCollectionMigration: (id: string, input: CancelCollectionMigrationInput) => command<CollectorDetail>(`/collectors/${encodeURIComponent(id)}/collection-migration/cancel`, { body: JSON.stringify(input) }),
   collection: (id: string) => request<CollectionDetail>(`/collections/${encodeURIComponent(id)}`),
   createCollection: (input: CollectionInput, key?: string) => command<Collection>('/collections', {
     body: JSON.stringify(input), ...(key ? { headers: { 'Idempotency-Key': key } } : {}),
   }),
   updateCollection: (id: string, input: CollectionUpdateInput) => command<Collection>(`/collections/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(input) }),
   deleteCollection: (id: string, revision: number) => command<{ id: string; deleted: true }>(`/collections/${encodeURIComponent(id)}`, { method: 'DELETE', body: JSON.stringify({ revision }) }),
+  publishCollectionVersion: (id: string, input: CollectionVersionPublishInput, key?: string) =>
+    command<CollectionVersion>(`/collections/${encodeURIComponent(id)}/publish-version`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+      ...(key ? { headers: { 'Idempotency-Key': key } } : {}),
+    }),
+  collectionVersions: (id: string) =>
+    request<CollectionVersionList>(`/collections/${encodeURIComponent(id)}/versions`),
+  collectionVersion: (collectionId: string, versionId: string) =>
+    request<CollectionVersion>(`/collections/${encodeURIComponent(collectionId)}/versions/${encodeURIComponent(versionId)}`),
   authState: () => request<AuthState>('/auth/state'),
   setupAuth: (input: AuthSetupInput) => request<AuthState>('/auth/setup', { method: 'POST', body: JSON.stringify(input) }),
   login: (input: AuthLoginInput) => request<AuthState>('/auth/login', { method: 'POST', body: JSON.stringify(input) }),
@@ -282,14 +319,18 @@ export const api = {
   platformSettings: () => request<PlatformSettings>('/settings/platform'),
   updatePlatformSettings: (input: PlatformSettingsInput) =>
     command<PlatformSettings>('/settings/platform', { method: 'PUT', body: JSON.stringify(input) }),
-  collectors: () => request<CollectorPage>('/collectors').then((result) => result.items),
+  collectors: (lifecycle: 'active' | 'archived' | 'all' = 'active') => request<CollectorPage>(lifecycle === 'active' ? '/collectors' : `/collectors?lifecycle=${lifecycle}`).then((result) => result.items),
+  collectorLifecyclePlan: (id: string) => request<CollectorLifecyclePlan>(`/collectors/${encodeURIComponent(id)}/lifecycle`),
+  changeCollectorLifecycle: (id: string, input: CollectorLifecycleInput, key: string) => command<CollectorLifecycleResult>(`/collectors/${encodeURIComponent(id)}/lifecycle`, { body: JSON.stringify(input), headers: { 'Idempotency-Key': key } }),
+  collectorReassignmentPlan: (id: string, target: string) => request<CollectorReassignmentPlan>(`/collectors/${encodeURIComponent(id)}/reassignment?targetCollectionId=${encodeURIComponent(target)}`),
+  reassignCollector: (id: string, input: CollectorReassignmentInput, key: string) => command<CollectorDetail>(`/collectors/${encodeURIComponent(id)}/reassignment`, { body: JSON.stringify(input), headers: { 'Idempotency-Key': key } }),
   collector: (id: string) => request<CollectorDetail>(`/collectors/${id}`),
   createCollector: (input: CreateCollectorInput) =>
     command<CollectorDetail>('/collectors', { body: JSON.stringify(input) }),
-  updateCollector: (id: string, input: UpdateCollectorInput) =>
-    command<CollectorDetail>(`/collectors/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
-  createCollectors: (input: CreateCollectorsInput) =>
-    command<BatchCollectorImportResult>('/collectors/batch', { body: JSON.stringify(input) }),
+  updateCollector: (id: string, input: UpdateCollectorInput, key?: string) =>
+    command<CollectorDetail>(`/collectors/${id}`, { method: 'PATCH', body: JSON.stringify(input), ...(key ? { headers: { 'Idempotency-Key': key } } : {}) }),
+  createCollectors: (input: CreateCollectorsInput, key?: string) =>
+    command<BatchCollectorImportResult>('/collectors/batch', { body: JSON.stringify(input), ...(key ? { headers: { 'Idempotency-Key': key } } : {}) }),
   startExploration: (id: string, input: ExplorationInput = {}) =>
     command<Operation>(`/collectors/${id}/explorations`, { body: JSON.stringify(input) }),
   startRepair: (id: string, input: RepairInput = {}) =>
@@ -301,6 +342,9 @@ export const api = {
   updateCandidateRule: (id: string, input: CandidateRuleEditInput) =>
     command<CollectorDetail>(`/collectors/${id}/candidate-rule`, { method: 'PATCH', body: JSON.stringify(input) }),
   operation: (id: string) => request<Operation>(`/operations/${id}`),
+  cancelOperation: (id: string) => command<Operation>(`/operations/${encodeURIComponent(id)}/cancel`),
+  runtime: () => request<RuntimeDiagnostics>('/runtime'),
+  runEvidence: (id: string) => request<RunEvidenceStatus>(`/runs/${encodeURIComponent(id)}/evidence`),
   publish: (id: string, reviewDecisions: Record<string, FieldReviewDecision>) =>
     command<CollectorDetail>(`/collectors/${id}/publish`, { body: JSON.stringify({ reviewDecisions }) }),
   startRun: (id: string) => command<Operation>(`/collectors/${id}/runs`),

@@ -20,6 +20,14 @@ function renderPage() {
 }
 
 describe('ItemPage information architecture', () => {
+  it('retains content and run lineage for a deleted source without a broken source link', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ ...item, collectorDeleted: true }), { headers: { 'Content-Type': 'application/json' } })))
+    renderPage()
+    expect(await screen.findByText('来源已删除')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('tab', { name: '来源与谱系' }))
+    expect(screen.getByRole('link', { name: /查看运行记录/ })).toBeInTheDocument()
+    expect(screen.queryAllByRole('link').some(link => link.getAttribute('href')?.startsWith('/collectors/'))).toBe(false)
+  })
   it('reads HTML as inert text and offers literal source without mounting HTML', async () => {
     const content = '<article><p>采购正文</p><script>window.attacked = true</script><img src="https://example.com/tracker.png"><p hidden>不可见</p></article>'
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({...item,content}), {headers:{'Content-Type':'application/json'}})))

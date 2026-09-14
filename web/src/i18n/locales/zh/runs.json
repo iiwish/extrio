@@ -89,7 +89,7 @@
     "historical": "历史"
   },
   "stopReason": {
-    "not_applicable": "单页完成",
+    "not_applicable": "不适用",
     "empty_page": "空页停止",
     "next_link_exhausted": "已到末页",
     "max_pages": "达到分页上限",
@@ -104,6 +104,41 @@
     "running": "执行中"
   },
   "detail": {
+    "failure": {
+      "structure": "来源页面结构与规则不匹配",
+      "unsupported": "该来源要求当前运行器不支持的访问方式",
+      "access": "来源拒绝匿名访问或 robots 不允许采集",
+      "budget": "运行超出冻结的时间或响应预算",
+      "boundary": "请求被来源网络边界阻断",
+      "connection": "来源连接或响应失败",
+      "cancelled": "取消已完成，检查点未推进",
+      "general": "运行未完成，需要排查"
+    },
+    "recovery": {
+      "structure": "核对入口和字段选择器，生成修复候选并人工审核后发布。",
+      "unsupported": "当前仅支持匿名 GET。先确认公开可访问的来源，不要绕过登录或验证码。",
+      "access": "检查来源授权与 robots 规则；访问条件未满足前保持暂停。",
+      "budget": "核对页面数量、响应大小和时长预算；调整规则后重新审核。",
+      "boundary": "核对允许主机、跳转目标和 HTTPS，不要为重试关闭网络保护。",
+      "connection": "确认来源可访问及实例网络状态，恢复后再发起运行。",
+      "cancelled": "本次未形成交付结果，可在需要时重新发起运行。",
+      "general": "检查实例状态、规则证明和错误代码，再决定重试或修复规则。"
+    },
+    "cancel": "取消运行",
+    "cancelPending": "等待停止",
+    "actualFetchCount": "实际完成的详情请求",
+    "noCommit": "未形成完整交付结果",
+    "checkingEvidence": "正在核验证据",
+    "noReplay": "无完整可回放证据",
+    "evidenceFiles": "{{count}} 个快照 · 已验证 {{bytes}} 字节",
+    "evidenceExpiry": "保留截止 {{date}}",
+    "evidenceState": {
+      "available": "本地证据完整性已核验",
+      "missing": "本地证据缺失",
+      "expired": "原始证据已到期",
+      "invalid": "证据完整性校验失败",
+      "incomplete": "证据记录不完整"
+    },
     "notFound": "Run 不存在",
     "backToRuns": "返回运行",
     "viewCollector": "查看采集来源",
@@ -136,6 +171,10 @@
     "runningDesc": "刷新页面后仍会继续读取同一任务的进度。",
     "progressErrorTitle": "无法继续读取运行进度",
     "partialTitle": "部分结果需要处理",
+    "pageLimitTitle": "已达到页数上限，数据已保存",
+    "pageLimitOutcome": "{{accepted}} 条已接收，达到页数上限",
+    "pageLimitSummary": "已采集 {{pages}} 个列表页，保存 {{accepted}} 条数据，0 条拒绝。尚未确认采集范围已全部覆盖。",
+    "pageLimitHelp": "这是按页数限制停止，不是采集错误。若这些结果已满足需求，无需处理；若需覆盖更多内容，请检查采集范围与分页上限。",
     "viewRejected": "查看拒绝项",
     "reviseRule": "修订采集规则",
     "terminal": {

@@ -20,6 +20,21 @@ function mount(edit = true, data = value) {
 beforeEach(() => vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} }))
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
 
+it('does not label a field definition identical to the active version as unpublished', async () => {
+  vi.spyOn(api, 'collectionVersion').mockResolvedValue({
+    id: 'colver_test_v1', collectionId: value.id, versionNumber: 1, fields: [title], normalizedItemSchema: {},
+    identityFields: ['title'], fingerprintFields: ['title'], outputContractDigest: 'sha256:test', publishedAt: '2026-09-11T00:00:00Z', publishedBy: 'reviewer',
+  })
+  mount(true, {...value, fieldDraft: {fields: [title]}, activeVersion: {
+    id: 'colver_test_v1', versionNumber: 1, fieldCount: 1, outputContractDigest: 'sha256:test', publishedAt: '2026-09-11T00:00:00Z',
+  }})
+  expect(await screen.findByText('已发布字段')).toBeInTheDocument()
+  expect(screen.queryByText('草稿尚未应用，已有来源按原规则采集。')).not.toBeInTheDocument()
+  expect(screen.queryByText('需求草稿')).not.toBeInTheDocument()
+  await userEvent.setup().click(screen.getByRole('button', {name: '编辑字段'}))
+  expect(screen.getByText('需求草稿')).toBeInTheDocument()
+})
+
 it('previews actual output fields even before a requirement draft exists', () => {
   mount(false)
   expect(screen.getByText('title')).toBeInTheDocument()
@@ -148,4 +163,25 @@ it('generates requirement fields from source with replace or merge mode', async 
   expect(screen.getByText('title')).toBeInTheDocument()
   expect(screen.getByText('content')).toBeInTheDocument()
   expect(screen.queryByText('custom_old')).not.toBeInTheDocument()
+})
+
+it('does not expose version publication to an engineer', () => {
+  mount(true, { ...value, fieldDraft: { fields: [title] } })
+  expect(screen.queryByRole('button', { name: '发布字段版本' })).not.toBeInTheDocument()
+})
+
+it('previews templates without writing and disables tools during local editing', async () => {
+  const templates = vi.spyOn(api, 'collectionTemplates').mockResolvedValue([{ id: 'public_notices_v1', name: '公告', version: 1, fields: [title] }])
+  const apply = vi.spyOn(api, 'applyCollectionTemplate').mockResolvedValue(value)
+  mount()
+  const user = userEvent.setup()
+  await user.click(screen.getByRole('button', { name: '字段模板' }))
+  expect(await screen.findByRole('dialog')).toHaveTextContent('字段模板')
+  await waitFor(() => expect(templates).toHaveBeenCalledOnce())
+  expect(apply).not.toHaveBeenCalled()
+  await user.click(screen.getByRole('button', { name: '应用模板为草稿' }))
+  await waitFor(() => expect(apply).toHaveBeenCalledWith(value.id, { templateId: 'public_notices_v1', revision: 1 }))
+  await user.click(screen.getByRole('button', { name: '编辑字段' }))
+  expect(screen.getByRole('button', { name: '字段模板' })).toBeDisabled()
+  expect(screen.getByRole('button', { name: 'AI 字段建议' })).toBeDisabled()
 })

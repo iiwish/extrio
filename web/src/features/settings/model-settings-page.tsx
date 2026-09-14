@@ -18,6 +18,7 @@ import type {
   UserRole,
 } from '@/api/types'
 import { useAuth } from '@/features/auth/auth-gate'
+import { RuntimeDiagnosticsSection } from './runtime-diagnostics'
 import { APP_LANGUAGES, getAppLanguage, setAppLanguage, type AppLanguage } from '@/i18n/language'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -57,8 +58,11 @@ function providerInput(provider: ModelProviderConfiguration): ProviderDraft {
 }
 
 function modelInput(model: ModelConfigurationItem): ModelDraft {
-  return { id: model.id, providerId: model.providerId, modelId: model.modelId, enabled: model.enabled }
+  return { id: model.id, providerId: model.providerId, modelId: model.modelId, enabled: model.enabled, ...(model.limits ? { limits: model.limits } : {}) }
 }
+
+const defaultModelLimits = { contextTokens: 32768, maxInputTokens: 32768, maxOutputTokens: 4096, reasoningTokens: 0 }
+const modelLimitKeys = ['contextTokens', 'maxInputTokens', 'maxOutputTokens', 'reasoningTokens'] as const
 
 function nextId(prefix: 'provider' | 'model') {
   return `${prefix}_${crypto.randomUUID().replaceAll('-', '').slice(0, 12)}`
@@ -99,6 +103,7 @@ export function SystemSettingsPage() {
       <Button type="button" variant="ghost" size="icon-sm" disabled={logoutMutation.isPending} onClick={() => logoutMutation.mutate()} title={t('common:topbar.logout')} aria-label={t('common:topbar.logout')}><LogOut /></Button>
     </div>
     {logoutMutation.error && <Alert variant="destructive"><AlertDescription>{logoutMutation.error.message}</AlertDescription></Alert>}
+    <RuntimeDiagnosticsSection />
     {currentUser.role === 'administrator' && <CollectionPolicySection />}
     {currentUser.role === 'administrator' && <UsersSection currentUserId={currentUser.id} />}
   </div>
@@ -329,9 +334,23 @@ export function ModelSettingsPage() {
       <DialogContent className="settings-dialog" onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader><DialogTitle>{configuration.models.some((model) => model.id === modelDraft?.id) ? t('model.edit') : t('model.add')}</DialogTitle><DialogDescription>{t('dialog.modelDescription')}</DialogDescription></DialogHeader>
         {modelDraft && <form id="model-settings-form" className="settings-dialog-form" onSubmit={saveModel}>
-          <div className="field-group"><label htmlFor="model-provider">{t('dialog.providerLabel')}</label><Select value={modelDraft.providerId} onValueChange={(value) => setModelDraft({ ...modelDraft, providerId: value })}><SelectTrigger id="model-provider" aria-label={t('dialog.modelProviderAria')}><SelectValue /></SelectTrigger><SelectContent>{configuration.providers.map((provider) => <SelectItem key={provider.id} value={provider.id}>{provider.name}</SelectItem>)}</SelectContent></Select></div>
-          <div className="field-group"><label htmlFor="model-id">{t('dialog.modelIdLabel')}</label><Input id="model-id" value={modelDraft.modelId} onChange={(event) => setModelDraft({ ...modelDraft, modelId: event.target.value })} placeholder={t('dialog.modelIdPlaceholder')} required autoFocus /></div>
-          <label className="settings-checkbox"><Checkbox checked={modelDraft.enabled} onCheckedChange={(checked) => setModelDraft({ ...modelDraft, enabled: checked === true })} />{t('dialog.enableModel')}</label>
+          <div className="field-group"><label htmlFor="model-provider">{t('dialog.providerLabel')}</label><Select disabled={mutation.isPending} value={modelDraft.providerId} onValueChange={(value) => setModelDraft({ ...modelDraft, providerId: value })}><SelectTrigger id="model-provider" aria-label={t('dialog.modelProviderAria')}><SelectValue /></SelectTrigger><SelectContent>{configuration.providers.map((provider) => <SelectItem key={provider.id} value={provider.id}>{provider.name}</SelectItem>)}</SelectContent></Select></div>
+          <div className="field-group"><label htmlFor="model-id">{t('dialog.modelIdLabel')}</label><Input disabled={mutation.isPending} id="model-id" value={modelDraft.modelId} onChange={(event) => setModelDraft({ ...modelDraft, modelId: event.target.value })} placeholder={t('dialog.modelIdPlaceholder')} required autoFocus /></div>
+          <label className="settings-checkbox"><Checkbox disabled={mutation.isPending} checked={modelDraft.enabled} onCheckedChange={(checked) => setModelDraft({ ...modelDraft, enabled: checked === true })} />{t('dialog.enableModel')}</label>
+          <label className="settings-checkbox"><Checkbox disabled={mutation.isPending} checked={Boolean(modelDraft.limits)} onCheckedChange={(checked) => {
+            const { limits: _limits, ...draft } = modelDraft
+            setModelDraft(checked === true ? { ...draft, limits: { ...defaultModelLimits } } : draft)
+          }} />{t('budget.custom')}</label>
+          <span className="text-xs text-muted-foreground">{t(modelDraft.limits ? 'budget.configured' : 'budget.default')}</span>
+          <div className="grid grid-cols-2 gap-3">
+            {modelLimitKeys.map((key) => <div className="field-group" key={key}>
+              <label htmlFor={`model-${key}`}>{t(`budget.${key}`)}</label>
+              <Input id={`model-${key}`} type="number" step={1} min={key === 'contextTokens' ? 4096 : key === 'maxOutputTokens' ? 256 : key === 'reasoningTokens' ? 0 : 1} max={key === 'contextTokens' ? 2000000 : (modelDraft.limits ?? defaultModelLimits).contextTokens} required disabled={!modelDraft.limits || mutation.isPending} value={Number.isNaN(modelDraft.limits?.[key]) ? '' : (modelDraft.limits ?? defaultModelLimits)[key]} onChange={(event) => {
+                if (modelDraft.limits) setModelDraft({ ...modelDraft, limits: { ...modelDraft.limits, [key]: event.target.valueAsNumber } })
+              }} />
+            </div>)}
+          </div>
+          {mutation.error && <Alert variant="destructive"><AlertDescription>{mutation.error instanceof ApiRequestError && mutation.error.pointer?.endsWith('/limits') ? t('budget.invalid') : mutation.error.message}</AlertDescription></Alert>}
         </form>}
         <DialogFooter><Button variant="outline" onClick={() => setModelDraft(null)} disabled={mutation.isPending}>{t('common:action.cancel')}</Button><Button type="submit" form="model-settings-form" disabled={mutation.isPending}>{mutation.isPending ? t('dialog.saving') : t('dialog.saveModel')}</Button></DialogFooter>
       </DialogContent>

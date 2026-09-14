@@ -60,4 +60,13 @@ describe('AiRunPage', () => {
     expect(screen.getByText('验证候选规则')).toBeInTheDocument()
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
   })
+
+  it('retains a deleted-source candidate as history without an actionable review link', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ ...seedAiRuns[0], collectorDeleted: true }), { headers: { 'Content-Type': 'application/json' } })))
+    renderPage()
+    expect(await screen.findByText('来源已删除')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /审核候选规则|查看采集来源/ })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('tab', { name: /模型调用/ }))
+    expect(screen.getByText('规则编译')).toBeInTheDocument()
+  })
 })

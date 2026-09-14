@@ -1,4 +1,39 @@
 {
+  "adaptive": {
+    "title": "Page evidence and budget",
+    "noCandidate": "This task produced no validated candidate. Existing rules remain unchanged.",
+    "validation": {
+      "PAGINATION_NEXT_LINK_MISSING": "The next-page rule did not match a usable navigation target",
+      "PAGINATION_OMITTED": "The page has a next link, but pagination is disabled",
+      "PAGINATION_MODE_MISMATCH": "Pagination mode mismatch: static paths cannot use query-parameter paging",
+      "TITLE_MISMATCH": "List and detail titles do not match", "FIELD_MISSING": "Field missing from sample",
+      "DETAIL_URL_MISMATCH": "Detail URL does not match the source record", "IDENTITY_COLLISION": "Conflicting entity identity",
+      "IDENTITY_FIELD_MISSING": "Identity field missing", "SAMPLE_REJECTED": "Sample rejected",
+      "RULE_VALIDATION_FAILED": "Rule validation failed", "DISCOVERY_RULE_INVALID": "Invalid discovery rule",
+      "LIST_RECORDS_MISSING": "List records not found", "EVIDENCE_ACTION_INVALID": "Invalid evidence request"
+    },
+    "source": { "configured": "Configured model limits", "conservative_default": "Conservative default limits" },
+    "method": { "tiktoken_with_margin": "Tokenizer + safety margin", "utf8_upper_estimate": "Conservative UTF-8 estimate" },
+    "phase": { "indexing": "Indexing", "locating": "Locating regions", "reading": "Reading evidence", "validating": "Validating full samples", "validated": "Samples validated", "failed": "Failed", "cancelled": "Cancelled" },
+    "calls": "Model calls", "input": "Input tokens", "output": "Output tokens", "time": "Elapsed / limit",
+    "context": "Context window: {{count}} tokens", "validated": "Full-sample validation passed", "unvalidated": "Full-sample validation pending",
+    "stopped": "Stopped", "page": "Page", "indexed": "Indexed nodes", "read": "Read nodes", "chars": "Read fragment characters",
+    "sample": "Sample {{count}}", "readLog": "Recent reads ({{count}})", "node": "Node", "action": "Action", "range": "Range", "fragment": "Fragment status",
+    "actionType": { "expand_nodes": "Expand directory", "read_nodes": "Read content" }, "end": "End reached", "more": "More available",
+    "errors": {
+      "MODEL_CONTEXT_INSUFFICIENT": "The model context cannot fit the required contract and response reserve.",
+      "MODEL_CALL_BUDGET_EXCEEDED": "The task reached its model-call limit without a validated candidate.",
+      "MODEL_DISCOVERY_BUDGET_EXCEEDED": "Discovery exhausted its allowance without spending the calls reserved for compilation. Add source guidance before retrying.",
+      "MODEL_NO_PROGRESS": "Repeated calls or validation corrections made no progress. Attempts stopped; review source guidance and validation feedback.",
+      "MODEL_TOKEN_BUDGET_EXCEEDED": "The task reached its token budget without a validated candidate.",
+      "MODEL_OUTPUT_BUDGET_EXCEEDED": "There is insufficient output budget for another proposal.",
+      "MODEL_TIME_BUDGET_EXCEEDED": "The task reached its time limit.",
+      "MODEL_RESPONSE_TRUNCATED": "The model response reached its output limit.",
+      "MODEL_CONTEXT_REDUCED": "The provider rejected the context length; the evidence envelope was reduced.",
+      "MODEL_CALL_CANCELLED": "The model call was interrupted.",
+      "EVIDENCE_VALIDATION_FAILED": "The candidate did not pass full-sample validation."
+    }
+  },
   "summaryAria": "AI task summary",
   "summary": {
     "failed": "Task produced no candidate rule",

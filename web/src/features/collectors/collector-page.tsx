@@ -20,6 +20,8 @@ import {
   Layers3,
   LayoutDashboard,
   ListTree,
+  Logs,
+  Minimize2,
   LockKeyhole,
   LoaderCircle,
   MoreHorizontal,
@@ -42,10 +44,11 @@ import {
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
-import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom'
+import { Link, useNavigate, useOutletContext, useParams, useSearchParams } from 'react-router-dom'
 import { ApiRequestError, api, downloadEvidenceBundle, waitForOperation } from '@/api/client'
 import type { AiRun, CandidateField, CandidateRule, CandidateRuleEditInput, CollectionField, CollectionPolicy, CollectionPolicyInput, CollectorDetail, CollectorSchedule, CollectorScheduleInput, DeliveryStatus, DeliverySummary, ExplorationInput, FieldReviewDecision, HarvestItem, Operation, RepairInput, Sink, SinkInput, SinkUpdateInput, UpdateCollectorInput } from '@/api/types'
 import { useAuth } from '@/features/auth/auth-gate'
+import { CollectionMigration } from '@/features/collections/collection-migration'
 import { EvidenceRail } from '@/components/evidence-rail'
 import { StatusBadge } from '@/components/status-badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -80,10 +83,16 @@ import { cn } from '@/lib/utils'
 import { collectorDisplayName } from './collector-presentation'
 import { QueryError } from '@/components/query-error'
 import { useWorkspaceLink, useWorkspaceSection } from '@/lib/workspace-navigation'
+import { ArchivedBadge, CollectorManagement, ManagementError } from './collector-management'
 
 type Translator = TFunction<'collectorDetail', undefined>
 
 export function CollectorPage() {
+  const { collectorId } = useParams()
+  return <CollectorWorkspace key={collectorId} />
+}
+
+function CollectorWorkspace() {
   const { t } = useTranslation('collectorDetail')
   const { collectorId = '' } = useParams()
   const navigate = useNavigate()
@@ -107,6 +116,12 @@ export function CollectorPage() {
   const evidenceTriggerRef = useRef<HTMLElement | null>(null)
   const [reviewState, setReviewState] = useState<{ digest: string | null; decisions: Record<string, FieldReviewDecision> }>({ digest: null, decisions: {} })
   const [activeOperation, setActiveOperation] = useState<Operation | undefined>()
+  const latestAiOperationId = aiRunsQuery.data?.find((entry) => entry.collectorId === collectorId)?.operationId
+  const previousOperationQuery = useQuery({
+    queryKey: ['operation', latestAiOperationId],
+    queryFn: () => api.operation(latestAiOperationId!),
+    enabled: Boolean(latestAiOperationId) && !activeOperation && !query.data?.activeOperationId,
+  })
   const [operationError, setOperationError] = useState<Error | undefined>()
   const [stalledOperationId, setStalledOperationId] = useState<string | null>(null)
   const candidate = query.data?.candidate
@@ -131,7 +146,7 @@ export function CollectorPage() {
   const explore = useMutation({
     mutationFn: async (input: ExplorationInput) => {
       const accepted = await api.startExploration(collectorId, input)
-      revealOperation(accepted, setActiveOperation)
+      setActiveOperation(accepted)
       const completed = await waitForOperation(accepted, setActiveOperation)
       return api.collector(completed.resourceId)
     },
@@ -140,17 +155,25 @@ export function CollectorPage() {
       queryClient.invalidateQueries({ queryKey: ['collectors'] })
       queryClient.invalidateQueries({ queryKey: ['ai-runs'] })
     },
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey: ['collector', collectorId] })
+      queryClient.invalidateQueries({ queryKey: ['ai-runs'] })
+    },
   })
   const repair = useMutation({
     mutationFn: async (input: RepairInput) => {
       const accepted = await api.startRepair(collectorId, input)
-      revealOperation(accepted, setActiveOperation)
+      setActiveOperation(accepted)
       const completed = await waitForOperation(accepted, setActiveOperation)
       return api.collector(completed.resourceId)
     },
     onSuccess: (data) => {
       queryClient.setQueryData(['collector', collectorId], data)
       queryClient.invalidateQueries({ queryKey: ['collectors'] })
+      queryClient.invalidateQueries({ queryKey: ['ai-runs'] })
+    },
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey: ['collector', collectorId] })
       queryClient.invalidateQueries({ queryKey: ['ai-runs'] })
     },
   })
@@ -193,13 +216,15 @@ export function CollectorPage() {
     },
   })
   const updateDefinition = useMutation({
-    mutationFn: (input: UpdateCollectorInput) => api.updateCollector(collectorId, input),
+    mutationFn: ({ input, key }: { input: UpdateCollectorInput; key: string }) => api.updateCollector(collectorId, input, key),
     onSuccess: (data) => {
       setSelectedField(undefined)
       setSelectedItem(undefined)
       setEvidenceOpen(false)
       queryClient.setQueryData(['collector', collectorId], data)
       queryClient.invalidateQueries({ queryKey: ['collectors'] })
+      queryClient.invalidateQueries({ queryKey: ['collections'] })
+      queryClient.invalidateQueries({ queryKey: ['collection'] })
     },
   })
   const editCandidate = useMutation({
@@ -254,36 +279,48 @@ export function CollectorPage() {
         ])
       })
       .catch((error: Error) => {
-        if (error.name !== 'AbortError') setOperationError(error)
+        if (error.name !== 'AbortError') {
+          setOperationError(error)
+          queryClient.invalidateQueries({ queryKey: ['collector', collectorId] })
+          queryClient.invalidateQueries({ queryKey: ['ai-runs'] })
+        }
       })
     return () => controller.abort()
   }, [collectorId, explore.isPending, query.data?.activeOperationId, queryClient, repair.isPending, run.isPending])
 
   if (query.isLoading) return <CollectorSkeleton />
   const collector = query.data
+  const archived = collector?.lifecycle === 'archived'
   if (!collector && query.error) return <div className="page-frame"><QueryError error={query.error} onRetry={() => void query.refetch()} retrying={query.isFetching} /></div>
   if (!collector) return <NotFound message={t('notFound.missingCollector')} />
   const queueStalled = activeOperation?.status === 'queued' && activeOperation.id === stalledOperationId
 
   async function startExploration(input: ExplorationInput = {}) {
+    repair.reset()
+    run.reset()
     setActiveOperation(undefined)
     setOperationError(undefined)
     await explore.mutateAsync(input)
   }
 
   async function startRepair(input: RepairInput) {
+    explore.reset()
+    run.reset()
     setActiveOperation(undefined)
     setOperationError(undefined)
     await repair.mutateAsync(input)
   }
 
   function startRun() {
+    explore.reset()
+    repair.reset()
     setActiveOperation(undefined)
     setOperationError(undefined)
     run.mutate()
   }
 
   const latestRun = run.data ?? latestRunQuery.data
+  const displayedOperation = activeOperation ?? previousOperationQuery.data
   const latestAiRun = aiRunsQuery.data?.find((aiRun) => aiRun.collectorId === collector.id)
   const persistedRunPending = collector.status === 'published' && Boolean(collector.activeOperationId)
   const runPending = run.isPending || persistedRunPending
@@ -326,6 +363,8 @@ export function CollectorPage() {
             <div><div className="title-line"><h1>{collectorDisplayName(collector.name)}</h1><StatusBadge status={collector.status} /></div><p className="object-subtitle"><Link className="collection-context-link" to={workspaceLink(`/collections/${encodeURIComponent(collector.collectionId)}`)}><Layers3 />{collector.collectionName}</Link><span className="collector-phase">{t('header.currentPhase')}<strong>{t(collectorPhaseLabel(collector.status, explore.isPending || repair.isPending, runPending))}</strong></span></p></div>
           </div>
           <div className="object-actions">
+            {archived && <ArchivedBadge />}
+            {!archived && <>
             {collector.status === 'draft' && <RegenerateRuleDialog disabled={readOnly || explore.isPending} pending={explore.isPending} hasCandidate={false} prominent onRegenerate={startExploration} />}
             {collector.status === 'exploring' && <Button size="lg" disabled><LoaderCircle className="animate-spin" />{t('header.exploringInProgress')}</Button>}
             {collector.status === 'ready_review' && candidate && (
@@ -339,14 +378,18 @@ export function CollectorPage() {
               />
             )}
             {collector.status === 'published' && <Button size="lg" onClick={startRun} disabled={readOnly || runPending || explore.isPending}>{runPending ? <><LoaderCircle className="animate-spin" />{t('header.runningNow')}</> : <><Play />{t('header.runNow')}</>}</Button>}
-            {repairable && <RepairRuleDialog disabled={readOnly || explore.isPending || repair.isPending || runPending || Boolean(collector.activeOperationId)} pending={repair.isPending} onRepair={(input) => startRepair(input)} />}
+            {repairable && !collector.pendingCollectionVersion && <RepairRuleDialog disabled={readOnly || explore.isPending || repair.isPending || runPending || Boolean(collector.activeOperationId)} pending={repair.isPending} onRepair={(input) => startRepair(input)} />}
+            </>}
             <EvidenceExportButton pending={exportEvidence.isPending} onExport={() => exportEvidence.mutate()} />
+            {displayedOperation && <ExecutionLogDialog key={`${collectorId}:${displayedOperation.id}`} operation={displayedOperation} defaultOpen={Boolean(activeOperation)} queueStalled={queueStalled} singleStage={isSingleStageSource(collector.sourceUrl)} error={repairErrorMessage ?? explore.error?.message ?? run.error?.message ?? operationError?.message} />}
+            <CollectorManagement collector={collector} />
           </div>
         </header>
 
-        {(explore.isPending || repair.isPending || collector.status === 'exploring') && <ExplorationProgress operation={activeOperation} queueStalled={queueStalled} singleStage={isSingleStageSource(collector.sourceUrl)} />}
-        {runPending && <RunProgress operation={activeOperation} queueStalled={queueStalled} />}
-        {(explore.error || repair.error || exportEvidence.error || publish.error || savePolicy.error || saveSchedule.error || updateDefinition.error || editCandidate.error || run.error || operationError) && <Alert variant="destructive" className="mt-5"><AlertTitle>{t('header.operationIncomplete')}</AlertTitle><AlertDescription>{repairErrorMessage ?? evidenceErrorMessage ?? explore.error?.message ?? publish.error?.message ?? savePolicy.error?.message ?? saveSchedule.error?.message ?? updateDefinition.error?.message ?? editCandidate.error?.message ?? run.error?.message ?? operationError?.message}</AlertDescription></Alert>}
+        {archived && <Alert><AlertDescription>{t('collectors:management.archivedNotice')}</AlertDescription></Alert>}
+        {collector.pendingCollectionVersion && <div className="g2-source-migration"><span>{t('common:g2.current')}: <code>{collector.collectionVersion}</code></span><CollectionMigration source={collector} canReview={!archived && !publishLockReason} busy={archived || explore.isPending || repair.isPending || runPending} /></div>}
+
+        {((!activeOperation && (explore.error || repair.error || run.error || operationError)) || exportEvidence.error || publish.error || savePolicy.error || saveSchedule.error || updateDefinition.error || editCandidate.error) && <Alert variant="destructive" className="mt-5"><AlertTitle>{t('header.operationIncomplete')}</AlertTitle><AlertDescription>{evidenceErrorMessage ?? publish.error?.message ?? savePolicy.error?.message ?? saveSchedule.error?.message ?? updateDefinition.error?.message ?? editCandidate.error?.message ?? (!activeOperation ? repairErrorMessage ?? explore.error?.message ?? run.error?.message ?? operationError?.message : undefined)}</AlertDescription></Alert>}
 
         <Tabs value={section === 'rule' && !candidate ? 'overview' : section} onValueChange={setSection} className="collector-workspace-tabs">
           <div className="collector-workspace-nav">
@@ -361,6 +404,7 @@ export function CollectorPage() {
             <CollectorOverview
               collector={collector}
               latestRun={latestRun}
+              latestRunLoading={latestRunQuery.isLoading}
               latestAiRun={latestAiRun}
               runPending={runPending}
               onSelectItem={openItemEvidence}
@@ -370,26 +414,26 @@ export function CollectorPage() {
 
           <TabsContent value="config" className="collector-workspace-panel configuration-workspace">
             <CollectorConfiguration
-              key={`${collector.id}:${collector.collectionId}:${collector.sourceUrl}:${collector.intent}:${candidate?.digest ?? 'none'}`}
+              key={`${collector.id}:${collector.collectionId}:${collector.sourceUrl}:${collector.intent}:${collector.name}:${collector.managementRevision ?? 0}:${candidate?.digest ?? 'none'}`}
               collector={collector}
-              disabled={readOnly || Boolean(collector.activeOperationId) || runPending}
+              disabled={readOnly || archived || Boolean(collector.activeOperationId) || runPending}
               definitionPending={updateDefinition.isPending}
               rulePending={editCandidate.isPending || explore.isPending}
-              onSaveDefinition={(input) => updateDefinition.mutateAsync(input)}
+              onSaveDefinition={(input, key) => updateDefinition.mutateAsync({ input, key })}
               onSaveRule={(input) => editCandidate.mutateAsync(input)}
               onRegenerate={startExploration}
             />
             <SchedulePanel
               key={`${collector.schedule.id}:${collector.schedule.revision}`}
               schedule={collector.schedule}
-              disabled={readOnly || Boolean(collector.activeOperationId) || saveSchedule.isPending}
+              disabled={readOnly || archived || Boolean(collector.activeOperationId) || saveSchedule.isPending}
               pending={saveSchedule.isPending}
               onSave={(input) => saveSchedule.mutate(input)}
             />
             <CollectionPolicyPanel
               key={collector.collectionPolicy?.digest ?? collector.id}
               policy={collector.collectionPolicy}
-              disabled={readOnly || Boolean(collector.activeOperationId) || savePolicy.isPending}
+              disabled={readOnly || archived || Boolean(collector.activeOperationId) || savePolicy.isPending}
               pending={savePolicy.isPending}
               onSave={(input) => savePolicy.mutate(input)}
             />
@@ -404,6 +448,9 @@ export function CollectorPage() {
               previewItems={collector.previewItems}
               selectedField={selectedField}
               decisions={reviewDecisions}
+              repairDisabled={readOnly || archived || !repairable || Boolean(collector.pendingCollectionVersion) || explore.isPending || repair.isPending || runPending || Boolean(collector.activeOperationId)}
+              repairPending={repair.isPending}
+              onRepair={startRepair}
               onSelectField={openFieldEvidence}
               onSelectItem={openItemEvidence}
               onDecision={(key, decision) => setReviewState((current) => ({
@@ -435,11 +482,6 @@ export function CollectorPage() {
   )
 }
 
-function revealOperation(operation: Operation, onUpdate: (operation: Operation) => void) {
-  onUpdate(operation)
-  requestAnimationFrame(() => document.querySelector<HTMLElement>('.progress-view')?.scrollIntoView?.({ block: 'center' }))
-}
-
 export function defaultCollectorTab(status: CollectorDetail['status']) {
   if (status === 'ready_review') return 'rule'
   return 'overview'
@@ -457,9 +499,10 @@ function WorkspaceEmpty({ icon: Icon, title, description }: { icon: typeof Clipb
   return <section className="collector-workspace-empty"><span><Icon /></span><div><h2>{title}</h2><p>{description}</p></div></section>
 }
 
-function CollectorOverview({ collector, latestRun, latestAiRun, runPending, onSelectItem, onOpenRun }: {
+function CollectorOverview({ collector, latestRun, latestRunLoading, latestAiRun, runPending, onSelectItem, onOpenRun }: {
   collector: CollectorDetail
   latestRun: Awaited<ReturnType<typeof api.runDetail>> | undefined
+  latestRunLoading: boolean
   latestAiRun: AiRun | undefined
   runPending: boolean
   onSelectItem: (item: HarvestItem) => void
@@ -468,11 +511,13 @@ function CollectorOverview({ collector, latestRun, latestAiRun, runPending, onSe
   const workspaceLink = useWorkspaceLink()
   const { t } = useTranslation('collectorDetail')
   const candidate = collector.candidate
-  const items = latestRun?.items ?? collector.previewItems
+  const runUnavailable = Boolean(collector.latestRunId && !latestRun)
+  const unavailableLabel = t(latestRunLoading ? 'common:state.loading' : 'common:state.unavailable')
+  const items = latestRun?.items ?? (runUnavailable ? [] : collector.previewItems)
   const runId = latestRun?.id ?? collector.latestRunId
   const needsAttention = Boolean(latestRun && ['partially_succeeded','failed','cancelled','timed_out'].includes(latestRun.status))
-  const acceptedCount = items.filter((item) => item.decision === 'accepted').length
-  const rejectedCount = items.filter((item) => item.decision === 'rejected').length
+  const acceptedCount = latestRun?.acceptedCount ?? 0
+  const rejectedCount = latestRun?.rejectedCount ?? 0
   const pagination = candidate?.pagination.type === 'page'
     ? t('overview.pagination.maxPages', { maxPages: candidate.pagination.maxPages })
     : candidate?.pagination.type === 'next_link'
@@ -482,18 +527,18 @@ function CollectorOverview({ collector, latestRun, latestAiRun, runPending, onSe
   return <div className="collector-overview">
     <section className="collector-overview-summary">
       <div className="overview-state">
-        <span className={`overview-state-icon ${needsAttention ? 'warning' : collector.status === 'published' ? 'success' : ''}`}>{needsAttention ? <CircleAlert /> : collector.status === 'published' ? <ShieldCheck /> : <Route />}</span>
-        <div><h2>{runPending ? t('overview.runningTitle') : needsAttention ? t('overview.needsAttention') : t(overviewTitle(collector.status))}</h2><p>{needsAttention && !runPending ? latestRun?.summary : t(overviewDescription(collector.status, runPending))}</p></div>
+        <span className={`overview-state-icon ${needsAttention || runUnavailable ? 'warning' : collector.status === 'published' ? 'success' : ''}`}>{needsAttention || runUnavailable ? <CircleAlert /> : collector.status === 'published' ? <ShieldCheck /> : <Route />}</span>
+        <div><h2>{runPending ? t('overview.runningTitle') : runUnavailable ? t(latestRunLoading ? 'overview.runLoading' : 'overview.runUnavailable') : needsAttention ? t('overview.needsAttention') : t(overviewTitle(collector.status))}</h2><p>{runUnavailable && !runPending ? t('overview.runUnavailableDetail') : needsAttention && !runPending ? latestRun?.summary : t(overviewDescription(collector.status, runPending))}</p></div>
         {latestAiRun && <Link className="overview-ai-run" to={workspaceLink(`/ai-runs/${latestAiRun.id}`)}><WandSparkles /><span><strong>{t('overview.aiRun.title')}</strong><small>{t(aiRunReviewLabel(latestAiRun))} · {t('overview.aiRun.invocations', { total: latestAiRun.modelSummary.invocationCount })}</small></span><ChevronRight /></Link>}
       </div>
       <dl className="overview-facts">
         <div><dt>{t('overview.facts.sourceUrl')}</dt><dd><code className="overview-source-url" title={collector.sourceUrl}>{collector.sourceUrl}</code></dd></div>
         <div><dt>{t('overview.facts.activeRule')}</dt><dd><strong>{collector.activeRuleVersion ? t('overview.facts.fieldsSummary', { total: candidate?.fields.length ?? 0, mode: candidate?.mode === 'single' ? t('overview.mode.single') : t('overview.mode.listDetail') }) : t('overview.facts.notPublished')}</strong><span>{collector.activeRuleVersion ? t('overview.facts.publishedFrozen') : t('overview.facts.awaitingReview')}</span></dd></div>
         <div><dt>{t('overview.facts.runScope')}</dt><dd><strong>{pagination}</strong><span>{collector.collectionPolicy ? t('overview.facts.lookbackSummary', { days: collector.collectionPolicy.lookbackDays, maxItems: collector.collectionPolicy.maxItems }) : t('overview.facts.defaultPolicy')}</span></dd></div>
-        <div><dt>{t('overview.facts.latestRun')}</dt><dd><strong>{runId ? t('overview.facts.runDecisions', { accepted: acceptedCount, rejected: rejectedCount }) : t('overview.facts.noRuns')}</strong><span>{runId ? t('overview.facts.runMeta', { duration: latestRun?.duration ?? t('overview.facts.completedDuration'), watermark: collector.checkpoint?.watermark ?? t('overview.facts.noWatermark') }) : t('overview.facts.publishToRun')}</span></dd></div>
+        <div><dt>{t('overview.facts.latestRun')}</dt><dd><strong>{runUnavailable ? unavailableLabel : runId ? t('overview.facts.runDecisions', { accepted: acceptedCount, rejected: rejectedCount }) : t('overview.facts.noRuns')}</strong><span>{runUnavailable ? '—' : runId ? t('overview.facts.runMeta', { duration: latestRun?.duration ?? t('overview.facts.completedDuration'), watermark: collector.checkpoint?.watermark ?? t('overview.facts.noWatermark') }) : t('overview.facts.publishToRun')}</span></dd></div>
       </dl>
     </section>
-    {runPending ? <WorkspaceEmpty icon={Play} title={t('overview.empty.title')} description={t('overview.empty.description')} /> : collector.status === 'published' ? <PublishedView items={items} runId={runId} onSelectItem={onSelectItem} onOpenRun={onOpenRun} /> : <section className="overview-guidance"><div><h2>{collector.status === 'ready_review' ? t('overview.nextStep.readyReviewTitle') : t('overview.nextStep.designTitle')}</h2><p>{collector.status === 'ready_review' ? t('overview.nextStep.readyReviewDescription') : t('overview.nextStep.designDescription')}</p></div></section>}
+    {runPending ? <WorkspaceEmpty icon={Play} title={t('overview.empty.title')} description={t('overview.empty.description')} /> : runUnavailable ? <div className="workbench-content"><Button variant="outline" onClick={() => onOpenRun(runId!)}>{t('published.viewFullRun')}<ArrowRight /></Button></div> : collector.status === 'published' ? <PublishedView items={items} runId={runId} onSelectItem={onSelectItem} onOpenRun={onOpenRun} /> : <section className="overview-guidance"><div><h2>{collector.status === 'ready_review' ? t('overview.nextStep.readyReviewTitle') : t('overview.nextStep.designTitle')}</h2><p>{collector.status === 'ready_review' ? t('overview.nextStep.readyReviewDescription') : t('overview.nextStep.designDescription')}</p></div></section>}
   </div>
 }
 
@@ -565,7 +610,7 @@ function CollectorConfiguration({
   disabled: boolean
   definitionPending: boolean
   rulePending: boolean
-  onSaveDefinition: (input: UpdateCollectorInput) => Promise<CollectorDetail>
+  onSaveDefinition: (input: UpdateCollectorInput, key: string) => Promise<CollectorDetail>
   onSaveRule: (input: CandidateRuleEditInput) => Promise<CollectorDetail>
   onRegenerate: (input?: ExplorationInput) => Promise<void>
 }) {
@@ -625,41 +670,79 @@ function CollectorConfiguration({
   )
 }
 
-function DefinitionDialog({ collector, disabled, pending, onSave, onRegenerate }: {
+function DefinitionDialog({ collector, disabled, pending: saving, onSave, onRegenerate }: {
   collector: CollectorDetail
   disabled: boolean
   pending: boolean
-  onSave: (input: UpdateCollectorInput) => Promise<CollectorDetail>
+  onSave: (input: UpdateCollectorInput, key: string) => Promise<CollectorDetail>
   onRegenerate: (input?: ExplorationInput) => Promise<void>
 }) {
   const { t } = useTranslation('collectorDetail')
   const displayName = collectorDisplayName(collector.name)
-  const [open, setOpen] = useState(false)
-  const [draft, setDraft] = useState<UpdateCollectorInput>({ name: displayName, intent: collector.intent, sourceUrl: collector.sourceUrl })
+  const queryClient = useQueryClient()
+  const [params, setParams] = useSearchParams()
+  const open = params.get('edit') === 'definition' && !disabled
+  const initialDraft = { name: displayName, intent: collector.intent, sourceUrl: collector.sourceUrl, managementRevision: collector.managementRevision ?? 0 }
+  const [draft, setDraft] = useState<UpdateCollectorInput>(initialDraft)
+  const [error, setError] = useState<Error | null>(null)
+  const submission = useRef<{ body: string; key: string } | null>(null)
+  const reload = useMutation({
+    mutationFn: () => api.collector(collector.id),
+    onSuccess: value => {
+      queryClient.setQueryData(['collector', collector.id], value)
+      setDraft({ name: collectorDisplayName(value.name), intent: value.intent, sourceUrl: value.sourceUrl, managementRevision: value.managementRevision ?? 0 })
+      setError(null)
+    },
+  })
+  const pending = saving || reload.isPending
   const [action, setAction] = useState<'save' | 'regenerate' | null>(null)
   const changed = draft.name.trim() !== displayName || draft.intent.trim() !== collector.intent || draft.sourceUrl.trim() !== collector.sourceUrl
   const ruleInputChanged = draft.intent.trim() !== collector.intent || draft.sourceUrl.trim() !== collector.sourceUrl
   const valid = Boolean(draft.name.trim() && draft.intent.trim() && draft.sourceUrl.trim())
 
   function handleOpenChange(nextOpen: boolean) {
-    if (nextOpen) setDraft({ name: displayName, intent: collector.intent, sourceUrl: collector.sourceUrl })
-    setOpen(nextOpen)
+    if (pending) return
+    if (nextOpen) { setDraft(initialDraft); setError(null) }
+    const next = new URLSearchParams(params)
+    if (nextOpen) next.set('edit', 'definition')
+    else next.delete('edit')
+    setParams(next, { replace: true })
   }
 
   async function submit(regenerate: boolean) {
+    if (pending || disabled || !changed || !valid) return
     setAction(regenerate ? 'regenerate' : 'save')
+    setError(null)
     try {
-      await onSave({ name: draft.name.trim(), intent: draft.intent.trim(), sourceUrl: draft.sourceUrl.trim() })
-      setOpen(false)
+      const input = { ...draft, name: draft.name.trim(), intent: draft.intent.trim(), sourceUrl: draft.sourceUrl.trim() }
+      const body = JSON.stringify(input)
+      if (submission.current?.body !== body) submission.current = { body, key: crypto.randomUUID() }
+      await onSave(input, submission.current.key)
+      const next = new URLSearchParams(params); next.delete('edit'); setParams(next, { replace: true })
       if (regenerate) await onRegenerate({})
-    } catch {
-      return
+    } catch (reason) {
+      setError(reason instanceof Error ? reason : new Error(String(reason)))
     } finally {
       setAction(null)
     }
   }
 
-  return <Dialog open={open} onOpenChange={handleOpenChange}><DialogTrigger asChild><Button variant="ghost" size="sm" disabled={disabled}><Pencil />{t('config.definition.edit')}</Button></DialogTrigger><DialogContent className="definition-dialog"><DialogHeader><DialogTitle>{t('config.definition.dialogTitle')}</DialogTitle><DialogDescription>{t('config.definition.dialogDescription')}</DialogDescription></DialogHeader><div className="definition-form"><label><span>{t('config.definition.name')}</span><Input value={draft.name} onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))} /></label><label><span>{t('config.definition.intent')}</span><Textarea rows={5} value={draft.intent} onChange={(event) => setDraft((current) => ({ ...current, intent: event.target.value }))} /></label><label><span>{t('overview.facts.sourceUrl')}</span><Input className="selector-input" value={draft.sourceUrl} onChange={(event) => setDraft((current) => ({ ...current, sourceUrl: event.target.value }))} /></label></div>{ruleInputChanged && <Alert><RefreshCw /><AlertTitle>{t('config.definition.newRuleTitle')}</AlertTitle><AlertDescription>{t('config.definition.newRuleDescription')}</AlertDescription></Alert>}<DialogFooter><Button variant="ghost" onClick={() => setOpen(false)} disabled={pending}>{t('common:action.cancel')}</Button><Button variant="outline" onClick={() => void submit(false)} disabled={!changed || !valid || pending}>{action === 'save' ? <LoaderCircle className="animate-spin" /> : <Save />}{ruleInputChanged ? t('config.definition.saveOnly') : t('config.definition.save')}</Button>{ruleInputChanged && <Button onClick={() => void submit(true)} disabled={!changed || !valid || pending}>{action === 'regenerate' ? <LoaderCircle className="animate-spin" /> : <WandSparkles />}{action === 'regenerate' ? t('config.action.generating') : t('config.definition.saveAndRegenerate')}</Button>}</DialogFooter></DialogContent></Dialog>
+  return <Dialog open={open} onOpenChange={handleOpenChange}>
+    <DialogTrigger asChild><Button variant="ghost" size="sm" disabled={disabled}><Pencil />{t('config.definition.edit')}</Button></DialogTrigger>
+    <DialogContent className="definition-dialog" showCloseButton={!pending} onInteractOutside={event => event.preventDefault()} onEscapeKeyDown={event => { if (pending) event.preventDefault() }}>
+      <DialogHeader><DialogTitle>{t('config.definition.dialogTitle')}</DialogTitle><DialogDescription>{t('config.definition.dialogDescription')}</DialogDescription></DialogHeader>
+      <div className="definition-form">
+        <label><span>{t('config.definition.name')}</span><Input disabled={pending} value={draft.name} onChange={event => setDraft(current => ({ ...current, name: event.target.value }))} /></label>
+        <label><span>{t('config.definition.intent')}</span><Textarea disabled={pending} rows={5} value={draft.intent} onChange={event => setDraft(current => ({ ...current, intent: event.target.value }))} /></label>
+        <label><span>{t('overview.facts.sourceUrl')}</span><Input disabled={pending} className="selector-input" value={draft.sourceUrl} onChange={event => setDraft(current => ({ ...current, sourceUrl: event.target.value }))} /></label>
+      </div>
+      {ruleInputChanged && <Alert><RefreshCw /><AlertTitle>{t('config.definition.newRuleTitle')}</AlertTitle><AlertDescription>{t('config.definition.newRuleDescription')}</AlertDescription></Alert>}
+      <ManagementError error={error} />
+      {error instanceof ApiRequestError && error.code === 'COLLECTOR_CONFLICT' && <Button variant="outline" disabled={pending || reload.isPending} onClick={() => reload.mutate()}><RefreshCw />{t('collectors:management.reload')}</Button>}
+      <ManagementError error={reload.error} />
+      <DialogFooter><Button variant="ghost" onClick={() => handleOpenChange(false)} disabled={pending}>{t('common:action.cancel')}</Button><Button variant="outline" onClick={() => void submit(false)} disabled={!changed || !valid || pending}>{action === 'save' ? <LoaderCircle className="animate-spin" /> : <Save />}{ruleInputChanged ? t('config.definition.saveOnly') : t('config.definition.save')}</Button>{ruleInputChanged && <Button onClick={() => void submit(true)} disabled={!changed || !valid || pending}>{action === 'regenerate' ? <LoaderCircle className="animate-spin" /> : <WandSparkles />}{action === 'regenerate' ? t('config.action.generating') : t('config.definition.saveAndRegenerate')}</Button>}</DialogFooter>
+    </DialogContent>
+  </Dialog>
 }
 
 function RegenerateRuleDialog({ disabled, pending, hasCandidate, prominent = false, onRegenerate }: { disabled: boolean; pending: boolean; hasCandidate: boolean; prominent?: boolean; onRegenerate: (input: ExplorationInput) => Promise<void> }) {
@@ -683,23 +766,30 @@ function RegenerateRuleDialog({ disabled, pending, hasCandidate, prominent = fal
   return <Dialog open={open} onOpenChange={handleOpenChange}><DialogTrigger asChild><Button variant={hasCandidate ? 'outline' : 'default'} size={prominent ? 'lg' : 'default'} disabled={disabled}>{hasCandidate ? <RefreshCw /> : <Rocket />}{pending ? t('config.action.generating') : hasCandidate ? t('config.action.regenerate') : t('header.generateCandidates')}</Button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>{hasCandidate ? t('config.regenerate.dialogTitle') : t('config.generate.dialogTitle')}</DialogTitle><DialogDescription>{hasCandidate ? t('config.regenerate.dialogDescription') : t('config.generate.dialogDescription')}</DialogDescription></DialogHeader><div className="definition-form"><label htmlFor="rule-generation-guidance"><span>{t('config.generate.guidanceLabel')}</span></label><Textarea id="rule-generation-guidance" rows={4} maxLength={500} value={guidance} onChange={(event) => setGuidance(event.target.value)} placeholder={t('config.generate.guidancePlaceholder')} /><small>{t('config.generate.guidanceHint')}</small></div><DialogFooter><Button variant="ghost" onClick={() => setOpen(false)} disabled={pending}>{t('common:action.cancel')}</Button><Button onClick={() => void submit()} disabled={pending}>{pending ? <LoaderCircle className="animate-spin" /> : <WandSparkles />}{pending ? t('config.action.generating') : hasCandidate ? t('config.regenerate.confirm') : t('config.generate.confirm')}</Button></DialogFooter></DialogContent></Dialog>
 }
 
-function RepairRuleDialog({ disabled, pending, onRepair }: { disabled: boolean; pending: boolean; onRepair: (input: RepairInput) => Promise<void> }) {
+function RepairRuleDialog({ disabled, pending, onRepair, initialNote = '', triggerLabel, triggerAria }: {
+  disabled: boolean
+  pending: boolean
+  onRepair: (input: RepairInput) => Promise<void>
+  initialNote?: string
+  triggerLabel?: string
+  triggerAria?: string
+}) {
   const { t } = useTranslation('collectorDetail')
   const [open, setOpen] = useState(false)
-  const [note, setNote] = useState('')
+  const [note, setNote] = useState(initialNote)
   async function submit() {
     const input = { note: note.trim() || undefined }
     setOpen(false)
-    setNote('')
     try {
       await onRepair(input)
+      setNote(initialNote)
     } catch {
       return
     }
   }
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild><Button variant="outline" size="lg" disabled={disabled} aria-label={t('repair.actionAria')}><Wrench />{t('repair.action')}</Button></DialogTrigger>
+      <DialogTrigger asChild><Button variant={triggerLabel ? 'default' : 'outline'} size={triggerLabel ? 'sm' : 'lg'} disabled={disabled} aria-label={triggerAria ?? t('repair.actionAria')}><Wrench />{triggerLabel ?? t('repair.action')}</Button></DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('repair.dialogTitle')}</DialogTitle>
@@ -1271,7 +1361,7 @@ function DeliveryLogPanel({ collectorId }: { collectorId: string }) {
   const { user } = useAuth()
   const readOnly = user.role !== 'engineer' && user.role !== 'administrator'
   const queryClient = useQueryClient()
-  const deliveriesQuery = useQuery({ queryKey: ['deliveries', collectorId], queryFn: () => api.deliveries(collectorId) })
+  const deliveriesQuery = useQuery({ queryKey: ['deliveries', collectorId], queryFn: () => api.deliveries(collectorId), refetchInterval: 5000 })
   const sinksQuery = useQuery({ queryKey: ['sinks', collectorId], queryFn: () => api.sinks(collectorId) })
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const redeliver = useMutation({
@@ -1380,8 +1470,31 @@ function DeliveryAttempts({ deliveryId }: { deliveryId: string }) {
 const singleStageLabelKeys = ['explore.stage.queued', 'explore.stage.fetch', 'explore.stage.analysis', 'explore.stage.compile', 'explore.stage.validate', 'explore.stage.finale'] as const
 const listStageLabelKeys = ['explore.stageList.queued', 'explore.stageList.listPages', 'explore.stageList.analysis', 'explore.stageList.detailDiscovery', 'explore.stageList.detailFetch', 'explore.stageList.compile', 'explore.stageList.validate', 'explore.stageList.finale'] as const
 
-function ExplorationProgress({ operation, queueStalled, singleStage }: { operation?: Operation; queueStalled: boolean; singleStage: boolean }) {
+function ExecutionLogDialog({ operation, defaultOpen, queueStalled, singleStage, error }: { operation: Operation; defaultOpen: boolean; queueStalled: boolean; singleStage: boolean; error?: string }) {
+  const { t, i18n } = useTranslation('collectorDetail')
   const workspaceLink = useWorkspaceLink()
+  const [open, setOpen] = useState(defaultOpen)
+  const terminal = ['succeeded', 'failed', 'cancelled', 'timed_out'].includes(operation.status)
+  const reason = operation.error?.details?.reason
+  const mappedReason = typeof reason === 'string' && ['browser_navigation_timed_out', 'source_request_timed_out', 'browser_fetch_failed', 'http_status_0'].includes(reason)
+  const failure = mappedReason ? t(`execution.errors.${reason}`) : operation.error?.message ?? error
+  const detailPath = operation.aiRunId ? `/ai-runs/${operation.aiRunId}` : operation.resourceType === 'run' ? `/runs/${operation.resourceId}` : null
+  return <Dialog open={open} onOpenChange={setOpen}>
+    <DialogTrigger asChild><Button variant="outline" aria-label={t('execution.view')}><Logs />{t('execution.title')}<StatusBadge status={operation.kind === 'explore' && operation.status === 'running' ? 'exploring' : operation.status} /></Button></DialogTrigger>
+    <DialogContent className="execution-dialog">
+      <DialogHeader><DialogTitle>{t('execution.title')}</DialogTitle><DialogDescription><code>{operation.id}</code></DialogDescription></DialogHeader>
+      <div className="execution-dialog-body">
+        {terminal ? <div className="execution-result"><StatusBadge status={operation.status} /><strong>{t(`execution.result.${operation.status}`)}</strong></div> : operation.kind === 'explore' ? <ExplorationProgress operation={operation} queueStalled={queueStalled} singleStage={singleStage} /> : <RunProgress operation={operation} queueStalled={queueStalled} />}
+        {failure && <Alert variant="destructive"><AlertTitle>{t('header.operationIncomplete')}</AlertTitle><AlertDescription>{failure}</AlertDescription></Alert>}
+        {operation.error && <dl className="execution-error-meta"><div><dt>{t('execution.errorCode')}</dt><dd><code>{operation.error.code}</code></dd></div>{typeof reason === 'string' && <div><dt>{t('execution.reason')}</dt><dd><code>{reason}</code></dd></div>}<div><dt>{t('execution.requestId')}</dt><dd><code>{operation.error.requestId}</code></dd></div></dl>}
+        {Boolean(operation.activity?.length) && <ol className="execution-activity">{operation.activity!.map((event, index) => <li key={`${event.phase}:${event.startedAt}:${index}`}><span>{t(`aiRuns:phase.${event.phase}`)}</span><span>{t(`aiRuns:detail.activityStatus.${event.status}`)}</span><time dateTime={event.startedAt}>{new Date(event.startedAt).toLocaleTimeString(i18n.language)}</time><span>{event.durationMs == null ? '-' : `${(event.durationMs / 1000).toFixed(1)} s`}</span></li>)}</ol>}
+      </div>
+      <DialogFooter>{detailPath && <Button asChild variant="outline"><Link to={workspaceLink(detailPath)}><Route />{t('execution.details')}</Link></Button>}<DialogClose asChild><Button variant="outline"><Minimize2 />{t('execution.collapse')}</Button></DialogClose></DialogFooter>
+    </DialogContent>
+  </Dialog>
+}
+
+function ExplorationProgress({ operation, queueStalled, singleStage }: { operation?: Operation; queueStalled: boolean; singleStage: boolean }) {
   const { t } = useTranslation('collectorDetail')
   const phase = operation?.phase ?? 'queued'
   const copy = {
@@ -1401,7 +1514,7 @@ function ExplorationProgress({ operation, queueStalled, singleStage }: { operati
     : ['queued', 'fetching_list', 'analyzing_structure', 'discovering_details', 'fetching_details', 'compiling_rule', 'validating', 'finalizing']
   const labels = (singleStage ? singleStageLabelKeys : listStageLabelKeys).map((key) => t(key))
   const currentIndex = phase === 'completed' ? labels.length - 1 : Math.max(0, phases.indexOf(phase))
-  return <div className="workbench-content progress-view" aria-live="polite"><span className="pulse-icon"><LoaderCircle className="animate-spin" /></span><div><span className="eyebrow">AI RULE TASK · {phase.toUpperCase()}</span><h2>{title}</h2><p>{detail}</p></div>{operation?.aiRunId && <Button asChild variant="outline" size="sm" className="progress-detail-link"><Link to={workspaceLink(`/ai-runs/${operation.aiRunId}`)}><Route />{t('explore.viewDetails')}</Link></Button>}{queueStalled && <Alert className="queue-stalled-alert"><CircleAlert /><AlertTitle>{t('queueStalled.title')}</AlertTitle><AlertDescription>{t('queueStalled.detail')}</AlertDescription></Alert>}<Progress value={operation?.progress ?? 6} /><div className="progress-steps">{labels.map((label, index) => <span className={index === currentIndex ? 'active' : index < currentIndex ? 'done' : ''} key={label}>{index <= currentIndex ? <Check /> : <LoaderCircle />}{label}</span>)}</div></div>
+  return <div className="workbench-content progress-view" aria-live="polite"><span className="pulse-icon"><LoaderCircle className="animate-spin" /></span><div><span className="eyebrow">AI RULE TASK · {phase.toUpperCase()}</span><h2>{title}</h2><p>{detail}</p></div>{queueStalled && <Alert className="queue-stalled-alert"><CircleAlert /><AlertTitle>{t('queueStalled.title')}</AlertTitle><AlertDescription>{t('queueStalled.detail')}</AlertDescription></Alert>}<Progress value={operation?.progress ?? 6} /><div className="progress-steps">{labels.map((label, index) => <span className={index === currentIndex ? 'active' : index < currentIndex ? 'done' : ''} key={label}>{index <= currentIndex ? <Check /> : <LoaderCircle />}{label}</span>)}</div></div>
 }
 
 function RunProgress({ operation, queueStalled }: { operation?: Operation; queueStalled: boolean }) {
@@ -1429,12 +1542,15 @@ interface ReviewWorkspaceProps {
   previewItems: HarvestItem[]
   selectedField?: CandidateField
   decisions: Record<string, FieldReviewDecision>
+  repairDisabled: boolean
+  repairPending: boolean
+  onRepair: (input: RepairInput) => Promise<void>
   onSelectField: (field: CandidateField) => void
   onSelectItem: (item: HarvestItem) => void
   onDecision: (key: string, decision: FieldReviewDecision) => void
 }
 
-function ReviewWorkspace({ candidate, collectionFields, previewItems, selectedField, decisions, onSelectField, onSelectItem, onDecision }: ReviewWorkspaceProps) {
+function ReviewWorkspace({ candidate, collectionFields, previewItems, selectedField, decisions, repairDisabled, repairPending, onRepair, onSelectField, onSelectItem, onDecision }: ReviewWorkspaceProps) {
   const { t } = useTranslation('collectorDetail')
   const decided = candidate.fields.filter((field) => (decisions[field.key] ?? 'pending') !== 'pending').length
   const unresolvedWarnings = candidate.fields.filter((field) => field.warning && (decisions[field.key] ?? 'pending') === 'pending')
@@ -1461,18 +1577,41 @@ function ReviewWorkspace({ candidate, collectionFields, previewItems, selectedFi
           </div>
         </section>
       ) : unresolvedWarnings.length > 0 ? (
-        <section className="review-blocker">
+        <section className="review-blocker has-recovery">
           <span className="review-blocker-icon"><CircleAlert /></span>
           <div>
             <h2>{t('review.blockingTitle', { total: unresolvedWarnings.length })}</h2>
-            <p>
-              <strong>{unresolvedWarnings.map((field) => field.label).join(t('review.warningJoin'))}</strong>
-              {t('review.blockingDetail', { warning: unresolvedWarnings[0].warning })}
-            </p>
+            <p>{t('review.recoveryExplanation')}</p>
+            <div className="review-warning-list">
+              {unresolvedWarnings.map((field) => (
+                <div className="review-warning-row" key={field.key}>
+                  <div className="review-warning-detail">
+                    <strong>{field.label}</strong><code>{field.key}</code>
+                    <p>{field.warning}</p>
+                  </div>
+                  <div className="review-warning-actions">
+                    <RepairRuleDialog
+                      key={`${candidate.digest}:${field.key}`}
+                      disabled={repairDisabled}
+                      pending={repairPending}
+                      onRepair={onRepair}
+                      triggerLabel={t('review.repairField')}
+                      triggerAria={t('review.repairFieldAria', { key: field.key })}
+                      initialNote={t('review.repairGuidance', {
+                        key: field.key.slice(0, 80),
+                        label: field.label.slice(0, 100),
+                        warning: (field.warning ?? '').slice(0, 160),
+                      }).slice(0, 500)}
+                    />
+                    <Button variant="outline" size="sm" onClick={() => onSelectField(field)} aria-label={t('review.viewFieldEvidence', { label: field.label })}>
+                      <PanelRightOpen />{t('review.viewEvidence')}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="review-recovery-consequence">{t('review.recoveryConsequence')}</p>
           </div>
-          <Button variant="outline" onClick={() => onSelectField(unresolvedWarnings[0])}>
-            <PanelRightOpen />{t('review.viewEvidence')}
-          </Button>
         </section>
       ) : (
         <section className="review-blocker is-clear">
@@ -1499,7 +1638,7 @@ function ReviewWorkspace({ candidate, collectionFields, previewItems, selectedFi
             <small>{t('review.missingRequiredLabel')}</small>
           </span>
         )}
-        <span><strong>{candidate.discovery.detailPagesValidated}/{candidate.discovery.detailPagesValidated}</strong><small>{t('review.validatedSamples')}</small></span>
+        <span><strong>{previewItems.length}</strong><small>{t('review.validatedSamples')}</small></span>
       </div>
       <Tabs defaultValue="fields" className="review-content-tabs">
         <TabsList variant="line"><TabsTrigger value="fields">{t('review.fieldsTab')}</TabsTrigger><TabsTrigger value="samples">{t('review.samplesTab')} <span className="tab-count neutral">{previewItems.length}</span></TabsTrigger></TabsList>
@@ -1632,10 +1771,11 @@ function PublishedView({ items, runId, onSelectItem, onOpenRun }: { items: Harve
 
 function PublishDialog({ candidate, decisions, pending, disabled, lockReason, onPublish }: { candidate: CandidateRule; decisions: Record<string, FieldReviewDecision>; pending: boolean; disabled: boolean; lockReason?: string | null; onPublish: () => void }) {
   const { t } = useTranslation('collectorDetail')
+  const { user } = useAuth()
   const accepted = Object.values(decisions).filter((decision) => decision === 'approved').length
   const riskAccepted = Object.values(decisions).filter((decision) => decision === 'risk_accepted').length
   const excluded = Object.values(decisions).filter((decision) => decision === 'excluded').length
-  return <Dialog><DialogTrigger asChild><Button size="lg" disabled={disabled || pending || Boolean(lockReason)} title={lockReason ?? undefined}>{pending ? <><LoaderCircle className="animate-spin" />{t('publish.inProgress')}</> : <><FileCheck2 />{t('publish.trigger')}</>}</Button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>{t('publish.title')}</DialogTitle><DialogDescription>{t('publish.description')}</DialogDescription></DialogHeader><div className="dialog-proof"><span><strong>{t('publish.reviewer')}</strong>{t('publish.reviewerName')}</span><span><strong>{t('publish.fieldDecisions')}</strong>{t('publish.decisionSummary', { approved: accepted, riskAccepted, excluded })}</span><span><strong>{t('publish.qualityChecks')}</strong>{t('publish.qualitySummary', { passed: candidate.passedChecks, warnings: candidate.warningChecks })}</span></div><DialogFooter><DialogClose asChild><Button variant="ghost">{t('publish.backToReview')}</Button></DialogClose><DialogClose asChild><Button onClick={onPublish} disabled={pending || disabled}>{pending ? t('publish.confirming') : t('publish.confirm')}</Button></DialogClose></DialogFooter></DialogContent></Dialog>
+  return <Dialog><DialogTrigger asChild><Button size="lg" disabled={disabled || pending || Boolean(lockReason)} title={lockReason ?? undefined}>{pending ? <><LoaderCircle className="animate-spin" />{t('publish.inProgress')}</> : <><FileCheck2 />{t('publish.trigger')}</>}</Button></DialogTrigger><DialogContent><DialogHeader><DialogTitle>{t('publish.title')}</DialogTitle><DialogDescription>{t('publish.description')}</DialogDescription></DialogHeader><div className="dialog-proof"><span><strong>{t('publish.reviewer')}</strong>{user.displayName || user.username}</span><span><strong>{t('publish.fieldDecisions')}</strong>{t('publish.decisionSummary', { approved: accepted, riskAccepted, excluded })}</span><span><strong>{t('publish.qualityChecks')}</strong>{t('publish.qualitySummary', { passed: candidate.passedChecks, warnings: candidate.warningChecks })}</span></div><DialogFooter><DialogClose asChild><Button variant="ghost">{t('publish.backToReview')}</Button></DialogClose><DialogClose asChild><Button onClick={onPublish} disabled={pending || disabled}>{pending ? t('publish.confirming') : t('publish.confirm')}</Button></DialogClose></DialogFooter></DialogContent></Dialog>
 }
 
 function CollectorSkeleton() { return <div className="page-frame"><Skeleton className="h-6 w-24" /><Skeleton className="h-20 w-full" /><Skeleton className="h-14 w-full" /><Skeleton className="h-80 w-full" /></div> }

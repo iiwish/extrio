@@ -1,4 +1,32 @@
 {
+  "runtime": {
+    "title": "实例运行状态",
+    "refresh": "刷新实例状态",
+    "ready": "可接收采集任务",
+    "liveWorkers": "在线 Worker",
+    "queued": "排队任务",
+    "running": "执行中",
+    "oldest": "最长到期等待",
+    "seconds": "{{count}} 秒",
+    "matched": "部署一致",
+    "mismatched": "部署不一致",
+    "reason": {
+      "worker_unavailable": "Worker 未在线",
+      "worker_deployment_mismatch": "Worker 部署不一致",
+      "credential_key_unavailable": "凭据密钥不可用",
+      "signing_key_unavailable": "签名密钥不可用",
+      "signing_key_mismatch": "签名密钥与登记身份不一致",
+      "signing_key_not_trusted": "签名密钥已失效"
+    },
+    "recovery": {
+      "worker_unavailable": "检查 Worker 进程及其数据库连接，恢复后等待心跳。",
+      "worker_deployment_mismatch": "API 与 Worker 必须使用相同版本、合同与共享路径。停止旧进程后统一重启。",
+      "credential_key_unavailable": "停止实例并从完整备份恢复原凭据密钥，勿生成替代密钥。",
+      "signing_key_unavailable": "停止实例并恢复原签名密钥及其受限文件权限。",
+      "signing_key_mismatch": "核对签名密钥 ID 与原始密钥文件，勿重绑定已登记身份。",
+      "signing_key_not_trusted": "配置新的受信任签名密钥；历史公钥继续保留用于验证。"
+    }
+  },
   "tabs": {
     "system": "系统设置",
     "models": "模型设置",
@@ -44,6 +72,16 @@
     "disable": "停用模型",
     "delete": "删除模型",
     "empty": "暂无模型"
+  },
+  "budget": {
+    "invalid": "模型预算无效，请在输出、推理预留和安全余量之外保留输入空间。",
+    "custom": "自定义模型预算",
+    "configured": "配置预算 · token",
+    "default": "保守默认值 · token 估算",
+    "contextTokens": "上下文窗口",
+    "maxInputTokens": "最大输入",
+    "maxOutputTokens": "最大输出",
+    "reasoningTokens": "推理预留"
   },
   "dialog": {
     "providerDescription": "直接配置供应商凭据。密钥会加密保存，之后不会回显。",

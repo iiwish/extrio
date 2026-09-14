@@ -8,6 +8,7 @@ import { api } from '@/api/client'
 import type { HarvestItem } from '@/api/types'
 import { StatusBadge } from '@/components/status-badge'
 import { collectorSourceLabel } from '@/features/collectors/collector-presentation'
+import { DeletedSourceBadge } from '@/features/collectors/collector-management'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -45,7 +46,7 @@ export function ItemPage() {
           <div>
             <div className="title-line"><h1>{item.title}</h1><StatusBadge status={item.decision} /></div>
             <div className="run-header-subtitle">
-              <span className="item-source-context">{collectorSourceLabel(item.collectorName, item.sourceHost)}</span>
+              <span className="item-source-context">{collectorSourceLabel(item.collectorName, item.sourceHost)}</span>{item.collectorDeleted && <DeletedSourceBadge />}
               <span className="run-header-meta">{t('detail.publishedLine', { publishedAt: item.publishedAt, revision: revisionLabel })}</span>
             </div>
           </div>
@@ -116,7 +117,7 @@ export function ItemPage() {
             <section className="run-detail-section item-lineage-section">
               <header><div><h2>{t('detail.lineageTitle')}</h2><p>{t('detail.lineageSubtitle')}</p></div><Fingerprint /></header>
               <div className="item-lineage-links">
-                <article><Network /><span><small>{t('detail.collectorLabel')}</small><Link to={workspaceLink(`/collectors/${item.collectorId}`)}>{collectorSourceLabel(item.collectorName, item.sourceHost)} <ArrowRight /></Link></span></article>
+                <article><Network /><span><small>{t('detail.collectorLabel')}</small>{item.collectorDeleted ? <strong>{collectorSourceLabel(item.collectorName, item.sourceHost)}</strong> : <Link to={workspaceLink(`/collectors/${item.collectorId}`)}>{collectorSourceLabel(item.collectorName, item.sourceHost)} <ArrowRight /></Link>}</span></article>
                 <article><Link2 /><span><small>{t('detail.sourceLabel')}</small><a href={item.sourceUrl} target="_blank" rel="noreferrer">{item.sourceUrl} <ExternalLink /></a></span></article>
                 <article><History /><span><small>{t('detail.latestRunLabel')}</small><Link to={workspaceLink(`/runs/${item.lineage.runId}`)}>{t('detail.viewRunRecord')} <ArrowRight /></Link></span></article>
               </div>

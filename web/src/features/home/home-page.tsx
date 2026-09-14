@@ -75,7 +75,7 @@ export function HomePage() {
   const { t, i18n } = useTranslation('home')
   const { user } = useAuth()
   const [granularity, setGranularity] = useState<TrendGranularity>('day')
-  const collectorsQuery = useQuery({ queryKey: ['collectors'], queryFn: api.collectors })
+  const collectorsQuery = useQuery({ queryKey: ['collectors'], queryFn: () => api.collectors() })
   const runsQuery = useQuery({ queryKey: ['runs'], queryFn: api.runs })
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
   const overviewQuery = useQuery({ queryKey: ['overview', timezone], queryFn: () => api.overview(timezone), refetchInterval: 60000 })

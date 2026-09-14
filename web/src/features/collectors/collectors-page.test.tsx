@@ -93,4 +93,20 @@ describe('CollectorsPage operational list', () => {
     expect(screen.getByRole('button', {name:'刷新'})).toBeInTheDocument()
     expect(screen.queryByText('当前筛选下没有采集来源。')).not.toBeInTheDocument()
   })
+
+  it.each(['cancelled', 'queued', 'running', 'finalizing', 'missing'] as const)(
+    'does not label a %s latest run healthy or hide unresolved runs from attention', async (status) => {
+      const collector = { ...seedCollectors[0], status: 'published', activeRuleVersion: 'rule_v1', latestRunId: 'latest' }
+      const runs = status === 'missing' ? [] : [{ ...seedRuns[0], id: 'latest', status, rejectedCount: 0 }]
+      vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request) => {
+        const path = new URL(String(input), 'http://localhost').pathname
+        return json({ items: path.endsWith('/collectors') ? [collector] : runs, page: { nextCursor: null } })
+      }))
+      renderPage(status === 'cancelled' || status === 'missing' ? '/collectors?view=attention' : '/collectors')
+      const list = screen.getByLabelText('采集来源列表')
+      const row = await within(list).findByRole('link')
+      expect(within(row).queryByText('运行健康')).not.toBeInTheDocument()
+      expect(row).toHaveTextContent(status === 'cancelled' || status === 'missing' ? '处理最近运行' : '查看运行进度')
+    },
+  )
 })

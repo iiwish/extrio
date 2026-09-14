@@ -106,7 +106,7 @@ function AiRunsView({ query, filter, search, updateParam }: { query: AiRunsQuery
     const matchesStatus = filter === 'all'
       || (filter === 'running' && ['queued', 'running', 'finalizing'].includes(run.status))
       || (filter === 'attention' && isAttention(run))
-      || (filter === 'review' && run.reviewStatus === 'ready_review')
+      || (filter === 'review' && !run.collectorDeleted && run.reviewStatus === 'ready_review')
     const matchesSearch = !normalizedSearch || `${run.collectorName} ${run.sourceUrl}`.toLowerCase().includes(normalizedSearch)
     return matchesStatus && matchesSearch
   })
@@ -116,7 +116,7 @@ function AiRunsView({ query, filter, search, updateParam }: { query: AiRunsQuery
       <div className="segmented" role="group" aria-label={t('toolbar.aiFilterAria')}>
         <Button aria-pressed={filter === 'all'} variant={filter === 'all' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('status', 'all', 'all')}>{t('filter.all')} <span>{query.data ? runs.length : '—'}</span></Button>
         <Button aria-pressed={filter === 'running'} variant={filter === 'running' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('status', 'running', 'all')}>{t('filter.running')} <span>{query.data ? runs.filter((run) => ['queued', 'running', 'finalizing'].includes(run.status)).length : '—'}</span></Button>
-        <Button aria-pressed={filter === 'review'} variant={filter === 'review' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('status', 'review', 'all')}>{t('filter.review')} <span>{query.data ? runs.filter((run) => run.reviewStatus === 'ready_review').length : '—'}</span></Button>
+        <Button aria-pressed={filter === 'review'} variant={filter === 'review' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('status', 'review', 'all')}>{t('filter.review')} <span>{query.data ? runs.filter((run) => !run.collectorDeleted && run.reviewStatus === 'ready_review').length : '—'}</span></Button>
         <Button aria-pressed={filter === 'attention'} variant={filter === 'attention' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('status', 'attention', 'all')}>{t('filter.attention')} <span>{query.data ? runs.filter(isAttention).length : '—'}</span></Button>
       </div>
       <RunToolbarActions refreshing={query.isFetching} search={search} onSearch={(value) => updateParam('q', value, '')} onRefresh={() => query.refetch()} label={t('toolbar.aiSearchLabel')} placeholder={t('toolbar.aiSearchPlaceholder')} />
@@ -149,7 +149,7 @@ function RunRow({ run }: { run: Run }) {
   const failed = ['failed', 'timed_out', 'cancelled'].includes(run.status)
   return (
     <Link className={`object-row run-grid run-list-row ${failed ? 'has-error' : ''}`} to={workspaceLink(`/runs/${run.id}`)}>
-      <span className="object-primary"><span className="source-icon"><PlayCircle /></span><span><strong>{collectorDisplayName(run.collectorName)}</strong><small>{run.id}</small></span></span>
+      <span className="object-primary"><span className="source-icon"><PlayCircle /></span><span><strong>{collectorDisplayName(run.collectorName)}</strong><small title={run.id}>{run.collectorDeleted && <>{t('collectors:management.deleted')} · </>}{run.id}</small></span></span>
       <StatusBadge status={run.status} />
       <span className="run-metric-cell"><strong>{run.acceptedCount}</strong><small>{t('row.acceptedUnit')}</small></span>
       <span className={`run-metric-cell ${run.rejectedCount > 0 ? 'danger' : ''}`}><strong>{run.rejectedCount}</strong><small>{t('row.rejectedUnit')}</small></span>
@@ -168,7 +168,7 @@ function AiRunRow({ run }: { run: AiRun }) {
   const workspaceLink = useWorkspaceLink()
   const failed = run.status === 'failed'
   return <Link className={`object-row ai-run-grid run-list-row ${failed ? 'has-error' : ''}`} to={workspaceLink(`/ai-runs/${run.id}`)}>
-    <span className="object-primary"><span className="source-icon ai"><Bot /></span><span><strong>{collectorDisplayName(run.collectorName)}</strong><small>{sourcePath(run.sourceUrl)}</small></span></span>
+    <span className="object-primary"><span className="source-icon ai"><Bot /></span><span><strong>{collectorDisplayName(run.collectorName)}</strong><small title={run.sourceUrl}>{run.collectorDeleted && <>{t('collectors:management.deleted')} · </>}{sourcePath(run.sourceUrl)}</small></span></span>
     <span className="ai-run-kind"><strong>{run.kind === 'rule_repair' ? t('aiRow.kindRuleRepair') : t('aiRow.kindRuleGeneration')}</strong><small>{triggerLabel(t, run.trigger)}</small></span>
     <AiStatusBadge run={run} />
     <span className="ai-run-result"><strong>{resultLabel(t, run)}</strong><small>{phaseLabel(t, run.phase)} · {run.progress}%</small></span>
@@ -180,6 +180,7 @@ function AiRunRow({ run }: { run: AiRun }) {
 
 function AiStatusBadge({ run }: { run: AiRun }) {
   const { t } = useTranslation('runs')
+  if (run.collectorDeleted && run.reviewStatus === 'ready_review') return <Badge variant="outline">{t('aiStatus.completed')}</Badge>
   const active = ['queued', 'running', 'finalizing'].includes(run.status)
   const tone = run.status === 'failed' ? 'danger' : run.reviewStatus === 'ready_review' ? 'review' : active ? 'running' : 'success'
   const label = run.status === 'failed' ? t('aiStatus.failed') : run.reviewStatus === 'ready_review' ? t('aiStatus.readyReview') : active ? t('aiStatus.running') : run.reviewStatus === 'published' ? t('aiStatus.published') : t('aiStatus.completed')

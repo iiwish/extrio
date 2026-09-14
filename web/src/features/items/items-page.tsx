@@ -135,7 +135,7 @@ function ItemRow({ item }: { item: HarvestItem }) {
   const workspaceLink = useWorkspaceLink()
   return (
     <Link className={`object-row item-list-grid item-list-row ${item.decision === 'rejected' ? 'has-error' : ''}`} to={workspaceLink(`/items/${item.id}`)}>
-      <span className="object-primary"><span className="source-icon"><FileText /></span><span><strong>{item.title}</strong><small>{collectorSourceLabel(item.collectorName, item.sourceHost)}</small></span></span>
+      <span className="object-primary"><span className="source-icon"><FileText /></span><span><strong>{item.title}</strong><small>{item.collectorDeleted && <>{t('collectors:management.deleted')} · </>}{collectorSourceLabel(item.collectorName, item.sourceHost)}</small></span></span>
       <StatusBadge status={item.decision} />
       <span className="item-change-cell"><strong>{item.changeType ? changeTypeLabel(item.changeType, t) : t('list.noChange')}</strong><small>{item.revision === null ? t('list.noRevision') : t('list.revision', { count: item.revision })} · {t('list.observations', { count: item.observationHistory.length })}</small></span>
       <span className="item-time-cell"><strong>{item.publishedAt}</strong></span>

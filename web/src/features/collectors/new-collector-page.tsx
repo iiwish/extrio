@@ -5,7 +5,7 @@ import { useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'rea
 import { Link, useBeforeUnload, useBlocker, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '@/api/client'
-import type { BatchCollectorImportResult } from '@/api/types'
+import type { BatchCollectorImportResult, CreateCollectorsInput } from '@/api/types'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -126,7 +126,7 @@ export function NewCollectorPage() {
   const sources = useMemo(() => inspectSourceDrafts(sourceDrafts), [sourceDrafts])
   const collections = useMemo(() => {
     return (collectorsQuery.data ?? []).filter((value) => value.status === 'active').map((value) => ({
-      id: value.id, name: value.name, intent: value.intent, version: value.collectionVersion, collectorCount: value.sourceCount,
+      id: value.id, name: value.name, intent: value.intent, version: value.activeVersionId ?? value.collectionVersion, collectorCount: value.sourceCount,
     }))
   }, [collectorsQuery.data])
   const selectedCollection = collections.find((collection) => collection.id === selectedCollectionId)
@@ -141,7 +141,7 @@ export function NewCollectorPage() {
   const requirementReady = useExistingCollection || Boolean(collectionName.trim() && intent.trim())
 
   const mutation = useMutation({
-    mutationFn: api.createCollectors,
+    mutationFn: (input: CreateCollectorsInput) => api.createCollectors(input),
     onSuccess: (result) => {
       submittedRef.current = true
       queryClient.invalidateQueries({ queryKey: ['collectors'] })

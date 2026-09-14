@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { QueryError } from '@/components/query-error'
 import { useWorkspaceLink, useWorkspaceSection } from '@/lib/workspace-navigation'
+import { DeletedSourceBadge, HistoryAttribution } from '@/features/collectors/collector-management'
 
 export function AiRunPage() {
   const { t } = useTranslation('aiRuns')
@@ -41,18 +42,19 @@ export function AiRunPage() {
       <QueryError error={query.error} onRetry={() => void query.refetch()} retrying={query.isFetching} />
       <header className="run-page-header ai-run-page-header">
         <div>
-          <div className="title-line"><h1 title={source.full}>{source.root}</h1><AiRunState run={run} /></div>
+          <div className="title-line"><h1 title={source.full}>{source.root}</h1><AiRunState run={run} />{run.collectorDeleted && <DeletedSourceBadge />}</div>
           <div className="run-header-subtitle">
             {source.path && <span className="run-source-path" title={source.full}>{source.path}</span>}
             <span className="run-header-meta">{t('detail.headerMeta', { kind: taskKindLabel(t, run), started: formatDateTime(run.createdAt) })}</span>
           </div>
         </div>
-        <Button asChild variant={run.reviewStatus === 'ready_review' ? 'default' : 'outline'}>
+        {!run.collectorDeleted && <Button asChild variant={run.reviewStatus === 'ready_review' ? 'default' : 'outline'}>
           <Link to={workspaceLink(`/collectors/${run.collectorId}${run.reviewStatus === 'ready_review' ? '?section=rule' : ''}`)}>
             {run.reviewStatus === 'ready_review' ? t('detail.reviewCandidate') : t('detail.viewCollector')} <ArrowRight />
           </Link>
-        </Button>
+        </Button>}
       </header>
+      <HistoryAttribution value={run.collectionAttribution} />
 
       <Tabs value={section} onValueChange={setSection} className="run-workspace-tabs">
         <div className="run-workspace-nav">
@@ -67,19 +69,20 @@ export function AiRunPage() {
         <TabsContent value="result" className="run-tab-panel">
           <AiRunSummary run={run} failed={failed} />
           <section className="run-detail-section ai-result-section">
-            <header><div><h2>{resultTitle(t, run)}</h2><p>{resultDescription(t, run)}</p></div>{run.reviewStatus === 'ready_review' && <Badge variant="outline" className="ai-review-badge">{t('detail.awaitingReview')}</Badge>}</header>
+            <header><div><h2>{resultTitle(t, run)}</h2><p>{resultDescription(t, run)}</p></div>{!run.collectorDeleted && run.reviewStatus === 'ready_review' && <Badge variant="outline" className="ai-review-badge">{t('detail.awaitingReview')}</Badge>}</header>
             <dl className="ai-result-grid">
               <div><dt>{t('detail.facts.sampleValidation')}</dt><dd>{t('detail.facts.sampleValidationValue', { accepted: run.validationSummary.acceptedSamples, rejected: run.validationSummary.rejectedSamples })}</dd></div>
               <div><dt>{t('detail.facts.warnings')}</dt><dd>{run.validationSummary.warningCount}</dd></div>
               <div><dt>{t('detail.facts.attempts')}</dt><dd>{run.attemptCount}</dd></div>
-              <div><dt>{t('detail.facts.reviewStatus')}</dt><dd>{reviewLabel(t, run.reviewStatus)}</dd></div>
+              <div><dt>{t('detail.facts.reviewStatus')}</dt><dd>{reviewLabel(t, run.reviewStatus, run.collectorDeleted)}</dd></div>
             </dl>
-            {failed && <div className="ai-run-error"><TriangleAlert /><span><strong>{t('detail.noCandidateTitle')}</strong><small>{run.error?.message ?? t('detail.noCandidateFallback')}</small></span></div>}
+            {failed && <div className="ai-run-error"><TriangleAlert /><span><strong>{t('detail.noCandidateTitle')}</strong><small>{run.error ? t(`adaptive.errors.${run.error.code}`, { defaultValue: run.error.message }) : t('detail.noCandidateFallback')}</small></span></div>}
             {active && <div className="ai-run-active"><Clock3 /><span><strong>{phaseLabel(t, run.phase)}</strong><small>{t('detail.activeHint')}</small></span><b>{run.progress}%</b></div>}
           </section>
         </TabsContent>
 
         <TabsContent value="process" className="run-tab-panel">
+          {run.evidence && <AdaptiveEvidence value={run.evidence} />}
           <section className="run-detail-section ai-activity-section">
             <header><div><h2>{t('detail.activityHeading')}</h2><p>{t('detail.activitySub')}</p></div>{active && <Badge variant="outline" className="ai-status-badge running"><span />{t('detail.activityStatus.running')}</Badge>}</header>
             {(run.guidance || run.note) && <div className="ai-run-guidance"><MessageSquareText /><span><strong>{t('detail.guidanceHeading')}</strong><small>{t('detail.guidanceSub')}</small><p>{run.guidance ?? run.note}</p></span></div>}
@@ -111,12 +114,13 @@ export function AiRunPage() {
         </TabsContent>
 
         <TabsContent value="evidence" className="run-tab-panel">
+          {run.evidence && <AdaptiveEvidence value={run.evidence} showReads />}
           <section className="run-detail-section run-proof-section" aria-label={t('detail.evidenceAria')}>
             <header><div><h2>{t('detail.evidenceHeading')}</h2><p>{t('detail.evidenceSub')}</p></div><Fingerprint /></header>
             <div className="run-proof-grid">
               <article className="verified"><ListChecks /><span><strong>{t('detail.evidence.attempts', { count: run.attemptCount })}</strong><small>{t('detail.evidence.attemptsSub')}</small></span></article>
               <article className="verified"><Bot /><span><strong>{t('detail.evidence.invocations', { count: run.modelSummary.invocationCount })}</strong><small>{formatTokens(run.modelSummary.totalTokens)} Token</small></span></article>
-              <article className={run.resultStatus === 'candidate_ready' ? 'verified' : 'pending'}><FileCheck2 /><span><strong>{run.resultStatus === 'candidate_ready' ? t('detail.evidence.candidateFixed') : t('detail.evidence.noCandidate')}</strong><small>{reviewLabel(t, run.reviewStatus)}</small></span></article>
+              <article className={run.resultStatus === 'candidate_ready' ? 'verified' : 'pending'}><FileCheck2 /><span><strong>{run.resultStatus === 'candidate_ready' ? t('detail.evidence.candidateFixed') : t('detail.evidence.noCandidate')}</strong><small>{reviewLabel(t, run.reviewStatus, run.collectorDeleted)}</small></span></article>
               <article className="neutral"><ShieldCheck /><span><strong>{t('detail.evidence.noSensitive')}</strong><small>{t('detail.evidence.noSensitiveSub')}</small></span></article>
             </div>
             <details className="run-technical-details">
@@ -137,11 +141,36 @@ export function AiRunPage() {
   </div>
 }
 
+export function AdaptiveEvidence({ value, showReads = false }: { value: NonNullable<AiRunDetail['evidence']>; showReads?: boolean }) {
+  const { t } = useTranslation('aiRuns')
+  const b = value.budget
+  return <section className="run-detail-section adaptive-evidence" aria-label={t('adaptive.title')}>
+    <header><div><h2>{t('adaptive.title')}</h2><p>{t(`adaptive.source.${value.limitsSource}`)} · {t(`adaptive.method.${b.tokenMethod}`)}</p></div><Badge variant="outline">{t(`adaptive.phase.${value.phase}`)}</Badge></header>
+    <dl className="ai-result-grid">
+      <div><dt>{t('adaptive.calls')}</dt><dd>{b.calls} / {b.maxCalls}</dd></div>
+      <div><dt>{t('adaptive.input')}</dt><dd>{formatTokens(b.inputTokens)} / {formatTokens(b.maxInputTokens)}</dd></div>
+      <div><dt>{t('adaptive.output')}</dt><dd>{formatTokens(b.outputTokens)} / {formatTokens(b.maxOutputTokens)}</dd></div>
+      <div><dt>{t('adaptive.time')}</dt><dd>{Math.round(b.elapsedSeconds)} / {b.maxSeconds}s</dd></div>
+    </dl>
+    <div className="adaptive-context"><span>{t('adaptive.context', { count: b.contextTokens })}</span><span>{t(value.validated ? 'adaptive.validated' : 'adaptive.unvalidated')}</span></div>
+    {b.stopReason && <div className="ai-run-error"><TriangleAlert /><span><strong>{t('adaptive.stopped')}</strong><small>{t(`adaptive.errors.${b.stopReason}`, { defaultValue: b.stopReason })}</small></span></div>}
+    <div className="adaptive-table-wrap"><table className="adaptive-table">
+      <thead><tr><th>{t('adaptive.page')}</th><th>{t('adaptive.indexed')}</th><th>{t('adaptive.read')}</th><th>{t('adaptive.chars')}</th></tr></thead>
+      <tbody>{value.pages.map((page) => <tr key={page.pageId}><td><code>{page.pageId}</code></td><td>{page.indexedNodes}</td><td>{page.readNodes}</td><td>{page.readFragmentChars.toLocaleString()}</td></tr>)}</tbody>
+    </table></div>
+    {value.validation.length > 0 && <ul className="adaptive-validation">{value.validation.map((issue, index) => <li key={index}><span title={issue.code}>{t(`adaptive.validation.${issue.code}`, { defaultValue: issue.code ?? '' })}</span>{issue.field && <code>{issue.field}</code>}{issue.sample !== undefined && <span>{t('adaptive.sample', { count: issue.sample })}</span>}</li>)}</ul>}
+    {showReads && <details className="adaptive-reads"><summary>{t('adaptive.readLog', { count: value.reads.length })}</summary><div className="adaptive-table-wrap"><table className="adaptive-table">
+      <thead><tr><th>{t('adaptive.page')}</th><th>{t('adaptive.node')}</th><th>{t('adaptive.action')}</th><th>{t('adaptive.range')}</th><th>{t('adaptive.fragment')}</th></tr></thead>
+      <tbody>{value.reads.map((read, index) => <tr key={index}><td title={read.digest}><code>{read.pageId}</code></td><td><code>{read.nodeId}</code></td><td>{t(`adaptive.actionType.${read.action}`)}</td><td>{read.start}–{read.end}</td><td>{t(read.complete ? 'adaptive.end' : 'adaptive.more')}</td></tr>)}</tbody>
+    </table></div></details>}
+  </section>
+}
+
 function AiRunSummary({ run, failed }: { run: AiRunDetail; failed: boolean }) {
   const { t } = useTranslation('aiRuns')
   return <section aria-label={t('summaryAria')} className={`run-result-summary ${failed ? 'danger' : run.reviewStatus === 'ready_review' ? 'warning' : 'success'}`}>
     <div className="run-result-heading ai-run-summary">
-      <div><h2>{failed ? t('summary.failed') : run.reviewStatus === 'ready_review' ? t('summary.readyReview') : resultTitle(t, run)}</h2><p>{t('summary.phaseDuration', { phase: phaseLabel(t, run.phase), duration: durationLabel(t, run.durationMs) })}</p></div>
+      <div><h2>{failed ? t('summary.failed') : !run.collectorDeleted && run.reviewStatus === 'ready_review' ? t('summary.readyReview') : resultTitle(t, run)}</h2><p>{t('summary.phaseDuration', { phase: phaseLabel(t, run.phase), duration: durationLabel(t, run.durationMs) })}</p></div>
       <dl className="run-result-facts ai-run-facts">
         <div><dt>{t('summary.facts.invocations')}</dt><dd>{run.modelSummary.invocationCount}</dd></div>
         <div><dt>{t('summary.facts.tokens')}</dt><dd>{formatTokens(run.modelSummary.totalTokens)}</dd></div>
@@ -182,6 +211,7 @@ function AiActivityTimeline({ activity }: { activity: OperationActivity[] }) {
 
 function AiRunState({ run }: { run: AiRunDetail }) {
   const { t } = useTranslation('aiRuns')
+  if (run.collectorDeleted && run.reviewStatus === 'ready_review') return <Badge variant="outline">{t('state.completed')}</Badge>
   const active = ['queued', 'running', 'finalizing'].includes(run.status)
   const label = run.status === 'failed' ? t('state.failed') : active ? t('state.running') : run.reviewStatus === 'ready_review' ? t('state.readyReview') : run.reviewStatus === 'published' ? t('state.published') : t('state.completed')
   return <Badge variant="outline" className={`ai-status-badge ${run.status === 'failed' ? 'danger' : active ? 'running' : run.reviewStatus === 'ready_review' ? 'review' : 'success'}`}><span />{label}</Badge>
@@ -202,19 +232,23 @@ function taskKindLabel(t: TFunction, run: AiRunDetail) {
 }
 
 function resultTitle(t: TFunction, run: AiRunDetail) {
+  if (run.collectorDeleted && run.resultStatus === 'candidate_ready') return t('collectors:management.historicalCandidate')
   if (run.resultStatus === 'candidate_ready') return t('result.candidate_ready')
   if (run.resultStatus === 'no_candidate') return t('result.no_candidate')
   return t('result.pending')
 }
 
 function resultDescription(t: TFunction, run: AiRunDetail) {
+  if (run.collectorDeleted) return t('collectors:management.deletedNotice')
+  if (run.resultStatus === 'no_candidate') return t('adaptive.noCandidate')
   if (run.reviewStatus === 'ready_review') return t('resultDesc.ready_review')
   if (run.reviewStatus === 'published') return t('resultDesc.published')
   if (run.reviewStatus === 'superseded') return t('resultDesc.superseded')
   return t('resultDesc.default')
 }
 
-function reviewLabel(t: TFunction, status: AiRunDetail['reviewStatus']) {
+function reviewLabel(t: TFunction, status: AiRunDetail['reviewStatus'], deleted = false) {
+  if (deleted && status === 'ready_review') return t('collectors:management.historicalReview')
   return { not_ready: t('reviewStatus.not_ready'), ready_review: t('reviewStatus.ready_review'), published: t('reviewStatus.published'), superseded: t('reviewStatus.superseded') }[status]
 }
 

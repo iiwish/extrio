@@ -9,6 +9,15 @@ import { NewCollectorPage } from './new-collector-page'
 
 afterEach(() => { cleanup(); vi.restoreAllMocks() })
 
+it('shows the published fixed version rather than the legacy collection reference', async () => {
+  vi.spyOn(api, 'collections').mockResolvedValue([{id:'chosen',name:'指定需求',intent:'采集公告',status:'active',collectionVersion:'tender_notice_v4',activeVersionId:'colver_frozen',activeVersion:{id:'colver_frozen',versionNumber:2,fieldCount:3,outputContractDigest:'sha256:test',publishedAt:'2026-09-10T00:00:00Z'},sourceCount:0,publishedSourceCount:0,revision:1,createdAt:'2026-09-06T00:00:00Z',updatedAt:'2026-09-06T00:00:00Z'}])
+  const client = new QueryClient({defaultOptions:{queries:{retry:false}}})
+  const router=createMemoryRouter([{path:'/collectors/new',element:<NewCollectorPage />}],{initialEntries:['/collectors/new?collection=chosen']})
+  render(<QueryClientProvider client={client}><RouterProvider router={router} /></QueryClientProvider>)
+  expect(await screen.findByText('colver_frozen')).toBeInTheDocument()
+  expect(screen.queryByText('tender_notice_v4')).not.toBeInTheDocument()
+})
+
 it('keeps the requested requirement selected when its options load after the form mounts', async () => {
   let resolve!: (value: Awaited<ReturnType<typeof api.collections>>) => void
   vi.spyOn(api, 'collections').mockImplementation(() => new Promise(done => {resolve = done}))
