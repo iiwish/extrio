@@ -102,10 +102,21 @@ without scraping a third-party site.
 
 Stop the local processes with `./scripts/stop.sh`.
 
+For isolated instances, set `EXTRIO_INSTANCE_DIR`, `EXTRIO_API_PORT`, and
+`EXTRIO_WEB_PORT`; use the same instance directory when stopping. The launcher
+rejects occupied ports before starting processes and waits for Worker readiness.
+See the [self-hosted operations guide](docs/self-hosted-operations.md) for supported
+source boundaries, SQLite/PostgreSQL upgrades, diagnostics, key rotation,
+full-instance backup/restore, API/MCP clients, and observation procedures.
+
 ## Run with containers
 
 Docker Compose runs the web console, API, and worker from the same source and
 persists local state in a named volume.
+
+`/healthz` is API liveness only. `/readyz` requires a fresh, deployment-matched
+Worker and usable key material. `extrio-doctor` additionally checks migrations,
+artifact access, restore state, and backup tools without creating missing state.
 
 ```bash
 docker compose up --build

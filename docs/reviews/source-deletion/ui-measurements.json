@@ -1,0 +1,863 @@
+{
+  "checks": [
+    {
+      "surface": "allowed",
+      "language": "zh",
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "blocked",
+      "language": "zh",
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "ai",
+      "language": "zh",
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "run",
+      "language": "zh",
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "item",
+      "language": "zh",
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "allowed",
+      "language": "zh",
+      "width": 1280,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "blocked",
+      "language": "zh",
+      "width": 1280,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "ai",
+      "language": "zh",
+      "width": 1280,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "run",
+      "language": "zh",
+      "width": 1280,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "item",
+      "language": "zh",
+      "width": 1280,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "allowed",
+      "language": "zh",
+      "width": 1132,
+      "height": 1028,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "blocked",
+      "language": "zh",
+      "width": 1132,
+      "height": 1028,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "ai",
+      "language": "zh",
+      "width": 1132,
+      "height": 1028,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "run",
+      "language": "zh",
+      "width": 1132,
+      "height": 1028,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "item",
+      "language": "zh",
+      "width": 1132,
+      "height": 1028,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "allowed",
+      "language": "zh",
+      "width": 1024,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "blocked",
+      "language": "zh",
+      "width": 1024,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "ai",
+      "language": "zh",
+      "width": 1024,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "run",
+      "language": "zh",
+      "width": 1024,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "item",
+      "language": "zh",
+      "width": 1024,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "allowed",
+      "language": "en",
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "blocked",
+      "language": "en",
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "ai",
+      "language": "en",
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "run",
+      "language": "en",
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "item",
+      "language": "en",
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "allowed",
+      "language": "en",
+      "width": 1280,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "blocked",
+      "language": "en",
+      "width": 1280,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "ai",
+      "language": "en",
+      "width": 1280,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "run",
+      "language": "en",
+      "width": 1280,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "item",
+      "language": "en",
+      "width": 1280,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "allowed",
+      "language": "en",
+      "width": 1132,
+      "height": 1028,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "blocked",
+      "language": "en",
+      "width": 1132,
+      "height": 1028,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "ai",
+      "language": "en",
+      "width": 1132,
+      "height": 1028,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "run",
+      "language": "en",
+      "width": 1132,
+      "height": 1028,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "item",
+      "language": "en",
+      "width": 1132,
+      "height": 1028,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "allowed",
+      "language": "en",
+      "width": 1024,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "blocked",
+      "language": "en",
+      "width": 1024,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "ai",
+      "language": "en",
+      "width": 1024,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "run",
+      "language": "en",
+      "width": 1024,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "item",
+      "language": "en",
+      "width": 1024,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    }
+  ],
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors/collector_beijing_tender/lifecycle"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors/collector_beijing_tender/lifecycle"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai-runs/ai_run_shanghai_0901"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs/run_0842"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs/run_0842/evidence"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/items/item_shanghai_4F82"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors/collector_beijing_tender/lifecycle"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors/collector_beijing_tender/lifecycle"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai-runs/ai_run_shanghai_0901"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs/run_0842"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs/run_0842/evidence"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/items/item_shanghai_4F82"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors/collector_beijing_tender/lifecycle"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors/collector_beijing_tender/lifecycle"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai-runs/ai_run_shanghai_0901"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs/run_0842"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs/run_0842/evidence"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/items/item_shanghai_4F82"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors/collector_beijing_tender/lifecycle"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors/collector_beijing_tender/lifecycle"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai-runs/ai_run_shanghai_0901"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs/run_0842"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs/run_0842/evidence"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/items/item_shanghai_4F82"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors/collector_beijing_tender/lifecycle"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors/collector_beijing_tender/lifecycle"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai-runs/ai_run_shanghai_0901"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs/run_0842"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs/run_0842/evidence"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/items/item_shanghai_4F82"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors/collector_beijing_tender/lifecycle"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors/collector_beijing_tender/lifecycle"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai-runs/ai_run_shanghai_0901"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs/run_0842"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs/run_0842/evidence"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/items/item_shanghai_4F82"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors/collector_beijing_tender/lifecycle"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors/collector_beijing_tender/lifecycle"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai-runs/ai_run_shanghai_0901"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs/run_0842"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs/run_0842/evidence"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/items/item_shanghai_4F82"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors/collector_beijing_tender/lifecycle"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/collectors/collector_beijing_tender/lifecycle"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/ai-runs/ai_run_shanghai_0901"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs/run_0842"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/runs/run_0842/evidence"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/state"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/items/item_shanghai_4F82"
+    }
+  ],
+  "pageErrors": []
+}

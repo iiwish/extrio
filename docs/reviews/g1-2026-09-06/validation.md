@@ -1,6 +1,6 @@
 # G1 验证与交接
 
-日期：2026-09-06。状态：Engineering Delivered / User Review Pending。范围见 [工作包](packet.md)，产品适用范围见 [1.0 合同映射](../../planning/v1.0-scope-matrix.md)。工程完成不等于用户页面 Accepted，也不等于 1.0 发布验收通过。
+交付日期：2026-09-06。当前状态：Technical Acceptance PASS（2026-09-10），详见 [Review 验收记录](../g1-acceptance-2026-09-10/review.md)。以下测试和浏览器结果保留为 2026-09-06 的交付证据。范围见 [工作包](packet.md)，产品适用范围见 [1.0 合同映射](../../planning/v1.0-scope-matrix.md)。技术验收不等于用户最终产品签收，也不等于 1.0 发布验收通过。
 
 ## 交付结果
 

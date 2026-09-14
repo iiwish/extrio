@@ -3,7 +3,7 @@
   "docsetVersion": "v0.44.0",
   "productVersion": "v0.6",
   "status": "Ready_For_User_Review",
-  "generatedAt": "2026-09-09T09:16:16.993Z",
+  "generatedAt": "2026-09-14T05:47:26.365Z",
   "repositoryState": {
     "kind": "git_repository",
     "defaultBranch": "main"
@@ -12,12 +12,12 @@
     {
       "path": "docs/SSOT.md",
       "version": "v0.44.0",
-      "sha256": "a4643d1c639ae3379c5073d759680185ecaad068018bc83fdea296f3ce503940"
+      "sha256": "3374d262751ccbf07530d6c302285205e922c740df5329653fd8d29740224d20"
     },
     {
       "path": "docs/product-contract.md",
       "version": "v0.44.0",
-      "sha256": "7ce9e463f50c719d78b92b6da51ee27d48b6ee0335054f953f891298270663d6"
+      "sha256": "c03292e667e859f4d33683eaf509d9b14a31db4fa760373b6cc1bd138a5679e3"
     },
     {
       "path": "docs/domain-model.md",
@@ -92,22 +92,22 @@
     {
       "path": "docs/contracts/openapi.yaml",
       "version": "extrio.control-plane.v1",
-      "sha256": "07ecbd3e8e992b6ddd8e91137ff6a178eadc27197f4458abf6a54860ac229584"
+      "sha256": "12292f207c761810c5a308009e233baf7f573fe1f15de0316b9d81c116a487c9"
     },
     {
       "path": "docs/contracts/api-contract.md",
       "version": "v1.16.0",
-      "sha256": "0d1f1ce64ebe686683bb8b8996cc189db69f61e2d774ad0bae535f6d14989c7e"
+      "sha256": "7889572843954efcab90ac1a5d2d986425b51730ab10c1ae69b1dc3115693e5f"
     },
     {
       "path": "docs/runtime-contract.md",
       "version": "v0.6.0",
-      "sha256": "1c78e48e46c88a5b6b433c91f9fe303c25ad28e8cfdbe8191521522d8d549aac"
+      "sha256": "21fda8c771f395e18497340c82b91cadf63e2f2d7e302c57535b89a2f0432815"
     },
     {
       "path": "docs/security-compliance.md",
       "version": "v0.7.0",
-      "sha256": "78782cfd3057a2d9dbf300cc64e377282e7851482c68dead197a65b38c236625"
+      "sha256": "003cad51747fbeff8d750f64d0fcffa6f5cb385bf2c755e158a969112e204934"
     },
     {
       "path": "docs/architecture/ADR-001-platform-boundaries.md",
@@ -132,7 +132,7 @@
     {
       "path": "docs/frontend-prototype.md",
       "version": "v1.38.0",
-      "sha256": "06fe90bc5ad2971d66b41eefaf9ce45b78cd213309c849f33c260e1bdfa9f705"
+      "sha256": "5dbae37adac1ade7d0d7bf9119ce0ccecf76ebea9c550c2f04577fc923de4f8b"
     },
     {
       "path": "docs/backend-vertical-slice.md",
@@ -152,7 +152,7 @@
     {
       "path": "docs/releases/v0.2-acceptance.md",
       "version": "v0.44.0",
-      "sha256": "6a50b7ae279f01f3901aa88f7dc8968e0f760fd68384c7db8d612dee4423e780"
+      "sha256": "cf00a89c8fb8a03de057153e17ee66e849f944987cd4320cb4098989931394d6"
     },
     {
       "path": "docs/planning/v1.0-scope-matrix.md",

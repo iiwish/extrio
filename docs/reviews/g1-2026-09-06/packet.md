@@ -1,6 +1,6 @@
 # G1 全站核心体验收敛
 
-状态：Engineering Delivered / User Review Pending。用户于 2026-09-06 明确要求创建并完成 G1。范围依据 `docs/planning/v1.0-delivery-plan.md`，约 3 小时为重估检查点，不是自动完成条件。Direct Execute；不委派，不提交 Git，保留现有工作树修改。实现、测试、桌面走查和边界见 [验证记录](validation.md)。
+状态：Technical Acceptance PASS（2026-09-10），用户最终产品签收独立记录。用户于 2026-09-06 明确要求创建并完成 G1。范围依据 `docs/planning/v1.0-delivery-plan.md`，约 3 小时为重估检查点，不是自动完成条件。Direct Execute；不委派，不提交 Git，保留现有工作树修改。实现、测试、桌面走查和边界见 [交付验证](validation.md)及 [Review 验收记录](../g1-acceptance-2026-09-10/review.md)。
 
 ## 交付边界
 
