@@ -44,7 +44,7 @@ Private administration uses `ssh -N -L 18085:127.0.0.1:18085 iiwish@maco`, then
 
 ## Demonstration Hostname
 
-The owner-authorized hostname is `https://app.extrio.ouvo.ai`. Cloudflare Tunnel
+The owner-authorized hostname is `https://extrio-app.ouvo.ai`. Cloudflare Tunnel
 routes it to `http://localhost:80`; the dedicated `openresty.extrio.conf` virtual
 host proxies to port 18085. Install only this site file in the registered
 OpenResty configuration directory. Validate `nginx -t` before a graceful reload;
@@ -61,9 +61,8 @@ private `/api/v1/auth/state` check reports `setupRequired=false` and the edge
 certificate covers the exact hostname. Remove only this gate after verifying
 both conditions. Keep `/api/v1/auth/setup` blocked publicly after activation.
 
-The multi-level hostname requires a matching Cloudflare edge certificate;
-Universal SSL for a full `ouvo.ai` zone does not cover `app.extrio.ouvo.ai`.
-Certificate issuance and any paid Cloudflare option require owner action.
+The hostname is a first-level subdomain of `ouvo.ai`. Verify its Cloudflare
+edge certificate and the complete HTTPS route before public activation.
 Do not bypass TLS validation or expose the application over plain HTTP.
 
 Share a dedicated viewer account for demonstrations, not the administrator.

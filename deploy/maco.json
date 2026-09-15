@@ -15,7 +15,7 @@
   "redis": null,
   "ingress": {
     "visibility": "public",
-    "hostname": "app.extrio.ouvo.ai",
+    "hostname": "extrio-app.ouvo.ai",
     "authorization_ref": "Owner request on 2026-09-15: configure the supplied Cloudflare Tunnel hostname for resume demonstrations"
   },
   "rollback": {

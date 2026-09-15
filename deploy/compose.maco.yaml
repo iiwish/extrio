@@ -14,7 +14,7 @@ x-backend: &backend
     EXTRIO_CREDENTIAL_ENCRYPTION_KEY_PATH: /var/lib/extrio/keys/credentials.key
     EXTRIO_SIGNING_KEY_ID: signingkey_extrio_test_001
     EXTRIO_TENANT_ID: tenant_extrio_test
-    EXTRIO_CORS_ORIGINS: https://app.extrio.ouvo.ai,http://127.0.0.1:18085,http://localhost:18085
+    EXTRIO_CORS_ORIGINS: https://extrio-app.ouvo.ai,http://127.0.0.1:18085,http://localhost:18085
     EXTRIO_SEED_DEMO: "false"
     EXTRIO_AUTH_ENABLED: "true"
     EXTRIO_AUTH_COOKIE_SECURE: "true"
