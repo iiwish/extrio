@@ -1,4 +1,25 @@
 {
+  "pagination": {
+    "aria": "列表分页",
+    "range": "第 {{start}}–{{end}} 行，共 {{total}} 行",
+    "unavailable": "行数与页数待确认",
+    "pageSize": "每页行数",
+    "page": "当前页码",
+    "pages": "/ {{totalPages}} 页",
+    "first": "首页",
+    "previous": "上一页",
+    "next": "下一页",
+    "last": "末页",
+    "jump": "跳转到指定页"
+  },
+  "listWorkspace": {
+    "count": "{{count}} 条记录",
+    "loaded": "已加载 {{count}} 条",
+    "loadedTotal": "已加载 {{count}} / {{total}} 条",
+    "unavailable": "数量不可用",
+    "stale": "未刷新 · 显示上次结果",
+    "refreshing": "刷新中"
+  },
   "g2": {
   "templates": "字段模板",
   "templateNotice": "应用将替换已保存的字段草稿，不发布版本。",
@@ -89,6 +110,8 @@
     "required": "必填", "identity": "去重标识", "fingerprint": "变更检测", "editNamed": "编辑字段 {{name}}", "deleteNamed": "移除字段 {{name}}",
     "extra": "来源额外字段", "matches": "一致", "differs": "约束有差异", "noFields": "尚未定义字段",
     "undoDelete": "撤销移除", "saveDraft": "保存字段草稿", "importSource": "从来源补充缺少的字段", "schema": "完整输出 Schema 与质量规则",
+    "tools": "字段工具",
+    "coverageMeaning": "来源覆盖仅统计包含该字段的来源，不代表字段约束或版本一致。",
     "generateFromSource": "根据来源生成字段",
     "generateFromSourceDesc": "选择已提取字段的采集来源，生成或同步需求字段定义。",
     "selectSource": "选择采集来源",
@@ -216,6 +239,11 @@
     "lineageChainAria": "谱系链"
   },
   "collections": {
+    "alignmentPending": "{{count}} 个采集来源尚未应用最新字段要求",
+    "alignmentDetail": "需求字段已发布为 v{{version}}，这些来源仍按原规则采集，不会自动更新。",
+    "alignmentCount": "已应用字段要求 v{{version}} 的来源：{{count}}/{{total}}",
+    "alignmentUnknown": "{{count}} 个活动来源的版本无法确认",
+    "inspectAlignment": "查看来源字段版本",
     "expandGoal": "展开完整目标", "collapseGoal": "收起目标", "saved": "需求已保存", "discardReload": "放弃编辑并重新加载",
     "name": "需求名称",
     "edit": "编辑基本信息",
@@ -249,6 +277,7 @@
     "count": "{{count}} 个需求",
     "count_other": "{{count}} 个需求",
     "create": "新建需求",
+    "createSubmit": "创建需求",
     "intent": "采集目标",
     "version": "字段版本",
     "sources": "来源",

@@ -1144,7 +1144,14 @@ async def execute_field_workflow(request, collection_id, kind, key, suggestion_i
 
 
 @app.get("/api/v1/collections")
-def list_collections():
+def list_collections(
+    page_number: int | None = Query(None, alias="page", ge=1), limit: int = Query(50, ge=1, le=200),
+    status: str = Query("active", pattern="^(active|archived|all)$"), q: str | None = Query(None, max_length=500),
+    sort: str = Query("updated_desc", pattern="^(updated_asc|updated_desc)$"),
+):
+    if page_number is not None:
+        from extrio.workspace_pagination import collection_page
+        return collection_page(store, page_number, limit, status, q, sort)
     values = store.list_collections()
     return {"items": values, "total": len(values)}
 
@@ -1299,7 +1306,14 @@ def get_collection_version(collection_id: str, version_id: str, request: Request
 
 
 @app.get("/api/v1/collectors")
-def list_collectors(limit: int = 50, lifecycle: str = Query("active", pattern="^(active|archived|all)$")):
+def list_collectors(
+    limit: int = Query(50, ge=1, le=200), lifecycle: str = Query("active", pattern="^(active|archived|all)$"),
+    page_number: int | None = Query(None, alias="page", ge=1), q: str | None = Query(None, max_length=500),
+    view: str = Query("all", pattern="^(all|attention|published)$"), collection_id: str | None = Query(None, alias="collectionId"),
+):
+    if page_number is not None:
+        from extrio.workspace_pagination import collector_page
+        return collector_page(store, page_number, limit, lifecycle, view, q, collection_id)
     return page([value for value in store.list_collectors() if lifecycle == "all" or value["lifecycle"] == lifecycle], limit)
 
 
@@ -2247,7 +2261,14 @@ def cancel_operation(operation_id: str, request: Request, idempotency_key: str |
 
 
 @app.get("/api/v1/ai-runs")
-def list_ai_runs(limit: int = 50, collector_id: str | None = Query(None, alias="collectorId")):
+def list_ai_runs(
+    limit: int = Query(50, ge=1, le=200), collector_id: str | None = Query(None, alias="collectorId"),
+    page_number: int | None = Query(None, alias="page", ge=1), q: str | None = Query(None, max_length=500),
+    status: str = Query("all", pattern="^(all|running|attention|review)$"),
+):
+    if page_number is not None:
+        from extrio.workspace_pagination import history_page
+        return history_page(store, "ai-runs", page_number, limit, status, q, collector_id)
     return page(store.list_ai_runs(collector_id), limit)
 
 
@@ -2440,7 +2461,13 @@ def get_overview(request: Request, timezone: str = Query(default="UTC", max_leng
 
 
 @app.get("/api/v1/runs")
-def list_runs(limit: int = 50):
+def list_runs(
+    limit: int = Query(50, ge=1, le=200), page_number: int | None = Query(None, alias="page", ge=1),
+    q: str | None = Query(None, max_length=500), status: str = Query("all", pattern="^(all|attention|succeeded)$"),
+):
+    if page_number is not None:
+        from extrio.workspace_pagination import history_page
+        return history_page(store, "runs", page_number, limit, status, q)
     return page(store.list_runs(), limit)
 
 
@@ -2567,6 +2594,7 @@ def list_items(
     request: Request,
     limit: int = Query(50, ge=1, le=200),
     cursor: str | None = Query(None),
+    page_number: int | None = Query(None, alias="page", ge=1),
     view: str = Query("observations", pattern="^(observations|entities)$"),
     collector_id: str | None = Query(None, alias="collectorId"),
     run_id: str | None = Query(None, alias="runId"),
@@ -2575,10 +2603,13 @@ def list_items(
     source_host: str | None = Query(None, alias="sourceHost"),
     q: str | None = Query(None, max_length=500),
 ):
+    if page_number is not None and cursor is not None:
+        return platform_error(request, "INVALID_CURSOR", "page 与 cursor 不能同时使用", 400)
     try:
         result = store.list_items_cursor(
             limit=limit,
             cursor=cursor,
+            page_number=page_number,
             view=view,
             collector_id=collector_id,
             run_id=run_id,

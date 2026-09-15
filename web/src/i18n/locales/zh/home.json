@@ -52,10 +52,14 @@
     "dataPassRate": "数据通过率"
   },
   "attention": {
+    "migration": "完成字段版本迁移",
+    "migrationDetail": "目标版本待重新编译、审核与发布",
+    "checkPublish": "检查规则发布状态",
+    "checkPublishDetail": "未能确认可执行的活动规则",
     "inspectRun": "检查最近运行",
     "title": "需要关注",
     "loading": "正在加载",
-    "count": "{{count}} 项需要人工推进",
+    "count": "{{count}} 个来源需要关注",
     "none": "当前来源列表未发现待处理项",
     "viewAll": "查看全部",
     "emptyTitle": "暂无待处理项",
@@ -71,7 +75,7 @@
     "exploreProgress": "查看探索进度",
     "exploreProgressDetail": "候选规则正在生成",
     "firstRun": "执行首次运行",
-    "firstRunDetail": "规则已发布但尚未验证",
+    "firstRunDetail": "规则已发布，尚无首次运行记录",
     "checkRejected": "检查拒绝数据",
     "checkRejectedDetail": "{{count}} 条数据未通过质量门"
   },

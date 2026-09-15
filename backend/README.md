@@ -25,7 +25,7 @@ Run verification with:
 
 ```bash
 uv run --project backend ruff check backend/src backend/tests
-uv run --project backend pytest
+uv run --project backend pytest -c backend/pyproject.toml backend/tests
 ```
 
 ## Packaging

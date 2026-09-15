@@ -7,6 +7,9 @@ import type { CollectionInput } from '@/api/types'
 import { useAuth } from '@/features/auth/auth-gate'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { CollectionForm } from './collection-form'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { CollectionsPage } from './collections-page'
+import './new-collection.css'
 
 export function NewCollectionPage() {
   const { t } = useTranslation('common')
@@ -22,12 +25,18 @@ export function NewCollectionPage() {
     client.invalidateQueries({ queryKey: ['collections'] })
     navigate(`/collections/${encodeURIComponent(value.id)}`)
   } })
-  return <div className="page-frame collection-new-page">
-    <h1>{t('collections.create')}</h1>
+  const close = () => { if (!mutation.isPending) navigate('/collections') }
+  return <>
+    <CollectionsPage />
+    <Dialog open onOpenChange={(open) => { if (!open) close() }}>
+    <DialogContent className="collection-create-dialog" aria-describedby={undefined} showCloseButton={!mutation.isPending} onInteractOutside={(event) => event.preventDefault()} onEscapeKeyDown={(event) => { if (mutation.isPending) event.preventDefault() }}>
+    <DialogHeader><DialogTitle>{t('collections.create')}</DialogTitle></DialogHeader>
     {user.role !== 'administrator' && user.role !== 'engineer'
       ? <Alert><AlertDescription>{t('collections.readOnly')}</AlertDescription></Alert>
       : <>{mutation.error && <Alert variant="destructive"><AlertDescription>{mutation.error.message}</AlertDescription></Alert>}
-        <CollectionForm initial={{ name: '', intent: '' }} pending={mutation.isPending} onSave={(input) => mutation.mutate(input)} onCancel={() => navigate('/collections')} />
+          <CollectionForm creating initial={{ name: '', intent: '' }} pending={mutation.isPending} onSave={(input) => mutation.mutate(input)} onCancel={close} />
       </>}
-  </div>
+    </DialogContent>
+    </Dialog>
+  </>
 }

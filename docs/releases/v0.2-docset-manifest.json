@@ -3,7 +3,7 @@
   "docsetVersion": "v0.44.0",
   "productVersion": "v0.6",
   "status": "Ready_For_User_Review",
-  "generatedAt": "2026-09-14T05:47:26.365Z",
+  "generatedAt": "2026-09-15T02:46:36.208Z",
   "repositoryState": {
     "kind": "git_repository",
     "defaultBranch": "main"
@@ -12,12 +12,12 @@
     {
       "path": "docs/SSOT.md",
       "version": "v0.44.0",
-      "sha256": "3374d262751ccbf07530d6c302285205e922c740df5329653fd8d29740224d20"
+      "sha256": "d1af3fb603567519bd6524627511f2a43d7793f7892d463cee228fdf769395d0"
     },
     {
       "path": "docs/product-contract.md",
       "version": "v0.44.0",
-      "sha256": "c03292e667e859f4d33683eaf509d9b14a31db4fa760373b6cc1bd138a5679e3"
+      "sha256": "d2b89e8f584b9301e4bfa1bc9e209f24fb6f30b158803ff1741c247c9a119f11"
     },
     {
       "path": "docs/domain-model.md",
@@ -92,7 +92,7 @@
     {
       "path": "docs/contracts/openapi.yaml",
       "version": "extrio.control-plane.v1",
-      "sha256": "12292f207c761810c5a308009e233baf7f573fe1f15de0316b9d81c116a487c9"
+      "sha256": "10683d97f07fdc5fcb3ea1f8bf02e59effdecabee56b614d6a175b15d22f5128"
     },
     {
       "path": "docs/contracts/api-contract.md",
@@ -132,7 +132,7 @@
     {
       "path": "docs/frontend-prototype.md",
       "version": "v1.38.0",
-      "sha256": "5dbae37adac1ade7d0d7bf9119ce0ccecf76ebea9c550c2f04577fc923de4f8b"
+      "sha256": "ea496d95f64227ffcc5cd56f8dfc0c30c983f587220032609ee572055fb56bc4"
     },
     {
       "path": "docs/backend-vertical-slice.md",
@@ -152,7 +152,7 @@
     {
       "path": "docs/releases/v0.2-acceptance.md",
       "version": "v0.44.0",
-      "sha256": "cf00a89c8fb8a03de057153e17ee66e849f944987cd4320cb4098989931394d6"
+      "sha256": "e56e05623062c3907a05eb535e12da22438ee45010895ad9ce8cb09b0e18a802"
     },
     {
       "path": "docs/planning/v1.0-scope-matrix.md",

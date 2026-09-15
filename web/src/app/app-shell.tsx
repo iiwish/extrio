@@ -50,7 +50,7 @@ export function AppShell() {
   const [detailBackTarget, setTopbarBackTarget] = useState<string | null>(null)
   const requirementParams = new URLSearchParams(location.search)
   const requirementSearch = new URLSearchParams()
-  for (const key of ['q', 'status', 'sort']) if (requirementParams.has(key)) requirementSearch.set(key, requirementParams.get(key)!)
+  for (const key of ['q', 'status', 'sort', 'page', 'pageSize']) if (requirementParams.has(key)) requirementSearch.set(key, requirementParams.get(key)!)
   const topbarBackTarget = collectionDetail ? `/collections${requirementSearch.size ? `?${requirementSearch}` : ''}` : collectorDetail ? detailBackTarget ?? '/collectors' : runDetail ? '/runs' : aiRunDetail ? '/runs?view=ai' : itemDetail ? '/items' : null
   const topbarBackLabel = runDetail || aiRunDetail
     ? t('action.detailBack', { target: t('nav.runs') })

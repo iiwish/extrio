@@ -950,7 +950,7 @@ class Store:
     def list_collectors(self) -> list[dict[str, Any]]:
         with self.connect() as connection:
             rows = connection.execute(
-                "SELECT data FROM collectors WHERE id NOT IN (SELECT id FROM deleted_collectors) ORDER BY created_at DESC"
+                "SELECT data FROM collectors WHERE id NOT IN (SELECT id FROM deleted_collectors) ORDER BY created_at DESC, id DESC"
             ).fetchall()
             names = {row["id"]: self._decode(row)["name"] for row in connection.execute("SELECT id, data FROM collections").fetchall()}
         values = [self.dialect.decode_json(row["data"]) for row in rows]
@@ -2174,6 +2174,7 @@ class Store:
         view: str = "observations",
         source_host: str | None = None,
         q: str | None = None,
+        page_number: int | None = None,
     ) -> dict[str, Any]:
         """Page items in the deterministic output-loop order.
 
@@ -2185,12 +2186,18 @@ class Store:
         :class:`InvalidCursor` (error code ``INVALID_CURSOR``). Items always
         carry non-null ``observedAt``/``entityKey`` fields, which holds for
         every item produced by the harvest pipeline.
+
+        ``page_number`` selects a random-access LIMIT/OFFSET page with exact
+        filter totals. It is mutually exclusive with cursor; requests are
+        live reads rather than a shared snapshot across pages.
         """
 
         if sort_key != "observed_at":
             raise ValueError("only the observed_at sort key is supported")
         if limit < 1:
             raise ValueError("limit must be positive")
+        if page_number is not None and (page_number < 1 or cursor is not None):
+            raise ValueError("page_number must be positive and cannot be combined with cursor")
         observed_at = self.dialect.json_extract_text("data", "observedAt")
         entity_key_expression = self.dialect.json_extract_text("data", "entityKey")
         source = self._item_query_source(view)
@@ -2210,19 +2217,31 @@ class Store:
             params.extend((cursor_observed_at, cursor_entity_key, cursor_item_id))
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
         with self.connect() as connection:
-            rows = connection.execute(
-                f"SELECT data, collection_attribution, collector_deleted_at FROM {source} {where} "
-                f"ORDER BY {observed_at} DESC, {entity_key_expression} DESC, id DESC LIMIT ?",
-                (*params, limit + 1),
-            ).fetchall()
             metadata = {}
-            if view == "entities":
+            offset = 0
+            if view == "entities" or page_number is not None:
                 metadata["total"] = int(
                     connection.execute(
                         f"SELECT COUNT(*) AS total FROM {source} {filter_where}",
                         filter_params,
                     ).fetchone()["total"]
                 )
+            if page_number is not None:
+                total_pages = max(1, (metadata["total"] + limit - 1) // limit)
+                effective_page = min(page_number, total_pages)
+                offset = (effective_page - 1) * limit
+                metadata["pagination"] = {
+                    "page": effective_page,
+                    "pageSize": limit,
+                    "totalPages": total_pages,
+                    "total": metadata["total"],
+                }
+            rows = connection.execute(
+                f"SELECT data, collection_attribution, collector_deleted_at FROM {source} {where} "
+                f"ORDER BY {observed_at} DESC, {entity_key_expression} DESC, id DESC LIMIT ? OFFSET ?",
+                (*params, limit + 1, offset),
+            ).fetchall()
+            if view == "entities":
                 metadata["facets"] = self._item_facets(connection, source)
         has_more = len(rows) > limit
         items = [self._decode(row) for row in rows[:limit]]
