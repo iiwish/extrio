@@ -1,6 +1,9 @@
+import os
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import quote
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,6 +14,8 @@ class Settings(BaseSettings):
     port: int = 8000
     database_path: Path = Path("data/extrio.db")
     database_url: str | None = None
+    database_from_pg_env: bool = False
+    database_auto_migrate: bool = True
     artifact_path: Path = Path("data/artifacts")
     signing_private_key_path: Path = Path("data/keys/dev-rule-signing-key.pem")
     credential_encryption_key_path: Path = Path("data/keys/dev-credential-encryption.key")
@@ -38,6 +43,27 @@ class Settings(BaseSettings):
     model_base_url: str = "https://api.openai.com/v1"
     model_name: str = ""
     model_secret_ref: str = "env:EXTRIO_MODEL_API_KEY"
+
+    @model_validator(mode="after")
+    def configure_postgres(self) -> "Settings":
+        if not self.database_from_pg_env:
+            return self
+        if self.database_url:
+            raise ValueError("Use either EXTRIO_DATABASE_URL or EXTRIO_DATABASE_FROM_PG_ENV")
+        fields = ("PGHOST", "PGPORT", "PGDATABASE", "PGUSER", "PGPASSWORD")
+        if any(not os.environ.get(field) for field in fields):
+            raise ValueError("PostgreSQL configuration requires all five PG environment fields")
+        port = os.environ["PGPORT"]
+        if not port.isdigit() or not 1 <= int(port) <= 65535:
+            raise ValueError("PGPORT must be a valid TCP port")
+        host = os.environ["PGHOST"]
+        if any(character in host for character in "/@?#"):
+            raise ValueError("PGHOST must be a hostname or IP address")
+        if ":" in host and not host.startswith("["):
+            host = f"[{host}]"
+        user, password, database = (quote(os.environ[field], safe="") for field in ("PGUSER", "PGPASSWORD", "PGDATABASE"))
+        self.database_url = f"postgresql://{user}:{password}@{host}:{port}/{database}"
+        return self
 
     @property
     def cors_origin_list(self) -> list[str]:
