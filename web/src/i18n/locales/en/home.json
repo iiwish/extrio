@@ -52,11 +52,15 @@
     "dataPassRate": "Data pass rate"
   },
   "attention": {
+    "migration": "Complete field version migration",
+    "migrationDetail": "Target version awaits recompilation, review and publication",
+    "checkPublish": "Check rule publication",
+    "checkPublishDetail": "An executable active rule could not be confirmed",
     "inspectRun": "Inspect latest run",
     "title": "Needs attention",
     "loading": "Loading",
-    "count_one": "{{count}} item needs manual follow-up",
-    "count_other": "{{count}} items need manual follow-up",
+    "count_one": "{{count}} source needs attention",
+    "count_other": "{{count}} sources need attention",
     "none": "No pending actions in the current source list",
     "viewAll": "View all",
     "emptyTitle": "No pending actions",
@@ -72,7 +76,7 @@
     "exploreProgress": "Check exploration progress",
     "exploreProgressDetail": "Candidate rule is being generated",
     "firstRun": "Run for the first time",
-    "firstRunDetail": "Rule published but not yet validated",
+    "firstRunDetail": "Rule published; no first run recorded yet",
     "checkRejected": "Review rejected data",
     "checkRejectedDetail_one": "{{count}} item failed the quality gate",
     "checkRejectedDetail_other": "{{count}} items failed the quality gate"

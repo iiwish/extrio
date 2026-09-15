@@ -19,6 +19,9 @@ import type {
 } from '@/api/types'
 import { useAuth } from '@/features/auth/auth-gate'
 import { RuntimeDiagnosticsSection } from './runtime-diagnostics'
+import { DetailPanel } from '@/components/detail-panel'
+import './system-settings.css'
+import './model-settings.css'
 import { APP_LANGUAGES, getAppLanguage, setAppLanguage, type AppLanguage } from '@/i18n/language'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -89,8 +92,8 @@ export function SystemSettingsPage() {
   const { t } = useTranslation('settings')
   const { user: currentUser, logout } = useAuth()
   const logoutMutation = useMutation({mutationFn:logout})
-  return <div className="settings-page">
-    <div className="settings-preferences">
+  return <div className="settings-page system-settings-page">
+    <DetailPanel className="settings-preferences" aria-label={t('language.label')}>
       <label className="field-group grid-flow-col items-center">
         <span>{t('language.label')}</span>
         <Select value={getAppLanguage()} onValueChange={(value) => setAppLanguage(value as AppLanguage)}>
@@ -101,7 +104,7 @@ export function SystemSettingsPage() {
       <span className="settings-account"><strong>{currentUser.displayName || currentUser.username}</strong><span>{t(`common:roles.${currentUser.role}`)}</span></span>
       <span className="settings-environment">{apiEnvironmentLabel()}</span>
       <Button type="button" variant="ghost" size="icon-sm" disabled={logoutMutation.isPending} onClick={() => logoutMutation.mutate()} title={t('common:topbar.logout')} aria-label={t('common:topbar.logout')}><LogOut /></Button>
-    </div>
+    </DetailPanel>
     {logoutMutation.error && <Alert variant="destructive"><AlertDescription>{logoutMutation.error.message}</AlertDescription></Alert>}
     <RuntimeDiagnosticsSection />
     {currentUser.role === 'administrator' && <CollectionPolicySection />}
@@ -228,7 +231,7 @@ export function ModelSettingsPage() {
     return model.enabled && provider?.enabled
   })
 
-  return <div className="settings-page" ref={containerRef} onClickCapture={onClickCapture}>
+  return <div className="settings-page model-settings-page" ref={containerRef} onClickCapture={onClickCapture}>
     {readOnly && <p className="text-muted-foreground text-sm">{t('tabs.modelReadOnly')}</p>}
     <div className="settings-ai-toolbar" aria-label={t('toolbar.overviewAria')}>
       <div className="settings-default-model">
@@ -254,14 +257,14 @@ export function ModelSettingsPage() {
       {configuration.providers.map((provider) => {
         const providerModels = configuration.models.filter((model) => model.providerId === provider.id)
         const collapsed = collapsedProviderIds.has(provider.id)
-        return <section className={`settings-provider-group${collapsed ? ' is-collapsed' : ''}`} key={provider.id} aria-label={t('provider.groupAria', { name: provider.name })}>
+        return <DetailPanel className={`settings-provider-group${collapsed ? ' is-collapsed' : ''}`} key={provider.id} aria-label={t('provider.groupAria', { name: provider.name })}>
           <header className="settings-provider-row">
             <button type="button" className="settings-provider-collapse" aria-label={collapsed ? t('provider.expandModelsAria', { name: provider.name }) : t('provider.collapseModelsAria', { name: provider.name })} aria-expanded={!collapsed} onClick={() => toggleProviderModels(provider.id)}><ChevronDown /></button>
             <span className="settings-provider-icon"><Bot /></span>
             <span className="settings-provider-identity"><strong>{provider.name}</strong><small title={provider.baseUrl}>{t(providerPreset(provider.provider).labelKey)} · {provider.baseUrl}</small></span>
-            <Status enabled={provider.enabled} ready={provider.credentialConfigured} />
+            <div className="settings-provider-health"><Status enabled={provider.enabled} ready={provider.credentialConfigured} />
             <span className={`settings-secret${provider.credentialConfigured ? '' : ' warning'}`}><KeyRound />{provider.credentialConfigured ? t('provider.credentialConfigured') : t('provider.credentialMissing')}</span>
-            <span className="settings-provider-count">{t('provider.modelCount', { count: providerModels.length })}</span>
+            <span className="settings-provider-count">{t('provider.modelCount', { count: providerModels.length })}</span></div>
             <Button disabled={editingDisabled} variant="outline" size="sm" className="settings-provider-add-model" onClick={() => openModel(undefined, provider.id)}><Plus />{t('model.add')}</Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild><Button disabled={editingDisabled} variant="ghost" size="icon-sm" aria-label={t('provider.actionsAria', { name: provider.name })}><MoreHorizontal /></Button></DropdownMenuTrigger>
@@ -293,13 +296,13 @@ export function ModelSettingsPage() {
             })}
             {providerModels.length === 0 && <div className="settings-model-empty"><span>{t('model.empty')}</span></div>}
           </div>
-        </section>
+        </DetailPanel>
       })}
       {query.isSuccess && configuration.providers.length === 0 && <div className="settings-empty"><Bot /><strong>{t('provider.emptyTitle')}</strong></div>}
     </div>
 
     <Dialog open={providerDraft !== null} onOpenChange={(open) => { if (!open && !mutation.isPending) setProviderDraft(null) }}>
-      <DialogContent className="settings-dialog" onCloseAutoFocus={onCloseAutoFocus}>
+      <DialogContent className="settings-dialog model-settings-dialog" onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader><DialogTitle>{configuration.providers.some((provider) => provider.id === providerDraft?.id) ? t('provider.edit') : t('provider.add')}</DialogTitle><DialogDescription>{t('dialog.providerDescription')}</DialogDescription></DialogHeader>
         {providerDraft && <form id="provider-settings-form" className="settings-dialog-form" onSubmit={saveProvider}>
           <div className="field-group"><label htmlFor="provider-name">{t('dialog.nameLabel')}</label><Input id="provider-name" value={providerDraft.name} onChange={(event) => setProviderDraft({ ...providerDraft, name: event.target.value })} required autoFocus /></div>
@@ -325,13 +328,14 @@ export function ModelSettingsPage() {
             <small className="credential-help">{configuration.providers.some((provider) => provider.id === providerDraft.id) && configuration.providers.find((provider) => provider.id === providerDraft.id)?.credentialConfigured ? t('dialog.apiKeyConfiguredHelp') : t('dialog.apiKeyHelp')}</small>
           </div>
           <label className="settings-checkbox"><Checkbox checked={providerDraft.enabled} onCheckedChange={(checked) => setProviderDraft({ ...providerDraft, enabled: checked === true })} />{t('dialog.enableProvider')}</label>
+          {mutation.error && <Alert variant="destructive"><AlertDescription>{mutation.error.message}</AlertDescription></Alert>}
         </form>}
         <DialogFooter><Button variant="outline" onClick={() => setProviderDraft(null)} disabled={mutation.isPending}>{t('common:action.cancel')}</Button><Button type="submit" form="provider-settings-form" disabled={mutation.isPending}>{mutation.isPending ? t('dialog.saving') : t('dialog.saveProvider')}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
 
     <Dialog open={modelDraft !== null} onOpenChange={(open) => { if (!open && !mutation.isPending) setModelDraft(null) }}>
-      <DialogContent className="settings-dialog" onCloseAutoFocus={onCloseAutoFocus}>
+      <DialogContent className="settings-dialog model-settings-dialog" onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader><DialogTitle>{configuration.models.some((model) => model.id === modelDraft?.id) ? t('model.edit') : t('model.add')}</DialogTitle><DialogDescription>{t('dialog.modelDescription')}</DialogDescription></DialogHeader>
         {modelDraft && <form id="model-settings-form" className="settings-dialog-form" onSubmit={saveModel}>
           <div className="field-group"><label htmlFor="model-provider">{t('dialog.providerLabel')}</label><Select disabled={mutation.isPending} value={modelDraft.providerId} onValueChange={(value) => setModelDraft({ ...modelDraft, providerId: value })}><SelectTrigger id="model-provider" aria-label={t('dialog.modelProviderAria')}><SelectValue /></SelectTrigger><SelectContent>{configuration.providers.map((provider) => <SelectItem key={provider.id} value={provider.id}>{provider.name}</SelectItem>)}</SelectContent></Select></div>
@@ -359,6 +363,7 @@ export function ModelSettingsPage() {
     <Dialog open={deleteTarget !== null} onOpenChange={(open) => { if (!open && !mutation.isPending) setDeleteTarget(null) }}>
       <DialogContent onCloseAutoFocus={onCloseAutoFocus}>
         <DialogHeader><DialogTitle>{t('dialog.deleteTitle')}</DialogTitle><DialogDescription>{t('dialog.deleteDescription', { name: deleteTarget?.label ?? '' })}</DialogDescription></DialogHeader>
+        {mutation.error && <Alert variant="destructive"><AlertDescription>{mutation.error.message}</AlertDescription></Alert>}
         <DialogFooter><Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={mutation.isPending}>{t('common:action.cancel')}</Button><Button variant="destructive" onClick={confirmDelete} disabled={mutation.isPending}><Trash2 />{t('dialog.deleteAction')}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
@@ -381,7 +386,7 @@ function CollectionPolicySection() {
     return reason instanceof Error ? reason.message : t('common:state.error')
   }
 
-  return <section className="settings-collection-policy" aria-label={t('collectionPolicy.listAria')}>
+  return <DetailPanel className="settings-collection-policy" aria-label={t('collectionPolicy.listAria')}>
     <header className="settings-collection-policy-header">
       <div>
         <h2><ShieldCheck aria-hidden="true" />{t('collectionPolicy.title')}</h2>
@@ -401,7 +406,7 @@ function CollectionPolicySection() {
         onCheckedChange={(allowed) => mutation.mutate({ allowAnonymousHttp: allowed })}
       />
     </div>}
-  </section>
+  </DetailPanel>
 }
 
 const USER_ROLE_OPTIONS: UserRole[] = ['administrator', 'engineer', 'reviewer', 'viewer']
@@ -495,7 +500,7 @@ function UsersSection({ currentUserId }: { currentUserId: string }) {
 
   const toggleActionLabel = toggleTarget?.enabled ? t('users.actions.disable') : t('users.actions.enable')
 
-  return <section className="settings-users" aria-label={t('users.listAria')} ref={containerRef} onClickCapture={onClickCapture}>
+  return <section className="settings-users detail-panel" aria-label={t('users.listAria')} ref={containerRef} onClickCapture={onClickCapture}>
     <header className="settings-users-toolbar">
       <div>
         <h2><Users aria-hidden="true" />{t('users.title')}</h2>

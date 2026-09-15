@@ -7,6 +7,11 @@ import { AppShell } from './app-shell'
 describe('AppShell navigation', () => {
   afterEach(cleanup)
 
+  it('preserves requirement pagination while removing detail-only section state', () => {
+    render(<MemoryRouter initialEntries={['/collections/one?q=demo&page=3&pageSize=20&section=sources']}><Routes><Route element={<AppShell />}><Route path="collections/:id" element={<div>详情</div>} /></Route></Routes></MemoryRouter>)
+    expect(screen.getByRole('link', { name: '返回采集需求列表' })).toHaveAttribute('href', '/collections?q=demo&page=3&pageSize=20')
+  })
+
   it('returns from a detail route to the workspace home through the brand', async () => {
     const user = userEvent.setup()
 

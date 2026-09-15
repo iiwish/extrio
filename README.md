@@ -56,15 +56,19 @@ Extrio is not a general crawler toolkit, webpage chatbot, or autonomous agent pl
 - **Experimental:** broad compatibility across real-world websites, browser-rendered sources, drift
   recovery quality, and operating limits beyond the repository fixtures.
 - **Planned:** a hosted evaluation environment, a curated public source corpus, published benchmarks,
-  onboarding templates, client SDKs, and production multi-tenant hardening.
+  client SDKs, and production multi-tenant hardening.
 
 ## Console preview
 
-![Operations dashboard with collection metrics, output trends, run quality, and attention items](docs/reviews/public-alpha-2026-09-02/dashboard-zh-1440x900.png)
+![Collection requirements with shared numbered pagination](docs/reviews/unified-list-pagination/collections-1440.png)
 
-![Evidence-based rule review with the deterministic collection flow and validation results](docs/reviews/public-alpha-2026-09-02/collector-rule-zh-1440x900.png)
+![Collection requirement fields and output contract](docs/reviews/collection-detail-polish/fields-1440.png)
 
-![The same console in English through the in-app language switcher](docs/reviews/public-alpha-2026-09-02/settings-en-1440x900.png)
+![Collected items with explicit totals and page navigation](docs/reviews/unified-list-pagination/items-1440.png)
+
+These desktop screenshots come from repository-local acceptance instances, not a
+hosted service. See the [three-minute walkthrough](docs/showcase.md) for the
+demonstration sequence and the distinction between deterministic and AI evidence.
 
 The console ships in Chinese and switches to English from Settings → Interface
 language. The choice is remembered per device.
@@ -197,13 +201,35 @@ EXTRIO_MCP_TOKEN=change-me extrio-mcp --transport http --host 127.0.0.1 --port 8
 
 ```bash
 uv run --project backend ruff check backend/src backend/tests
-uv run --project backend pytest
+uv run --project backend pytest -c backend/pyproject.toml backend/tests
 uv run --project backend python scripts/update-docset-manifest.py --check
 pnpm --dir web test
 pnpm --dir web lint
 pnpm --dir web build
+bash scripts/verify-source.sh
 ./scripts/verify-compose.sh
 ```
+
+Run the commands from the repository root. The explicit pytest configuration is
+required: `uv --project` selects the Python project but does not change directory.
+PostgreSQL integration tests require `EXTRIO_TEST_DATABASE_URL`; without it those
+tests are skipped. Container verification requires a running Docker daemon.
+The disposable source check uses ports 18100 and 15173; the container check uses
+18000 and 18080. Set `EXTRIO_API_PORT` and `EXTRIO_WEB_PORT` to unused ports when
+needed. Neither check should take over another application's listener.
+
+For a disposable first collection without a model key or third-party traffic:
+
+```bash
+uv run --project backend python scripts/benchmark.py --collectors 1 --pages 1
+```
+
+This executes a hand-written, signed rule through the real worker against the
+bundled local source in temporary storage. It verifies deterministic execution,
+not AI generation quality or production capacity.
+
+The [release readiness checklist](docs/releases/public-alpha-readiness.md) records
+the remaining commit, CI and stable-release gates.
 
 The backend can also be built as a wheel. Its contract bundle is included in the
 artifact, so the installed package does not depend on a source checkout:

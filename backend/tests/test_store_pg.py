@@ -344,6 +344,9 @@ def test_entity_pagination_search_and_export_on_postgres(pg_store: Store):
     assert len(first["items"] + second["items"]) == 204
     assert len(first["facets"]["collectors"]) == 2
     assert [item["id"] for item in pg_store.iter_items_export(**filters)] == [item["id"] for item in first["items"] + second["items"]]
+    numbered = pg_store.list_items_cursor(**filters, limit=200, page_number=2)
+    assert numbered["pagination"] == {"page": 2, "pageSize": 200, "totalPages": 2, "total": 204}
+    assert [item["id"] for item in numbered["items"]] == [item["id"] for item in second["items"]]
 
 
 def test_sink_crud_bumps_version_and_encrypts_secret(pg_store: Store, tmp_path: Path) -> None:

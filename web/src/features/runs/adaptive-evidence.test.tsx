@@ -27,6 +27,7 @@ it('shows successful full-sample validation without the read log in process view
   render(<AdaptiveEvidence value={{ ...evidence, phase: 'validated', validated: true, budget: { ...evidence.budget, stopReason: null }, validation: [] }} />)
   expect(screen.getByText('完整样本验证通过')).toBeInTheDocument()
   expect(screen.queryByText('n50')).not.toBeInTheDocument()
+  expect(screen.queryByRole('table')).not.toBeInTheDocument()
   expect(screen.queryByText('已停止')).not.toBeInTheDocument()
 })
 

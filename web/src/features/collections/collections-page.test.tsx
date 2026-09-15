@@ -4,8 +4,9 @@ import userEvent from '@testing-library/user-event'
 import { createInstance, type i18n } from 'i18next'
 import { I18nextProvider } from 'react-i18next'
 import { MemoryRouter, useLocation } from 'react-router-dom'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '@/api/client'
+import { mockCollectionPage } from '@/api/workspace-mock'
 import { AuthGate } from '@/features/auth/auth-gate'
 import { initI18n } from '@/i18n'
 import { requirement } from './collection-test-data'
@@ -21,6 +22,9 @@ function mount(path = '/collections', auth = false, language?: i18n) {
   return render(<QueryClientProvider client={client}><MemoryRouter initialEntries={[path]}>{auth ? <AuthGate>{page}</AuthGate> : page}</MemoryRouter></QueryClientProvider>)
 }
 afterEach(() => { cleanup(); vi.restoreAllMocks() })
+beforeEach(() => {
+  vi.spyOn(api, 'collectionsPage').mockImplementation(async query => mockCollectionPage(new URLSearchParams(Object.entries(query).filter(([, value]) => value !== undefined).map(([key, value]) => [key, String(value)])), await api.collections()))
+})
 describe('live requirement navigation', () => {
   it('lists independent backend requirements and links to their detail', async () => {
     vi.spyOn(api, 'collections').mockResolvedValue([requirement()])
@@ -101,9 +105,9 @@ describe('live requirement navigation', () => {
     const heading = screen.getByRole('columnheader', { name: /最近更新/ })
     expect(heading).toHaveAttribute('aria-sort', 'descending')
     await userEvent.setup().click(within(heading).getByRole('button'))
-    expect(within(table).getAllByRole('link').map(link => link.textContent)).toEqual(['Older', 'Latest A', 'Latest Z'])
-    expect(heading).toHaveAttribute('aria-sort', 'ascending')
-    expect(within(table).getByRole('link', { name: 'Older' })).toHaveAttribute('href', '/collections/older?status=all&sort=updated_asc')
+    await waitFor(() => expect(within(screen.getByRole('table')).getAllByRole('link').map(link => link.textContent)).toEqual(['Older', 'Latest A', 'Latest Z']))
+    expect(screen.getByRole('columnheader', { name: /最近更新/ })).toHaveAttribute('aria-sort', 'ascending')
+    expect(within(screen.getByRole('table')).getByRole('link', { name: 'Older' })).toHaveAttribute('href', '/collections/older?status=all&sort=updated_asc')
   })
 
   it('shows source publication without equating it to running health or a frozen field version', async () => {
@@ -145,6 +149,17 @@ describe('live requirement navigation', () => {
     expect(screen.queryByRole('link', { name: '新建需求' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: '刷新需求列表' })).toBeInTheDocument()
     expect(screen.getByRole('group', { name: '需求状态' })).toBeInTheDocument()
+  })
+
+  it('retains rows and marks the count stale when refresh fails', async () => {
+    vi.spyOn(api, 'collections').mockResolvedValueOnce([requirement()]).mockRejectedValueOnce(new Error('refresh offline'))
+    mount()
+    await screen.findByRole('table')
+    await userEvent.setup().click(screen.getByRole('button', { name: '刷新需求列表' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('refresh offline')
+    expect(screen.getByRole('link', { name: '全国公共资源交易标讯' })).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('未刷新')
+    expect(screen.getByRole('status')).toHaveTextContent('1 条记录')
   })
 
   it('renders English controls and preserves long source content and technical identifiers', async () => {

@@ -1,0 +1,45 @@
+/* Only list routes own a viewport-sized workspace; detail pages keep document scrolling. */
+.app-column:has(.list-workspace) { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+.app-column:has(.list-workspace) > .topbar { flex-shrink: 0; }
+.app-main:has(.list-workspace) { display: flex; flex: 1; min-height: 0; overflow: hidden; }
+.list-workspace, .list-page { display: flex; flex: 1; flex-direction: column; min-height: 0; min-width: 0; }
+.list-workspace.page-frame, .list-page.page-frame { padding: 20px 24px 24px; max-width: none; }
+.list-workspace-toolbar, .list-workspace-summary, .list-workspace-notices, .list-workspace-footer { flex-shrink: 0; }
+.list-workspace-toolbar > .filter-card, .list-workspace-toolbar .collections-toolbar { min-height: 36px; margin: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
+.list-workspace-summary { min-height: 40px; display: flex; align-items: center; gap: 12px; color: #647078; font-size: 12px; font-variant-numeric: tabular-nums; }
+.list-workspace-summary > span:first-child { color: #34434a; font-weight: 600; }
+.list-workspace-summary .list-workspace-stale { color: #95621d; }
+.list-workspace-notices:empty { display: none; }
+.list-workspace-notices > :not(:empty) { margin: 0 0 12px; }
+.list-workspace .list-workspace-scroll { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; scroll-padding-top: 48px; scrollbar-gutter: stable; background: #fff; border: 1px solid #e3e7eb; border-radius: 8px; }
+.list-workspace-scroll:focus-visible { outline: 2px solid #315acb; outline-offset: 2px; }
+.list-workspace .list-workspace-scroll > .object-list { width: 100%; min-width: var(--list-min-width, 0); margin: 0; overflow: visible; border: 0; border-radius: 0; box-shadow: none; }
+.list-workspace .list-workspace-scroll .object-list-head { position: sticky; top: 0; z-index: 2; min-height: 40px; background: #f8f9fb; color: #65717a; border-bottom: 1px solid #e6eaee; font-size: 12px; }
+.list-workspace .list-workspace-scroll .object-row { min-height: 72px; background: #fff; border-bottom: 1px solid #f0f2f4; }
+.list-workspace .list-workspace-scroll .object-row:hover { background: #f7f9fc; }
+.list-workspace .list-workspace-scroll .object-row:focus-visible { outline: 2px solid #315acb; outline-offset: -2px; }
+.list-workspace .collector-object-list { --list-min-width: 850px; }
+.list-workspace .run-object-list { --list-min-width: 1100px; }
+.list-workspace .item-object-list { --list-min-width: 940px; }
+.list-workspace-footer { display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding-top: 12px; font-size: 12px; color: #647078; }
+.list-workspace .collections-table-scroll { overflow: visible; }
+.list-workspace .collections-table { min-width: 730px; border-collapse: separate; border-spacing: 0; }
+.list-workspace .collections-table th { position: sticky; top: 0; z-index: 2; background: #f8f9fb; padding: 11px 16px; }
+.list-workspace .collections-table td { padding: 13px 16px; vertical-align: middle; border-color: #f0f2f4; }
+.list-workspace .collections-table th:first-child { width: 48%; }
+.list-workspace .collections-table th:nth-child(2) { width: 19%; }
+.list-workspace .collections-table th:nth-child(3) { width: 17%; }
+.list-workspace .collections-table th:nth-child(4) { width: 16%; }
+.list-workspace .collection-list-identity { gap: 10px; }
+.list-workspace .collection-list-name a { min-width: 0; max-width: 100%; }
+.list-workspace .collection-list-name strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.list-workspace .collection-intent { margin-top: 3px; -webkit-line-clamp: 1; font-size: 12px; color: #68757e; }
+.list-workspace .collection-publication { gap: 2px; }
+.list-workspace .collection-updated { gap: 0; }
+.list-workspace .collection-contract-reference { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.list-workspace .collection-status-filter, .list-workspace .segmented { background: #eef1f4; box-shadow: none; border-radius: 6px; }
+.list-workspace .segmented > button, .list-workspace .collection-status-filter > button { height: 32px; font-size: 12px; gap: 6px; }
+.list-workspace .toolbar-search, .list-workspace .collections-search { background: #fff; }
+.list-workspace .collection-list-tools, .list-workspace .collector-view-controls, .list-workspace .runs-toolbar-actions, .list-workspace .items-filter-actions { flex-wrap: wrap; }
+.list-workspace .items-filter-actions { flex: 1 1 400px; max-width: none; flex-wrap: nowrap; }
+.list-workspace .items-search { width: auto; flex: 1 1 180px; }

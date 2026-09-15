@@ -10,6 +10,7 @@ import { useAuth } from '@/features/auth/auth-gate'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { collectorDisplayName } from '@/features/collectors/collector-presentation'
+import { collectorAttention } from '@/features/collectors/collector-attention'
 
 type AttentionItem = {
   collector: CollectorDetail
@@ -46,27 +47,33 @@ function trendGranularityOptions(t: TFunction): { value: TrendGranularity; label
 }
 
 function attentionFor(collector: CollectorDetail, latestRun: Run | undefined, t: TFunction): AttentionItem | null {
-  if (latestRun && ['failed', 'cancelled', 'timed_out'].includes(latestRun.status)) {
-    return { collector, run: latestRun, label: t('attention.fixFailedRun'), detail: latestRun.summary, target: `/runs/${latestRun.id}`, tone: 'danger', rank: 0 }
+  const attention = collectorAttention(collector, latestRun)
+  if (!attention) return null
+  const rank = attention.rank
+  if (attention.reason === 'migration' || attention.reason === 'checkPublish') {
+    return { collector, label: t(`attention.${attention.reason}`), detail: t(`attention.${attention.reason}Detail`), target: `/collectors/${collector.id}?section=rule`, tone: 'warning', rank: attention.rank }
   }
-  if (latestRun?.status === 'partially_succeeded') {
-    return { collector, run: latestRun, label: t('attention.partialRun'), detail: partialRunDetail(latestRun, t), target: `/runs/${latestRun.id}`, tone: 'danger', rank: 1 }
+  if (attention.reason === 'fixFailedRun' && latestRun) {
+    return { collector, run: latestRun, label: t('attention.fixFailedRun'), detail: latestRun.summary, target: `/runs/${latestRun.id}`, tone: 'danger', rank }
   }
-  if (collector.status === 'ready_review') {
-    return { collector, label: t('attention.reviewRule'), detail: t('attention.reviewRuleDetail'), target: `/collectors/${collector.id}`, tone: 'warning', rank: 2 }
+  if (attention.reason === 'partialRun' && latestRun) {
+    return { collector, run: latestRun, label: t('attention.partialRun'), detail: partialRunDetail(latestRun, t), target: `/runs/${latestRun.id}`, tone: 'danger', rank }
   }
-  if (collector.status === 'draft') {
-    return { collector, label: t('attention.generateRule'), detail: t('attention.generateRuleDetail'), target: `/collectors/${collector.id}`, tone: 'info', rank: 3 }
+  if (attention.reason === 'reviewRule') {
+    return { collector, label: t('attention.reviewRule'), detail: t('attention.reviewRuleDetail'), target: `/collectors/${collector.id}`, tone: 'warning', rank }
   }
-  if (collector.status === 'exploring') {
-    return { collector, label: t('attention.exploreProgress'), detail: t('attention.exploreProgressDetail'), target: `/collectors/${collector.id}`, tone: 'info', rank: 4 }
+  if (attention.reason === 'generateRule') {
+    return { collector, label: t('attention.generateRule'), detail: t('attention.generateRuleDetail'), target: `/collectors/${collector.id}`, tone: 'info', rank }
   }
-  if (collector.status === 'published' && !latestRun) {
-    if (collector.latestRunId) return { collector, label: t('attention.inspectRun'), detail: t('common:state.unavailable'), target: `/runs/${collector.latestRunId}`, tone:'info', rank:5 }
-    return { collector, label: t('attention.firstRun'), detail: t('attention.firstRunDetail'), target: `/collectors/${collector.id}`, tone: 'info', rank: 5 }
+  if (attention.reason === 'exploreProgress') {
+    return { collector, label: t('attention.exploreProgress'), detail: t('attention.exploreProgressDetail'), target: `/collectors/${collector.id}`, tone: 'info', rank }
   }
-  if (latestRun && latestRun.rejectedCount > 0) {
-    return { collector, run: latestRun, label: t('attention.checkRejected'), detail: t('attention.checkRejectedDetail', { count: latestRun.rejectedCount }), target: `/runs/${latestRun.id}`, tone: 'warning', rank: 6 }
+  if (attention.reason === 'firstRun' || attention.reason === 'inspectRun') {
+    if (collector.latestRunId) return { collector, label: t('attention.inspectRun'), detail: t('common:state.unavailable'), target: `/runs/${collector.latestRunId}`, tone:'info', rank }
+    return { collector, label: t('attention.firstRun'), detail: t('attention.firstRunDetail'), target: `/collectors/${collector.id}`, tone: 'info', rank }
+  }
+  if (attention.reason === 'checkRejected' && latestRun) {
+    return { collector, run: latestRun, label: t('attention.checkRejected'), detail: t('attention.checkRejectedDetail', { count: latestRun.rejectedCount }), target: `/runs/${latestRun.id}?section=results&decision=rejected`, tone: 'warning', rank }
   }
   return null
 }

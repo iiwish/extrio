@@ -139,7 +139,7 @@
       "runProgressDetail": "The run has not finished; results are pending",
       "explorationProgress": "View exploration progress",
       "explorationProgressDetail": "The candidate rule is still being generated",
-      "runHealthy": "Run healthy",
+      "runHealthy": "Latest run succeeded",
       "runHealthyDetail": "{{accepted}} accepted · {{reason}}"
     },
     "stopReason": {

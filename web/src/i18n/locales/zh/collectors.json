@@ -139,7 +139,7 @@
       "runProgressDetail": "运行尚未结束，结果待确认",
       "explorationProgress": "查看探索进度",
       "explorationProgressDetail": "候选规则仍在生成，尚不可发布",
-      "runHealthy": "运行健康",
+      "runHealthy": "最近运行成功",
       "runHealthyDetail": "{{accepted}} 接收 · {{reason}}"
     },
     "stopReason": {

@@ -1,0 +1,8 @@
+.collection-create-dialog[data-slot="dialog-content"] { width: min(640px, calc(100vw - 64px)); max-width: 640px; max-height: calc(100dvh - 64px); overflow-y: auto; padding: 24px; border-radius: 8px; gap: 24px; }
+.collection-create-dialog [data-slot="dialog-title"] { font-size: 18px; line-height: 26px; }
+.collection-create-dialog .collection-form { gap: 24px; }
+.collection-create-dialog .field-group { gap: 8px; }
+.collection-create-dialog .field-group label { font-size: 13px; line-height: 20px; font-weight: 600; }
+.collection-create-dialog .field-group input { height: 40px; font-size: 14px; }
+.collection-create-dialog .field-group textarea { min-height: 180px; max-height: 320px; resize: vertical; font-size: 14px; line-height: 24px; }
+.collection-create-dialog .collection-form-actions { margin: 0 -24px -24px; padding: 16px 24px; border-top: 1px solid #e1e6e9; gap: 8px; }

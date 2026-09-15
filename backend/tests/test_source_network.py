@@ -19,10 +19,17 @@ def tls_connect_error(reason):
 
 
 @pytest.mark.asyncio
-async def test_bad_ecpoint_retries_once_with_verified_tls_and_same_pinned_target(public_dns, monkeypatch):
+@pytest.mark.parametrize("minimum", [ssl.TLSVersion.MINIMUM_SUPPORTED, ssl.TLSVersion.TLSv1_2, ssl.TLSVersion.TLSv1_3])
+async def test_bad_ecpoint_retries_once_with_verified_tls_and_same_pinned_target(public_dns, monkeypatch, minimum):
     clients = []
     requests = []
     original_client = httpx.AsyncClient
+    original_context = httpx.create_ssl_context
+
+    def ssl_context(**kwargs):
+        context = original_context(**kwargs)
+        context.minimum_version = minimum
+        return context
 
     def client(**kwargs):
         clients.append(kwargs)
@@ -35,6 +42,7 @@ async def test_bad_ecpoint_retries_once_with_verified_tls_and_same_pinned_target
         return httpx.Response(200, text="notice")
 
     monkeypatch.setattr(httpx, "AsyncClient", client)
+    monkeypatch.setattr(httpx, "create_ssl_context", ssl_context)
     network = SourceNetwork({"example.test", "other.test"}, transport=httpx.MockTransport(respond))
     assert (await network.fetch("https://example.test/list")).body == b"notice"
     assert len(clients) == len(requests) == 2
@@ -43,7 +51,7 @@ async def test_bad_ecpoint_retries_once_with_verified_tls_and_same_pinned_target
     assert isinstance(context, ssl.SSLContext)
     assert context.verify_mode == ssl.CERT_REQUIRED
     assert context.check_hostname is True
-    assert context.minimum_version >= ssl.TLSVersion.TLSv1_2
+    assert context.minimum_version >= max(minimum, ssl.TLSVersion.TLSv1_2)
     assert context.cert_store_stats()["x509_ca"] > 0
     for options, request in zip(clients, requests, strict=True):
         assert options["trust_env"] is False

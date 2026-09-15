@@ -76,7 +76,7 @@ describe('ItemsPage operational list', () => {
       }
       return json({ items: seedRuns[0].items, page: { nextCursor: null } })
     }))
-    renderPage('/items?collector=collector_shanghai_procurement&decision=accepted&source=example.com&q=KEY-2026')
+    renderPage('/items?collector=collector_shanghai_procurement&decision=accepted&source=example.com&q=KEY-2026&page=3&pageSize=20')
 
     await user.click(screen.getByRole('button', { name: '导出当前筛选的数据' }))
     await user.click(await screen.findByText('导出 CSV'))
@@ -93,6 +93,8 @@ describe('ItemsPage operational list', () => {
     expect(exportUrl.searchParams.get('sourceHost')).toBe('example.com')
     expect(exportUrl.searchParams.get('view')).toBe('entities')
     expect(exportUrl.searchParams.has('entityKey')).toBe(false)
+    expect(exportUrl.searchParams.has('page')).toBe(false)
+    expect(exportUrl.searchParams.has('limit')).toBe(false)
     expect(URL.createObjectURL).toHaveBeenCalledTimes(1)
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:export-mock')
   })
@@ -115,28 +117,94 @@ describe('ItemsPage operational list', () => {
     expect(await screen.findByText('导出数据量超过上限，请缩小筛选范围')).toBeInTheDocument()
   })
 
-  it('loads the next entity page and searches on the server instead of the loaded page', async () => {
+  it('replaces numbered pages and resets server searches to page one', async () => {
     const user = userEvent.setup()
     const original = seedRuns[0].items[0]
     const older = { ...original, id: 'older', entityKey: 'older-key', title: 'Older result' }
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
       const url = new URL(String(input), 'http://localhost')
-      const next = url.searchParams.has('cursor') || url.searchParams.has('q')
+      const page = Number(url.searchParams.get('page'))
+      const next = page === 2 || url.searchParams.has('q')
       return json({ items: [next ? older : original], nextCursor: next ? null : 'next-page',
-        page: { nextCursor: next ? null : 'next-page' }, total: url.searchParams.has('q') ? 1 : 2,
+        page: { nextCursor: next ? null : 'next-page' }, total: url.searchParams.has('q') ? 1 : 51,
+        pagination: { page, pageSize: 50, total: url.searchParams.has('q') ? 1 : 51, totalPages: url.searchParams.has('q') ? 1 : 2 },
         facets: { sourceHosts: ['old.example.com'], collectors: [{ id: 'old-source', name: 'Old source' }] } })
     }))
     renderPage()
     await screen.findByText(original.title)
-    await user.click(screen.getByRole('button', { name: '加载更多' }))
+    const scroll = screen.getByRole('region', { name: 'Item 列表' })
+    scroll.scrollTop = 300
+    expect(screen.getByRole('status')).toHaveTextContent('51 条记录')
+    expect(scroll).not.toContainElement(screen.getByRole('navigation', { name: '列表分页' }))
+    await user.click(screen.getByRole('button', { name: '下一页' }))
     expect(await screen.findByText('Older result')).toBeInTheDocument()
+    expect(screen.queryByText(original.title)).not.toBeInTheDocument()
+    expect(scroll.scrollTop).toBe(0)
+    expect(screen.getByText('第 51–51 行，共 51 行')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '下一页' })).toBeDisabled()
     expect(screen.queryByRole('button', { name: '加载更多' })).not.toBeInTheDocument()
     await user.type(screen.getByRole('textbox', { name: '搜索 Item' }), 'Older')
     await waitFor(() => expect(screen.queryByText(original.title)).not.toBeInTheDocument())
+    expect(scroll.scrollTop).toBe(0)
     const calls = vi.mocked(fetch).mock.calls.map(([input]) => new URL(String(input), 'http://localhost'))
     expect(calls.every(url => url.searchParams.get('view') === 'entities')).toBe(true)
-    expect(calls.some(url => url.searchParams.get('cursor') === 'next-page')).toBe(true)
-    expect(calls.some(url => url.searchParams.get('q') === 'Older' && !url.searchParams.has('cursor'))).toBe(true)
+    expect(calls.every(url => !url.searchParams.has('cursor'))).toBe(true)
+    expect(calls.some(url => url.searchParams.get('page') === '2')).toBe(true)
+    expect(calls.some(url => url.searchParams.get('q') === 'Older' && url.searchParams.get('page') === '1')).toBe(true)
+  })
+
+  it('restores URL pagination, refreshes in place, and resets the page when the size changes', async () => {
+    const user = userEvent.setup()
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const params = new URL(String(input), 'http://localhost').searchParams
+      const page = Number(params.get('page'))
+      const pageSize = Number(params.get('limit'))
+      return json({ items: seedRuns[0].items, page: { nextCursor: null }, total: 206,
+        pagination: { page, pageSize, total: 206, totalPages: Math.ceil(206 / pageSize) } })
+    }))
+    renderPage('/items?page=3&pageSize=20')
+    await screen.findByText('第 41–60 行，共 206 行')
+    await user.click(screen.getByRole('button', { name: '刷新' }))
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2))
+    expect(String(vi.mocked(fetch).mock.lastCall?.[0])).toContain('page=3')
+    await user.selectOptions(screen.getByRole('combobox', { name: '每页行数' }), '100')
+    await screen.findByText('第 1–100 行，共 206 行')
+    const url = new URL(String(vi.mocked(fetch).mock.lastCall?.[0]), 'http://localhost')
+    expect(url.searchParams.get('page')).toBe('1')
+    expect(url.searchParams.get('limit')).toBe('100')
+  })
+
+  it('does not display the previous page as a failed destination page and retries that destination', async () => {
+    const user = userEvent.setup()
+    let failing = true
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const page = Number(new URL(String(input), 'http://localhost').searchParams.get('page'))
+      if (page === 2 && failing) return new Response(JSON.stringify({ code: 'INTERNAL_ERROR', message: 'Page unavailable', retryable: true, requestId: 'page-error' }), { status: 503 })
+      return json({ items: page === 1 ? seedRuns[0].items : [], page: { nextCursor: null }, total: 51,
+        pagination: { page, pageSize: 50, total: 51, totalPages: 2 } })
+    }))
+    renderPage()
+    await screen.findByText(seedRuns[0].items[0].title)
+    await user.click(screen.getByRole('button', { name: '下一页' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Page unavailable')
+    expect(screen.queryByText(seedRuns[0].items[0].title)).not.toBeInTheDocument()
+    expect(screen.getByText('行数与页数待确认')).toBeInTheDocument()
+    failing = false
+    await user.click(screen.getByRole('button', { name: '重试' }))
+    await screen.findByText('第 51–51 行，共 51 行')
+    expect(String(vi.mocked(fetch).mock.lastCall?.[0])).toContain('page=2')
+  })
+
+  it('canonicalizes a page beyond the last page using the server response', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => json({ items: seedRuns[0].items, page: { nextCursor: null }, total: 51,
+      pagination: { page: 2, pageSize: 50, total: 51, totalPages: 2 } })))
+    renderPage('/items?page=999')
+    await screen.findByText('第 51–51 行，共 51 行')
+    await waitFor(() => expect(String(vi.mocked(fetch).mock.lastCall?.[0])).toContain('page=2'))
+    expect(screen.getByRole('spinbutton', { name: '当前页码' })).toHaveValue(2)
+    expect(screen.getByRole('button', { name: '下一页' })).toBeDisabled()
+    const item = await screen.findByRole('link', { name: new RegExp(seedRuns[0].items[0].title) })
+    expect(item.getAttribute('href')).toContain('returnTo=%2Fitems%3Fpage%3D2')
   })
 
   it('shows a retryable error rather than an empty list on query failure', async () => {

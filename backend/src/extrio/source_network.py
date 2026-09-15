@@ -177,6 +177,7 @@ class SourceNetwork:
         # Some legacy TLS peers mishandle OpenSSL's default group offer. Retry
         # only that handshake failure, retaining CA/hostname checks and pinning.
         context = httpx.create_ssl_context(verify=True, trust_env=False)
+        context.minimum_version = max(context.minimum_version, ssl.TLSVersion.TLSv1_2)
         context.set_ecdh_curve("prime256v1")
         result = await self._request_once(url, pinned_url, host_header, tls_name, verify=context)
         self._tls_compatibility[peer] = context
