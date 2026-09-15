@@ -112,6 +112,34 @@ def test_initialize_applies_baseline_migrations_idempotently(pg_store: Store) ->
     }.issubset(tables)
 
 
+def test_runtime_initializes_without_schema_create_privilege(pg_store: Store, monkeypatch) -> None:
+    role = f"extrio_runtime_{uuid.uuid4().hex[:12]}"
+    original_connect = pg_store.connect
+    original_dialect_connect = pg_store.dialect.connect
+    with original_connect() as connection:
+        connection.execute(f'CREATE ROLE "{role}" NOLOGIN')
+        connection.execute(f'GRANT USAGE ON SCHEMA public TO "{role}"')
+        connection.execute(f'GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO "{role}"')
+        connection.execute(f'GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO "{role}"')
+
+    def runtime_connect(database_url, path):
+        connection = original_dialect_connect(database_url, path)
+        connection.execute(f'SET ROLE "{role}"')
+        return connection
+
+    try:
+        monkeypatch.setattr(pg_store.dialect, "connect", runtime_connect)
+        pg_store.initialize(migrate=False)
+        with pg_store.connect() as connection:
+            with pytest.raises(psycopg.errors.InsufficientPrivilege):
+                connection.execute("CREATE TABLE forbidden_runtime_ddl(id TEXT)")
+    finally:
+        monkeypatch.setattr(pg_store.dialect, "connect", original_dialect_connect)
+        with original_connect() as connection:
+            connection.execute(f'DROP OWNED BY "{role}"')
+            connection.execute(f'DROP ROLE "{role}"')
+
+
 def test_migration_002_applies_to_v05_database_without_the_row(pg_store: Store) -> None:
     with pg_store.transaction() as connection:
         connection.execute("DROP TABLE platform_setting_values")

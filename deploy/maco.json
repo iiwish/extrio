@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "target": "maco",
+  "app": "extrio",
+  "environment": "test",
+  "compose_project": "extrio-test",
+  "database": {
+    "instance": "pg-main",
+    "name": "extrio_test",
+    "runtime_role": "extrio_test_app",
+    "migration_role": "extrio_test_migrator",
+    "pool_budget": 20,
+    "secret_file": "/opt/maco-ops/secrets/extrio/test/postgres.env"
+  },
+  "redis": null,
+  "ingress": {"visibility": "private", "hostname": null},
+  "rollback": {
+    "application": "Stop extrio-test services on first deployment; subsequent releases use a recorded schema-compatible digest",
+    "database": "Preserve extrio_test and persistent files; never restore the shared instance"
+  },
+  "persistent_data": ["/opt/maco-apps/extrio/test/data"],
+  "services": {
+    "api": {"kind": "service"},
+    "worker": {"kind": "service"},
+    "web": {"kind": "service"},
+    "migrate": {"kind": "job"}
+  }
+}

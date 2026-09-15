@@ -199,12 +199,16 @@ class Store:
     def transaction(self) -> AbstractContextManager[DialectConnection]:
         return self.dialect.transaction(self.database_url, self.path)
 
-    def initialize(self) -> None:
+    def initialize(self, *, migrate: bool | None = None) -> None:
+        should_migrate = get_settings().database_auto_migrate if migrate is None else migrate
         with self._init_lock:
             if self.dialect.name == "sqlite":
                 self.path.parent.mkdir(parents=True, exist_ok=True)
             with self._initialization_connection() as connection:
-                self._run_migrations(connection)
+                if should_migrate:
+                    self._run_migrations(connection)
+                else:
+                    self._check_migrations(connection)
                 self._backfill_collections()
                 if self.dialect.name == "sqlite":
                     self._backfill_ai_runs(connection)
@@ -242,6 +246,16 @@ class Store:
         if repository.is_dir():
             return repository
         raise RuntimeError("extrio database migrations directory was not found")
+
+    def _check_migrations(self, connection: DialectConnection) -> None:
+        suffix = ".sqlite.sql" if self.dialect.name == "sqlite" else ".pg.sql"
+        expected = {path.name.removesuffix(suffix) for path in self._migration_dir().glob(f"*{suffix}")}
+        try:
+            applied = {str(row["id"]) for row in connection.execute("SELECT id FROM schema_migrations").fetchall()}
+        except Exception:
+            raise RuntimeError("Database schema is unavailable; run the migration job before starting runtime services") from None
+        if applied != expected:
+            raise RuntimeError("Database schema does not match this release; run a compatible migration job before startup")
 
     def _run_migrations(self, connection: DialectConnection) -> None:
         suffix = ".sqlite.sql" if self.dialect.name == "sqlite" else ".pg.sql"

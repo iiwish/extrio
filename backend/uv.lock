@@ -503,7 +503,7 @@ wheels = [
 
 [[package]]
 name = "extrio-backend"
-version = "0.6.0"
+version = "0.7.0a1"
 source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },
