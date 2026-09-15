@@ -1,15 +1,8 @@
 name: Container verification
 
 on:
+  # Required by main branch protection, including documentation and CI-only PRs.
   pull_request:
-    paths:
-      - backend/**
-      - web/**
-      - docker/**
-      - scripts/verify-compose.sh
-      - compose.yaml
-      - .dockerignore
-      - .github/workflows/container.yml
   push:
     branches: [main]
     paths:
