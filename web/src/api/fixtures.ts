@@ -1,4 +1,4 @@
-import type { AiRunDetail, CandidateRule, CollectionPolicy, Collector, CollectorDetail, CollectorSchedule, HarvestItem, Run } from './types'
+import type { AiRunDetail, CandidateRule, CollectionPolicy, Collector, CollectorDetail, CollectorSchedule, HarvestItem, OperationActivity, Run } from './types'
 
 interface ScenarioProfile {
   key: string
@@ -498,6 +498,30 @@ export const seedRuns: Run[] = [
   },
 ]
 
+const aiActivityMetrics = {
+  listPagesFetched: 1,
+  detailUrlsDiscovered: 12,
+  detailPagesFetched: 3,
+  recordsOutsideWindow: 0,
+  duplicateDetailUrls: 0,
+  newItems: 0,
+  updatedItems: 0,
+  unchangedItems: 0,
+  warningCount: 1,
+}
+
+const shanghaiAiActivity: OperationActivity[] = [
+  { phase: 'queued', status: 'succeeded', startedAt: '2026-09-01T05:10:00Z', finishedAt: '2026-09-01T05:10:01Z', durationMs: 1000, metrics: { ...aiActivityMetrics, listPagesFetched: 0, detailUrlsDiscovered: 0, detailPagesFetched: 0, warningCount: 0 } },
+  { phase: 'fetching_list', status: 'succeeded', startedAt: '2026-09-01T05:10:01Z', finishedAt: '2026-09-01T05:10:05Z', durationMs: 4000, metrics: { ...aiActivityMetrics, detailUrlsDiscovered: 0, detailPagesFetched: 0, warningCount: 0 } },
+  { phase: 'analyzing_structure', status: 'succeeded', startedAt: '2026-09-01T05:10:05Z', finishedAt: '2026-09-01T05:10:14Z', durationMs: 9000, metrics: { ...aiActivityMetrics, detailPagesFetched: 0, warningCount: 0 } },
+  { phase: 'discovering_details', status: 'succeeded', startedAt: '2026-09-01T05:10:14Z', finishedAt: '2026-09-01T05:10:15Z', durationMs: 1000, metrics: { ...aiActivityMetrics, detailPagesFetched: 0, warningCount: 0 } },
+  { phase: 'fetching_details', status: 'succeeded', startedAt: '2026-09-01T05:10:15Z', finishedAt: '2026-09-01T05:10:16Z', durationMs: 1000, metrics: { ...aiActivityMetrics, warningCount: 0 } },
+  { phase: 'compiling_rule', status: 'succeeded', startedAt: '2026-09-01T05:10:16Z', finishedAt: '2026-09-01T05:10:26Z', durationMs: 10000, metrics: { ...aiActivityMetrics, warningCount: 0 } },
+  { phase: 'validating', status: 'succeeded', startedAt: '2026-09-01T05:10:26Z', finishedAt: '2026-09-01T05:10:28Z', durationMs: 2000, metrics: aiActivityMetrics },
+  { phase: 'finalizing', status: 'succeeded', startedAt: '2026-09-01T05:10:28Z', finishedAt: '2026-09-01T05:10:29Z', durationMs: 1000, metrics: aiActivityMetrics },
+  { phase: 'completed', status: 'succeeded', startedAt: '2026-09-01T05:10:29Z', finishedAt: '2026-09-01T05:10:29Z', durationMs: 0, metrics: aiActivityMetrics },
+]
+
 export const seedAiRuns: AiRunDetail[] = [
   {
     id: 'ai_run_shanghai_0901',
@@ -518,6 +542,8 @@ export const seedAiRuns: AiRunDetail[] = [
     validationSummary: { acceptedSamples: 3, rejectedSamples: 0, warningCount: 1 },
     candidateRuleDigest: digest('shanghai:ai-candidate'),
     publishedRuleVersionId: null,
+    guidance: '优先识别公告标题、发布日期和每行的详情入口。',
+    activity: shanghaiAiActivity,
     createdAt: '2026-09-01T05:10:00Z',
     startedAt: '2026-09-01T05:10:01Z',
     finishedAt: '2026-09-01T05:10:29Z',
@@ -569,6 +595,8 @@ export const seedAiRuns: AiRunDetail[] = [
     validationSummary: { acceptedSamples: 0, rejectedSamples: 0, warningCount: 0 },
     candidateRuleDigest: null,
     publishedRuleVersionId: null,
+    guidance: null,
+    activity: shanghaiAiActivity.slice(0, 7).map((event, index, events) => index === events.length - 1 ? { ...event, status: 'running', finishedAt: null, durationMs: null } : event),
     createdAt: '2026-09-01T05:20:00Z',
     startedAt: '2026-09-01T05:20:01Z',
     finishedAt: null,

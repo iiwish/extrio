@@ -197,6 +197,22 @@ def test_items_export_returns_export_too_large_before_streaming(tmp_path: Path, 
         assert filtered.status_code == 200
 
 
+def test_export_uses_one_snapshot_for_columns_cap_and_rows(tmp_path: Path, monkeypatch) -> None:
+    with output_client(tmp_path) as (store, client):
+        reads = 0
+        def changing_items(**_filters):
+            nonlocal reads
+            reads += 1
+            yield {"id": "item_initial", "extractedData": {"first": "A"}}
+            if reads > 1:
+                yield {"id": "item_late", "extractedData": {"late_column": "B"}}
+        monkeypatch.setattr(store, "iter_items_export", changing_items)
+        response = client.get("/api/v1/items/export?format=jsonl")
+        assert response.status_code == 200
+        assert reads == 1
+        assert [json.loads(line)["id"] for line in response.text.splitlines()] == ["item_initial"]
+
+
 def test_sink_crud_endpoints_hide_the_secret(tmp_path: Path) -> None:
     with output_client(tmp_path) as (store, client):
         collector = store.create_collector("Demo", "Collect notices", "https://example.com/list", "example.com")

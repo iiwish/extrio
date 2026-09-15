@@ -4,21 +4,21 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| 文档版本 | `v1.13.0` |
-| 对应产品版本 | `v0.2` |
+| 文档版本 | `v1.15.0` |
+| 对应产品版本 | `v0.6` |
 | 状态 | `Confirmed` |
 | 权威来源 | [`SSOT.md`](./SSOT.md) |
-| 最后更新 | `2026-09-02` |
+| 最后更新 | `2026-09-04` |
 
 ## 2. 闭环范围
 
-本地纵向闭环覆盖需求与 URL 批量导入、Collector 创建和定义编辑、Crawl4AI Source 探索、同域 iframe 列表入口解析、默认模型两阶段 RulePlan 编译、AiRun/AiAttempt/ModelInvocation 审计、候选规则 Override 与最近探索样本验证、GatherSpec Schema 校验、字段风险审核、RuleVersion 发布、CollectorSchedule、稳定 occurrence 去重与禁止重叠调度、CollectionPolicyVersion、首次时间窗口、增量 Checkpoint、确定性运行、分页与详情发现、HTML CSS/JSON JSONPath 字段提取、new/updated/unchanged 分类、accepted/rejected 质量终结、Item 谱系查看和刷新后状态恢复。
+本地纵向闭环覆盖需求与精确入口批量导入、Collector 创建和定义编辑、Crawl4AI Source 探索、同域 iframe 列表入口解析、默认模型两阶段 RulePlan 编译、AiRun/AiAttempt/ModelInvocation 审计、候选规则 Override 与最近探索样本验证、GatherSpec Schema 校验、字段风险审核、RuleVersion 发布、CollectorSchedule、稳定 occurrence 去重与禁止重叠调度、CollectionPolicyVersion、首次时间窗口、增量 Checkpoint、确定性运行、分页与详情发现、HTML CSS/JSON JSONPath 字段提取、new/updated/unchanged 分类、accepted/rejected 质量终结、Item 谱系查看和刷新后状态恢复。批量输入每项使用一个具体列表页或单页入口，`mode` 缺省为 `exact`，站点根目录和其他 mode 逐项拒绝；`name` 与 `scopeHint` 进入 Collector，后者只参与规则编译。
 
-公告类两阶段采集以列表记录作为 Item 边界：列表阶段提取 `listTitle + detailUrl`，详情阶段提取 `title + publishedAt + content`，运行时写入 `observedAt` 采集时间。详情正文中的内部表格属于公告内容，不自动展开成新的 HarvestItem。
+公告类两阶段采集以列表记录作为 Item 边界：列表阶段提取 `listTitle + detailUrl`，详情阶段提取 canonical `title + publishedAt + content`，运行时写入 `observedAt` 采集时间。详情正文中的内部表格属于公告内容，不自动展开成新的 HarvestItem。HTTP 批量抓取使用受限并发；详情标题与列表标题归一后不一致时单 URL 重取一次，仍不一致的候选以明确原因拒绝且不生成 Revision 或 Observation。
 
 本地 TenantAdmin 策略通过 `EXTRIO_ALLOW_HTTP_PUBLIC=true` 显式允许匿名公共 HTTP Source。该开关默认关闭，不适用于 AccessProfile 或凭据请求，也不改变 allowedHosts、私网/metadata、DNS、redirect 与资源预算边界。开发启动脚本显式启用该策略，以覆盖仍只提供 HTTP 的政府公开站点。
 
-控制面、探索和运行分别由 FastAPI API 进程与独立 Worker 进程承担。API 请求只持久化命令并返回 `202 Accepted` Operation；规则探索同时建立 AiRun，Worker 的每次尝试和模型调用分别追加 AiAttempt 与 ModelInvocation。Operation 负责轮询进度，AiRun 负责长期查询、候选结果、审核状态和用量审计。模型记录不保存原始提示词、Source 样本或响应正文。API 进程重启不会丢失 Collector、AiRun、Run、Item、幂等记录或已排队任务；升级时历史 explore Operation 自动回填为不伪造模型用量的 AiRun。
+控制面、探索和运行分别由 FastAPI API 进程与独立 Worker 进程承担。API 请求只持久化命令并返回 `202 Accepted` Operation；规则探索同时建立 AiRun，Worker 的每次尝试和模型调用分别追加 AiAttempt 与 ModelInvocation。Operation 负责实时轮询，Operation 与 AiRun 同步保存结构化阶段活动；AiRun 负责长期查询、一次性操作指引、候选结果、审核状态和用量审计。阶段活动只包含状态、时间、耗时和非敏感指标，模型记录不保存原始提示词、模型思维过程、Source 正文或响应正文。API 进程重启不会丢失 Collector、AiRun、Run、Item、幂等记录或已排队任务；升级时历史 explore Operation 自动回填为不伪造模型用量的 AiRun。
 
 ## 3. 组件合同
 

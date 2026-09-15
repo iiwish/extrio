@@ -1,0 +1,7 @@
+entryUrl,mode,name,scopeHint
+http://www.ccgp-beijing.gov.cn/yxgk/qjcgyx/A002003002index_1.htm,,北京区级采购意向,空 mode 应默认 exact
+http://www.ccgp-beijing.gov.cn/yxgk/qjcgyx/A002003002index_1.htm,exact,重复入口,应识别为批次内重复
+https://www.ccgp.gov.cn/,exact,站点根目录,应要求精确列表页
+https://www.ccgp.gov.cn/cggg/zygg/gkzb/index.htm,discover,未支持模式,应拒绝 discover
+not-a-url,exact,无效网址,应标记格式错误
+,exact,缺少入口,应标记格式错误

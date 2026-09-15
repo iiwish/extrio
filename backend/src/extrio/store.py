@@ -1,11 +1,13 @@
 import base64
+import fcntl
 import hashlib
 import json
+import os
 import re
 import threading
 import uuid
 from collections.abc import Iterator
-from contextlib import AbstractContextManager
+from contextlib import AbstractContextManager, contextmanager, nullcontext
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -14,7 +16,7 @@ from zoneinfo import ZoneInfo
 from croniter import croniter
 
 from extrio.config import get_settings
-from extrio.credentials import CredentialCipher
+from extrio.credentials import CredentialCipher, validate_stored_credentials
 from extrio.store_dialect import MIGRATION_ID_PATTERN, DialectConnection, resolve_database
 
 TERMINAL_OPERATION_STATUSES = {"succeeded", "failed", "cancelled", "timed_out"}
@@ -39,10 +41,100 @@ DEFAULT_COLLECTION_NAME = "全国公共资源交易标讯"
 SINK_TYPES = ("webhook",)
 DELIVERY_STATUSES = ("pending", "delivering", "delivered", "failed", "dead_lettered")
 EXPORT_ITEMS_CAP = 100_000
+OPERATION_METRIC_KEYS = (
+    "listPagesFetched",
+    "detailUrlsDiscovered",
+    "detailPagesFetched",
+    "recordsOutsideWindow",
+    "duplicateDetailUrls",
+    "newItems",
+    "updatedItems",
+    "unchangedItems",
+    "warningCount",
+)
 
 
 def utc_now() -> str:
     return datetime.now(UTC).isoformat().replace("+00:00", "Z")
+
+
+def empty_operation_metrics() -> dict[str, int]:
+    return {key: 0 for key in OPERATION_METRIC_KEYS}
+
+
+def _elapsed_ms(started_at: str, finished_at: str) -> int:
+    started = datetime.fromisoformat(started_at.replace("Z", "+00:00"))
+    finished = datetime.fromisoformat(finished_at.replace("Z", "+00:00"))
+    return max(0, int((finished - started).total_seconds() * 1000))
+
+
+def advance_activity(
+    current: list[dict[str, Any]],
+    *,
+    phase: str,
+    metrics: dict[str, int],
+    now: str,
+    terminal_status: str | None = None,
+) -> list[dict[str, Any]]:
+    """Advance the sanitized phase history without storing model or source bodies."""
+    activity = [{**entry, "metrics": dict(entry.get("metrics") or {})} for entry in current]
+    if not activity:
+        activity.append(
+            {
+                "phase": phase,
+                "status": terminal_status or "running",
+                "startedAt": now,
+                "finishedAt": now if terminal_status else None,
+                "durationMs": 0 if terminal_status else None,
+                "metrics": dict(metrics),
+            }
+        )
+        return activity
+
+    latest = activity[-1]
+    if terminal_status:
+        if latest.get("status") == "running":
+            latest.update(
+                status="failed" if terminal_status == "failed" else "succeeded",
+                finishedAt=now,
+                durationMs=_elapsed_ms(str(latest["startedAt"]), now),
+                metrics=dict(metrics),
+            )
+        if terminal_status == "succeeded" and latest.get("phase") != "completed":
+            activity.append(
+                {
+                    "phase": "completed",
+                    "status": "succeeded",
+                    "startedAt": now,
+                    "finishedAt": now,
+                    "durationMs": 0,
+                    "metrics": dict(metrics),
+                }
+            )
+        return activity
+
+    if latest.get("phase") == phase and latest.get("status") == "running":
+        latest["metrics"] = dict(metrics)
+        return activity
+
+    if latest.get("status") == "running":
+        latest.update(
+            status="succeeded",
+            finishedAt=now,
+            durationMs=_elapsed_ms(str(latest["startedAt"]), now),
+            metrics=dict(metrics),
+        )
+    activity.append(
+        {
+            "phase": phase,
+            "status": "running",
+            "startedAt": now,
+            "finishedAt": None,
+            "durationMs": None,
+            "metrics": dict(metrics),
+        }
+    )
+    return activity
 
 
 def stable_id(prefix: str, value: str | None = None, length: int = 16) -> str:
@@ -111,11 +203,36 @@ class Store:
         with self._init_lock:
             if self.dialect.name == "sqlite":
                 self.path.parent.mkdir(parents=True, exist_ok=True)
-            with self.connect() as connection:
+            with self._initialization_connection() as connection:
                 self._run_migrations(connection)
-            if self.dialect.name == "sqlite":
-                with self.connect() as connection:
+                self._backfill_collections()
+                if self.dialect.name == "sqlite":
                     self._backfill_ai_runs(connection)
+                from extrio.collection_workflows import lock_collector
+                from extrio.collector_history import freeze_history, history_snapshot
+
+                with self.transaction() as history_connection:
+                    for row in history_connection.execute(
+                        "SELECT id FROM collectors WHERE id NOT IN (SELECT id FROM deleted_collectors) ORDER BY id"
+                    ).fetchall():
+                        lock_collector(self, history_connection, row["id"])
+                        source = self.get_collector(row["id"], history_connection)
+                        freeze_history(self, history_connection, source, history_snapshot(self, history_connection, source))
+
+    @contextmanager
+    def _initialization_connection(self) -> Iterator[DialectConnection]:
+        # Serialize before schema discovery, including the first SQLite WAL setup.
+        if self.dialect.name == "postgresql":
+            with self.connect() as connection:
+                connection.execute("SELECT pg_advisory_lock(?)", (0x65787472696F0001,))
+                yield connection
+            return
+        path = self.path.resolve()
+        descriptor = os.open(path.with_name(f".{path.name}.migration.lock"), os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+        with os.fdopen(descriptor, "a+b") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            with self.connect() as connection:
+                yield connection
 
     def _migration_dir(self) -> Path:
         packaged = Path(__file__).resolve().parent / "migrations"
@@ -152,7 +269,7 @@ class Store:
             JOIN collectors ON collectors.id = operations.collector_id
             LEFT JOIN ai_runs ON ai_runs.operation_id = operations.id
             LEFT JOIN jobs ON jobs.operation_id = operations.id
-            WHERE ai_runs.id IS NULL
+            WHERE ai_runs.id IS NULL AND collectors.id NOT IN (SELECT id FROM deleted_collectors)
             ORDER BY operations.created_at DESC
             """
         ).fetchall()
@@ -274,6 +391,8 @@ class Store:
         now = utc_now()
         user_id = stable_id("user", uuid.uuid4().hex, 32)
         with self.transaction() as connection:
+            if self.dialect.name == "postgresql":
+                connection.execute("LOCK TABLE auth_users IN EXCLUSIVE MODE")
             if connection.execute("SELECT 1 FROM auth_users LIMIT 1").fetchone() is not None:
                 raise AuthSetupComplete
             connection.execute(
@@ -300,9 +419,14 @@ class Store:
         user = self._auth_user(row)
         return {**user, "passwordHash": row["password_hash"]} if user else None
 
-    def create_auth_session(self, *, token_hash: str, user_id: str, expires_at: str) -> None:
+    def create_auth_session(self, *, token_hash: str, user_id: str, expires_at: str, expected_password_hash: str | None = None) -> None:
         now = utc_now()
         with self.transaction() as connection:
+            if self.dialect.name == "postgresql":
+                connection.execute("LOCK TABLE auth_users IN EXCLUSIVE MODE")
+            user = connection.execute("SELECT password_hash, enabled FROM auth_users WHERE id=?", (user_id,)).fetchone()
+            if not user or not user["enabled"] or (expected_password_hash is not None and user["password_hash"] != expected_password_hash):
+                raise ValueError("AUTH_CREDENTIALS_CHANGED")
             connection.execute("DELETE FROM auth_sessions WHERE expires_at<=?", (now,))
             connection.execute(
                 """
@@ -343,10 +467,15 @@ class Store:
         now = utc_now()
         user_id = stable_id("user", uuid.uuid4().hex, 32)
         with self.transaction() as connection:
-            if connection.execute(
-                f"SELECT 1 FROM auth_users WHERE {self.dialect.nocase_equality('username')}",
-                (username,),
-            ).fetchone() is not None:
+            if self.dialect.name == "postgresql":
+                connection.execute("LOCK TABLE auth_users IN EXCLUSIVE MODE")
+            if (
+                connection.execute(
+                    f"SELECT 1 FROM auth_users WHERE {self.dialect.nocase_equality('username')}",
+                    (username,),
+                ).fetchone()
+                is not None
+            ):
                 raise UsernameTaken(username)
             connection.execute(
                 """
@@ -384,9 +513,17 @@ class Store:
         """Partially update an account; raises KeyError when the user does not exist."""
 
         with self.transaction() as connection:
+            if self.dialect.name == "postgresql":
+                connection.execute("LOCK TABLE auth_users IN EXCLUSIVE MODE")
             row = connection.execute("SELECT * FROM auth_users WHERE id=?", (user_id,)).fetchone()
             if row is None:
                 raise KeyError(user_id)
+            if row["role"] == "administrator" and row["enabled"] and (enabled is False or (role is not None and role != "administrator")):
+                active = connection.execute(
+                    "SELECT COUNT(*) AS count FROM auth_users WHERE role='administrator' AND enabled=?", (self.dialect.bool_param(True),)
+                ).fetchone()["count"]
+                if active <= 1:
+                    raise ValueError("LAST_ADMINISTRATOR")
             assignments: list[str] = []
             params: list[Any] = []
             if role is not None:
@@ -416,6 +553,7 @@ class Store:
                 "UPDATE auth_users SET password_hash=?, updated_at=? WHERE id=?",
                 (password_hash, utc_now(), user_id),
             )
+            connection.execute("DELETE FROM auth_sessions WHERE user_id=?", (user_id,))
 
     def count_active_administrators(self) -> int:
         with self.connect() as connection:
@@ -443,38 +581,440 @@ class Store:
         return payload
 
     def _decode(self, row: Any) -> dict[str, Any] | None:
-        return self.dialect.decode_json(row["data"]) if row else None
+        if not row:
+            return None
+        value = self.dialect.decode_json(row["data"])
+        if "collection_attribution" in row.keys() and row["collection_attribution"]:
+            value["collectionAttribution"] = self.dialect.decode_json(row["collection_attribution"])
+        if "collector_deleted_at" in row.keys() and row["collector_deleted_at"]:
+            value["collectorDeleted"] = True
+        return value
 
     def _decode_run(self, row: Any) -> dict[str, Any] | None:
         if not row:
             return None
-        run = self.dialect.decode_json(row["data"])
+        run = self._decode(row)
         run["startedAtIso"] = row["created_at"]
         return run
 
+    def _backfill_collections(self) -> None:
+        with self.transaction() as connection:
+            groups: dict[str, dict[str, Any]] = {}
+            rows = connection.execute(
+                "SELECT data FROM collectors WHERE id NOT IN (SELECT id FROM deleted_collectors) ORDER BY created_at, id"
+            ).fetchall()
+            for row in rows:
+                source = self._decode(row)
+                collection_id = source.get("collectionId", DEFAULT_COLLECTION_ID)
+                group = groups.setdefault(collection_id, {"source": source, "intents": []})
+                if source.get("intent") and source["intent"] not in group["intents"]:
+                    group["intents"].append(source["intent"])
+            for collection_id, group in groups.items():
+                source = group["source"]
+                self._insert_collection(
+                    connection,
+                    collection_id,
+                    source.get("collectionName", DEFAULT_COLLECTION_NAME),
+                    "\n\n".join(group["intents"]),
+                    source.get("collectionVersion", "tender_notice_v4"),
+                )
+
+    def _insert_collection(
+        self, connection: DialectConnection, collection_id: str, name: str, intent: str, version: str = "tender_notice_v4"
+    ) -> None:
+        now = utc_now()
+        value = {
+            "id": collection_id,
+            "name": name,
+            "intent": intent,
+            "collectionVersion": version,
+            "status": "active",
+            "revision": 1,
+            "createdAt": now,
+            "updatedAt": now,
+        }
+        connection.execute(
+            self.dialect.insert_or_ignore("INSERT INTO collections(id, data) VALUES(?, ?)"), (collection_id, self.dialect.json_param(value))
+        )
+
+    def _collection_sources(self, collection_id: str, connection: DialectConnection) -> list[dict[str, Any]]:
+        identity = self.dialect.json_extract_text("data", "collectionId")
+        rows = connection.execute(
+            f"SELECT data FROM collectors WHERE {identity}=? AND id NOT IN (SELECT id FROM deleted_collectors) ORDER BY created_at, id",
+            (collection_id,),
+        ).fetchall()
+        return [self._decode(row) for row in rows]
+
+    def get_collection(self, collection_id: str, connection: DialectConnection | None = None) -> dict[str, Any] | None:
+        with nullcontext(connection) if connection is not None else self.connect() as conn:
+            value = self._decode(conn.execute("SELECT data FROM collections WHERE id=?", (collection_id,)).fetchone())
+            if value is None:
+                return None
+            sources = self._collection_sources(collection_id, conn)
+            active_version_id = value.get("activeVersionId")
+            active_version = None
+            if active_version_id:
+                row = conn.execute("SELECT data FROM collection_versions WHERE id=?", (active_version_id,)).fetchone()
+                active_version = self._decode(row) if row else None
+                if active_version and "fieldCount" not in active_version:
+                    active_version["fieldCount"] = len(active_version.get("fields", []))
+            return {
+                **value,
+                "sourceCount": len(sources),
+                "publishedSourceCount": sum(
+                    bool(source.get("activeRuleVersion")) and source.get("lifecycle", "active") == "active" for source in sources
+                ),
+                "activeVersionId": active_version_id,
+                "latestVersionNumber": value.get("latestVersionNumber", 0),
+                "activeVersion": active_version,
+            }
+
+    def collection_sources(self, collection_id: str) -> list[dict[str, Any]]:
+        with self.connect() as connection:
+            value = self.get_collection(collection_id, connection)
+            return [{**source, "collectionName": value["name"]} for source in self._collection_sources(collection_id, connection)]
+
+    def collection_source_contracts(self, sources: list[dict[str, Any]], collection: dict[str, Any] | None = None) -> list[dict[str, Any]]:
+        from extrio.collection_fields import project_source_contract
+
+        with self.connect() as connection:
+            contracts = []
+            cached_collections: dict[str, dict[str, Any] | None] = {}
+            for source in sources:
+                rule_version = self.get_rule_version(source["activeRuleVersion"], connection) if source.get("activeRuleVersion") else None
+                contract = project_source_contract(source, rule_version)
+                cid = source.get("collectionId")
+                target_col = collection
+                if target_col is None and cid:
+                    if cid not in cached_collections:
+                        cached_collections[cid] = self.get_collection(cid, connection)
+                    target_col = cached_collections[cid]
+                contract["sourceVersion"] = source.get("collectionVersion")
+                bound = self.get_collection_version(source.get("collectionVersion"), connection)
+                contract["sourceVersionNumber"] = bound["versionNumber"] if bound else None
+                if target_col and target_col.get("activeVersion"):
+                    active_ver = target_col["activeVersion"]
+                    contract["targetVersionNumber"] = active_ver.get("versionNumber")
+                    contract["isAligned"] = source.get("collectionVersion") == active_ver.get("id")
+                else:
+                    contract["targetVersionNumber"] = None
+                    contract["isAligned"] = True
+                contracts.append(contract)
+            return contracts
+
+    def get_collection_version(self, version_id: str, connection: DialectConnection | None = None) -> dict[str, Any] | None:
+        with nullcontext(connection) if connection is not None else self.connect() as conn:
+            row = conn.execute("SELECT data FROM collection_versions WHERE id=?", (version_id,)).fetchone()
+            return self._decode(row) if row else None
+
+    def collector_compilation_context(self, collector: dict[str, Any]) -> dict[str, Any]:
+        version_id = collector.get("pendingCollectionVersion") or collector.get("collectionVersion")
+        if version_id == "tender_notice_v4":
+            return dict(collector)
+        version = self.get_collection_version(version_id)
+        if version is None or version["collectionId"] != collector.get("collectionId"):
+            raise ValueError("VERSION_NOT_FOUND")
+        return {**collector, "collectionVersion": version_id, "frozenCollectionVersion": version, "expectedFields": version["fields"]}
+
+    def list_collection_versions(self, collection_id: str, connection: DialectConnection | None = None) -> list[dict[str, Any]]:
+        with nullcontext(connection) if connection is not None else self.connect() as conn:
+            rows = conn.execute(
+                "SELECT data FROM collection_versions WHERE collection_id=? ORDER BY version_number DESC",
+                (collection_id,),
+            ).fetchall()
+            return [self._decode(row) for row in rows]
+
+    def publish_collection_version(
+        self,
+        collection_id: str,
+        revision: int,
+        actor_id: str,
+        note: str | None = None,
+        connection: DialectConnection | None = None,
+    ) -> dict[str, Any]:
+        from extrio.collection_fields import build_collection_version_contract
+
+        with nullcontext(connection) if connection is not None else self.transaction() as conn:
+            self._lock_collection(conn, collection_id)
+            collection = self.get_collection(collection_id, conn)
+            if collection["revision"] != revision:
+                raise ValueError("COLLECTION_CONFLICT")
+            if collection["status"] == "archived":
+                raise ValueError("COLLECTION_ARCHIVED")
+            draft = collection.get("fieldDraft")
+            if not draft or not draft.get("fields"):
+                raise ValueError("NO_FIELD_DRAFT")
+
+            contract = build_collection_version_contract(draft["fields"])
+
+            row = conn.execute(
+                "SELECT COALESCE(MAX(version_number), 0) AS max_ver FROM collection_versions WHERE collection_id=?",
+                (collection_id,),
+            ).fetchone()
+            max_ver = row["max_ver"] if row else 0
+            new_version_number = int(max_ver) + 1
+            version_id = stable_id("colver", f"{collection_id}_v{new_version_number}_{uuid.uuid4().hex[:8]}", 48)
+            now = utc_now()
+
+            version_data = {
+                "id": version_id,
+                "collectionId": collection_id,
+                "versionNumber": new_version_number,
+                "fields": contract["fields"],
+                "normalizedItemSchema": contract["normalizedItemSchema"],
+                "identityFields": contract["identityFields"],
+                "fingerprintFields": contract["fingerprintFields"],
+                "outputContractDigest": contract["outputContractDigest"],
+                "fieldCount": len(contract["fields"]),
+                "publishedAt": now,
+                "publishedBy": actor_id,
+                "note": note or "",
+            }
+
+            conn.execute(
+                "INSERT INTO collection_versions(id, collection_id, version_number, data) VALUES(?, ?, ?, ?)",
+                (version_id, collection_id, new_version_number, self.dialect.json_param(version_data)),
+            )
+
+            collection["activeVersionId"] = version_id
+            collection["latestVersionNumber"] = new_version_number
+            collection["activeVersion"] = {
+                "id": version_id,
+                "versionNumber": new_version_number,
+                "outputContractDigest": contract["outputContractDigest"],
+                "publishedAt": now,
+                "fieldCount": len(contract["fields"]),
+            }
+            collection["updatedAt"] = now
+            collection["revision"] = revision + 1
+            stored = {key: item for key, item in collection.items() if key not in {"sourceCount", "publishedSourceCount"}}
+            conn.execute("UPDATE collections SET data=? WHERE id=?", (self.dialect.json_param(stored), collection_id))
+            return version_data
+
+    def publish_collection_version_command(
+        self,
+        collection_id: str,
+        body: dict[str, Any],
+        key: str,
+        audit: dict[str, Any] | None = None,
+    ) -> tuple[int, dict, bool]:
+        scope = f"POST:/collections/{collection_id}/publish-version"
+        with self.transaction() as connection:
+            if self.dialect.name == "postgresql":
+                lock_id = int.from_bytes(hashlib.sha256(f"{scope}:{key}".encode()).digest()[:8], signed=True)
+                connection.execute("SELECT pg_advisory_xact_lock(?)", (lock_id,))
+            receipt = connection.execute("SELECT * FROM idempotency WHERE scope=? AND key=?", (scope, key)).fetchone()
+            if receipt:
+                if receipt["request_hash"] != payload_hash(body):
+                    raise IdempotencyConflict(key)
+                return receipt["status_code"], self.dialect.decode_json(receipt["response"]), True
+
+            revision = body["revision"]
+            note = body.get("note")
+            actor_id = audit["actorId"] if audit else "system"
+            before = self.get_collection(collection_id, connection)
+            value = self.publish_collection_version(collection_id, revision, actor_id, note=note, connection=connection)
+
+            if audit is not None:
+                self._append_audit_event(
+                    connection,
+                    tenant_id=audit["tenantId"],
+                    target_type="collection_version",
+                    target_id=value["id"],
+                    audit={**audit, "action": "collection_version.published"},
+                    before_digest=f"sha256:{payload_hash(before)}" if before else None,
+                    after_digest=f"sha256:{payload_hash(value)}",
+                )
+
+            status = 201
+            connection.execute(
+                "INSERT INTO idempotency(scope, key, request_hash, status_code, response, created_at) VALUES(?, ?, ?, ?, ?, ?)",
+                (scope, key, payload_hash(body), status, self.dialect.json_param(value), utc_now()),
+            )
+            return status, value, False
+
+    def list_collections(self) -> list[dict[str, Any]]:
+        with self.connect() as connection:
+            rows = connection.execute("SELECT data FROM collections ORDER BY id").fetchall()
+            counts: dict[str, list[int]] = {}
+            for row in connection.execute("SELECT data FROM collectors WHERE id NOT IN (SELECT id FROM deleted_collectors)").fetchall():
+                source = self._decode(row)
+                count = counts.setdefault(source.get("collectionId", DEFAULT_COLLECTION_ID), [0, 0])
+                count[0] += 1
+                count[1] += int(bool(source.get("activeRuleVersion")) and source.get("lifecycle", "active") == "active")
+            values = [self._decode(row) for row in rows]
+            return sorted(
+                [
+                    {**value, "sourceCount": counts.get(value["id"], [0, 0])[0], "publishedSourceCount": counts.get(value["id"], [0, 0])[1]}
+                    for value in values
+                ],
+                key=lambda value: (value["createdAt"], value["id"]),
+                reverse=True,
+            )
+
+    def _lock_collection(self, connection: DialectConnection, collection_id: str) -> None:
+        suffix = " FOR UPDATE" if self.dialect.name == "postgresql" else ""
+        if not connection.execute(f"SELECT id FROM collections WHERE id=?{suffix}", (collection_id,)).fetchone():
+            raise ValueError("COLLECTION_NOT_FOUND")
+
+    def create_collection(self, name: str, intent: str, connection: DialectConnection | None = None) -> dict[str, Any]:
+        with nullcontext(connection) if connection is not None else self.transaction() as conn:
+            collection_id = stable_id("collection", uuid.uuid4().hex, 40)
+            self._insert_collection(conn, collection_id, name, intent)
+            return self.get_collection(collection_id, conn)
+
+    def change_collection(
+        self, collection_id: str, revision: int, changes: dict[str, Any], connection: DialectConnection | None = None
+    ) -> dict[str, Any]:
+        with nullcontext(connection) if connection is not None else self.transaction() as conn:
+            self._lock_collection(conn, collection_id)
+            value = self.get_collection(collection_id, conn)
+            if value["revision"] != revision:
+                raise ValueError("COLLECTION_CONFLICT")
+            if value["status"] == "archived" and any(key in changes for key in ("name", "intent", "fieldDraft")):
+                raise ValueError("COLLECTION_ARCHIVED")
+            if "fieldDraft" in changes:
+                from extrio.collection_fields import validate_field_draft
+
+                validate_field_draft(changes["fieldDraft"])
+            value.update(changes, revision=revision + 1, updatedAt=utc_now())
+            stored = {key: item for key, item in value.items() if key not in {"sourceCount", "publishedSourceCount"}}
+            conn.execute("UPDATE collections SET data=? WHERE id=?", (self.dialect.json_param(stored), collection_id))
+            return value
+
+    def delete_collection(self, collection_id: str, revision: int, connection: DialectConnection | None = None) -> None:
+        with nullcontext(connection) if connection is not None else self.transaction() as conn:
+            self._lock_collection(conn, collection_id)
+            value = self.get_collection(collection_id, conn)
+            if value["revision"] != revision:
+                raise ValueError("COLLECTION_CONFLICT")
+            if value["sourceCount"]:
+                raise ValueError("COLLECTION_HAS_SOURCES")
+            if (
+                conn.execute("SELECT id FROM collection_versions WHERE collection_id=? LIMIT 1", (collection_id,)).fetchone()
+                or conn.execute("SELECT id FROM field_suggestions WHERE collection_id=? LIMIT 1", (collection_id,)).fetchone()
+                or conn.execute(
+                    "SELECT resource_id FROM source_history_ownership WHERE collection_id=? LIMIT 1", (collection_id,)
+                ).fetchone()
+            ):
+                raise ValueError("COLLECTION_HAS_HISTORY")
+            conn.execute("DELETE FROM collections WHERE id=?", (collection_id,))
+
+    def collection_command(
+        self, method: str, collection_id: str | None, body: dict[str, Any], key: str, audit: dict[str, Any] | None = None
+    ) -> tuple[int, dict, bool]:
+        scope = f"{method}:/collections/{collection_id or ''}"
+        with self.transaction() as connection:
+            # Serialize equal idempotency keys across API processes, and commit receipt with the mutation.
+            if self.dialect.name == "postgresql":
+                lock_id = int.from_bytes(hashlib.sha256(f"{scope}:{key}".encode()).digest()[:8], signed=True)
+                connection.execute("SELECT pg_advisory_xact_lock(?)", (lock_id,))
+            receipt = connection.execute("SELECT * FROM idempotency WHERE scope=? AND key=?", (scope, key)).fetchone()
+            if receipt:
+                if receipt["request_hash"] != payload_hash(body):
+                    raise IdempotencyConflict(key)
+                return receipt["status_code"], self.dialect.decode_json(receipt["response"]), True
+            before = None
+            if collection_id is not None:
+                self._lock_collection(connection, collection_id)
+                before = self.get_collection(collection_id, connection)
+            if method == "POST":
+                value = self.create_collection(body["name"], body["intent"], connection)
+            elif method == "PATCH":
+                value = self.change_collection(
+                    collection_id, body["revision"], {k: v for k, v in body.items() if k != "revision"}, connection
+                )
+            else:
+                self.delete_collection(collection_id, body["revision"], connection)
+                value = {"id": collection_id, "deleted": True}
+            if audit is not None:
+                action = {"POST": "created", "PATCH": "updated", "DELETE": "deleted"}[method]
+                if method == "PATCH" and "status" in body:
+                    action = "archived" if body["status"] == "archived" else "restored"
+                self._append_audit_event(
+                    connection,
+                    tenant_id=audit["tenantId"],
+                    target_type="collection",
+                    target_id=value["id"],
+                    audit={**audit, "action": f"collection.{action}"},
+                    before_digest=f"sha256:{payload_hash(before)}" if before else None,
+                    after_digest=f"sha256:{payload_hash(value)}" if method != "DELETE" else None,
+                )
+            status = 201 if method == "POST" else 200
+            connection.execute(
+                "INSERT INTO idempotency(scope, key, request_hash, status_code, response, created_at) VALUES(?, ?, ?, ?, ?, ?)",
+                (scope, key, payload_hash(body), status, self.dialect.json_param(value), utc_now()),
+            )
+            return status, value, False
+
     def list_collectors(self) -> list[dict[str, Any]]:
         with self.connect() as connection:
-            rows = connection.execute("SELECT data FROM collectors ORDER BY created_at DESC").fetchall()
-        return [self.dialect.decode_json(row["data"]) for row in rows]
+            rows = connection.execute(
+                "SELECT data FROM collectors WHERE id NOT IN (SELECT id FROM deleted_collectors) ORDER BY created_at DESC, id DESC"
+            ).fetchall()
+            names = {row["id"]: self._decode(row)["name"] for row in connection.execute("SELECT id, data FROM collections").fetchall()}
+        values = [self.dialect.decode_json(row["data"]) for row in rows]
+        return [
+            {
+                **value,
+                "lifecycle": value.get("lifecycle", "active"),
+                "managementRevision": value.get("managementRevision", 0),
+                "collectionName": names.get(value.get("collectionId"), value.get("collectionName", DEFAULT_COLLECTION_NAME)),
+            }
+            for value in values
+        ]
 
-    def get_collector(self, collector_id: str, connection: DialectConnection | None = None) -> dict[str, Any] | None:
-        if connection is not None:
-            return self._decode(connection.execute("SELECT data FROM collectors WHERE id=?", (collector_id,)).fetchone())
-        with self.connect() as own:
-            return self._decode(own.execute("SELECT data FROM collectors WHERE id=?", (collector_id,)).fetchone())
+    def get_collector(
+        self, collector_id: str, connection: DialectConnection | None = None, *, include_deleted: bool = False
+    ) -> dict[str, Any] | None:
+        with nullcontext(connection) if connection is not None else self.connect() as conn:
+            row = conn.execute(
+                "SELECT c.data, d.deleted_at FROM collectors c LEFT JOIN deleted_collectors d ON d.id=c.id WHERE c.id=?", (collector_id,)
+            ).fetchone()
+            if row and row["deleted_at"] and not include_deleted:
+                return None
+            value = self._decode(row)
+            if value:
+                if row["deleted_at"]:
+                    value["deletedAt"] = row["deleted_at"]
+                value.setdefault("lifecycle", "active")
+                value.setdefault("managementRevision", 0)
+                requirement = self._decode(conn.execute("SELECT data FROM collections WHERE id=?", (value.get("collectionId"),)).fetchone())
+                if requirement:
+                    value["collectionName"] = requirement["name"]
+            return value
 
-    def save_collector(self, collector: dict[str, Any], connection: DialectConnection | None = None) -> None:
+    def save_collector(
+        self, collector: dict[str, Any], connection: DialectConnection | None = None, *, management_write: bool = False
+    ) -> None:
+        if connection is None:
+            with self.transaction() as connection:
+                self.save_collector(collector, connection, management_write=management_write)
+            return
+        from extrio.collector_lifecycle import LifecycleError
+
+        suffix = " FOR UPDATE" if self.dialect.name == "postgresql" else ""
+        current = self._decode(connection.execute("SELECT data FROM collectors WHERE id=?" + suffix, (collector["id"],)).fetchone())
+        if connection.execute("SELECT 1 FROM deleted_collectors WHERE id=?", (collector["id"],)).fetchone():
+            raise LifecycleError("COLLECTOR_NOT_FOUND")
+        if (
+            current
+            and not management_write
+            and (
+                current.get("lifecycle", "active") != collector.get("lifecycle", "active")
+                or current.get("managementRevision", 0) != collector.get("managementRevision", 0)
+            )
+        ):
+            raise LifecycleError("COLLECTOR_CONFLICT")
+        if management_write:
+            collector["managementRevision"] = (current or {}).get("managementRevision", 0) + 1
         now = utc_now()
         sql = """
             INSERT INTO collectors(id, data, created_at, updated_at) VALUES(?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at
         """
         params = (collector["id"], self.dialect.json_param(collector), now, now)
-        if connection is not None:
-            connection.execute(sql, params)
-            return
-        with self.transaction() as own:
-            own.execute(sql, params)
+        connection.execute(sql, params)
 
     def source_exists(
         self,
@@ -484,7 +1024,7 @@ class Store:
         exclude_collector_id: str | None = None,
     ) -> bool:
         source_url_expression = self.dialect.json_extract_text("data", "sourceUrl")
-        query = f"SELECT 1 FROM collectors WHERE {source_url_expression}=?"
+        query = f"SELECT 1 FROM collectors WHERE {source_url_expression}=? AND id NOT IN (SELECT id FROM deleted_collectors)"
         params: tuple[str, ...] = (source_url,)
         if exclude_collector_id:
             query += " AND id<>?"
@@ -502,9 +1042,11 @@ class Store:
         source_url: str,
         source_host: str,
         *,
+        scope_hint: str = "",
         collection_id: str = DEFAULT_COLLECTION_ID,
         collection_name: str = DEFAULT_COLLECTION_NAME,
         collection_version: str = "tender_notice_v4",
+        require_existing_collection: bool = False,
     ) -> dict[str, Any]:
         collector = {
             "id": stable_id("collector", f"{source_host}_{uuid.uuid4().hex[:8]}", 40),
@@ -512,6 +1054,9 @@ class Store:
             "intent": intent,
             "sourceUrl": source_url,
             "sourceHost": source_host,
+            "scopeHint": scope_hint,
+            "lifecycle": "active",
+            "managementRevision": 0,
             "status": "draft",
             "collectionId": collection_id,
             "collectionName": collection_name,
@@ -527,7 +1072,27 @@ class Store:
             "collectionPolicy": None,
             "checkpoint": None,
         }
-        self.save_collector(collector)
+        with self.transaction() as connection:
+            from extrio.collector_lifecycle import LifecycleError, lock_source_url
+
+            lock_source_url(self, connection, source_url)
+            if self.source_exists(source_url, connection):
+                raise LifecycleError("SOURCE_ALREADY_EXISTS")
+            if not require_existing_collection:
+                self._insert_collection(connection, collection_id, collection_name, intent, collection_version)
+            self._lock_collection(connection, collection_id)
+            requirement = self.get_collection(collection_id, connection)
+            if requirement["status"] == "archived":
+                raise ValueError("COLLECTION_ARCHIVED")
+            collector["collectionName"] = requirement["name"]
+            if require_existing_collection:
+                collector["intent"] = requirement["intent"]
+                collector["collectionVersion"] = requirement.get("activeVersionId") or requirement.get(
+                    "collectionVersion", "tender_notice_v4"
+                )
+            elif requirement.get("activeVersionId"):
+                collector["collectionVersion"] = requirement["activeVersionId"]
+            self.save_collector(collector, connection)
         self.create_collection_policy(collector["id"], DEFAULT_COLLECTION_POLICY)
         return self.ensure_schedule(collector["id"])
 
@@ -552,9 +1117,14 @@ class Store:
     def create_collection_policy(self, collector_id: str, values: dict[str, Any]) -> dict[str, Any]:
         normalized = self.validate_collection_policy(values)
         with self.transaction() as connection:
+            from extrio.collection_workflows import lock_collector
+            from extrio.collector_lifecycle import require_active
+
+            lock_collector(self, connection, collector_id)
             collector = self.get_collector(collector_id, connection)
             if collector is None:
                 raise KeyError(collector_id)
+            require_active(collector)
             row = connection.execute(
                 "SELECT COALESCE(MAX(version), 0) AS version FROM collection_policies WHERE collector_id=?",
                 (collector_id,),
@@ -623,13 +1193,20 @@ class Store:
         next_local = croniter(expression, current.astimezone(ZoneInfo(timezone))).get_next(datetime)
         return next_local.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
-    def save_schedule(self, collector_id: str, values: dict[str, Any]) -> dict[str, Any]:
+    def save_schedule(self, collector_id: str, values: dict[str, Any], connection=None) -> dict[str, Any]:
         normalized = self.validate_schedule(values)
-        with self.transaction() as connection:
+        with nullcontext(connection) if connection is not None else self.transaction() as connection:
+            from extrio.collection_workflows import lock_collector
+
+            lock_collector(self, connection, collector_id)
             collector = self.get_collector(collector_id, connection)
             if collector is None:
                 raise KeyError(collector_id)
             existing_row = connection.execute("SELECT data FROM collector_schedules WHERE collector_id=?", (collector_id,)).fetchone()
+            if normalized["enabled"]:
+                from extrio.collector_lifecycle import require_active
+
+                require_active(collector)
             existing = self._decode(existing_row)
             revision = int(existing.get("revision", 0)) + 1 if existing else 1
             schedule_id = existing.get("id") if existing else stable_id("schedule", collector_id.removeprefix("collector_"), 120)
@@ -694,6 +1271,23 @@ class Store:
             ).fetchall()
             for row in rows:
                 schedule = self._decode(row)
+                from extrio.collection_workflows import lock_collector
+
+                try:
+                    lock_collector(self, connection, schedule["collectorId"])
+                except ValueError as exc:
+                    if str(exc) == "COLLECTOR_NOT_FOUND":
+                        continue
+                    raise
+                schedule = self._decode(connection.execute("SELECT data FROM collector_schedules WHERE id=?", (schedule["id"],)).fetchone())
+                collector = self.get_collector(schedule["collectorId"], connection)
+                if (
+                    not schedule["enabled"]
+                    or not schedule["nextRunAt"]
+                    or schedule["nextRunAt"] > instant_iso
+                    or collector.get("lifecycle", "active") == "archived"
+                ):
+                    continue
                 scheduled_at = schedule["nextRunAt"]
                 occurrence_seed = f"{schedule['id']}\n{schedule['revision']}\n{scheduled_at}"
                 occurrence_key = f"occurrence_{payload_hash(occurrence_seed)[:32]}"
@@ -781,35 +1375,52 @@ class Store:
         self.save_collector(collector, connection)
 
     def get_operation(self, operation_id: str, connection: DialectConnection | None = None) -> dict[str, Any] | None:
+        from extrio.collector_history import history_source
+
+        query = f"SELECT data, collection_attribution, collector_deleted_at FROM {history_source('operations', 'operation')} WHERE id=?"
         if connection is not None:
-            return self._decode(connection.execute("SELECT data FROM operations WHERE id=?", (operation_id,)).fetchone())
+            return self._decode(connection.execute(query, (operation_id,)).fetchone())
         with self.connect() as own:
-            return self._decode(own.execute("SELECT data FROM operations WHERE id=?", (operation_id,)).fetchone())
+            return self._decode(own.execute(query, (operation_id,)).fetchone())
 
     def list_operations(self) -> list[dict[str, Any]]:
+        from extrio.collector_history import history_source
+
         with self.connect() as connection:
-            rows = connection.execute("SELECT data FROM operations ORDER BY created_at DESC").fetchall()
-        return [self.dialect.decode_json(row["data"]) for row in rows]
+            rows = connection.execute(
+                f"SELECT data, collection_attribution, collector_deleted_at FROM {history_source('operations', 'operation')} "
+                "ORDER BY created_at DESC"
+            ).fetchall()
+        return [self._decode(row) for row in rows]
 
     def list_ai_runs(self, collector_id: str | None = None) -> list[dict[str, Any]]:
+        from extrio.collector_history import history_source
+
+        source = history_source("ai_runs", "ai_run")
         with self.connect() as connection:
             if collector_id:
                 rows = connection.execute(
-                    "SELECT data FROM ai_runs WHERE collector_id=? ORDER BY created_at DESC",
+                    f"SELECT data, collection_attribution, collector_deleted_at FROM {source} "
+                    "WHERE collector_id=? ORDER BY created_at DESC",
                     (collector_id,),
                 ).fetchall()
             else:
-                rows = connection.execute("SELECT data FROM ai_runs ORDER BY created_at DESC").fetchall()
-        return [{"publishedRuleVersionId": None, **self.dialect.decode_json(row["data"])} for row in rows]
+                rows = connection.execute(
+                    f"SELECT data, collection_attribution, collector_deleted_at FROM {source} ORDER BY created_at DESC"
+                ).fetchall()
+        return [{"publishedRuleVersionId": None, **self._decode(row)} for row in rows]
 
     def get_ai_run(self, ai_run_id: str, connection: DialectConnection | None = None) -> dict[str, Any] | None:
+        from extrio.collector_history import history_source
+
+        query = f"SELECT data, collection_attribution, collector_deleted_at FROM {history_source('ai_runs', 'ai_run')} WHERE id=?"
         if connection is not None:
-            ai_run = self._decode(connection.execute("SELECT data FROM ai_runs WHERE id=?", (ai_run_id,)).fetchone())
+            ai_run = self._decode(connection.execute(query, (ai_run_id,)).fetchone())
             if ai_run is None:
                 return None
             return {"publishedRuleVersionId": None, **ai_run, "attempts": self.list_ai_attempts(ai_run_id, connection)}
         with self.connect() as own:
-            ai_run = self._decode(own.execute("SELECT data FROM ai_runs WHERE id=?", (ai_run_id,)).fetchone())
+            ai_run = self._decode(own.execute(query, (ai_run_id,)).fetchone())
             if ai_run is None:
                 return None
             return {"publishedRuleVersionId": None, **ai_run, "attempts": self.list_ai_attempts(ai_run_id, own)}
@@ -821,22 +1432,27 @@ class Store:
         operation_id: str,
         connection: DialectConnection | None = None,
     ) -> None:
+        if connection is None:
+            with self.transaction() as connection:
+                self.save_ai_run(ai_run, collector_id, operation_id, connection)
+            return
+        from extrio.collector_history import record_new_history
+
+        record_new_history(self, connection, "ai_run", ai_run, collector_id)
+        ai_run = {k: v for k, v in ai_run.items() if k not in {"collectionAttribution", "collectorDeleted"}}
         now = utc_now()
         sql = """
             INSERT INTO ai_runs(id, operation_id, collector_id, data, created_at, updated_at) VALUES(?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at
         """
         params = (ai_run["id"], operation_id, collector_id, self.dialect.json_param(ai_run), now, now)
-        if connection is not None:
-            connection.execute(sql, params)
-            return
-        with self.transaction() as own:
-            own.execute(sql, params)
+        connection.execute(sql, params)
 
-    def update_ai_run(self, ai_run_id: str, **changes: Any) -> dict[str, Any]:
-        with self.transaction() as connection:
+    def update_ai_run(self, ai_run_id: str, connection: DialectConnection | None = None, **changes: Any) -> dict[str, Any]:
+        with nullcontext(connection) if connection is not None else self.transaction() as connection:
             row = connection.execute(
-                "SELECT operation_id, collector_id, data FROM ai_runs WHERE id=?",
+                "SELECT operation_id, collector_id, data FROM ai_runs WHERE id=?"
+                + (" FOR UPDATE" if self.dialect.name == "postgresql" else ""),
                 (ai_run_id,),
             ).fetchone()
             if row is None:
@@ -909,7 +1525,8 @@ class Store:
     def start_ai_attempt(self, ai_run_id: str) -> dict[str, Any]:
         with self.transaction() as connection:
             row = connection.execute(
-                "SELECT operation_id, collector_id, data FROM ai_runs WHERE id=?",
+                "SELECT operation_id, collector_id, data FROM ai_runs WHERE id=?"
+                + (" FOR UPDATE" if self.dialect.name == "postgresql" else ""),
                 (ai_run_id,),
             ).fetchone()
             if row is None:
@@ -939,8 +1556,10 @@ class Store:
             self.save_ai_run(ai_run, str(row["collector_id"]), str(row["operation_id"]), connection)
             return attempt
 
-    def finish_ai_attempt(self, attempt_id: str, *, status: str, error: dict[str, Any] | None) -> dict[str, Any]:
-        with self.transaction() as connection:
+    def finish_ai_attempt(
+        self, attempt_id: str, *, status: str, error: dict[str, Any] | None, connection: DialectConnection | None = None
+    ) -> dict[str, Any]:
+        with nullcontext(connection) if connection is not None else self.transaction() as connection:
             row = connection.execute("SELECT data FROM ai_attempts WHERE id=?", (attempt_id,)).fetchone()
             if row is None:
                 raise KeyError(attempt_id)
@@ -1019,7 +1638,8 @@ class Store:
                 (invocation["id"], ai_run_id, attempt_id, self.dialect.json_param(invocation), started_at, finished_at),
             )
             row = connection.execute(
-                "SELECT operation_id, collector_id, data FROM ai_runs WHERE id=?",
+                "SELECT operation_id, collector_id, data FROM ai_runs WHERE id=?"
+                + (" FOR UPDATE" if self.dialect.name == "postgresql" else ""),
                 (ai_run_id,),
             ).fetchone()
             if row is None:
@@ -1038,26 +1658,82 @@ class Store:
         return invocation
 
     def save_operation(self, operation: dict[str, Any], collector_id: str, connection: DialectConnection | None = None) -> None:
+        if connection is None:
+            with self.transaction() as connection:
+                self.save_operation(operation, collector_id, connection)
+            return
+        from extrio.collector_history import record_new_history
+
+        record_new_history(self, connection, "operation", operation, collector_id)
+        operation = {k: v for k, v in operation.items() if k not in {"collectionAttribution", "collectorDeleted"}}
         now = utc_now()
         sql = """
             INSERT INTO operations(id, collector_id, data, created_at, updated_at) VALUES(?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at
         """
         params = (operation["id"], collector_id, self.dialect.json_param(operation), now, now)
-        if connection is not None:
-            connection.execute(sql, params)
-            return
-        with self.transaction() as own:
-            own.execute(sql, params)
+        connection.execute(sql, params)
 
-    def update_operation(self, operation_id: str, **changes: Any) -> dict[str, Any]:
-        with self.transaction() as connection:
+    def update_operation(self, operation_id: str, connection: DialectConnection | None = None, **changes: Any) -> dict[str, Any]:
+        with nullcontext(connection) if connection is not None else self.transaction() as connection:
             operation = self.get_operation(operation_id, connection)
             if operation is None:
                 raise KeyError(operation_id)
             operation.update(changes)
             self.save_operation(operation, connection=connection, collector_id=self.operation_collector_id(operation_id, connection))
             return operation
+
+    def update_ai_activity(
+        self,
+        operation_id: str,
+        ai_run_id: str,
+        *,
+        status: str,
+        phase: str,
+        progress: int,
+        metrics: dict[str, int] | None = None,
+        error: dict[str, Any] | None = None,
+        connection: DialectConnection | None = None,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
+        """Atomically keep the live Operation and durable AiRun phase history aligned."""
+        now = utc_now()
+        with nullcontext(connection) if connection is not None else self.transaction() as connection:
+            operation = self.get_operation(operation_id, connection)
+            if operation is None:
+                raise KeyError(operation_id)
+            merged_metrics = empty_operation_metrics()
+            merged_metrics.update(operation.get("metrics") or {})
+            merged_metrics.update(metrics or {})
+            terminal_status = status if status in TERMINAL_OPERATION_STATUSES else None
+            operation.update(status=status, phase=phase, progress=progress, metrics=merged_metrics, error=error)
+            operation["activity"] = advance_activity(
+                operation.get("activity") or [],
+                phase=phase,
+                metrics=merged_metrics,
+                now=now,
+                terminal_status=terminal_status,
+            )
+            collector_id = self.operation_collector_id(operation_id, connection)
+            self.save_operation(operation, collector_id, connection)
+
+            row = connection.execute(
+                "SELECT operation_id, collector_id, data FROM ai_runs WHERE id=?"
+                + (" FOR UPDATE" if self.dialect.name == "postgresql" else ""),
+                (ai_run_id,),
+            ).fetchone()
+            if row is None:
+                raise KeyError(ai_run_id)
+            ai_run = self.dialect.decode_json(row["data"])
+            ai_run.update(status=status, phase=phase, progress=progress, error=error)
+            ai_run["activity"] = advance_activity(
+                ai_run.get("activity") or [],
+                phase=phase,
+                metrics=merged_metrics,
+                now=now,
+                terminal_status=terminal_status,
+            )
+            self.save_ai_run(ai_run, str(row["collector_id"]), str(row["operation_id"]), connection)
+            return operation, ai_run
 
     @staticmethod
     def operation_collector_id(operation_id: str, connection: DialectConnection) -> str:
@@ -1078,8 +1754,10 @@ class Store:
         run: dict[str, Any] | None = None,
         ai_run: dict[str, Any] | None = None,
         activate_collector: bool = True,
+        expected_source_digest: str | None = None,
     ) -> dict[str, Any]:
         operation_id = stable_id("op", uuid.uuid4().hex)
+        queued_at = utc_now()
         operation = {
             "id": operation_id,
             "kind": kind,
@@ -1090,24 +1768,45 @@ class Store:
             "resourceId": resource_id,
             "statusUrl": f"/api/v1/operations/{operation_id}",
             "pollAfterMs": 400,
-            "metrics": {
-                "listPagesFetched": 0,
-                "detailUrlsDiscovered": 0,
-                "detailPagesFetched": 0,
-                "recordsOutsideWindow": 0,
-                "duplicateDetailUrls": 0,
-                "newItems": 0,
-                "updatedItems": 0,
-                "unchangedItems": 0,
-                "warningCount": 0,
-            },
+            "queuedAt": queued_at,
+            "metrics": empty_operation_metrics(),
             "error": None,
         }
+        if ai_run is not None:
+            operation["aiRunId"] = ai_run["id"]
+            operation["activity"] = [
+                {
+                    "phase": "queued",
+                    "status": "running",
+                    "startedAt": queued_at,
+                    "finishedAt": None,
+                    "durationMs": None,
+                    "metrics": empty_operation_metrics(),
+                }
+            ]
         with self.transaction() as connection:
+            from extrio.collection_workflows import lock_collector
+            from extrio.collector_lifecycle import LifecycleError, active_blockers, require_active, source_execution_digest
+
+            lock_collector(self, connection, collector_id)
+            current_source = self.get_collector(collector_id, connection)
+            require_active(current_source)
+            if expected_source_digest is not None and expected_source_digest != source_execution_digest(current_source):
+                raise LifecycleError("COLLECTOR_CONFLICT")
+            if blockers := active_blockers(self, connection, collector_id):
+                raise LifecycleError(blockers[0])
+            if kind == "run":
+                if current_source.get("pendingCollectionVersion"):
+                    raise LifecycleError("MIGRATION_ALREADY_ACTIVE")
+                if current_source["status"] != "published" or not current_source.get("activeRuleVersion"):
+                    raise LifecycleError("RULE_NOT_PUBLISHED")
+                if run and run.get("ruleVersion") != current_source["activeRuleVersion"]:
+                    raise LifecycleError("COLLECTOR_CONFLICT")
+                if run and run.get("policyVersion") != current_source.get("activeCollectionPolicyId"):
+                    raise LifecycleError("COLLECTOR_CONFLICT")
+            job_payload = {**job_payload, "collectorId": collector_id, "managementRevision": current_source.get("managementRevision", 0)}
             if collector_changes or activate_collector:
-                collector = self.get_collector(collector_id, connection)
-                if collector is None:
-                    raise KeyError(collector_id)
+                collector = current_source
                 collector.update(collector_changes or {})
                 if activate_collector:
                     collector["activeOperationId"] = operation_id
@@ -1142,42 +1841,70 @@ class Store:
                     "finishedAt": None,
                     "durationMs": None,
                     "error": None,
+                    "activity": [{**entry, "metrics": dict(entry["metrics"])} for entry in operation["activity"]],
                 }
                 self.save_ai_run(ai_run, collector_id, operation_id, connection)
             connection.execute(
                 "INSERT INTO jobs(operation_id, kind, payload, status, available_at) VALUES(?, ?, ?, 'queued', ?)",
-                (operation_id, kind, self.dialect.json_param(job_payload), utc_now()),
+                (operation_id, kind, self.dialect.json_param(job_payload), queued_at),
             )
         return operation
 
     def claim_job(self, lease_seconds: int) -> dict[str, Any] | None:
+        from extrio.job_control import finish_resources
+
+        if lease_seconds < 1:
+            raise ValueError("job lease must be positive")
         now = utc_now()
         lease_until = (datetime.now(UTC) + timedelta(seconds=lease_seconds)).isoformat().replace("+00:00", "Z")
         with self.transaction() as connection:
             row = connection.execute(
-                """
+                f"""
                 SELECT * FROM jobs
                 WHERE available_at <= ? AND (status='queued' OR (status='processing' AND lease_until < ?))
-                ORDER BY id LIMIT 1
+                ORDER BY id LIMIT 1{self.dialect.row_lock_clause()}
                 """,
                 (now, now),
             ).fetchone()
             if not row:
                 return None
-            connection.execute(
-                "UPDATE jobs SET status='processing', attempts=attempts+1, lease_until=? WHERE id=?",
-                (lease_until, row["id"]),
-            )
-            return {
+            job = {
                 "id": row["id"],
                 "operationId": row["operation_id"],
                 "kind": row["kind"],
                 "payload": self.dialect.decode_json(row["payload"]),
                 "attempts": row["attempts"] + 1,
+                "leaseSeconds": lease_seconds,
             }
+            operation = self.get_operation(job["operationId"], connection)
+            if not operation or operation["status"] in TERMINAL_OPERATION_STATUSES:
+                connection.execute("UPDATE jobs SET status='completed', lease_until=NULL WHERE id=?", (job["id"],))
+                return None
+            if operation.get("cancelRequested") or row["attempts"] >= 3:
+                cancelled = bool(operation.get("cancelRequested"))
+                finish_resources(
+                    self,
+                    connection,
+                    job,
+                    {
+                        "code": "JOB_CANCELLED" if cancelled else "JOB_ATTEMPTS_EXHAUSTED",
+                        "message": "Job cancelled" if cancelled else "Job recovery attempts exhausted",
+                        "requestId": f"worker_{job['operationId']}",
+                        "retryable": False,
+                        "pointer": None,
+                        "details": {},
+                    },
+                    status="cancelled" if cancelled else "failed",
+                )
+                return None
+            connection.execute(
+                "UPDATE jobs SET status='processing', attempts=attempts+1, lease_until=? WHERE id=?",
+                (lease_until, row["id"]),
+            )
+            return job
 
-    def finish_job(self, job_id: int) -> None:
-        with self.transaction() as connection:
+    def finish_job(self, job_id: int, connection: DialectConnection | None = None) -> None:
+        with nullcontext(connection) if connection is not None else self.transaction() as connection:
             connection.execute("UPDATE jobs SET status='completed', lease_until=NULL WHERE id=?", (job_id,))
 
     def fail_job(self, job_id: int, message: str) -> None:
@@ -1185,28 +1912,123 @@ class Store:
             connection.execute("UPDATE jobs SET status='failed', lease_until=NULL, last_error=? WHERE id=?", (message[:2000], job_id))
 
     def list_runs(self) -> list[dict[str, Any]]:
+        from extrio.collector_history import history_source
+
         with self.connect() as connection:
-            rows = connection.execute("SELECT data, created_at FROM runs ORDER BY created_at DESC").fetchall()
+            rows = connection.execute(
+                f"SELECT data, created_at, collection_attribution, collector_deleted_at FROM {history_source('runs', 'run')} "
+                "ORDER BY created_at DESC"
+            ).fetchall()
         return [run for row in rows if (run := self._decode_run(row)) is not None]
 
+    def overview(self, *, timezone: str = "UTC", now: datetime | None = None) -> dict[str, Any]:
+        local_now = (now or datetime.now(UTC)).astimezone(ZoneInfo(timezone))
+        today = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+        monday = today - timedelta(days=today.weekday())
+        month = today.replace(day=1)
+
+        def shift_month(value: datetime, offset: int) -> datetime:
+            year, month_index = divmod(value.year * 12 + value.month - 1 + offset, 12)
+            return value.replace(year=year, month=month_index + 1, day=1)
+
+        def period(key: str, start: datetime, end: datetime) -> dict[str, str]:
+            return {
+                "key": key,
+                "labelDate": start.date().isoformat(),
+                "start": start.astimezone(UTC).isoformat().replace("+00:00", "Z"),
+                "end": end.astimezone(UTC).isoformat().replace("+00:00", "Z"),
+            }
+
+        periods = [period("today", today, today + timedelta(days=1)), period("week", monday, monday + timedelta(days=7))]
+        for index in range(14):
+            start = today + timedelta(days=index - 13)
+            periods.append(period(f"day-{index}", start, start + timedelta(days=1)))
+        for index in range(12):
+            start = monday + timedelta(weeks=index - 11)
+            periods.append(period(f"week-{index}", start, start + timedelta(days=7)))
+            start = shift_month(month, index - 11)
+            periods.append(period(f"month-{index}", start, shift_month(start, 1)))
+
+        field = self.dialect.json_extract_text
+        status = field("r.data", "status")
+        columns = {
+            "successful": f"CASE WHEN {status}='succeeded' THEN 1 ELSE 0 END",
+            "partial": f"CASE WHEN {status}='partially_succeeded' THEN 1 ELSE 0 END",
+            "failed": f"CASE WHEN {status} IN ('failed','cancelled','timed_out') THEN 1 ELSE 0 END",
+            "active": f"CASE WHEN {status} IN ('queued','running','finalizing') THEN 1 ELSE 0 END",
+            "accepted": f"CAST(COALESCE({field('r.data', 'acceptedCount')}, '0') AS BIGINT)",
+            "rejected": f"CAST(COALESCE({field('r.data', 'rejectedCount')}, '0') AS BIGINT)",
+        }
+        # Calendar boundaries use second prefixes so both whole and fractional UTC timestamps compare correctly.
+        bounds = " UNION ALL ".join("SELECT ? AS bucket, ? AS start_at, ? AS end_at" for _ in periods)
+        params = tuple(value for p in periods for value in (p["key"], p["start"][:-1], p["end"][:-1]))
+        aggregates = ", ".join(f"COALESCE(SUM({expression}), 0) AS {key}" for key, expression in columns.items())
+        with self.connect() as connection:
+            connection.execute("BEGIN" if self.dialect.name == "sqlite" else "BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY")
+            rows = connection.execute(
+                f"WITH periods AS ({bounds}) SELECT p.bucket, COUNT(r.id) AS runs, {aggregates} "
+                "FROM periods p LEFT JOIN runs r ON r.created_at >= p.start_at AND r.created_at < p.end_at GROUP BY p.bucket",
+                params,
+            ).fetchall()
+            collector_counts = connection.execute(
+                f"SELECT COUNT(*) AS total, COALESCE(SUM(CASE WHEN {field('data', 'status')}='published' "
+                f"AND COALESCE({field('data', 'lifecycle')}, 'active')='active' THEN 1 ELSE 0 END), 0) "
+                "AS published FROM collectors WHERE id NOT IN (SELECT id FROM deleted_collectors)"
+            ).fetchone()
+            # Latest identity matches the entity list; month membership uses its precise UTC persistence timestamp,
+            # not the legacy observedAt display string whose source timezone is unavailable.
+            current_items = self._item_query_source("entities")
+            month_bounds = period("month", month, shift_month(month, 1))
+            entity_counts = connection.execute(
+                f"SELECT COUNT(*) AS total, "
+                f"COALESCE(SUM(CASE WHEN {field('current_items.data', 'decision')}='accepted' THEN 1 ELSE 0 END), 0) AS accepted, "
+                f"COALESCE(SUM(CASE WHEN {field('current_items.data', 'decision')}='rejected' THEN 1 ELSE 0 END), 0) AS rejected "
+                f"FROM {current_items} JOIN items recorded ON recorded.id=current_items.id "
+                "WHERE recorded.created_at >= ? AND recorded.created_at < ?",
+                (month_bounds["start"][:-1], month_bounds["end"][:-1]),
+            ).fetchone()
+            connection.rollback()
+        by_key = {}
+        for row in rows:
+            counts = {key: int(row[key]) for key in ("runs", *columns)}
+            counts["completed"] = counts["successful"] + counts["partial"] + counts["failed"]
+            by_key[row["bucket"]] = counts
+        buckets = {p["key"]: {**p, **by_key[p["key"]]} for p in periods}
+        return {
+            "generatedAt": local_now.astimezone(UTC).isoformat().replace("+00:00", "Z"),
+            "timezone": timezone,
+            "today": buckets["today"],
+            "week": buckets["week"],
+            "monthEntities": {key: int(entity_counts[key]) for key in ("total", "accepted", "rejected")},
+            "collectors": {key: int(collector_counts[key]) for key in ("total", "published")},
+            "trends": {unit: [buckets[f"{unit}-{i}"] for i in range(14 if unit == "day" else 12)] for unit in ("day", "week", "month")},
+        }
+
     def get_run(self, run_id: str, connection: DialectConnection | None = None) -> dict[str, Any] | None:
+        from extrio.collector_history import history_source
+
+        query = f"SELECT data, created_at, collection_attribution, collector_deleted_at FROM {history_source('runs', 'run')} WHERE id=?"
         if connection is not None:
-            return self._decode_run(connection.execute("SELECT data, created_at FROM runs WHERE id=?", (run_id,)).fetchone())
+            return self._decode_run(connection.execute(query, (run_id,)).fetchone())
         with self.connect() as own:
-            return self._decode_run(own.execute("SELECT data, created_at FROM runs WHERE id=?", (run_id,)).fetchone())
+            return self._decode_run(own.execute(query, (run_id,)).fetchone())
 
     def save_run(self, run: dict[str, Any], connection: DialectConnection | None = None) -> None:
+        if connection is None:
+            with self.transaction() as connection:
+                self.save_run(run, connection)
+            return
+        from extrio.collector_history import record_new_history
+
+        record_new_history(self, connection, "run", run, run["collectorId"])
+        run = {k: v for k, v in run.items() if k not in {"collectionAttribution", "collectorDeleted"}}
         now = utc_now()
         sql = """
             INSERT INTO runs(id, collector_id, data, created_at, updated_at) VALUES(?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET data=excluded.data, updated_at=excluded.updated_at
         """
         params = (run["id"], run["collectorId"], self.dialect.json_param(run), now, now)
-        if connection is not None:
-            connection.execute(sql, params)
-            return
-        with self.transaction() as own:
-            own.execute(sql, params)
+        connection.execute(sql, params)
 
     def save_items(self, run_id: str, items: list[dict[str, Any]], connection: DialectConnection | None = None) -> None:
         if connection is not None:
@@ -1220,17 +2042,56 @@ class Store:
         for item in items:
             connection.execute(
                 "INSERT INTO items(id, run_id, data, created_at) VALUES(?, ?, ?, ?)",
-                (item["id"], run_id, self.dialect.json_param(item), utc_now()),
+                (
+                    item["id"],
+                    run_id,
+                    self.dialect.json_param({k: v for k, v in item.items() if k not in {"collectionAttribution", "collectorDeleted"}}),
+                    utc_now(),
+                ),
             )
 
     def list_items(self) -> list[dict[str, Any]]:
+        from extrio.collector_history import item_source
+
         with self.connect() as connection:
-            rows = connection.execute("SELECT data FROM items ORDER BY created_at DESC").fetchall()
-        return [self.dialect.decode_json(row["data"]) for row in rows]
+            rows = connection.execute(
+                f"SELECT data, collection_attribution, collector_deleted_at FROM {item_source()} ORDER BY created_at DESC"
+            ).fetchall()
+        return [self._decode(row) for row in rows]
+
+    def latest_accepted_items(self, collector_id: str, entity_keys: set[str]) -> list[dict[str, Any]]:
+        from extrio.collector_history import item_source
+
+        field = self.dialect.json_extract_text
+        keys = sorted(entity_keys)
+        items = []
+        with self.connect() as connection:
+            collector = self.get_collector(collector_id, connection)
+            if collector is None:
+                return []
+            for offset in range(0, len(keys), 500):
+                batch = keys[offset : offset + 500]
+                placeholders = ",".join("?" for _ in batch)
+                rows = connection.execute(
+                    "SELECT data, collection_attribution FROM (SELECT data, collection_attribution, ROW_NUMBER() OVER ("
+                    f"PARTITION BY {field('data', 'entityKey')} ORDER BY {field('data', 'observedAt')} DESC, id DESC) AS rank "
+                    f"FROM {item_source()} WHERE {field('data', 'collectorId')}=? AND {field('data', 'entityKey')} IN ({placeholders}) "
+                    f"AND ({field('collection_attribution', 'collectionId')}=? OR (collection_attribution IS NULL AND ?=0)) "
+                    f"AND {field('data', 'decision')}='accepted') latest WHERE rank=1",
+                    (collector_id, *batch, collector["collectionId"], int(bool(collector.get("hasReassignmentHistory")))),
+                ).fetchall()
+                items.extend(self._decode(row) for row in rows)
+        return items
 
     def get_item(self, item_id: str) -> dict[str, Any] | None:
+        from extrio.collector_history import item_source
+
         with self.connect() as connection:
-            return self._decode(connection.execute("SELECT data FROM items WHERE id=?", (item_id,)).fetchone())
+            return self._decode(
+                connection.execute(
+                    f"SELECT data, collection_attribution, collector_deleted_at FROM {item_source()} WHERE id=?", (item_id,)
+                ).fetchone()
+            )
 
     def _item_filter_clauses(
         self,
@@ -1239,6 +2100,8 @@ class Store:
         run_id: str | None,
         decision: str | None,
         entity_key: str | None,
+        source_host: str | None = None,
+        q: str | None = None,
     ) -> tuple[list[str], list[Any]]:
         clauses: list[str] = []
         params: list[Any] = []
@@ -1254,7 +2117,49 @@ class Store:
         if entity_key is not None:
             clauses.append(f"{self.dialect.json_extract_text('data', 'entityKey')}=?")
             params.append(entity_key)
+        if source_host is not None:
+            clauses.append(f"{self.dialect.json_extract_text('data', 'sourceHost')}=?")
+            params.append(source_host)
+        if q and q.strip():
+            pattern = "%" + q.strip().lower().replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%"
+            fields = ("title", "content", "collectorName", "entityKey")
+            clauses.append(
+                "("
+                + " OR ".join(f"LOWER(COALESCE({self.dialect.json_extract_text('data', field)}, '')) LIKE ? ESCAPE '!'" for field in fields)
+                + ")"
+            )
+            params.extend([pattern] * len(fields))
         return clauses, params
+
+    def _item_query_source(self, view: str) -> str:
+        from extrio.collector_history import item_source
+
+        if view == "observations":
+            return item_source()
+        if view != "entities":
+            raise ValueError("unsupported item view")
+        field = self.dialect.json_extract_text
+        # Rank before filtering so an older matching observation cannot replace current state.
+        return (
+            "(SELECT current.id, current.run_id, current.data, current.collection_attribution, current.collector_deleted_at "
+            f"FROM (SELECT * FROM {item_source()}) current JOIN (SELECT id, ROW_NUMBER() OVER ("
+            f"PARTITION BY {field('data', 'collectorId')}, {field('collection_attribution', 'collectionId')}, {field('data', 'entityKey')} "
+            f"ORDER BY {field('data', 'observedAt')} DESC, id DESC) AS entity_rank "
+            f"FROM {item_source()}) ranked ON current.id=ranked.id WHERE entity_rank=1) current_items"
+        )
+
+    def _item_facets(self, connection: DialectConnection, source: str) -> dict[str, Any]:
+        field = self.dialect.json_extract_text
+        rows = connection.execute(
+            f"SELECT DISTINCT {field('data', 'sourceHost')} AS host, "
+            f"{field('data', 'collectorId')} AS collector_id, {field('data', 'collectorName')} AS name "
+            f"FROM {source} ORDER BY host, collector_id, name"
+        ).fetchall()
+        collectors = {str(row["collector_id"]): str(row["name"]) for row in rows}
+        return {
+            "sourceHosts": sorted({str(row["host"]) for row in rows}),
+            "collectors": [{"id": key, "name": name} for key, name in collectors.items()],
+        }
 
     def list_items_cursor(
         self,
@@ -1266,6 +2171,10 @@ class Store:
         sort_key: str = "observed_at",
         limit: int = 50,
         cursor: str | None = None,
+        view: str = "observations",
+        source_host: str | None = None,
+        q: str | None = None,
+        page_number: int | None = None,
     ) -> dict[str, Any]:
         """Page items in the deterministic output-loop order.
 
@@ -1277,38 +2186,70 @@ class Store:
         :class:`InvalidCursor` (error code ``INVALID_CURSOR``). Items always
         carry non-null ``observedAt``/``entityKey`` fields, which holds for
         every item produced by the harvest pipeline.
+
+        ``page_number`` selects a random-access LIMIT/OFFSET page with exact
+        filter totals. It is mutually exclusive with cursor; requests are
+        live reads rather than a shared snapshot across pages.
         """
 
         if sort_key != "observed_at":
             raise ValueError("only the observed_at sort key is supported")
         if limit < 1:
             raise ValueError("limit must be positive")
+        if page_number is not None and (page_number < 1 or cursor is not None):
+            raise ValueError("page_number must be positive and cannot be combined with cursor")
         observed_at = self.dialect.json_extract_text("data", "observedAt")
         entity_key_expression = self.dialect.json_extract_text("data", "entityKey")
+        source = self._item_query_source(view)
         clauses, params = self._item_filter_clauses(
             collector_id=collector_id,
             run_id=run_id,
             decision=decision,
             entity_key=entity_key,
+            source_host=source_host,
+            q=q,
         )
+        filter_where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        filter_params = tuple(params)
         if cursor is not None:
             cursor_observed_at, cursor_entity_key, cursor_item_id = decode_item_cursor(cursor)
             clauses.append(f"({observed_at}, {entity_key_expression}, id) < (?, ?, ?)")
             params.extend((cursor_observed_at, cursor_entity_key, cursor_item_id))
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
         with self.connect() as connection:
+            metadata = {}
+            offset = 0
+            if view == "entities" or page_number is not None:
+                metadata["total"] = int(
+                    connection.execute(
+                        f"SELECT COUNT(*) AS total FROM {source} {filter_where}",
+                        filter_params,
+                    ).fetchone()["total"]
+                )
+            if page_number is not None:
+                total_pages = max(1, (metadata["total"] + limit - 1) // limit)
+                effective_page = min(page_number, total_pages)
+                offset = (effective_page - 1) * limit
+                metadata["pagination"] = {
+                    "page": effective_page,
+                    "pageSize": limit,
+                    "totalPages": total_pages,
+                    "total": metadata["total"],
+                }
             rows = connection.execute(
-                f"SELECT data FROM items {where} "
-                f"ORDER BY {observed_at} DESC, {entity_key_expression} DESC, id DESC LIMIT ?",
-                (*params, limit + 1),
+                f"SELECT data, collection_attribution, collector_deleted_at FROM {source} {where} "
+                f"ORDER BY {observed_at} DESC, {entity_key_expression} DESC, id DESC LIMIT ? OFFSET ?",
+                (*params, limit + 1, offset),
             ).fetchall()
+            if view == "entities":
+                metadata["facets"] = self._item_facets(connection, source)
         has_more = len(rows) > limit
-        items = [self.dialect.decode_json(row["data"]) for row in rows[:limit]]
+        items = [self._decode(row) for row in rows[:limit]]
         next_cursor = None
         if has_more and items:
             last = items[-1]
             next_cursor = encode_item_cursor(str(last["observedAt"]), str(last["entityKey"]), str(last["id"]))
-        return {"items": items, "nextCursor": next_cursor}
+        return {"items": items, "nextCursor": next_cursor, **metadata}
 
     def iter_items_export(
         self,
@@ -1317,6 +2258,9 @@ class Store:
         run_id: str | None = None,
         decision: str | None = None,
         entity_key: str | None = None,
+        view: str = "observations",
+        source_host: str | None = None,
+        q: str | None = None,
     ) -> Iterator[dict[str, Any]]:
         """Yield items in the same deterministic order as ``list_items_cursor``.
 
@@ -1327,22 +2271,26 @@ class Store:
 
         observed_at = self.dialect.json_extract_text("data", "observedAt")
         entity_key_expression = self.dialect.json_extract_text("data", "entityKey")
+        source = self._item_query_source(view)
         clauses, params = self._item_filter_clauses(
             collector_id=collector_id,
             run_id=run_id,
             decision=decision,
             entity_key=entity_key,
+            source_host=source_host,
+            q=q,
         )
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
         connection = self.connect()
         try:
             cursor = connection.execute(
-                f"SELECT data FROM items {where} ORDER BY {observed_at} DESC, {entity_key_expression} DESC, id DESC",
+                f"SELECT data, collection_attribution, collector_deleted_at FROM {source} {where} "
+                f"ORDER BY {observed_at} DESC, {entity_key_expression} DESC, id DESC",
                 tuple(params),
             )
             while batch := cursor.fetchmany(500):
                 for row in batch:
-                    yield self.dialect.decode_json(row["data"])
+                    yield self._decode(row)
         finally:
             connection.close()
 
@@ -1356,7 +2304,7 @@ class Store:
             if connection is None:
                 target.close()
 
-    def ensure_signing_key(self, signing_key: dict[str, Any]) -> dict[str, Any]:
+    def ensure_signing_key(self, signing_key: dict[str, Any], *, audit: dict[str, Any] | None = None) -> dict[str, Any]:
         with self.transaction() as connection:
             row = connection.execute("SELECT data FROM signing_keys WHERE id=?", (signing_key["id"],)).fetchone()
             if row:
@@ -1377,6 +2325,16 @@ class Store:
                     now,
                 ),
             )
+            if audit:
+                self._append_audit_event(
+                    connection,
+                    tenant_id=signing_key["tenantId"],
+                    target_type="SigningKey",
+                    target_id=signing_key["id"],
+                    audit=audit,
+                    before_digest=None,
+                    after_digest=f"sha256:{payload_hash(signing_key)}",
+                )
             return signing_key
 
     def get_signing_key(self, key_id: str, connection: DialectConnection | None = None) -> dict[str, Any] | None:
@@ -1397,6 +2355,8 @@ class Store:
         if status not in {"trusted", "retired", "compromised"}:
             raise ValueError("unsupported signing key status")
         with self.transaction() as connection:
+            if self.dialect.name == "postgresql":
+                connection.execute("SELECT id FROM signing_keys WHERE id=? FOR UPDATE", (key_id,)).fetchone()
             signing_key = self.get_signing_key(key_id, connection)
             if signing_key is None:
                 raise KeyError(key_id)
@@ -1461,6 +2421,9 @@ class Store:
         before_digest: str | None,
         after_digest: str | None,
     ) -> dict[str, Any]:
+        if self.dialect.name == "postgresql":
+            lock_id = int.from_bytes(hashlib.sha256(f"audit:{tenant_id}".encode()).digest()[:8], signed=True)
+            connection.execute("SELECT pg_advisory_xact_lock(?)", (lock_id,))
         previous_row = connection.execute(
             "SELECT id, event_hash FROM audit_events WHERE tenant_id=? ORDER BY sequence DESC LIMIT 1",
             (tenant_id,),
@@ -1495,13 +2458,37 @@ class Store:
         attestation: dict[str, Any],
         collector_changes: dict[str, Any],
         audit: dict[str, Any],
+        expected_source_digest: str | None = None,
     ) -> dict[str, Any]:
         with self.transaction() as connection:
+            from extrio.collection_workflows import lock_collector
+            from extrio.integrity import IntegrityError
+
+            lock_collector(self, connection, collector_id)
             collector = self.get_collector(collector_id, connection)
+            from extrio.collector_lifecycle import LifecycleError, require_active, source_execution_digest
+
+            require_active(collector)
+            if expected_source_digest is not None and expected_source_digest != source_execution_digest(collector):
+                raise LifecycleError("COLLECTOR_CONFLICT")
             if collector is None:
                 raise KeyError(collector_id)
+            binding = collector.get("pendingCollectionVersion") or collector.get("collectionVersion")
+            if binding and binding != "tender_notice_v4":
+                frozen = self.get_collection_version(binding, connection)
+                spec = rule_version["gatherSpec"]
+                if (
+                    frozen is None
+                    or frozen["collectionId"] != collector.get("collectionId")
+                    or spec["collectionVersionRef"]["collectionVersionId"] != binding
+                    or any(
+                        spec["contract"].get(key) != frozen[key]
+                        for key in ("normalizedItemSchema", "identityFields", "fingerprintFields", "outputContractDigest")
+                    )
+                ):
+                    raise IntegrityError("Candidate does not match the reviewed collection version")
             if self.get_rule_version(rule_version["id"], connection) is not None:
-                raise ValueError("rule version already exists and is immutable")
+                raise LifecycleError("COLLECTOR_CONFLICT")
             connection.execute(
                 "INSERT INTO rule_versions(id, tenant_id, collector_id, rule_digest, data, created_at) VALUES(?, ?, ?, ?, ?, ?)",
                 (
@@ -1539,6 +2526,10 @@ class Store:
                 after_digest=rule_version["ruleDigest"],
             )
             collector.update(collector_changes)
+            if collector.get("pendingCollectionVersion"):
+                collector.update(collectionVersion=binding, pendingCollectionVersion=None, collectionMigration=None, checkpoint=None)
+                connection.execute("DELETE FROM collector_checkpoints WHERE collector_id=?", (collector_id,))
+                connection.execute("DELETE FROM collection_migrations WHERE collector_id=?", (collector_id,))
             self.save_collector(collector, connection)
             self.mark_latest_ai_run_published(collector_id, rule_version["id"], connection)
             return collector
@@ -1604,6 +2595,11 @@ class Store:
         now = utc_now()
         sink_id = stable_id("sink", f"{collector_id}_{uuid.uuid4().hex}", 40)
         with self.transaction() as connection:
+            from extrio.collection_workflows import lock_collector
+
+            lock_collector(self, connection, collector_id)
+            if secret:
+                validate_stored_credentials(self, cipher, connection)
             connection.execute(
                 """
                 INSERT INTO sinks(id, collector_id, type, url, secret_encrypted, enabled, version, created_at, updated_at)
@@ -1639,9 +2635,17 @@ class Store:
         if url is not None and (not isinstance(url, str) or not url.strip()):
             raise ValueError("sink url must be a non-empty string")
         with self.transaction() as connection:
+            from extrio.collection_workflows import lock_collector
+
+            source = connection.execute("SELECT collector_id FROM sinks WHERE id=?", (sink_id,)).fetchone()
+            if source is None:
+                raise KeyError(sink_id)
+            lock_collector(self, connection, source["collector_id"])
             row = connection.execute("SELECT * FROM sinks WHERE id=?", (sink_id,)).fetchone()
             if row is None:
                 raise KeyError(sink_id)
+            if secret is not None:
+                validate_stored_credentials(self, cipher, connection)
             connection.execute(
                 "UPDATE sinks SET url=?, enabled=?, secret_encrypted=?, version=version+1, updated_at=? WHERE id=?",
                 (
@@ -1664,8 +2668,8 @@ class Store:
             view["secret"] = cipher.decrypt(str(row["secret_encrypted"]))
         return view
 
-    def list_sinks_for_collector(self, collector_id: str) -> list[dict[str, Any]]:
-        with self.connect() as connection:
+    def list_sinks_for_collector(self, collector_id: str, connection: DialectConnection | None = None) -> list[dict[str, Any]]:
+        with nullcontext(connection) if connection is not None else self.connect() as connection:
             rows = connection.execute(
                 "SELECT * FROM sinks WHERE collector_id=? ORDER BY created_at DESC, id DESC",
                 (collector_id,),
@@ -1674,9 +2678,12 @@ class Store:
 
     def delete_sink(self, sink_id: str) -> None:
         with self.transaction() as connection:
-            row = connection.execute("SELECT id FROM sinks WHERE id=?", (sink_id,)).fetchone()
+            from extrio.collection_workflows import lock_collector
+
+            row = connection.execute("SELECT collector_id FROM sinks WHERE id=?", (sink_id,)).fetchone()
             if row is None:
                 raise KeyError(sink_id)
+            lock_collector(self, connection, row["collector_id"])
             connection.execute("DELETE FROM sinks WHERE id=?", (sink_id,))
 
     @staticmethod
@@ -1700,6 +2707,7 @@ class Store:
         sink_id: str,
         item_event_id: str,
         sink_version_id: str | None = None,
+        connection: DialectConnection | None = None,
     ) -> dict[str, Any]:
         """Idempotently enqueue an item event for a sink; duplicates return the same delivery."""
 
@@ -1712,7 +2720,7 @@ class Store:
             ) VALUES(?, ?, ?, ?, ?, 'pending', 0, ?, ?, ?)
             """
         )
-        with self.transaction() as connection:
+        with nullcontext(connection) if connection is not None else self.transaction() as connection:
             if sink_version_id is None:
                 sink = connection.execute("SELECT id, version FROM sinks WHERE id=?", (sink_id,)).fetchone()
                 if sink is None:
@@ -1767,16 +2775,59 @@ class Store:
             ).fetchall()
             for row in rows:
                 connection.execute(
-                    "UPDATE deliveries SET status='delivering', lease_until=?, updated_at=? WHERE id=?",
-                    (lease_until, utc_now(), row["id"]),
+                    "UPDATE deliveries SET status='delivering', lease_until=?, lease_token=?, "
+                    "cycle_attempts=cycle_attempts+1, updated_at=? WHERE id=?",
+                    (lease_until, uuid.uuid4().hex, utc_now(), row["id"]),
                 )
                 claimed_row = connection.execute("SELECT * FROM deliveries WHERE id=?", (row["id"],)).fetchone()
                 view = self._delivery_view(claimed_row)
                 view["sinkType"] = row["sink_type"]
                 view["sinkUrl"] = row["sink_url"]
                 view["secretEncrypted"] = row["sink_secret_encrypted"]
+                view["leaseToken"] = claimed_row["lease_token"]
+                view["cycleAttempts"] = int(claimed_row["cycle_attempts"])
                 claimed.append(view)
         return claimed
+
+    def check_delivery_lease(self, delivery: dict[str, Any], connection: DialectConnection | None = None) -> None:
+        from extrio.job_control import JobLeaseLost
+
+        with nullcontext(connection) if connection is not None else self.connect() as connection:
+            suffix = " FOR UPDATE" if self.dialect.name == "postgresql" else ""
+            row = connection.execute(
+                "SELECT status, lease_token, lease_until FROM deliveries WHERE id=?" + suffix, (delivery["id"],)
+            ).fetchone()
+            if (
+                not row
+                or row["status"] != "delivering"
+                or not delivery.get("leaseToken")
+                or row["lease_token"] != delivery["leaseToken"]
+                or not row["lease_until"]
+                or row["lease_until"] <= utc_now()
+            ):
+                raise JobLeaseLost("delivery lease is no longer owned")
+
+    def finalize_delivery(
+        self,
+        delivery: dict[str, Any],
+        *,
+        status: str,
+        status_code: int | None = None,
+        error: str | None = None,
+        next_attempt_at: str | None = None,
+        record_attempt: bool = True,
+    ) -> None:
+        if status not in {"delivered", "failed", "dead_lettered"}:
+            raise ValueError("invalid delivery outcome")
+        with self.transaction() as connection:
+            self.check_delivery_lease(delivery, connection)
+            if record_attempt:
+                self.record_delivery_attempt(delivery["id"], status_code=status_code, error=error, connection=connection)
+            connection.execute(
+                "UPDATE deliveries SET status=?, last_error=?, next_attempt_at=?, "
+                "lease_until=NULL, lease_token=NULL, updated_at=? WHERE id=?",
+                (status, error, next_attempt_at, utc_now(), delivery["id"]),
+            )
 
     def record_delivery_attempt(
         self,
@@ -1787,6 +2838,7 @@ class Store:
         started_at: str | None = None,
         finished_at: str | None = None,
         next_attempt_at: str | None = None,
+        connection: DialectConnection | None = None,
     ) -> dict[str, Any]:
         """Append an attempt to the append-only history and refresh delivery stats.
 
@@ -1797,7 +2849,7 @@ class Store:
         """
 
         now = utc_now()
-        with self.transaction() as connection:
+        with nullcontext(connection) if connection is not None else self.transaction() as connection:
             row = connection.execute("SELECT status, attempt_count FROM deliveries WHERE id=?", (delivery_id,)).fetchone()
             if row is None:
                 raise KeyError(delivery_id)
@@ -1827,9 +2879,7 @@ class Store:
                 """,
                 (attempt_no, status_code, error, next_attempt_at, "failed" if error is not None else str(row["status"]), now, delivery_id),
             )
-            return self._delivery_view(
-                connection.execute("SELECT * FROM deliveries WHERE id=?", (delivery_id,)).fetchone()
-            )
+            return self._delivery_view(connection.execute("SELECT * FROM deliveries WHERE id=?", (delivery_id,)).fetchone())
 
     def mark_delivery_delivered(self, delivery_id: str) -> dict[str, Any]:
         with self.transaction() as connection:
@@ -1860,12 +2910,13 @@ class Store:
             ).fetchall()
         return [self._delivery_view(row) for row in rows]
 
-    def redeliver_delivery(self, delivery_id: str) -> dict[str, Any]:
+    def redeliver_delivery(self, delivery_id: str, *, audit: dict[str, Any] | None = None) -> dict[str, Any]:
         """Manually reset a delivery to ``pending`` keeping its id and attempt history."""
 
         now = utc_now()
         with self.transaction() as connection:
-            row = connection.execute("SELECT status FROM deliveries WHERE id=?", (delivery_id,)).fetchone()
+            suffix = " FOR UPDATE" if self.dialect.name == "postgresql" else ""
+            row = connection.execute("SELECT status FROM deliveries WHERE id=?" + suffix, (delivery_id,)).fetchone()
             if row is None:
                 raise KeyError(delivery_id)
             if row["status"] == "delivering":
@@ -1873,11 +2924,22 @@ class Store:
             connection.execute(
                 """
                 UPDATE deliveries
-                SET status='pending', next_attempt_at=?, lease_until=NULL, redelivery_count=redelivery_count+1, updated_at=?
+                SET status='pending', next_attempt_at=?, lease_until=NULL, lease_token=NULL, cycle_attempts=0,
+                    redelivery_count=redelivery_count+1, updated_at=?
                 WHERE id=?
                 """,
                 (now, now, delivery_id),
             )
+            if audit:
+                self._append_audit_event(
+                    connection,
+                    tenant_id=audit["tenantId"],
+                    target_type="Delivery",
+                    target_id=delivery_id,
+                    audit={**audit, "action": "delivery.redeliver"},
+                    before_digest=None,
+                    after_digest=None,
+                )
             return self._delivery_view(connection.execute("SELECT * FROM deliveries WHERE id=?", (delivery_id,)).fetchone())
 
     def get_delivery(self, delivery_id: str) -> dict[str, Any] | None:
@@ -1932,7 +2994,8 @@ class Store:
         status_expression = self.dialect.json_extract_text("data", "status")
         with self.connect() as connection:
             rows = connection.execute(
-                f"SELECT {status_expression} AS status, COUNT(*) AS total FROM collectors GROUP BY {status_expression}"
+                f"SELECT {status_expression} AS status, COUNT(*) AS total FROM collectors "
+                f"WHERE id NOT IN (SELECT id FROM deleted_collectors) GROUP BY {status_expression}"
             ).fetchall()
         return {str(row["status"]): int(row["total"]) for row in rows}
 
@@ -1988,17 +3051,24 @@ class Store:
             counts["enabled" if bool(row["enabled"]) else "disabled"] = int(row["total"])
         return counts
 
-    def recent_run_statuses(self, collector_id: str, limit: int) -> list[str]:
+    def recent_run_statuses(self, collector_id: str, limit: int, connection=None) -> list[str]:
         """Return the ``limit`` most recent run statuses for a collector, newest first."""
 
         if limit < 1:
             raise ValueError("limit must be positive")
         status_expression = self.dialect.json_extract_text("data", "status")
-        with self.connect() as connection:
+        from extrio.collector_history import history_source
+
+        owner_id = self.dialect.json_extract_text("collection_attribution", "collectionId")
+        with nullcontext(connection) if connection is not None else self.connect() as connection:
+            collector = self.get_collector(collector_id, connection)
+            if collector is None:
+                return []
             rows = connection.execute(
-                f"SELECT {status_expression} AS status FROM runs WHERE collector_id=? "
+                f"SELECT {status_expression} AS status FROM {history_source('runs', 'run')} WHERE collector_id=? "
+                f"AND ({owner_id}=? OR (collection_attribution IS NULL AND ?=0)) "
                 "ORDER BY created_at DESC, updated_at DESC, id DESC LIMIT ?",
-                (collector_id, limit),
+                (collector_id, collector["collectionId"], int(bool(collector.get("hasReassignmentHistory"))), limit),
             ).fetchall()
         return [str(row["status"]) for row in rows]
 
@@ -2016,6 +3086,8 @@ class Store:
         (both dialects store timestamps as ISO-8601 UTC strings).
         """
 
+        from extrio.collector_history import history_source
+
         clauses = ["collector_id=?"]
         params: list[Any] = [collector_id]
         if since:
@@ -2026,7 +3098,8 @@ class Store:
             params.append(until)
         with self.connect() as connection:
             rows = connection.execute(
-                f"SELECT data, created_at FROM runs WHERE {' AND '.join(clauses)} ORDER BY created_at, id",
+                f"SELECT data, created_at, collection_attribution, collector_deleted_at FROM {history_source('runs', 'run')} "
+                f"WHERE {' AND '.join(clauses)} ORDER BY created_at, id",
                 tuple(params),
             ).fetchall()
         return [run for row in rows if (run := self._decode_run(row)) is not None]
@@ -2084,13 +3157,16 @@ class Store:
         where = f"WHERE {' AND '.join(clauses)}"
         connection = self.connect()
         try:
+            from extrio.collector_history import item_source
+
             cursor = connection.execute(
-                f"SELECT data FROM items {where} ORDER BY {observed_at} DESC, {entity_key_expression} DESC, id DESC",
+                f"SELECT data, collection_attribution, collector_deleted_at FROM {item_source()} {where} "
+                f"ORDER BY {observed_at} DESC, {entity_key_expression} DESC, id DESC",
                 tuple(params),
             )
             while batch := cursor.fetchmany(500):
                 for row in batch:
-                    yield self.dialect.decode_json(row["data"])
+                    yield self._decode(row)
         finally:
             connection.close()
 

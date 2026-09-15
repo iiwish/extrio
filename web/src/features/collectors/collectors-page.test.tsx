@@ -4,17 +4,18 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { seedCollectors, seedRuns } from '@/api/fixtures'
+import { mockCollectorPage } from '@/api/workspace-mock'
 import { CollectorsPage } from './collectors-page'
 
 function json(data: unknown) {
   return new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json' } })
 }
 
-function renderPage() {
+function renderPage(entry = '/collectors') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[entry]}>
         <CollectorsPage />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -29,8 +30,9 @@ describe('CollectorsPage operational list', () => {
       collectionName: index === 0 ? '全国公共资源交易标讯' : '政府采购公告',
     }))
     vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request) => {
-      const path = new URL(String(input), 'http://localhost').pathname
-      if (path.endsWith('/collectors')) return json({ items: collectors, page: { nextCursor: null } })
+      const url = new URL(String(input), 'http://localhost')
+      const path = url.pathname
+      if (path.endsWith('/collectors')) return json(mockCollectorPage(url.searchParams, collectors, seedRuns))
       if (path.endsWith('/runs')) return json({ items: seedRuns, page: { nextCursor: null } })
       return json({ message: 'Not found' })
     }))
@@ -44,13 +46,13 @@ describe('CollectorsPage operational list', () => {
   it('renders a fixed-column list without layout switching or redundant labels', async () => {
     renderPage()
 
-    const list = await screen.findByLabelText('Collector 列表')
+    const list = await screen.findByLabelText('采集来源列表')
     await within(list).findByRole('link', { name: /北京市公共资源交易标讯/ })
-    const toolbar = screen.getByLabelText('采集器工具栏')
-    expect(within(toolbar).getByRole('link', { name: '新建采集器' })).toHaveAttribute('href', '/collectors/new')
-    expect(screen.queryByLabelText('采集器概览')).not.toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: '采集器' })).toHaveClass('sr-only')
-    expect(within(toolbar).queryByRole('group', { name: 'Collector 列表布局' })).not.toBeInTheDocument()
+    const toolbar = screen.getByLabelText('采集来源工具栏')
+    expect(within(toolbar).getByRole('link', { name: '新建采集来源' })).toHaveAttribute('href', '/collectors/new')
+    expect(screen.queryByLabelText('采集来源概览')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '采集来源' })).toHaveClass('sr-only')
+    expect(within(toolbar).queryByRole('group', { name: '采集来源列表布局' })).not.toBeInTheDocument()
     expect(within(toolbar).queryByText('采集需求')).not.toBeInTheDocument()
     expect(within(list).getByText('所属需求')).toBeInTheDocument()
     expect(within(list).getAllByRole('link')).toHaveLength(2)
@@ -72,6 +74,49 @@ describe('CollectorsPage operational list', () => {
 
     await user.click(within(listbox).getByRole('option', { name: /政府采购公告/ }))
     expect(combobox).toHaveTextContent('政府采购公告')
-    expect(screen.getByRole('link', { name: '新建采集器' })).toHaveAttribute('href', '/collectors/new?collection=collection_procurement')
+    expect(screen.getByRole('link', { name: '新建采集来源' })).toHaveAttribute('href', '/collectors/new?collection=collection_procurement')
   })
+
+  it('searches sources and clears only the search, preserving the selected view', async () => {
+    const user = userEvent.setup()
+    renderPage('/collectors?view=attention&q=北京市')
+    const row = await screen.findByRole('link', {name:/北京市公共资源交易标讯/})
+    expect(row.getAttribute('href')).toContain('returnTo=')
+    expect(screen.getByRole('button', {name:/需处理/})).toHaveAttribute('aria-pressed', 'true')
+    await user.click(screen.getByRole('button', {name:'清空搜索'}))
+    expect(screen.getByRole('textbox', {name:'搜索采集来源'})).toHaveValue('')
+    expect(screen.getByRole('button', {name:/需处理/})).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('shows a retryable failure rather than an empty or healthy list', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({message:'Unavailable'}), {status:503})))
+    renderPage()
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(screen.getByRole('button', {name:'刷新'})).toBeInTheDocument()
+    expect(screen.queryByText('当前筛选下没有采集来源。')).not.toBeInTheDocument()
+  })
+
+  it('includes the first-run work linked from the home attention list', async () => {
+    const collector = { ...seedCollectors[0], status: 'published', activeRuleVersion: 'rule', activeOperationId: null, latestRunId: null }
+    vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request) => json(mockCollectorPage(new URL(String(input), 'http://localhost').searchParams, [collector as typeof seedCollectors[number]], []))))
+    renderPage('/collectors?view=attention')
+    expect(await screen.findByRole('link', { name: /执行首次运行/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /需处理/ })).toHaveTextContent('1')
+  })
+
+  it.each(['cancelled', 'queued', 'running', 'finalizing', 'missing'] as const)(
+    'does not label a %s latest run healthy or hide unresolved runs from attention', async (status) => {
+      const collector = { ...seedCollectors[0], status: 'published', activeRuleVersion: 'rule_v1', latestRunId: 'latest' }
+      const runs = status === 'missing' ? [] : [{ ...seedRuns[0], id: 'latest', status, rejectedCount: 0 }]
+      vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request) => {
+        const url = new URL(String(input), 'http://localhost')
+        return json(mockCollectorPage(url.searchParams, [collector as typeof seedCollectors[number]], runs))
+      }))
+      renderPage(status === 'cancelled' || status === 'missing' ? '/collectors?view=attention' : '/collectors')
+      const list = screen.getByLabelText('采集来源列表')
+      const row = await within(list).findByRole('link')
+      expect(within(row).queryByText('运行健康')).not.toBeInTheDocument()
+      expect(row).toHaveTextContent(status === 'cancelled' || status === 'missing' ? '处理最近运行' : '查看运行进度')
+    },
+  )
 })

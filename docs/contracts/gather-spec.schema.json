@@ -259,7 +259,7 @@
         "equalsAny": {
           "type": "array",
           "minItems": 1,
-          "maxItems": 32,
+          "maxItems": 1,
           "uniqueItems": true,
           "items": {
             "anyOf": [

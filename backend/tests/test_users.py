@@ -154,7 +154,7 @@ def test_role_matrix_on_collector_and_settings_mutations(user_store: Store) -> N
     patched = engineer.patch(
         f"/api/v1/collectors/{collector_id}",
         headers={"Idempotency-Key": "engineer-patch-gate-00000001"},
-        json={"name": "Source", "intent": "Collect", "sourceUrl": "https://example.com/list"},
+        json={"name": "Source", "intent": "Collect", "sourceUrl": "https://example.com/list", "managementRevision": 0},
     )
     assert patched.status_code == 200, patched.json()
     assert reviewer.patch(

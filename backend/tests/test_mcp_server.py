@@ -129,6 +129,27 @@ async def call_tool(session, name: str, arguments: dict[str, Any] | None = None)
     return await session.call_tool(name, arguments or {})
 
 
+async def test_mcp_surfaces_lifecycle_and_frozen_history_attribution(store):
+    from extrio.collector_lifecycle import lifecycle_command, lifecycle_plan
+
+    source = seed_published_collector(store)
+    seed_run_with_items(store, source)
+    original_collection = source["collectionId"]
+    plan = lifecycle_plan(store, source["id"])
+    lifecycle_command(store, source["id"], {"action": "archive", "planDigest": plan["planDigest"]}, "archive-mcp",
+                      {"tenantId": "default", "actorId": "tester", "requestId": "mcp-lifecycle"})
+    summary = mcp_server.list_collectors_summary(store)["collectors"][0]
+    assert summary["lifecycle"] == "archived"
+    assert summary["lastRun"]["collectionAttribution"]["collectionId"] == original_collection
+    detail = mcp_server.get_collector_detail(store, source["id"])
+    assert detail["lifecycle"] == "archived"
+    assert detail["recentRuns"][0]["collectionAttribution"]["collectionId"] == original_collection
+    item = mcp_server.query_items_page(store, source["id"], None, 20, None)["items"][0]
+    assert item["collectionAttribution"]["collectionId"] == original_collection
+    with pytest.raises(Exception, match="COLLECTOR_ARCHIVED"):
+        mcp_server.trigger_collector_run(source["id"])
+
+
 def result_payload(result) -> dict[str, Any]:
     assert not result.isError, result.content
     return result.structuredContent

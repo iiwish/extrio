@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { seedAiRuns, seedRuns } from '@/api/fixtures'
+import { mockRunPage, mockAiRunPage } from '@/api/workspace-mock'
 import type { Run } from '@/api/types'
 import { RunsPage } from './runs-page'
 
@@ -29,7 +30,7 @@ function renderPage(initialEntry = '/') {
 
 describe('RunsPage operational list', () => {
   beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn(async () => json({ items: runs, page: { nextCursor: null } })))
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => json(mockRunPage(new URL(String(input), 'http://localhost').searchParams, runs))))
   })
 
   afterEach(() => {
@@ -56,11 +57,11 @@ describe('RunsPage operational list', () => {
 
     const list = await screen.findByLabelText('Run 列表')
     await user.type(screen.getByRole('textbox', { name: '搜索运行' }), '上海')
-    expect(within(list).getByText('上海政府采购公告')).toBeInTheDocument()
+    expect(await within(list).findByText('上海政府采购公告')).toBeInTheDocument()
     expect(within(list).queryByText('北京政府采购意向')).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: /完整成功/ }))
-    expect(within(list).getByText('没有符合当前筛选和搜索的运行。')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /运行成功/ }))
+    expect(await within(list).findByText('没有符合当前筛选和搜索的运行。')).toBeInTheDocument()
     expect(screen.getByRole('textbox', { name: '搜索运行' })).toHaveValue('上海')
   })
 
@@ -68,8 +69,8 @@ describe('RunsPage operational list', () => {
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
       const url = input instanceof Request ? input.url : String(input)
       return url.includes('/ai-runs')
-        ? json({ items: seedAiRuns.map(({ attempts: _attempts, ...run }) => run), page: { nextCursor: null } })
-        : json({ items: runs, page: { nextCursor: null } })
+        ? json(mockAiRunPage(new URL(url, 'http://localhost').searchParams, seedAiRuns))
+        : json(mockRunPage(new URL(url, 'http://localhost').searchParams, runs))
     }))
     renderPage('/?view=ai')
 

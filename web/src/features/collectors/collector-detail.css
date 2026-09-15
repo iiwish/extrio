@@ -1,0 +1,68 @@
+.collector-workbench .object-header { align-items: flex-start; gap: 20px; padding-bottom: 22px; }
+.collector-workbench .object-title { min-width: 0; align-items: flex-start; }
+.collector-workbench .object-title > div { min-width: 0; }
+.collector-workbench .object-title h1 { font-size: 22px; line-height: 30px; overflow-wrap: anywhere; }
+.collector-workbench .object-title .source-icon.large { width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0; }
+.collector-workbench .object-actions { flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.collector-workbench .object-actions > button { min-height: 32px; height: auto; padding-block: 5px; font-size: 13px; }
+.collector-workbench .collector-workspace-nav { background: transparent; }
+.collector-workbench .collector-workspace-nav [data-slot="tabs-list"] { gap: 24px; }
+.collector-workbench .collector-workspace-nav [data-slot="tabs-trigger"] { padding-inline: 2px; }
+.collector-workbench .source-url-workspace { gap: 16px; }
+.collector-workbench .configuration-workspace.source-url-workspace .definition-card { padding: 20px; }
+.collector-workbench .definition-card .configuration-heading { gap: 10px; }
+.collector-workbench .definition-card .configuration-icon { width: 24px; height: 24px; background: transparent; }
+.collector-workbench .definition-card .configuration-heading h2 { font-size: 14px; line-height: 22px; }
+.collector-workbench .source-entry-url { border: 0; border-radius: 4px; background: #f5f7f8; padding: 12px 14px; margin-top: 10px; align-items: center; }
+.collector-workbench .source-entry-url > code { font-size: 14px; line-height: 22px; }
+.collector-workbench .source-copy-feedback { min-height: 18px; margin: 3px 0 5px; }
+.collector-workbench .configuration-workspace.source-url-workspace .configuration-facts { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 24px; }
+.collector-workbench .configuration-facts dd { font-size: 13px; line-height: 21px; }
+.collector-workbench .source-contract-details { margin-top: 12px; }
+.collector-workbench .source-settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.collector-workbench .source-settings-grid > section { padding: 20px; margin: 0; gap: 12px; align-content: start; }
+.collector-workbench .source-settings-grid .collection-policy-heading { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; align-items: start; gap: 8px; }
+.collector-workbench .source-settings-grid .policy-icon { width: 24px; height: 24px; border-radius: 4px; }
+.collector-workbench .source-settings-grid .policy-icon svg { width: 16px; height: 16px; }
+.collector-workbench .source-settings-grid .collection-policy-heading h2 { font-size: 14px; line-height: 22px; }
+.collector-workbench .source-settings-grid .collection-policy-heading p { font-size: 12px; line-height: 18px; max-width: none; }
+.collector-workbench .source-settings-grid .collection-policy-heading button { min-width: 0; }
+.collector-workbench .source-settings-grid .policy-summary-grid { gap: 12px 20px; margin: 0; }
+.collector-workbench .source-settings-grid .policy-summary-grid > span { padding: 0; gap: 4px; }
+.collector-workbench .source-settings-grid .policy-summary-grid strong { font-size: 13px; line-height: 20px; }
+.collector-workbench .source-output-details { padding-inline: 20px; }
+.collector-workbench .source-output-details > summary { padding-block: 14px; font-size: 13px; }
+
+.collector-workbench .collector-workspace-panel .definition-card,
+.collector-workbench .collector-workspace-panel .source-settings-grid > section,
+.collector-workbench .collector-workspace-panel .source-output-details,
+.collector-workbench .collector-workspace-panel .rule-workspace-card,
+.collector-workbench .collector-workspace-panel .collector-overview-summary,
+.collector-workbench .collector-workspace-panel .content-section,
+.collector-workbench .collector-workspace-panel .validation-summary,
+.collector-workbench .collector-workspace-panel .crawl-plan {
+  border: 1px solid #e1e6e9;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: none;
+}
+.collector-workbench .source-rule-workspace { margin-bottom: 16px; }
+.collector-workbench .source-evidence-actions { display: flex; justify-content: flex-end; padding-top: 16px; }
+.collector-workbench .source-evidence-actions button { font-size: 12px; height: 32px; background: transparent; }
+.collector-workbench .source-rule-workspace .rule-workspace-card { margin: 0; padding: 20px; }
+.collector-workbench .collector-overview,
+.collector-workbench .validation-workspace { gap: 16px; }
+.collector-workbench .overview-facts { padding: 4px; }
+.collector-workbench .overview-facts > div { border: 0; padding: 12px 16px; }
+.collector-workbench .overview-facts dt { font-size: 12px; font-weight: 400; }
+.collector-workbench .overview-facts strong { font-size: 13px; }
+.collector-workbench .overview-facts span { font-size: 12px; }
+.collector-workbench .overview-facts .overview-source-url { white-space: normal; overflow-wrap: anywhere; }
+
+@media (max-width: 1199px) {
+  .collector-workbench .object-header { flex-wrap: wrap; }
+  .collector-workbench .object-title { flex: 1 1 350px; }
+  .collector-workbench .object-actions { margin-left: auto; }
+  .collector-workbench .source-settings-grid .collection-policy-heading { grid-template-columns: minmax(0, 1fr) auto; }
+  .collector-workbench .source-settings-grid .policy-icon { display: none; }
+}

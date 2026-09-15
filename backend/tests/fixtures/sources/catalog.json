@@ -1,0 +1,14 @@
+[
+  {"id":"static-single","path":"/single","expect":"accepted"},
+  {"id":"list-next","path":"/list","expect":"two-items"},
+  {"id":"list-page","path":"/paged?page=1","expect":"two-items"},
+  {"id":"json-list-detail","path":"/json-list","expect":"accepted"},
+  {"id":"iframe-shell","path":"/iframe","expect":"same-host-frame"},
+  {"id":"async-dom","path":"/async","expect":"rendered-item"},
+  {"id":"charset-gb18030","path":"/charset","expect":"decoded-item"},
+  {"id":"same-host-redirect","path":"/redirect","expect":"accepted"},
+  {"id":"cross-host-redirect","path":"/redirect-blocked","expect":"host_not_allowed"},
+  {"id":"robots-disallow","path":"/denied","expect":"robots_disallowed"},
+  {"id":"access-denied","path":"/forbidden","expect":"authentication_or_access_required"},
+  {"id":"wrong-page","path":"/wrong","expect":"source_structure_mismatch"}
+]

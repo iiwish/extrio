@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AppShell } from './app-shell'
 import { AuthGate } from '@/features/auth/auth-gate'
+import { LegacyExperienceRedirect } from './legacy-experience'
 
 function RouteFallback() {
   const { t } = useTranslation('common')
@@ -10,10 +11,23 @@ function RouteFallback() {
 }
 
 export const router = createBrowserRouter([
+  { path: '/experience.html', element: <LegacyExperienceRedirect /> },
   {
     element: <AuthGate><AppShell /></AuthGate>,
     HydrateFallback: RouteFallback,
     children: [
+      {
+        path: '/collections',
+        lazy: async () => ({ Component: (await import('@/features/collections/collections-page')).CollectionsPage }),
+      },
+      {
+        path: '/collections/new',
+        lazy: async () => ({ Component: (await import('@/features/collections/new-collection-page')).NewCollectionPage }),
+      },
+      {
+        path: '/collections/:collectionId',
+        lazy: async () => ({ Component: (await import('@/features/collections/collection-page')).CollectionPage }),
+      },
       {
         index: true,
         lazy: async () => ({ Component: (await import('@/features/home/home-page')).HomePage }),
@@ -52,7 +66,7 @@ export const router = createBrowserRouter([
       },
       {
         path: '/settings',
-        lazy: async () => ({ Component: (await import('@/features/settings/model-settings-page')).ModelSettingsPage }),
+        lazy: async () => ({ Component: (await import('@/features/settings/settings-page')).SettingsPage }),
       },
       { path: '*', element: <Navigate to="/" replace /> },
     ],

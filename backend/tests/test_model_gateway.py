@@ -91,6 +91,104 @@ def test_dom_evidence_removes_active_content_but_keeps_structure_and_text() -> N
     assert "项目 A" in evidence
 
 
+def test_detail_evidence_prioritizes_body_over_repeated_navigation() -> None:
+    navigation = "".join(f'<li><a href="/{i}">Navigation item {i}</a></li>' for i in range(400))
+    html = (
+        f'<body><div class="menu"><ul>{navigation}</ul></div><div id="record"><h1>Project title</h1>'
+        f'<div class="prose"><p>{"Actual project description. " * 40}</p></div></div></body>'
+    )
+    evidence = _dom_evidence(html, limit=14_000, stage="detail")
+    assert len(evidence) <= 14_000
+    assert 'id="record"' in evidence
+    assert 'class="prose"' in evidence
+    assert "Actual project description." in evidence
+    assert "<repeated-record-groups>" not in evidence
+
+
+def test_detail_evidence_bounds_long_text_without_losing_later_fields() -> None:
+    html = f'<article id="notice"><p>{"Long text " * 5000}</p><table><tr><td class="budget">12345</td></tr></table></article>'
+    evidence = _dom_evidence(html, limit=4000, stage="detail")
+    assert len(evidence) <= 4000
+    assert 'class="budget"' in evidence
+    assert "12345" in evidence
+    assert 'id="notice"' in evidence
+
+
+def test_detail_evidence_preserves_head_metadata_for_exact_titles() -> None:
+    html = '<html><head><meta name="ArticleTitle" content="Exact title"><title>Exact title - Portal</title></head>'
+    html += '<body><div class="title">Exact title<p>Transaction 123</p></div><article>Body text</article></body></html>'
+    evidence = _dom_evidence(html, limit=4000, stage="detail")
+    assert '<meta content="Exact title" name="ArticleTitle"/>' in evidence
+    assert "Transaction 123" in evidence
+    assert len(evidence) <= 4000
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("repair", [False, True])
+async def test_compile_and_repair_use_detail_specific_evidence(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, repair: bool) -> None:
+    compiler = ModelRuleCompiler(Store(tmp_path / "evidence.db"), CredentialCipher(tmp_path / "key"))
+    monkeypatch.setattr(compiler, "_model", lambda: None)
+    captured = {}
+
+    class EvidenceCaptured(Exception):
+        pass
+
+    async def capture(_model, _system, evidence, **_kwargs):
+        captured.update(evidence)
+        raise EvidenceCaptured
+
+    monkeypatch.setattr(compiler, "_complete_json", capture)
+    old_spec = {"collect": {"list": {"fields": {"detailUrl": {}}}, "detail": {"fields": {"content": {}}}},
+                "contract": {"identityFields": ["detailUrl"]}}
+    with pytest.raises(EvidenceCaptured):
+        method = compiler.compile_repair_rule_plan if repair else compiler.compile
+        discovery = normalize_discovery_plan({'mode': 'list_detail', 'list': {
+            'itemsSelector': 'li', 'fields': {'detailUrl': {'selector': 'css:a::attr(href)', 'valueType': 'url'}}}})
+        await method({}, "https://example.com", "<a href='/1'>List</a>",
+                     [("https://example.com/1", "<article>Detail body</article>")], old_spec if repair else discovery)
+    assert "<detail-content-sample>" in captured["detailSamples"][0]["domEvidence"]
+    assert "<repeated-record-groups>" in captured["listDomEvidence"]
+
+
+@pytest.mark.asyncio
+async def test_discovery_passes_bounded_operator_guidance_as_untrusted_evidence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    compiler = ModelRuleCompiler(Store(tmp_path / "guidance.db"), CredentialCipher(tmp_path / "key"))
+    captured: dict = {}
+    monkeypatch.setattr(
+        compiler,
+        "_model",
+        lambda: ActiveModel(provider="openai", base_url="https://models.example.com/v1", model="model-a", api_key="secret"),
+    )
+
+    async def fake_complete(_model, system, evidence, **_kwargs):
+        captured["system"] = system
+        captured["evidence"] = evidence
+        return {
+            "mode": "list_detail",
+            "transport": "http",
+            "list": {
+                "responseType": "html",
+                "itemsSelector": "li.notice",
+                "fields": {"detailUrl": {"selector": "a::attr(href)", "valueType": "url", "required": True}},
+                "pagination": {"type": "none"},
+            },
+        }
+
+    monkeypatch.setattr(compiler, "_complete_json", fake_complete)
+    await compiler.discover(
+        {"intent": "采集公告"},
+        "https://example.com/list",
+        '<li class="notice"><a href="/1">公告</a></li>',
+        guidance="优先识别每行的详情入口。",
+    )
+
+    assert captured["evidence"]["operatorGuidance"] == "优先识别每行的详情入口。"
+    assert "untrusted intent" in captured["system"]
+
+
 def test_discovery_plan_is_normalized_to_the_deterministic_selector_dialect() -> None:
     plan = normalize_discovery_plan(
         {
@@ -193,3 +291,166 @@ def test_final_plan_keeps_proven_browser_transport() -> None:
     )
 
     assert plan["transport"] == "browser"
+
+
+def test_normalize_rule_plan_resolves_stage_prefixed_identity_and_fingerprint_fields() -> None:
+    discovery = normalize_discovery_plan(
+        {
+            "mode": "list_detail",
+            "transport": "http",
+            "list": {
+                "responseType": "html",
+                "itemsSelector": "li.notice",
+                "fields": {
+                    "title": {"selector": "a::text", "required": True},
+                    "detailUrl": {"selector": "a::attr(href)", "required": True},
+                    "publishDate": {"selector": "span.date::text"},
+                },
+                "pagination": {"type": "none"},
+            },
+        }
+    )
+
+    plan = normalize_rule_plan(
+        {
+            "detail": {
+                "responseType": "html",
+                "fields": {
+                    "heading": {"selector": "h1::text", "required": True},
+                    "content": {"selector": "div.content::html"},
+                },
+            },
+            "identityFields": ["list.detailUrl"],
+            "fingerprintFields": ["list.title", "detail.heading"],
+        },
+        discovery,
+    )
+
+    assert plan["identityFields"] == ["detailUrl"]
+    assert "heading" in plan["fingerprintFields"]
+    assert "title" in plan["fingerprintFields"]
+    assert "content" in plan["fingerprintFields"]
+
+
+def test_normalize_rule_plan_falls_back_to_default_identity_when_unmatched() -> None:
+    discovery = normalize_discovery_plan(
+        {
+            "mode": "list_detail",
+            "transport": "http",
+            "list": {
+                "responseType": "html",
+                "itemsSelector": "li.notice",
+                "fields": {"detailUrl": {"selector": "a::attr(href)", "required": True}},
+                "pagination": {"type": "none"},
+            },
+        }
+    )
+
+    plan = normalize_rule_plan(
+        {
+            "detail": {
+                "responseType": "html",
+                "fields": {"heading": {"selector": "h1::text", "required": True}},
+            },
+            "identityFields": ["unknownField"],
+            "fingerprintFields": ["unknownFingerprint"],
+        },
+        discovery,
+    )
+
+    assert plan["identityFields"] == ["detailUrl"]
+    assert plan["fingerprintFields"] == ["heading"]
+
+
+def test_normalize_rule_plan_aliases_common_field_variants() -> None:
+    discovery = normalize_discovery_plan(
+        {
+            "mode": "list_detail",
+            "transport": "http",
+            "list": {
+                "responseType": "html",
+                "itemsSelector": "li.notice",
+                "fields": {
+                    "detailUrl": {"selector": "a::attr(href)", "required": True},
+                    "title": {"selector": "a::text", "required": True},
+                    "publishDate": {"selector": "span.date::text", "required": False},
+                },
+                "pagination": {"type": "none"},
+            },
+        }
+    )
+
+    plan = normalize_rule_plan(
+        {
+            "detail": {
+                "responseType": "html",
+                "fields": {
+                    "detailTitle": {"selector": "h1.title::text", "required": True},
+                    "detailPublishDate": {"selector": "span.time::text", "required": False},
+                    "detailContent": {"selector": "div.content::html", "required": True},
+                },
+            },
+            "identityFields": ["detailTitle"],
+            "fingerprintFields": ["detailTitle", "detailPublishDate", "detailContent"],
+        },
+        discovery,
+    )
+
+    assert "title" in plan["detail"]["fields"]
+    assert "publishDate" in plan["detail"]["fields"]
+    assert "content" in plan["detail"]["fields"]
+    assert "detailTitle" not in plan["detail"]["fields"]
+    assert plan["identityFields"] == ["title"]
+    assert "title" in plan["fingerprintFields"]
+    assert "publishDate" in plan["fingerprintFields"]
+    assert "content" in plan["fingerprintFields"]
+    assert plan["bindings"]["title"] == "detail.title"
+    assert plan["bindings"]["publishedAt"] == "detail.publishDate"
+    assert plan["bindings"]["content"] == "detail.content"
+
+
+def test_normalize_rule_plan_maps_to_expected_fields_from_requirement() -> None:
+    discovery = normalize_discovery_plan(
+        {
+            "mode": "single",
+            "transport": "http",
+            "list": {
+                "responseType": "html",
+                "itemsSelector": "div.row",
+                "fields": {
+                    "projName": {"selector": "h2::text", "required": True},
+                    "org": {"selector": "span.buyer::text", "required": False},
+                },
+                "pagination": {"type": "none"},
+            },
+        }
+    )
+
+    expected_fields = [
+        {"key": "title", "label": "项目名称", "type": "string", "required": True},
+        {"key": "purchaser", "label": "采购单位", "type": "string", "required": False},
+    ]
+
+    plan = normalize_rule_plan(
+        {
+            "list": {
+                "responseType": "html",
+                "itemsSelector": "div.row",
+                "fields": {
+                    "projName": {"selector": "h2::text", "required": True},
+                    "采购单位": {"selector": "span.buyer::text", "required": False},
+                },
+                "pagination": {"type": "none"},
+            },
+            "identityFields": ["projName"],
+            "fingerprintFields": ["projName", "采购单位"],
+        },
+        discovery,
+        expected_fields=expected_fields,
+    )
+
+    assert "title" in plan["list"]["fields"]
+    assert "purchaser" in plan["list"]["fields"]
+    assert plan["identityFields"] == ["title"]
+    assert "title" in plan["fingerprintFields"]
+    assert "purchaser" in plan["fingerprintFields"]

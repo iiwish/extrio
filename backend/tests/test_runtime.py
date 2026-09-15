@@ -7,7 +7,13 @@ from urllib.parse import parse_qs, urlsplit
 
 import pytest
 
+from extrio.config import Settings
 from extrio.runtime import CrawleeRuntime
+
+
+@pytest.fixture(autouse=True)
+def allow_fixture_loopback(monkeypatch):
+    monkeypatch.setattr("extrio.runtime.get_settings", lambda: Settings(allow_http_localhost=True))
 
 
 class FixtureHandler(BaseHTTPRequestHandler):
@@ -31,6 +37,16 @@ class FixtureHandler(BaseHTTPRequestHandler):
             body = (
                 f'<h1 class="notice-title">{code}</h1><div class="meta"><span data-field="buyer">B</span>'
                 f'<time datetime="{published}"></time></div><div class="notice-budget"><span class="amount">100</span></div>'
+            )
+        elif self.path.startswith("/static/index"):
+            page = 2 if self.path.endswith("index_2.html") else 1
+            next_link = (
+                '<a class="pagination-next" href="###" onclick="location.href=encodeURI(\'index_2.html\');">Next</a>'
+                if page == 1 else '<a class="pagination-next" aria-disabled="true" href="###">Next</a>'
+            )
+            body = (
+                f'<ul class="notice-list"><li><a class="notice-title" href="/detail?i={page}">A</a>'
+                '<time datetime="2026-08-30T00:00:00Z"></time></li></ul>' + next_link
             )
         elif self.path.startswith("/cross-list"):
             port = self.server.server_address[1]
@@ -237,6 +253,29 @@ async def test_repeated_runs_do_not_reuse_crawlee_request_queue(tmp_path: Path) 
 
 
 @pytest.mark.asyncio
+async def test_static_onclick_pagination_fetches_two_pages(tmp_path: Path) -> None:
+    async def progress(_phase: str, _value: int, _metrics: dict[str, int]) -> None:
+        return
+
+    with fixture_server() as origin:
+        url = f"{origin}/static/index.html"
+        spec = runtime_spec(url, mode="list_detail")
+        spec["collect"]["budget"]["maxPages"] = 5
+        spec["collect"]["list"]["pagination"]["maxPages"] = 5
+        collector = {
+            "id": "collector_static", "name": "Static", "sourceUrl": url,
+            "sourceHost": "127.0.0.1", "collectionVersion": "v1",
+            "candidate": {"mode": "list_detail", "gatherSpec": spec},
+        }
+        result = await CrawleeRuntime(tmp_path / "artifacts").run(
+            collector, {"id": "run_static", "ruleVersion": "rule_v1"}, progress,
+        )
+    assert result.metrics["listPagesFetched"] == 2
+    assert result.metrics["detailPagesFetched"] == 2
+    assert [item["decision"] for item in result.items] == ["accepted", "accepted"]
+
+
+@pytest.mark.asyncio
 async def test_single_stage_fetches_entrypoint_directly(tmp_path: Path) -> None:
     async def progress(_phase: str, _value: int, _metrics: dict[str, int]) -> None:
         return
@@ -411,3 +450,51 @@ async def test_runtime_reports_missing_detail_pages_as_incomplete(tmp_path: Path
     assert result.metrics["detailPagesFetched"] == 1
     assert result.metrics["warningCount"] == 1
     assert [item["title"] for item in result.items] == ["A"]
+
+
+@pytest.mark.asyncio
+async def test_runtime_refetches_a_transient_list_detail_title_mismatch(tmp_path: Path) -> None:
+    class TransientMismatchRuntime(CrawleeRuntime):
+        detail_fetches = 0
+
+        async def _fetch_many(self, urls, transport="http", browser_policy=None):
+            if urls == ["https://example.com/list"]:
+                return {
+                    urls[0]: (
+                        '<ul class="notice-list"><li><a class="notice-title" href="/detail/a">Expected A</a>'
+                        '<time datetime="2026-08-30"></time></li></ul>'
+                    )
+                }
+            self.detail_fetches += 1
+            title = "Wrong cached page" if self.detail_fetches == 1 else "Expected A"
+            return {
+                "https://example.com/detail/a": (
+                    f'<h1 class="notice-title">{title}</h1><div class="meta"><span data-field="buyer">Buyer</span>'
+                    '<time datetime="2026-08-30"></time></div><p class="notice-budget"><span class="amount">100</span></p>'
+                )
+            }
+
+    async def progress(_phase: str, _value: int, _metrics: dict[str, int]) -> None:
+        return
+
+    spec = runtime_spec("https://example.com/list", mode="list_detail")
+    spec["sourceContext"]["allowedHosts"] = ["example.com"]
+    collector = {
+        "id": "collector_transient_mismatch",
+        "name": "Transient mismatch",
+        "sourceUrl": "https://example.com/list",
+        "sourceHost": "example.com",
+        "collectionVersion": "v1",
+        "candidate": {"mode": "list_detail", "gatherSpec": spec},
+    }
+    runtime = TransientMismatchRuntime(tmp_path / "artifacts")
+
+    result = await runtime.run(
+        collector,
+        {"id": "run_transient_mismatch", "ruleVersion": "rule_v1"},
+        progress,
+    )
+
+    assert runtime.detail_fetches == 2
+    assert result.items[0]["title"] == "Expected A"
+    assert result.items[0]["decision"] == "accepted"

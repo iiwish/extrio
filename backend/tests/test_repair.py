@@ -12,6 +12,7 @@ from extrio.contracts import sha256_digest
 from extrio.credentials import CredentialCipher
 from extrio.explorer import Crawl4AIExplorer, ExplorationResult
 from extrio.harvest import build_candidate, build_gather_spec_from_plan
+from extrio.model_budget import BudgetError
 from extrio.model_gateway import (
     ActiveModel,
     ModelRepairNotApplicableError,
@@ -198,6 +199,7 @@ def install_crawler(monkeypatch: pytest.MonkeyPatch, pages: dict[str, str]) -> N
         def __init__(self, html: str):
             self.success = True
             self.html = html
+            self.redirected_url = None
 
     class FakeCrawler:
         def __init__(self, page_map: dict[str, str]):
@@ -213,7 +215,7 @@ def install_crawler(monkeypatch: pytest.MonkeyPatch, pages: dict[str, str]) -> N
             return FakeResult(self._pages[url])
 
     instance = FakeCrawler(pages)
-    monkeypatch.setattr(explorer_module, "AsyncWebCrawler", lambda **_kwargs: instance)
+    monkeypatch.setattr(explorer_module, "RestrictedBrowser", lambda _network: instance)
 
 
 def old_rule_fixtures(store: Store) -> tuple[dict, dict]:
@@ -417,7 +419,7 @@ async def test_repair_explore_updates_detail_selectors_and_preserves_contract(tm
         {
             "https://example.com/list": OLD_LIST_HTML,
             "https://example.com/detail/1": NEW_DETAIL_HTML,
-            "https://example.com/detail/2": NEW_DETAIL_HTML,
+            "https://example.com/detail/2": NEW_DETAIL_HTML.replace("项目A", "项目B"),
         },
     )
     compiler = ModelRuleCompiler(store, CredentialCipher(tmp_path / "cipher.key"))
@@ -433,7 +435,7 @@ async def test_repair_explore_updates_detail_selectors_and_preserves_contract(tm
     assert spec["collect"]["detail"]["fields"]["publishedAt"]["valueType"] == "datetime"
     assert spec["collect"]["detail"]["fields"]["content"]["valueType"] == "html"
     assert spec["collect"]["list"]["pagination"] == {"type": "none"}
-    assert spec["compiler"]["agent"]["promptVersion"] == "2.1-repair"
+    assert spec["compiler"]["agent"]["promptVersion"] == "2.1-repair-adaptive1"
     assert result.candidate["digest"] == sha256_digest(spec)
     assert sum(item["decision"] == "accepted" for item in result.preview_items) == 2
 
@@ -449,11 +451,61 @@ async def test_repair_explore_fails_when_identity_field_cannot_be_extracted(tmp_
     compiler = ModelRuleCompiler(store, CredentialCipher(tmp_path / "cipher.key"))
     explorer = Crawl4AIExplorer(app_module.contracts, tmp_path / "artifacts", compiler)
 
-    with pytest.raises(ModelRepairValidationError) as exc_info:
-        await explorer.explore(collector, "op_repair_2", _noop_progress, repair_spec=old_spec)
+    diagnostics = []
+    async def report(value):
+        diagnostics.append(value)
 
-    assert exc_info.value.code == "REPAIR_VALIDATION_FAILED"
-    assert "detailUrl" in str(exc_info.value)
+    with pytest.raises(BudgetError) as exc_info:
+        await explorer.explore(collector, "op_repair_2", _noop_progress, repair_spec=old_spec, diagnostic=report)
+
+    assert exc_info.value.code == "MODEL_NO_PROGRESS"
+    assert diagnostics[-1]["budget"]["calls"] == 4
+    assert {"code": "IDENTITY_FIELD_MISSING", "field": "detailUrl"} in diagnostics[-1]["validation"]
+
+
+@pytest.mark.asyncio
+async def test_repair_missing_field_triggers_directed_read_and_full_sample_revalidation(tmp_path, monkeypatch):
+    from extrio.adaptive_compile import CURRENT_SESSION
+    store = make_store(tmp_path, "adaptive-feedback")
+    collector, old_spec = old_rule_fixtures(store)
+    install_model(monkeypatch)
+    install_crawler(monkeypatch, {
+        "https://example.com/list": OLD_LIST_HTML,
+        "https://example.com/detail/1": NEW_DETAIL_HTML,
+        "https://example.com/detail/2": NEW_DETAIL_HTML.replace("项目A", "项目B"),
+    })
+    compiler = ModelRuleCompiler(store, CredentialCipher(tmp_path / "key"))
+    calls = []
+
+    async def complete(_model, _system, evidence, **_kwargs):
+        session = CURRENT_SESSION.get()
+        session.budget.settle(session.current_reservation, 100, 50)
+        calls.append(evidence)
+        if len(calls) == 1:
+            broken = copy.deepcopy(DETAIL_ONLY_REPAIR_RESPONSE)
+            broken["detail"]["fields"]["content"]["selector"] = "css:.missing::html"
+            return {"action": "propose_rule", "rule": broken}
+        if len(calls) == 2:
+            assert any(issue.get("field") == "content" for issue in evidence["validationFeedback"])
+            requests = [{"pageId": page.page_id, "nodeId": next(n.id for n in page.nodes.values()
+                         if n.attributes.get("class") == "new-content")} for page in session.pages.values() if page.stage == "detail"]
+            return {"action": "read_nodes", "requests": requests}
+        assert "公告正文" in str(evidence["evidence"])
+        return {"action": "propose_rule", "rule": DETAIL_ONLY_REPAIR_RESPONSE}
+
+    monkeypatch.setattr(compiler, "_complete_json", complete)
+    diagnostics = []
+    async def report(value):
+        diagnostics.append(value)
+
+    result = await Crawl4AIExplorer(app_module.contracts, tmp_path / "artifacts", compiler).explore(
+        collector, "op_adaptive", _noop_progress, repair_spec=old_spec, diagnostic=report)
+    assert len(calls) == 3
+    assert result.candidate["gatherSpec"]["contract"] == old_spec["contract"]
+    assert all(item["decision"] == "accepted" and item["content"] for item in result.preview_items)
+    assert diagnostics[-1]["validated"] is True
+    assert "公告正文" not in str(diagnostics)
+    assert store.get_collector(collector["id"])["candidate"] is None
 
 
 @pytest.mark.asyncio
@@ -464,8 +516,19 @@ async def test_worker_repair_job_reads_old_spec_and_returns_collector_to_review(
     captured: dict = {}
 
     class FakeExplorer:
-        async def explore(self, explored_collector, _operation_id, progress, _ai_run_id=None, _attempt_id=None, *, repair_spec=None):
+        async def explore(
+            self,
+            explored_collector,
+            _operation_id,
+            progress,
+            _ai_run_id=None,
+            _attempt_id=None,
+            *,
+            repair_spec=None,
+            guidance=None,
+        ):
             captured["repair_spec"] = copy.deepcopy(repair_spec)
+            captured["guidance"] = guidance
             await progress("fetching_list", 20, {"listPagesFetched": 1, "warningCount": 0})
             repaired = build_candidate(
                 explored_collector,
@@ -487,6 +550,7 @@ async def test_worker_repair_job_reads_old_spec_and_returns_collector_to_review(
     await worker.process(job)
 
     assert captured["repair_spec"] == old_gather_spec
+    assert captured["guidance"] is None
     updated = store.get_collector(collector["id"])
     assert updated["status"] == "ready_review"
     assert updated["reviewDecisions"] is None
@@ -672,7 +736,7 @@ async def test_repair_end_to_end_preserves_published_contract_and_returns_to_rev
             assert ai_run["resultStatus"] == "candidate_ready"
             assert ai_run["candidateRuleDigest"] == updated["candidate"]["digest"]
             assert ai_run["attempts"][0]["modelInvocations"][0]["purpose"] == "repair"
-            assert ai_run["attempts"][0]["modelInvocations"][0]["promptVersion"] == "2.1-repair"
+            assert ai_run["attempts"][0]["modelInvocations"][0]["promptVersion"] == "2.1-repair-adaptive1"
 
             operation = client.get(repair.json()["statusUrl"]).json()
             assert operation["status"] == "succeeded"

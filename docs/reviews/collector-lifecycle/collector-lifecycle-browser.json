@@ -1,0 +1,247 @@
+{
+  "syntheticModel": true,
+  "checks": [
+    "add inside requirement; edit revision; exact-name empty delete; return to filtered list",
+    "history deletion blocked; archive lost-response retry reused key; archived filter; restore leaves schedule disabled",
+    "confirmed field difference; source moved; old run/item unchanged and linked to original requirement; both source counts refreshed",
+    "recompile and human publish required; new successful run attributed to target with new immutable rule version",
+    "actual queued operation prevents archive while owned worker is paused"
+  ],
+  "measurements": [
+    {
+      "surface": "delete-empty-zh-1440",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440
+    },
+    {
+      "surface": "delete-blocked-zh-1440",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440
+    },
+    {
+      "surface": "archive-lost-response-zh-1440",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440
+    },
+    {
+      "surface": "archived-list-zh-1440",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440
+    },
+    {
+      "surface": "reassignment-zh-1440",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440
+    },
+    {
+      "surface": "reassignment-zh-1280",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280
+    },
+    {
+      "surface": "reassignment-zh-1132",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132
+    },
+    {
+      "surface": "reassignment-zh-1024",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024
+    },
+    {
+      "surface": "original-run-attribution-zh-1024",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024
+    },
+    {
+      "surface": "queued-blocker-zh-1024",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024
+    },
+    {
+      "surface": "source-list-zh-1440",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440
+    },
+    {
+      "surface": "source-menu-zh-1440",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440
+    },
+    {
+      "surface": "source-config-zh-1440",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440
+    },
+    {
+      "surface": "source-list-zh-1280",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280
+    },
+    {
+      "surface": "source-menu-zh-1280",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280
+    },
+    {
+      "surface": "source-config-zh-1280",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280
+    },
+    {
+      "surface": "source-list-zh-1132",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132
+    },
+    {
+      "surface": "source-menu-zh-1132",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132
+    },
+    {
+      "surface": "source-config-zh-1132",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132
+    },
+    {
+      "surface": "source-list-zh-1024",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024
+    },
+    {
+      "surface": "source-menu-zh-1024",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024
+    },
+    {
+      "surface": "source-config-zh-1024",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024
+    },
+    {
+      "surface": "source-list-en-1440",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440
+    },
+    {
+      "surface": "source-menu-en-1440",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440
+    },
+    {
+      "surface": "source-config-en-1440",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440
+    },
+    {
+      "surface": "reassignment-en-1440",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440
+    },
+    {
+      "surface": "source-list-en-1280",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280
+    },
+    {
+      "surface": "source-menu-en-1280",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280
+    },
+    {
+      "surface": "source-config-en-1280",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280
+    },
+    {
+      "surface": "reassignment-en-1280",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280
+    },
+    {
+      "surface": "source-list-en-1132",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132
+    },
+    {
+      "surface": "source-menu-en-1132",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132
+    },
+    {
+      "surface": "source-config-en-1132",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132
+    },
+    {
+      "surface": "reassignment-en-1132",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132
+    },
+    {
+      "surface": "source-list-en-1024",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024
+    },
+    {
+      "surface": "source-menu-en-1024",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024
+    },
+    {
+      "surface": "source-config-en-1024",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024
+    },
+    {
+      "surface": "reassignment-en-1024",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024
+    }
+  ],
+  "pageErrors": [],
+  "sourceId": "collector_x_127_0_0_1_3cf4dfc2",
+  "originalRequirementId": "collection_x_3e5ab8b0b4da4a4f88fb44a0fa5fde73",
+  "targetRequirementId": "collection_x_08c3df783bcc4bb196572fee4f004086",
+  "oldRunId": "run_x_9fa60670f8264e",
+  "newRunId": "run_dcdd44d16cfe49bd",
+  "idempotencyReplayed": true
+}

@@ -19,7 +19,7 @@ Run the verification suite before opening a pull request:
 
 ```bash
 uv run --project backend ruff check backend/src backend/tests
-uv run --project backend pytest
+uv run --project backend pytest -c backend/pyproject.toml backend/tests
 uv run --project backend python scripts/update-docset-manifest.py --check
 pnpm --dir web test
 pnpm --dir web lint

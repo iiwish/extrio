@@ -20,6 +20,25 @@ function renderPage() {
 }
 
 describe('ItemPage information architecture', () => {
+  it('retains content and run lineage for a deleted source without a broken source link', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ ...item, collectorDeleted: true }), { headers: { 'Content-Type': 'application/json' } })))
+    renderPage()
+    expect(await screen.findByText('来源已删除')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('tab', { name: '来源与谱系' }))
+    expect(screen.getByRole('link', { name: /查看运行记录/ })).toBeInTheDocument()
+    expect(screen.queryAllByRole('link').some(link => link.getAttribute('href')?.startsWith('/collectors/'))).toBe(false)
+  })
+  it('reads HTML as inert text and offers literal source without mounting HTML', async () => {
+    const content = '<article><p>采购正文</p><script>window.attacked = true</script><img src="https://example.com/tracker.png"><p hidden>不可见</p></article>'
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({...item,content}), {headers:{'Content-Type':'application/json'}})))
+    renderPage()
+    expect(await screen.findByText('采购正文', {exact:true})).toBeInTheDocument()
+    expect(document.querySelector('article img')).toBeNull()
+    expect(screen.queryByText('不可见')).not.toBeInTheDocument()
+    await userEvent.setup().click(screen.getByRole('button', {name:'HTML'}))
+    expect(document.querySelector('.item-raw-content')).toHaveTextContent(content)
+    expect(document.querySelector('article img')).toBeNull()
+  })
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify(item), { headers: { 'Content-Type': 'application/json' } })))
   })
@@ -45,6 +64,7 @@ describe('ItemPage information architecture', () => {
       '来源与谱系',
     ])
     expect(screen.getByLabelText('数据内容摘要')).toHaveTextContent('规范化数据可用')
+    expect(screen.getByLabelText('数据内容摘要')).toHaveClass('detail-panel')
     expect(screen.getByRole('heading', { name: '公告内容' })).toBeInTheDocument()
   })
 
@@ -64,6 +84,18 @@ describe('ItemPage information architecture', () => {
     expect(screen.getByRole('heading', { name: '来源与谱系' })).toBeInTheDocument()
     const technicalDetails = screen.getByText('技术信息').closest('details')
     expect(technicalDetails).not.toHaveAttribute('open')
-    expect(screen.getByRole('link', { name: /查看运行记录/ })).toHaveAttribute('href', `/runs/${item.lineage.runId}`)
+    expect(screen.getByRole('link', { name: /查看运行记录/ })).toHaveAttribute('href', `/runs/${item.lineage.runId}?returnTo=${encodeURIComponent(`/items/${item.id}?section=lineage`)}`)
+  })
+
+  it('surfaces a list/detail title mismatch instead of reporting a false match', async () => {
+    const mismatched = { ...item, title: '详情页真实标题', listTitle: '列表页错误标题', decision: 'rejected' as const }
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify(mismatched), { headers: { 'Content-Type': 'application/json' } })))
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByRole('heading', { level: 1, name: mismatched.title })
+
+    await user.click(screen.getByRole('tab', { name: '质量决定' }))
+    expect(screen.getByText('标题需要复核')).toBeInTheDocument()
+    expect(screen.queryByText('列表标题与详情标题一致')).not.toBeInTheDocument()
   })
 })

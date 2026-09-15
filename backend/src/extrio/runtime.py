@@ -1,4 +1,5 @@
 from collections.abc import Awaitable, Callable
+from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
@@ -7,14 +8,19 @@ from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from bs4 import UnicodeDammit
-from crawl4ai import AsyncWebCrawler, BrowserConfig, CacheMode, CrawlerRunConfig
-from crawlee import Request
+from crawl4ai import CacheMode, CrawlerRunConfig
+from crawlee import ConcurrencySettings, Request
 from crawlee.crawlers import ParselCrawler, ParselCrawlingContext
 from crawlee.storage_clients import MemoryStorageClient
 
-from extrio.harvest import discover_records_from_spec, looks_like_dynamic_list_shell, make_item
+from extrio.config import get_settings
+from extrio.harvest import TITLE_MISMATCH_REASON, discover_records_from_spec, looks_like_dynamic_list_shell, make_item
+from extrio.local_evidence import LocalEvidence
+from extrio.source_clients import RestrictedBrowser, SourceHttpClient
+from extrio.source_network import FetchBudget, SourceNetwork, SourceNetworkError
 
 ProgressCallback = Callable[[str, int, dict[str, int]], Awaitable[None]]
+_network: ContextVar[SourceNetwork] = ContextVar("source_network")
 
 
 @dataclass
@@ -24,6 +30,8 @@ class RunResult:
     pagination_stop_reason: str
     duration: str
     watermark_candidate: str | None = None
+    evidence_digest: str | None = None
+    artifact_mode: str = "sampled"
 
 
 def _as_date(value: str | None) -> date | None:
@@ -36,8 +44,9 @@ def _as_date(value: str | None) -> date | None:
 
 
 class CrawleeRuntime:
-    def __init__(self, artifact_path: Path):
+    def __init__(self, artifact_path: Path, *, allow_http: Callable[[], bool] | None = None):
         self.artifact_path = artifact_path
+        self.allow_http = allow_http or (lambda: get_settings().allow_http_public)
 
     async def _fetch_many(
         self,
@@ -50,27 +59,28 @@ class CrawleeRuntime:
             policy = browser_policy or {}
             config = CrawlerRunConfig(
                 cache_mode=CacheMode.BYPASS,
-                check_robots_txt=True,
+                check_robots_txt=False,
                 page_timeout=int(policy.get("pageLoadTimeoutMs", 30_000)),
                 wait_until=str(policy.get("waitUntil", "domcontentloaded")),
                 delay_before_return_html=max(0, int(policy.get("postLoadDelayMs", 3000))) / 1000,
             )
-            async with AsyncWebCrawler(config=BrowserConfig(headless=True, verbose=False)) as crawler:
-                results = await crawler.arun_many(urls=urls, config=config)
-                for requested_url, result in zip(urls, results, strict=False):
-                    if result.success:
-                        html = result.html
-                        if looks_like_dynamic_list_shell(html):
-                            settled_result = await crawler.arun(url=requested_url, config=config)
-                            if settled_result.success:
-                                html = settled_result.html
-                        pages[requested_url] = html
+            async with RestrictedBrowser(_network.get()) as crawler:
+                for requested_url in urls:
+                    result = await crawler.arun(url=requested_url, config=config)
+                    html = result.html
+                    if looks_like_dynamic_list_shell(html):
+                        settled_result = await crawler.arun(url=requested_url, config=config)
+                        html = settled_result.html
+                    pages[requested_url] = html
             return pages
         pages: dict[str, str] = {}
+        http_client = SourceHttpClient(_network.get())
         crawler = ParselCrawler(
+            http_client=http_client,
             max_requests_per_crawl=max(1, len(urls)),
-            max_request_retries=2,
+            max_request_retries=_network.get().max_attempts - 1,
             storage_client=MemoryStorageClient(),
+            concurrency_settings=ConcurrencySettings(min_concurrency=1, desired_concurrency=4, max_concurrency=4),
         )
 
         @crawler.router.default_handler
@@ -84,6 +94,8 @@ class CrawleeRuntime:
 
         requests = [Request.from_url(url, always_enqueue=True) for url in urls]
         await crawler.run(requests)
+        if http_client.failures:
+            raise next(iter(http_client.failures.values()))
         return pages
 
     @staticmethod
@@ -94,9 +106,53 @@ class CrawleeRuntime:
         return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
 
     async def run(self, collector: dict[str, Any], run: dict[str, Any], progress: ProgressCallback) -> RunResult:
+        spec = collector["candidate"]["gatherSpec"]
+        if spec["sourceContext"].get("accessProfileRef"):
+            raise SourceNetworkError("anonymous_get_only")
+        for stage in (spec["collect"]["list"], spec["collect"].get("detail") or {}):
+            request = stage.get("request") or {}
+            if request.get("method", "GET") != "GET" or request.get("bodyTemplate"):
+                raise SourceNetworkError("anonymous_get_only")
+            if any(key.lower() not in {"accept", "accept-language"} for key in request.get("headers", {})):
+                raise SourceNetworkError("anonymous_get_only")
+            if request.get("query"):
+                raise SourceNetworkError("request_query_unsupported")
+        budget = spec["collect"]["budget"]
+        request_policy = spec["sourceContext"].get("requestPolicy", {})
+        rate_limit = spec["sourceContext"].get("rateLimit", {})
+        network = SourceNetwork(
+            set(spec["sourceContext"]["allowedHosts"]),
+            allow_localhost=get_settings().allow_http_localhost,
+            allow_http=self.allow_http(),
+            max_redirects=int(request_policy.get("maxRedirects", 5)),
+            request_timeout=float(request_policy.get("timeoutMs", 30_000)) / 1000,
+            max_concurrency=int(rate_limit.get("maxConcurrency", 4)),
+            requests_per_second=rate_limit.get("rps"),
+            max_attempts=int(spec["collect"].get("requestRetry", {}).get("maxAttempts", 3)),
+            budget=FetchBudget(
+                max_page_bytes=min(int(request_policy.get("maxResponseBytes", 5_000_000)), 5_000_000),
+                max_total_bytes=int(budget.get("maxTotalBytes", 50_000_000)),
+                max_seconds=float(budget.get("maxDurationSeconds", 180)),
+            ),
+        )
+        network.static_headers = spec["collect"]["list"].get("request", {}).get("headers", {})
+        evidence = LocalEvidence(
+            self.artifact_path, run["id"], int(spec.get("output", {}).get("rawRetentionDays", 30)), run.get("localEvidenceRef", "attempt_1")
+        )
+        token = _network.set(network)
+        try:
+            result = await self._run(collector, run, progress, evidence)
+            result.evidence_digest = evidence.finish(complete=True)
+            result.artifact_mode = evidence.mode
+            return result
+        except BaseException:
+            evidence.finish(complete=False)
+            raise
+        finally:
+            _network.reset(token)
+
+    async def _run(self, collector: dict[str, Any], run: dict[str, Any], progress: ProgressCallback, evidence: LocalEvidence) -> RunResult:
         started = monotonic()
-        artifact_dir = self.artifact_path / run["id"]
-        artifact_dir.mkdir(parents=True, exist_ok=True)
         metrics = {
             "listPagesFetched": 0,
             "detailUrlsDiscovered": 0,
@@ -120,6 +176,8 @@ class CrawleeRuntime:
         if mode == "single":
             await progress("fetching_details", 35, metrics)
             pages = await self._fetch_many([entrypoint], transport, browser_policy)
+            if entrypoint not in pages:
+                raise SourceNetworkError("detail_fetch_incomplete")
             detail_pages = [(url, html, None) for url, html in pages.items()]
             metrics["detailPagesFetched"] = len(detail_pages)
             stop_reason = "not_applicable"
@@ -159,8 +217,11 @@ class CrawleeRuntime:
                     stop_reason = "empty_page"
                     break
                 metrics["listPagesFetched"] += 1
-                (artifact_dir / f"list-{page_index + 1:03d}.html").write_text(html, encoding="utf-8")
-                discovered, discovered_next_url = discover_records_from_spec(html, next_url, list_spec)
+                evidence.write(f"list-{page_index + 1:03d}.html", html)
+                response_url = _network.get().final_urls.get(next_url, next_url)
+                discovered, discovered_next_url = discover_records_from_spec(html, response_url, list_spec)
+                if not discovered and page_index == 0:
+                    raise SourceNetworkError("source_structure_mismatch")
                 if pagination.get("type") == "page":
                     if not discovered and pagination.get("stopWhenNoItems", True):
                         next_url = None
@@ -203,6 +264,7 @@ class CrawleeRuntime:
             detail_urls = list(detail_records)
             metrics["detailUrlsDiscovered"] = len(detail_urls)
             await progress("discovering_details", 45, metrics)
+            _network.get().static_headers = collect["detail"].get("request", {}).get("headers", {})
             pages = await self._fetch_many(detail_urls, transport, browser_policy)
             detail_pages = [(url, pages[url], detail_records[url]) for url in detail_urls if url in pages]
             metrics["detailPagesFetched"] = len(detail_pages)
@@ -214,8 +276,20 @@ class CrawleeRuntime:
 
         items = []
         for index, (url, html, source_record) in enumerate(detail_pages, start=1):
-            (artifact_dir / f"detail-{index:03d}.html").write_text(html, encoding="utf-8")
-            items.append(make_item(collector, run, url, html, index, source_record=source_record))
+            response_url = _network.get().final_urls.get(url, url)
+            item = make_item(collector, run, response_url, html, index, source_record=source_record)
+            if item["rejectionReason"] == TITLE_MISMATCH_REASON:
+                recovered_page = (await self._fetch_many([url], transport, browser_policy)).get(url)
+                if recovered_page is not None:
+                    response_url = _network.get().final_urls.get(url, url)
+                    recovered_item = make_item(collector, run, response_url, recovered_page, index, source_record=source_record)
+                    if recovered_item["rejectionReason"] != TITLE_MISMATCH_REASON:
+                        html = recovered_page
+                        item = recovered_item
+            evidence.write(f"detail-{index:03d}.html", html)
+            if evidence.mode == "metadata_only":
+                item["lineage"]["artifactId"] = None
+            items.append(item)
         await progress("validating", 90, metrics)
         elapsed = max(0.01, monotonic() - started)
         return RunResult(

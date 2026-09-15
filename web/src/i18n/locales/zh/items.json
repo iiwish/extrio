@@ -1,13 +1,13 @@
 {
   "toolbar": {
     "aria": "数据工具栏",
-    "sourceAria": "按 Source 筛选",
-    "allSources": "全部 Source",
-    "collectorAria": "按 Collector 筛选",
-    "allCollectors": "全部 Collector",
+    "sourceAria": "按站点域名筛选",
+    "allSources": "全部站点域名",
+    "collectorAria": "按采集来源筛选",
+    "allCollectors": "全部采集来源",
     "decisionAria": "质量决定筛选",
     "decisionAll": "全部",
-    "searchPlaceholder": "搜索标题、正文、采集器或 entity key",
+    "searchPlaceholder": "搜索标题、正文、采集来源或 entity key",
     "searchAria": "搜索 Item"
   },
   "export": {
@@ -20,6 +20,10 @@
     "failed": "导出失败：{{message}}"
   },
   "list": {
+    "loadMore": "加载更多",
+    "loaded": "已显示 {{count}} / {{total}} 条",
+    "loadFailed": "数据加载失败",
+    "retry": "重试",
     "aria": "Item 列表",
     "columnItem": "数据项",
     "columnDecision": "质量决定",
@@ -39,6 +43,8 @@
     }
   },
   "detail": {
+    "bodyView": "正文视图",
+    "readable": "正文",
     "notFound": "Item 不存在",
     "backToItems": "返回数据",
     "revisionMissing": "未生成 Revision",
@@ -92,8 +98,8 @@
     "bodyAvailable": "规范化正文可用",
     "bodyOptional": "当前合同允许正文为空",
     "lineageTitle": "来源与谱系",
-    "lineageSubtitle": "从采集器、运行到当前数据的可追溯关系",
-    "collectorLabel": "采集器",
+    "lineageSubtitle": "从采集来源、运行到当前数据的可追溯关系",
+    "collectorLabel": "采集来源",
     "sourceLabel": "详情来源",
     "latestRunLabel": "最近运行",
     "viewRunRecord": "查看运行记录",

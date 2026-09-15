@@ -5,7 +5,7 @@
 | 字段 | 内容 |
 | --- | --- |
 | 文档版本 | `v0.8.0` |
-| 对应产品版本 | `v0.2` |
+| 对应产品版本 | `v0.6` |
 | 状态 | `Confirmed` |
 | 权威来源 | [`SSOT.md`](./SSOT.md) |
 | 最后更新 | `2026-08-31` |
@@ -39,8 +39,12 @@
 | --- | --- | --- | --- |
 | CollectionTemplate | 聚合根 | 可复用行业模板的稳定身份 | 可归档；不直接作为运行输入 |
 | TemplateVersion | 不可变版本 | 字段、身份、质量和默认输出模板 | `Published` 后不可变；版本号在 Template 内唯一 |
-| Collection | 聚合根 | 一个业务采集目标的稳定身份 | 名称在 Tenant 内唯一；归档后不得新建 Collector |
+| Collection | 聚合根 | 一个业务采集目标的稳定身份 | 以稳定 ID 区分需求；归档后不得新建 Collector |
 | CollectionVersion | 不可变版本 | 冻结后的数据合同 | `Frozen` 后不可变；引用至多一个 TemplateVersion |
+
+Collection 管理记录独立保存名称、业务目标、`active/archived` 状态、`revision` 和时间。工程师和管理员可独立创建、编辑、归档及恢复需求；编辑与删除必须提交当前 revision。无关联来源的需求允许确认后删除，有关联来源只能归档；命令与幂等回执、AuditEvent 在同一事务提交，删除不移除审计记录。归档不暂停已有来源的调度，不删除运行、规则或数据。名称与业务目标属于需求元数据，编辑不改变已有来源采集说明及不可变版本，新来源使用当前业务目标。
+
+Collection 的 `fieldDraft` 是可编辑需求定义，包含业务字段及其类型、必填、身份、指纹和说明。草稿不改变当前 CollectionVersion 或任何活动 RuleVersion；保存与 Collection 的 revision、幂等回执和审计共用事务。需求详情按来源读取不可变活动 RuleVersion 中的 normalizedItemSchema 与质量规则作为执行合同，不从候选样本推断已发布字段，也不自动将不同来源的字段合并为同一合同。
 
 CollectionVersion 必须包含：
 
@@ -96,7 +100,7 @@ Collector 对外投影必须携带稳定 `collectionId` 与 `collectionName`，�
 
 CollectorOverride 仅是编译输入。GatherSpec 保存 Override ID 与摘要作为谱系，并保存展开后的确定性行为；运行时不得读取可变 Override 来改变规则。
 
-Operation 是异步命令的短期进度信封，不替代 AiRun。AiRun 的 `resultStatus` 表达是否生成候选规则，`reviewStatus` 独立表达尚未审核、待审核、已发布或已被替代。规则发布事务把最新待审核 AiRun 关联到 `publishedRuleVersionId`，并将更早待审核结果标记为 `superseded`。ModelInvocation 只记录排障、用量和审计所需元数据，敏感上下文留在受控 Artifact 边界而不进入任务列表投影。
+Operation 是异步命令的短期进度信封，不替代 AiRun。AI Operation 通过 `aiRunId` 关联长期记录，Operation 与 AiRun 同步追加只含阶段、状态、时间、耗时和非敏感指标的 `activity`。AiRun 固定可选的一次性操作指引，`resultStatus` 表达是否生成候选规则，`reviewStatus` 独立表达尚未审核、待审核、已发布或已被替代。规则发布事务把最新待审核 AiRun 关联到 `publishedRuleVersionId`，并将更早待审核结果标记为 `superseded`。ModelInvocation 只记录排障、用量和审计所需元数据；操作指引按不可信输入处理，原始提示词、模型思维过程、Source 正文和模型响应正文不得进入任务记录。
 
 ### 3.5 执行与证据聚合
 
@@ -125,7 +129,7 @@ RunAttempt 不代表单个 HTTP 请求。请求级重试属于 Attempt 内部；
 
 HarvestItem 不保存“最新网页即真相”的假设。每个 Revision 记录 `outputContractDigest`、规范化 payload 和 payloadFingerprint；每个 Observation 记录 runId、ruleVersionId、collectionVersionId、sourceRevisionId、observedAt 与同一 Run 的重复出现次数。内容未变化时不创建新 Revision 或 ItemEvent，但仍创建 Observation，保证 Run 到 Item 的可查询谱系。
 
-v0.2 只有 Source 明确提供删除、撤销或失效信号时才产生 tombstone。列表中缺失一个历史实体不得自动解释为删除。
+v0.6 只有 Source 明确提供删除、撤销或失效信号时才产生 tombstone。列表中缺失一个历史实体不得自动解释为删除。
 
 ## 4. 关系模型
 
@@ -250,7 +254,7 @@ revisionKey = sha256(
 )
 ```
 
-`eventTypes` 由 CollectionVersion 事件合同决定，按 UTF-8 字节序排序；v0.2 无 tombstonePolicy 时为 `["upsert"]`，存在时为 `["tombstone","upsert"]`。`tombstonePolicy` 不存在时取 JSON `null`。Sink 绑定和交付策略不属于 outputContractDigest；同一 `revisionKey` 的观察不会创建新 Revision，但必须创建 HarvestObservation。CollectionVersion 的质量门、描述或调度变化不改变 outputContractDigest；输出 Schema、身份、指纹字段或上述事件语义变化必须改变 outputContractDigest。
+`eventTypes` 由 CollectionVersion 事件合同决定，按 UTF-8 字节序排序；v0.6 无 tombstonePolicy 时为 `["upsert"]`，存在时为 `["tombstone","upsert"]`。`tombstonePolicy` 不存在时取 JSON `null`。Sink 绑定和交付策略不属于 outputContractDigest；同一 `revisionKey` 的观察不会创建新 Revision，但必须创建 HarvestObservation。CollectionVersion 的质量门、描述或调度变化不改变 outputContractDigest；输出 Schema、身份、指纹字段或上述事件语义变化必须改变 outputContractDigest。
 
 ### 6.3 事件转换与交付键
 
@@ -276,7 +280,7 @@ deliveryId = sha256(eventId + "\n" + sinkVersionId)
 - 所有持久时间使用 UTC、RFC 3339 纳秒精度；用户界面可以按租户时区显示。
 - 更新稳定对象必须使用乐观并发版本 `rowVersion`；冲突返回明确错误，不得最后写入覆盖。
 - Schedule 触发与 RuleVersion 发布并发时，Run 创建事务读取并固定当时的 `activeRuleVersionId`。
-- v0.2 的 Collector 固定 `overlapPolicy=forbid`。GatherSpec 固定分页与提取行为，CollectionPolicyVersion 固定运行窗口和预算；Run 从第一页开始，使用日期 watermark 与回看窗口，并在成功终结时推进 CollectorCheckpoint。通用 cursor、无限滚动和任意增量表达式不在当前范围。
+- v0.6 的 Collector 固定 `overlapPolicy=forbid`。GatherSpec 固定分页与提取行为，CollectionPolicyVersion 固定运行窗口和预算；Run 从第一页开始，使用日期 watermark 与回看窗口，并在成功终结时推进 CollectorCheckpoint。通用 cursor、无限滚动和任意增量表达式不在当前范围。
 
 ## 8. 删除、保留与谱系
 
