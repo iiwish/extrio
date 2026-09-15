@@ -4,9 +4,9 @@
 
 The candidate is a self-hosted public alpha suitable for a technical portfolio,
 not a production-stable 1.0 release. Release repair covers test entry points,
-documentation integrity, showcase assets and isolated installation/execution.
-Runtime product changes and existing UI work are preserved. Push, tag creation,
-public deployment and paid model runs are outside this repair's execution scope.
+documentation integrity, showcase assets, isolated installation/execution,
+authorized real-model samples, source commits and remote CI. Existing UI work is
+preserved. Formal version tags and public deployment are outside this scope.
 
 ## Release checklist
 
@@ -25,7 +25,9 @@ public deployment and paid model runs are outside this repair's execution scope.
 The deterministic demo verifies worker execution against a local source using a
 fixed signed rule. It does not validate real-model generation. Historical real
 source runs and G4 observations are not a substitute for a new candidate's soak
-test. P28 representative real-model/source validation remains a release check.
+test. P28 has a bounded single-source real-model sample: a rejected title-only
+attempt and a successful title/URL/body candidate with three accepted detail
+samples. See the [closeout evidence](../reviews/release-closeout-2026-09-15/verification.md).
 The user waives the 72-hour observation gate for this release on 2026-09-15;
 this is an accepted evidence limitation, not a passed soak test. No long-duration
 reliability or SLA claim follows from the waiver.
