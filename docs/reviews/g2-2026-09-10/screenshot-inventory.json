@@ -1,0 +1,930 @@
+[
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-empty-zh-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-empty-zh-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-empty-zh-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-empty-zh-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-failed-en-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-failed-en-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-failed-en-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-failed-en-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-failed-zh-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-failed-zh-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-failed-zh-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-failed-zh-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-real-applied-en-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-real-applied-en-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-real-applied-en-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-real-applied-en-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-real-applied-zh-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-real-applied-zh-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-real-applied-zh-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-real-applied-zh-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-real-audit-en-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-real-audit-en-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-real-audit-en-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-real-audit-en-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-real-preview-en-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-real-preview-en-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-real-preview-en-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-real-preview-en-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-real-preview-zh-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-real-preview-zh-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-real-preview-zh-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-real-preview-zh-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-real-selected-en-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-real-selected-en-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-real-selected-en-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-real-selected-en-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-real-selected-zh-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-real-selected-zh-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-real-selected-zh-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/ai-real-selected-zh-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/alignment-en-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/alignment-en-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/alignment-en-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/alignment-en-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/alignment-zh-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/alignment-zh-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/alignment-zh-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/alignment-zh-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/draft-en-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/draft-en-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/draft-en-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/draft-en-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/draft-zh-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/draft-zh-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/draft-zh-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/draft-zh-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/history-en-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/history-en-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/history-en-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/history-en-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/history-zh-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/history-zh-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/history-zh-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/history-zh-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/long-draft-zh-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/long-draft-zh-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/long-draft-zh-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/long-draft-zh-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/migration-cancel-en-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/migration-cancel-en-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/migration-cancel-en-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/migration-cancel-en-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/migration-en-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/migration-en-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/migration-en-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/migration-en-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/migration-failed-zh-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/migration-failed-zh-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/migration-failed-zh-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/migration-failed-zh-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/migration-pending-en-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/migration-pending-en-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/migration-pending-en-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/migration-pending-en-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/migration-pending-zh-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/migration-pending-zh-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/migration-pending-zh-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/migration-pending-zh-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/migration-zh-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/migration-zh-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/migration-zh-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/migration-zh-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/publish-en-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/publish-en-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/publish-en-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/publish-en-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/publish-zh-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/publish-zh-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/publish-zh-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/publish-zh-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/source-binding-en-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/source-binding-en-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/source-binding-en-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/source-binding-en-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/source-binding-zh-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/source-binding-zh-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/source-binding-zh-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/source-binding-zh-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/template-en-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/template-en-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/template-en-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/template-en-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/template-zh-1024x800.jpg",
+    "width": 1024,
+    "height": 800,
+    "expectedWidth": 1024,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/template-zh-1132x1028.jpg",
+    "width": 1132,
+    "height": 1028,
+    "expectedWidth": 1132,
+    "expectedHeight": 1028,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/template-zh-1280x800.jpg",
+    "width": 1280,
+    "height": 800,
+    "expectedWidth": 1280,
+    "expectedHeight": 800,
+    "dimensionsMatch": true
+  },
+  {
+    "path": "/Users/iiwish/self/extrio/docs/reviews/g2-2026-09-10/screenshots/template-zh-1440x900.jpg",
+    "width": 1440,
+    "height": 900,
+    "expectedWidth": 1440,
+    "expectedHeight": 900,
+    "dimensionsMatch": true
+  }
+]

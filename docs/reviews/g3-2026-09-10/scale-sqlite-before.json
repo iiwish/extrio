@@ -1,0 +1,39 @@
+{
+  "date": "2026-09-10T10:47:12.136705+00:00",
+  "environment": "macOS-26.5.2-arm64-arm-64bit",
+  "python": "3.12.13",
+  "database": "sqlite",
+  "observations": 100000,
+  "bodyBytes": 1000,
+  "seedMilliseconds": 2171.95,
+  "observationsFirstPageMs": {
+    "median": 1.53,
+    "max": 2.0,
+    "samples": [
+      2.0,
+      1.63,
+      1.53,
+      1.32,
+      1.21
+    ]
+  },
+  "entitiesFirstPageMs": {
+    "median": 3208.33,
+    "max": 3492.66,
+    "samples": [
+      3295.05,
+      3492.66,
+      3208.33,
+      2500.03,
+      2695.28
+    ]
+  },
+  "entityCursorWalk": {
+    "count": 20000,
+    "milliseconds": 95177.51
+  },
+  "observationExport": {
+    "count": 100000,
+    "milliseconds": 1148.41
+  }
+}

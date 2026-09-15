@@ -9,17 +9,17 @@
     "aria": "Runs toolbar",
     "filterAria": "Run status filter",
     "searchLabel": "Search runs",
-    "searchPlaceholder": "Search by collector name or Run ID",
+    "searchPlaceholder": "Search by source name or Run ID",
     "sortHint": "Newest first",
     "aiAria": "AI tasks toolbar",
     "aiFilterAria": "AI task status filter",
     "aiSearchLabel": "Search AI tasks",
-    "aiSearchPlaceholder": "Search by collector or source URL"
+    "aiSearchPlaceholder": "Search by source or source URL"
   },
   "filter": {
     "all": "All",
     "attention": "Needs attention",
-    "succeeded": "Fully succeeded",
+    "succeeded": "Succeeded",
     "running": "In progress",
     "review": "Pending review"
   },
@@ -35,7 +35,7 @@
   },
   "aiList": {
     "aria": "AI task list",
-    "colCollector": "Collector",
+    "colCollector": "Source",
     "colTask": "Task",
     "colStatus": "Status",
     "colResult": "Result",
@@ -68,8 +68,10 @@
   "phase": {
     "queued": "Waiting to run",
     "fetching_list": "Reading source",
-    "discovering_details": "Analyzing pages",
+    "analyzing_structure": "AI analyzing structure",
+    "discovering_details": "Discovering detail links",
     "fetching_details": "Collecting samples",
+    "compiling_rule": "AI compiling rule",
     "validating": "Validating rule",
     "finalizing": "Finalizing results",
     "completed": "Completed"
@@ -87,7 +89,7 @@
     "historical": "Historical"
   },
   "stopReason": {
-    "not_applicable": "Single page completed",
+    "not_applicable": "Not applicable",
     "empty_page": "Stopped on empty page",
     "next_link_exhausted": "Reached last page",
     "max_pages": "Page limit reached",
@@ -102,9 +104,44 @@
     "running": "Running"
   },
   "detail": {
+    "failure": {
+      "structure": "Source structure does not match the rule",
+      "unsupported": "The source requires an unsupported access method",
+      "access": "Anonymous access or robots permission denied",
+      "budget": "Frozen duration or response budget exceeded",
+      "boundary": "Source network boundary blocked the request",
+      "connection": "Source connection or response failed",
+      "cancelled": "Cancellation complete; checkpoint unchanged",
+      "general": "Run incomplete; investigation required"
+    },
+    "recovery": {
+      "structure": "Check the entry URL and field selectors. Generate a repair candidate and review it before publishing.",
+      "unsupported": "Only anonymous GET is supported. Confirm public access without bypassing login or CAPTCHA.",
+      "access": "Check source authorization and robots rules. Keep collection paused until access is permitted.",
+      "budget": "Check page count, response size and duration limits. Review the updated rule before publishing.",
+      "boundary": "Check allowed hosts, redirect targets and HTTPS. Do not disable network protection to retry.",
+      "connection": "Confirm source access and instance connectivity before starting another run.",
+      "cancelled": "No delivery result was committed. Start another run when needed.",
+      "general": "Check instance health, rule attestation and the error code before retrying or repairing the rule."
+    },
+    "cancel": "Cancel run",
+    "cancelPending": "Stopping",
+    "actualFetchCount": "Completed detail requests",
+    "noCommit": "No complete delivery result",
+    "checkingEvidence": "Checking evidence",
+    "noReplay": "No complete replayable evidence",
+    "evidenceFiles": "{{count}} snapshots · {{bytes}} verified bytes",
+    "evidenceExpiry": "Retained until {{date}}",
+    "evidenceState": {
+      "available": "Local evidence integrity verified",
+      "missing": "Local evidence missing",
+      "expired": "Raw evidence expired",
+      "invalid": "Evidence integrity check failed",
+      "incomplete": "Evidence record incomplete"
+    },
     "notFound": "Run not found",
     "backToRuns": "Back to runs",
-    "viewCollector": "View collector",
+    "viewCollector": "View source",
     "tabsAria": "Run detail views",
     "tab": {
       "results": "Results",
@@ -134,7 +171,25 @@
     "runningDesc": "The same task keeps progressing after you refresh the page.",
     "progressErrorTitle": "Unable to keep tracking run progress",
     "partialTitle": "Some results need handling",
-    "viewRejected": "View rejected items",
+    "pageLimitTitle": "Page limit reached; data saved",
+    "pageLimitOutcome": "{{accepted}} accepted; page limit reached",
+    "pageLimitSummary": "Fetched {{pages}} list pages and saved {{accepted}} records, with none rejected. Full scope coverage has not been confirmed.",
+    "pageLimitHelp": "This run stopped at its page limit, not because of a collection error. No action is needed if these results meet your needs. For broader coverage, review the collection scope and page limit.",
+    "viewRejected": "View this run's rejections",
+    "rejectedGroup_one": "{{count}} record failed quality checks",
+    "rejectedGroup_other": "{{count}} records failed quality checks",
+    "rejectedHelp": "Inspect rejection reasons and field evidence before deciding whether to revise the rule.",
+    "unfetchedGroup_one": "{{count}} detail page not fetched",
+    "unfetchedGroup_other": "{{count}} detail pages not fetched",
+    "unfetchedHelp": "Quality is not yet known for these pages. Check the fetching stage and stop reason first.",
+    "inspectExecution": "View execution diagnostics",
+    "inspectRule": "View rule and evidence",
+    "resultFilter": "This run's result filter",
+    "allResults": "All results",
+    "onlyRejected": "Rejected only",
+    "rejectedLoaded": "Loaded {{count}}/{{total}} rejected records",
+    "rejectedUnavailable": "This run has rejected records, but their details are currently unavailable.",
+    "noRejected": "This run has no rejected records.",
     "reviseRule": "Revise collection rule",
     "terminal": {
       "succeeded": "Completed",

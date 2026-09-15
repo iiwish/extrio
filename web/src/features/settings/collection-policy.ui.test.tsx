@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiRequestError, api } from '@/api/client'
 import type { AuthState, PlatformSettings, User } from '@/api/types'
 import { AuthGate } from '@/features/auth/auth-gate'
-import { ModelSettingsPage } from './model-settings-page'
+import { SystemSettingsPage } from './model-settings-page'
 
 window.HTMLElement.prototype.hasPointerCapture = () => false
 window.HTMLElement.prototype.releasePointerCapture = () => undefined
@@ -42,7 +42,7 @@ function authenticatedState(role: User['role']): AuthState {
   }
 }
 
-function renderSettingsPage(children = <ModelSettingsPage />) {
+function renderSettingsPage(children = <SystemSettingsPage />) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   return render(
     <QueryClientProvider client={client}>
@@ -122,9 +122,9 @@ describe('Settings 采集策略', () => {
     vi.spyOn(api, 'modelConfiguration').mockResolvedValue(configuration)
     const platformSettingsQuery = vi.spyOn(api, 'platformSettings')
 
-    renderSettingsPage(<AuthGate><ModelSettingsPage /></AuthGate>)
+    renderSettingsPage(<AuthGate><SystemSettingsPage /></AuthGate>)
 
-    expect(await screen.findByText('OpenAI')).toBeInTheDocument()
+    expect(await screen.findByText('界面语言')).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: '采集策略' })).not.toBeInTheDocument()
     expect(screen.queryByRole('switch', { name: '允许匿名 HTTP 来源' })).not.toBeInTheDocument()
     expect(platformSettingsQuery).not.toHaveBeenCalled()

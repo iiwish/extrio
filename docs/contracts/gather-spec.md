@@ -5,13 +5,13 @@
 | 字段 | 内容 |
 | --- | --- |
 | 规范标识 | `extrio.gather.v1` |
-| 文档版本 | `v1.5.0` |
+| 文档版本 | `v1.6.0` |
 | 状态 | `Confirmed` |
 | JSON Schema | [`gather-spec.schema.json`](./gather-spec.schema.json) |
 | 提取语义 | [`extraction-semantics.md`](./extraction-semantics.md) |
 | 权威来源 | [`../SSOT.md`](../SSOT.md) 中的 `INV-001`、`INV-002`、`INV-003`、`INV-005` |
 | 作者指南 | [`../rules-guide.md`](../rules-guide.md) |
-| 最后更新 | `2026-09-03` |
+| 最后更新 | `2026-09-04` |
 | 审批责任 | 技术负责人 |
 
 ## 2. 规范边界
@@ -113,7 +113,7 @@ RuleVersion 必须完整保存这些字段。运行时不得用数据库中的�
 
 ### 7.1 EntryPoint 与主机
 
-- `entrypoints` 必须是绝对 HTTP(S) URL，不允许 userinfo 和 fragment。
+- `entrypoints` 必须只包含一个精确列表页或单页的绝对 HTTP(S) URL，不允许 userinfo 和 fragment。分页属于 list stage，不拆成额外入口。
 - `allowedHosts` 使用精确、规范化的小写 DNS hostname；不得使用 `*`。
 - entrypoint 主机、detail URL 和每次 redirect 都必须属于 allowedHosts。
 - URL 在检查前必须解析、移除默认端口、规范化主机并解析 DNS；安全规则以 [`../security-compliance.md`](../security-compliance.md) 为准。

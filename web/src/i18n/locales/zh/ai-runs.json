@@ -1,4 +1,39 @@
 {
+  "adaptive": {
+    "title": "网页证据与预算",
+    "noCandidate": "本次任务未生成验证通过的候选，已有规则保持不变。",
+    "validation": {
+      "PAGINATION_NEXT_LINK_MISSING": "下一页规则未匹配到可用跳转地址",
+      "PAGINATION_OMITTED": "页面存在下一页，但规则关闭了分页",
+      "PAGINATION_MODE_MISMATCH": "分页模式不匹配：静态路径不能使用查询参数翻页",
+      "TITLE_MISMATCH": "列表与详情标题不一致", "FIELD_MISSING": "样本字段缺失",
+      "DETAIL_URL_MISMATCH": "明细 URL 与来源记录不一致", "IDENTITY_COLLISION": "实体标识冲突",
+      "IDENTITY_FIELD_MISSING": "身份字段缺失", "SAMPLE_REJECTED": "样本被拒绝",
+      "RULE_VALIDATION_FAILED": "规则验证失败", "DISCOVERY_RULE_INVALID": "发现规则无效",
+      "LIST_RECORDS_MISSING": "未定位到列表记录", "EVIDENCE_ACTION_INVALID": "证据读取请求无效"
+    },
+    "source": { "configured": "已配置模型预算", "conservative_default": "保守默认预算" },
+    "method": { "tiktoken_with_margin": "分词计数 + 安全余量", "utf8_upper_estimate": "UTF-8 保守估算" },
+    "phase": { "indexing": "建立索引", "locating": "定位区域", "reading": "读取证据", "validating": "完整样本验证", "validated": "样本验证通过", "failed": "失败", "cancelled": "已取消" },
+    "calls": "模型调用", "input": "输入 token", "output": "输出 token", "time": "耗时 / 上限",
+    "context": "上下文窗口：{{count}} token", "validated": "完整样本验证通过", "unvalidated": "完整样本尚未验证通过",
+    "stopped": "已停止", "page": "页面", "indexed": "索引节点", "read": "已读节点", "chars": "已读片段字符",
+    "sample": "样本 {{count}}", "readLog": "最近读取（{{count}}）", "node": "节点", "action": "动作", "range": "范围", "fragment": "片段状态",
+    "actionType": { "expand_nodes": "展开目录", "read_nodes": "读取内容" }, "end": "到达末尾", "more": "仍有后续",
+    "errors": {
+      "MODEL_CONTEXT_INSUFFICIENT": "模型上下文不足以容纳必要合同与响应预留。",
+      "MODEL_CALL_BUDGET_EXCEEDED": "任务已达模型调用上限，未生成验证通过的候选。",
+      "MODEL_DISCOVERY_BUDGET_EXCEEDED": "规则发现阶段额度已用尽，后续编译额度仍保留。请补充来源说明后重试。",
+      "MODEL_NO_PROGRESS": "重复调用或验证纠错持续无进展，已停止尝试。请检查来源说明和验证反馈。",
+      "MODEL_TOKEN_BUDGET_EXCEEDED": "任务已达 token 预算上限，未生成验证通过的候选。",
+      "MODEL_OUTPUT_BUDGET_EXCEEDED": "剩余输出预算不足以继续提交规则。",
+      "MODEL_TIME_BUDGET_EXCEEDED": "任务已达时间上限。",
+      "MODEL_RESPONSE_TRUNCATED": "模型响应达到输出长度上限。",
+      "MODEL_CONTEXT_REDUCED": "供应商拒绝上下文长度，已缩小证据输入。",
+      "MODEL_CALL_CANCELLED": "模型调用已中断。",
+      "EVIDENCE_VALIDATION_FAILED": "候选未通过完整样本验证。"
+    }
+  },
   "summaryAria": "AI 任务摘要",
   "summary": {
     "failed": "任务未生成候选规则",
@@ -38,8 +73,10 @@
   "phase": {
     "queued": "等待执行",
     "fetching_list": "读取来源页面",
-    "discovering_details": "分析页面结构",
+    "analyzing_structure": "AI 分析页面结构",
+    "discovering_details": "识别分页与详情链接",
     "fetching_details": "采集验证样本",
+    "compiling_rule": "AI 编译候选规则",
     "validating": "验证候选规则",
     "finalizing": "整理任务结果",
     "completed": "执行已完成"
@@ -85,7 +122,7 @@
     "notFound": "AI 任务不存在",
     "backToAiRuns": "返回 AI 任务",
     "reviewCandidate": "审核候选规则",
-    "viewCollector": "查看采集器",
+    "viewCollector": "查看采集来源",
     "tabsAria": "AI 任务详情视图",
     "tab": {
       "result": "结果",
@@ -105,7 +142,24 @@
     "noCandidateTitle": "未产生可审核的候选规则",
     "noCandidateFallback": "查看执行过程和模型调用，定位失败阶段后重新生成。",
     "activeHint": "任务在后台执行，离开页面不会中断。",
-    "attemptsHeading": "执行尝试",
+    "guidanceHeading": "本次操作指引",
+    "guidanceSub": "指引只作用于本次任务，不能改变安全、数据合同、验证或人工审核门",
+    "outputHeading": "产出与审核",
+    "activityHeading": "执行记录",
+    "activitySub": "仅记录阶段、时间、耗时和非敏感结果，不展示原始提示词、思维过程或网页正文",
+    "activityEmpty": "该历史任务没有可恢复的阶段记录。",
+    "activityStatus": {
+      "running": "进行中",
+      "succeeded": "已完成",
+      "failed": "失败"
+    },
+    "activityMetric": {
+      "listPages": "{{count}} 个来源页面",
+      "detailUrls": "{{count}} 条详情链接",
+      "detailPages": "{{count}} 个详情样本",
+      "warnings": "{{count}} 项质量警告"
+    },
+    "attemptsHeading": "Worker 尝试",
     "attemptsSub": "失败重试不会覆盖历史，每次尝试独立留痕",
     "attemptNo": "第 {{no}} 次尝试",
     "attemptInvocations": "{{count}} 次模型调用",

@@ -1,0 +1,5 @@
+entryUrl,mode,name,scopeHint
+http://www.ccgp-beijing.gov.cn/yxgk/sjcgyx/A002003001index_1.htm,exact,北京市级采购意向,采集北京市级预算单位采购意向
+http://www.ccgp-beijing.gov.cn/yxgk/qjcgyx/A002003002index_1.htm,,北京区级采购意向,采集北京市区级预算单位采购意向
+http://www.ccgp.gov.cn/cggg/zygg/gkzb/index.htm,exact,中央公开招标公告,采集中央单位公开招标公告
+http://www.ccgp.gov.cn/cggg/dfgg/gkzb/index.htm,exact,地方公开招标公告,采集地方政府公开招标公告

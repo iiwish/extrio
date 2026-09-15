@@ -110,7 +110,7 @@ Extrio 不排斥 LLM——它把 LLM 关进编译期的笼子：
 
 作者须知：
 
-- `entrypoints`：绝对 HTTP(S) URL，1–32 个，不允许 userinfo 和 fragment。有 `accessProfileRef` 时必须全部 HTTPS。
+- `entrypoints`：包含一个精确列表页或单页入口的数组，不允许 userinfo 和 fragment。有 `accessProfileRef` 时必须使用 HTTPS。分页页码属于 list stage 策略，不作为额外入口导入。
 - `allowedHosts`：**精确小写 hostname，禁止 `*` 通配**。entrypoint 主机、detail URL、每一跳 redirect 都必须落在集合内。坚持最小化：能一个 host 就不要写两个。
 - `transport`：`http`（确定性客户端，不执行 JS）或 `browser`（必须同时声明 `browserPolicy`：固定 engine/version/viewport/locale/timezoneId/waitUntil/postLoadDelayMs；下载永久禁用）。
 - `rateLimit` 是规则允许的**上限**；平台/租户/Source 的动态更严格限制仍然生效。

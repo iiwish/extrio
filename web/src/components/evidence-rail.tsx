@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import type { CandidateField, CollectorDetail, FieldReviewDecision, HarvestItem } from '@/api/types'
+import { HistoryAttribution } from '@/features/collectors/collector-management'
 
 interface EvidenceRailProps {
   mode?: 'rail' | 'drawer'
@@ -69,6 +70,7 @@ function ItemEvidence({ item, mode }: { item: HarvestItem; mode: 'rail' | 'drawe
   return (
     <EvidenceContainer mode={mode} label={item.decision === 'rejected' ? t('evidence.rejectedEvidence') : t('evidence.itemLineageEvidence')}>
       <EvidenceHeading eyebrow="LINEAGE" title={item.decision === 'rejected' ? t('evidence.rejectedEvidence') : t('evidence.itemLineage')} icon={Fingerprint} />
+      <HistoryAttribution value={item.collectionAttribution} />
       <section className="evidence-card">
         <EvidenceRow icon={Network} label="Collector / Source" value={`${item.collectorName} · ${item.sourceHost}`} />
         <EvidenceRow icon={Link2} label={t('evidence.listTitle')} value={item.listTitle || item.title} />

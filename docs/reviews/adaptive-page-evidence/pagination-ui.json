@@ -1,0 +1,197 @@
+{
+  "results": [
+    {
+      "code": "PAGINATION_NEXT_LINK_MISSING",
+      "language": "zh",
+      "width": 1440,
+      "overflow": false,
+      "errorClipped": false,
+      "errorFits": true
+    },
+    {
+      "code": "PAGINATION_NEXT_LINK_MISSING",
+      "language": "zh",
+      "width": 1280,
+      "overflow": false,
+      "errorClipped": false,
+      "errorFits": true
+    },
+    {
+      "code": "PAGINATION_NEXT_LINK_MISSING",
+      "language": "zh",
+      "width": 1132,
+      "overflow": false,
+      "errorClipped": false,
+      "errorFits": true
+    },
+    {
+      "code": "PAGINATION_NEXT_LINK_MISSING",
+      "language": "zh",
+      "width": 1024,
+      "overflow": false,
+      "errorClipped": false,
+      "errorFits": true
+    },
+    {
+      "code": "PAGINATION_OMITTED",
+      "language": "zh",
+      "width": 1440,
+      "overflow": false,
+      "errorClipped": false,
+      "errorFits": true
+    },
+    {
+      "code": "PAGINATION_OMITTED",
+      "language": "zh",
+      "width": 1280,
+      "overflow": false,
+      "errorClipped": false,
+      "errorFits": true
+    },
+    {
+      "code": "PAGINATION_OMITTED",
+      "language": "zh",
+      "width": 1132,
+      "overflow": false,
+      "errorClipped": false,
+      "errorFits": true
+    },
+    {
+      "code": "PAGINATION_OMITTED",
+      "language": "zh",
+      "width": 1024,
+      "overflow": false,
+      "errorClipped": false,
+      "errorFits": true
+    },
+    {
+      "code": "PAGINATION_MODE_MISMATCH",
+      "language": "zh",
+      "width": 1440,
+      "overflow": false,
+      "errorClipped": false,
+      "errorFits": true
+    },
+    {
+      "code": "PAGINATION_MODE_MISMATCH",
+      "language": "zh",
+      "width": 1280,
+      "overflow": false,
+      "errorClipped": false,
+      "errorFits": true
+    },
+    {
+      "code": "PAGINATION_MODE_MISMATCH",
+      "language": "zh",
+      "width": 1132,
+      "overflow": false,
+      "errorClipped": false,
+      "errorFits": true
+    },
+    {
+      "code": "PAGINATION_MODE_MISMATCH",
+      "language": "zh",
+      "width": 1024,
+      "overflow": false,
+      "errorClipped": false,
+      "errorFits": true
+    },
+    {
+      "code": "PAGINATION_NEXT_LINK_MISSING",
+      "language": "en",
+      "width": 1440,
+      "overflow": false,
+      "errorClipped": false,
+      "errorFits": true
+    },
+    {
+      "code": "PAGINATION_NEXT_LINK_MISSING",
+      "language": "en",
+      "width": 1280,
+      "overflow": false,
+      "errorClipped": false,
+      "errorFits": true
+    },
+    {
+      "code": "PAGINATION_NEXT_LINK_MISSING",
+      "language": "en",
+      "width": 1132,
+      "overflow": false,
+      "errorClipped": false,
+      "errorFits": true
+    },
+    {
+      "code": "PAGINATION_NEXT_LINK_MISSING",
+      "language": "en",
+      "width": 1024,
+      "overflow": false,
+      "errorClipped": false,
+      "errorFits": true
+    },
+    {
+      "code": "PAGINATION_OMITTED",
+      "language": "en",
+      "width": 1440,
+      "overflow": false,
+      "errorClipped": false,
+      "errorFits": true
+    },
+    {
+      "code": "PAGINATION_OMITTED",
+      "language": "en",
+      "width": 1280,
+      "overflow": false,
+      "errorClipped": false,
+      "errorFits": true
+    },
+    {
+      "code": "PAGINATION_OMITTED",
+      "language": "en",
+      "width": 1132,
+      "overflow": false,
+      "errorClipped": false,
+      "errorFits": true
+    },
+    {
+      "code": "PAGINATION_OMITTED",
+      "language": "en",
+      "width": 1024,
+      "overflow": false,
+      "errorClipped": false,
+      "errorFits": true
+    },
+    {
+      "code": "PAGINATION_MODE_MISMATCH",
+      "language": "en",
+      "width": 1440,
+      "overflow": false,
+      "errorClipped": false,
+      "errorFits": true
+    },
+    {
+      "code": "PAGINATION_MODE_MISMATCH",
+      "language": "en",
+      "width": 1280,
+      "overflow": false,
+      "errorClipped": false,
+      "errorFits": true
+    },
+    {
+      "code": "PAGINATION_MODE_MISMATCH",
+      "language": "en",
+      "width": 1132,
+      "overflow": false,
+      "errorClipped": false,
+      "errorFits": true
+    },
+    {
+      "code": "PAGINATION_MODE_MISMATCH",
+      "language": "en",
+      "width": 1024,
+      "overflow": false,
+      "errorClipped": false,
+      "errorFits": true
+    }
+  ],
+  "realApiWrites": 0
+}

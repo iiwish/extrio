@@ -1,0 +1,334 @@
+{
+  "measurements": [
+    {
+      "surface": "process",
+      "language": "zh",
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "evidence",
+      "language": "zh",
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "model",
+      "language": "zh",
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "process",
+      "language": "zh",
+      "width": 1280,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "evidence",
+      "language": "zh",
+      "width": 1280,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "model",
+      "language": "zh",
+      "width": 1280,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "process",
+      "language": "zh",
+      "width": 1132,
+      "height": 1028,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "evidence",
+      "language": "zh",
+      "width": 1132,
+      "height": 1028,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "model",
+      "language": "zh",
+      "width": 1132,
+      "height": 1028,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "process",
+      "language": "zh",
+      "width": 1024,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "evidence",
+      "language": "zh",
+      "width": 1024,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "model",
+      "language": "zh",
+      "width": 1024,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "failed",
+      "language": "zh",
+      "width": 1440,
+      "height": 900,
+      "overflow": false
+    },
+    {
+      "surface": "failed",
+      "language": "zh",
+      "width": 1280,
+      "height": 800,
+      "overflow": false
+    },
+    {
+      "surface": "failed",
+      "language": "zh",
+      "width": 1132,
+      "height": 1028,
+      "overflow": false
+    },
+    {
+      "surface": "failed",
+      "language": "zh",
+      "width": 1024,
+      "height": 800,
+      "overflow": false
+    },
+    {
+      "surface": "historical",
+      "language": "zh",
+      "width": 1440,
+      "height": 900,
+      "overflow": false
+    },
+    {
+      "surface": "historical",
+      "language": "zh",
+      "width": 1280,
+      "height": 800,
+      "overflow": false
+    },
+    {
+      "surface": "historical",
+      "language": "zh",
+      "width": 1132,
+      "height": 1028,
+      "overflow": false
+    },
+    {
+      "surface": "historical",
+      "language": "zh",
+      "width": 1024,
+      "height": 800,
+      "overflow": false
+    },
+    {
+      "surface": "process",
+      "language": "en",
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "evidence",
+      "language": "en",
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "model",
+      "language": "en",
+      "width": 1440,
+      "height": 900,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "process",
+      "language": "en",
+      "width": 1280,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "evidence",
+      "language": "en",
+      "width": 1280,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "model",
+      "language": "en",
+      "width": 1280,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "process",
+      "language": "en",
+      "width": 1132,
+      "height": 1028,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "evidence",
+      "language": "en",
+      "width": 1132,
+      "height": 1028,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "model",
+      "language": "en",
+      "width": 1132,
+      "height": 1028,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "process",
+      "language": "en",
+      "width": 1024,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "evidence",
+      "language": "en",
+      "width": 1024,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "model",
+      "language": "en",
+      "width": 1024,
+      "height": 800,
+      "overflow": false,
+      "clipped": [],
+      "dialogFits": true
+    },
+    {
+      "surface": "failed",
+      "language": "en",
+      "width": 1440,
+      "height": 900,
+      "overflow": false
+    },
+    {
+      "surface": "failed",
+      "language": "en",
+      "width": 1280,
+      "height": 800,
+      "overflow": false
+    },
+    {
+      "surface": "failed",
+      "language": "en",
+      "width": 1132,
+      "height": 1028,
+      "overflow": false
+    },
+    {
+      "surface": "failed",
+      "language": "en",
+      "width": 1024,
+      "height": 800,
+      "overflow": false
+    },
+    {
+      "surface": "historical",
+      "language": "en",
+      "width": 1440,
+      "height": 900,
+      "overflow": false
+    },
+    {
+      "surface": "historical",
+      "language": "en",
+      "width": 1280,
+      "height": 800,
+      "overflow": false
+    },
+    {
+      "surface": "historical",
+      "language": "en",
+      "width": 1132,
+      "height": 1028,
+      "overflow": false
+    },
+    {
+      "surface": "historical",
+      "language": "en",
+      "width": 1024,
+      "height": 800,
+      "overflow": false
+    }
+  ],
+  "requests": 80,
+  "realApiWrites": 0
+}

@@ -10,7 +10,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY backend/pyproject.toml backend/uv.lock backend/README.md backend/
+COPY backend/pyproject.toml backend/uv.lock backend/README.md backend/hatch_build.py backend/
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --project backend --frozen --no-dev --no-install-project \
@@ -21,6 +21,12 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 RUN apt-get update \
     && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends curl ca-certificates \
+    && mkdir -p /usr/share/postgresql-common/pgdg \
+    && curl --fail --silent --show-error https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+    && printf '%s\n' 'deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main' > /etc/apt/sources.list.d/pgdg.list \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends postgresql-client-16 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY LICENSE NOTICE ./

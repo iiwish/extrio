@@ -1,13 +1,33 @@
 import { setupServer } from 'msw/node'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { handlers } from './handlers'
-import type { BatchCollectorImportResult, ModelConfiguration, ModelSetting, Operation, PlatformError } from './types'
+import type { AiRunDetail, BatchCollectorImportResult, ModelConfiguration, ModelSetting, Operation, PlatformError } from './types'
 
 const server = setupServer(...handlers)
 
 describe('asynchronous HTTP contract', () => {
   beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
   afterAll(() => server.close())
+
+  it('supports numbered item pages without breaking cursor compatibility', async () => {
+    const endpoint = 'http://localhost/api/v1/items?view=entities&limit=1'
+    const first = await (await fetch(`${endpoint}&page=1`)).json()
+    const second = await (await fetch(`${endpoint}&page=2`)).json()
+    expect(first.pagination).toEqual({ page: 1, pageSize: 1, totalPages: first.total, total: first.total })
+    const cursor = await (await fetch(`${endpoint}&cursor=${encodeURIComponent(first.nextCursor)}`)).json()
+    expect(second.items).toEqual(cursor.items)
+    const last = await (await fetch(`${endpoint}&page=999`)).json()
+    expect(last.pagination.page).toBe(first.total)
+    const empty = await (await fetch(`${endpoint}&q=nonexistent-pagination-result&page=999`)).json()
+    expect(empty.pagination).toEqual({ page: 1, pageSize: 1, totalPages: 1, total: 0 })
+    expect((await fetch(`${endpoint}&page=2&cursor=MQ==`)).status).toBe(400)
+  })
+
+  it('does not mix real overview metrics into the isolated mock environment', async () => {
+    const response = await fetch('http://localhost/api/v1/overview?timezone=UTC')
+    expect(response.status).toBe(503)
+    expect((await response.json() as PlatformError).code).toBe('INTERNAL_ERROR')
+  })
 
   it('requires idempotency and reaches a durable terminal Operation', async () => {
     const endpoint = 'http://localhost/api/v1/collectors/collector_beijing_tender/explorations'
@@ -17,7 +37,11 @@ describe('asynchronous HTTP contract', () => {
     expect(rejectedBody.code).toBe('IDEMPOTENCY_KEY_REQUIRED')
     expect(rejected.headers.get('X-Request-ID')).toBe(rejectedBody.requestId)
 
-    const accepted = await fetch(endpoint, { method: 'POST', headers: { 'Idempotency-Key': crypto.randomUUID() } })
+    const accepted = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() },
+      body: JSON.stringify({ guidance: '优先识别公告标题和详情链接。' }),
+    })
     let operation = await accepted.json() as Operation
     expect(accepted.status).toBe(202)
     expect(accepted.headers.get('Location')).toBe(operation.statusUrl)
@@ -36,6 +60,23 @@ describe('asynchronous HTTP contract', () => {
     expect(operation.status).toBe('succeeded')
     expect(operation.phase).toBe('completed')
     expect(operation.progress).toBe(100)
+    expect(operation.aiRunId).toBeTruthy()
+    expect(operation.activity?.map((event) => event.phase)).toEqual([
+      'queued',
+      'fetching_list',
+      'analyzing_structure',
+      'discovering_details',
+      'fetching_details',
+      'compiling_rule',
+      'validating',
+      'finalizing',
+      'completed',
+    ])
+
+    const aiRunResponse = await fetch(`http://localhost/api/v1/ai-runs/${operation.aiRunId}`)
+    const aiRun = await aiRunResponse.json() as AiRunDetail
+    expect(aiRun.guidance).toBe('优先识别公告标题和详情链接。')
+    expect(aiRun.activity).toEqual(operation.activity)
   })
 
   it('handles batch Collector creation in the isolated mock environment', async () => {
@@ -45,7 +86,7 @@ describe('asynchronous HTTP contract', () => {
       body: JSON.stringify({
         collectionName: '批量请求回归测试',
         intent: '验证新建页面不会绕过 Mock 请求处理器',
-        sourceUrls: [`https://batch-${crypto.randomUUID()}.example.gov.cn/notices`],
+        sources: [{ entryUrl: `https://batch-${crypto.randomUUID()}.example.gov.cn/notices` }],
       }),
     })
     const result = await response.json() as BatchCollectorImportResult
@@ -63,7 +104,7 @@ describe('asynchronous HTTP contract', () => {
         collectionId: 'collection_nationwide_tender',
         collectionName: '不会覆盖已有需求',
         intent: '不会覆盖已有采集意图',
-        sourceUrls: [`https://existing-${crypto.randomUUID()}.example.gov.cn/notices`],
+        sources: [{ entryUrl: `https://existing-${crypto.randomUUID()}.example.gov.cn/notices` }],
       }),
     })
     const result = await response.json() as BatchCollectorImportResult

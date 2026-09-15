@@ -1,4 +1,37 @@
 {
+  "runtime": {
+    "title": "Instance health",
+    "refresh": "Refresh instance health",
+    "ready": "Ready for collection jobs",
+    "liveWorkers": "Live workers",
+    "queued": "Queued jobs",
+    "running": "Running jobs",
+    "oldest": "Oldest due job",
+    "seconds": "{{count}} seconds",
+    "matched": "Deployment matches",
+    "mismatched": "Deployment mismatch",
+    "reason": {
+      "worker_unavailable": "Worker unavailable",
+      "worker_deployment_mismatch": "Worker deployment mismatch",
+      "credential_key_unavailable": "Credential key unavailable",
+      "signing_key_unavailable": "Signing key unavailable",
+      "signing_key_mismatch": "Signing key identity mismatch",
+      "signing_key_not_trusted": "Signing key is not trusted"
+    },
+    "recovery": {
+      "worker_unavailable": "Check the worker process and database connection, then wait for its heartbeat.",
+      "worker_deployment_mismatch": "API and workers require matching code, contracts and shared paths. Stop old processes and restart together.",
+      "credential_key_unavailable": "Stop the instance and restore the original credential keyring from a full backup. Do not generate a replacement.",
+      "signing_key_unavailable": "Stop the instance and restore the original signing key with restricted file permissions.",
+      "signing_key_mismatch": "Check the signing key ID and original key file. Do not rebind an existing identity.",
+      "signing_key_not_trusted": "Configure a new trusted signing key. Retain historical public keys for verification."
+    }
+  },
+  "tabs": {
+    "system": "System settings",
+    "models": "Model settings",
+    "modelReadOnly": "Only administrators can edit model configuration"
+  },
   "toolbar": {
     "overviewAria": "Model configuration overview",
     "defaultModel": "Default model",
@@ -40,6 +73,16 @@
     "disable": "Disable model",
     "delete": "Delete model",
     "empty": "No models yet"
+  },
+  "budget": {
+    "invalid": "Invalid model limits. Leave input space after output, reasoning and the safety margin.",
+    "custom": "Custom model limits",
+    "configured": "Configured limits · tokens",
+    "default": "Conservative default · estimated tokens",
+    "contextTokens": "Context window",
+    "maxInputTokens": "Maximum input",
+    "maxOutputTokens": "Maximum output",
+    "reasoningTokens": "Reasoning reserve"
   },
   "dialog": {
     "providerDescription": "Configure provider credentials directly. Keys are stored encrypted and never shown again.",

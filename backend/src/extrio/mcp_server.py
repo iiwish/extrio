@@ -39,6 +39,7 @@ from mcp.server.fastmcp.exceptions import ToolError
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 from extrio import app as control_plane
+from extrio.instance_guard import instance_lock
 from extrio.security import SourceUrlError, normalize_source_url
 from extrio.store import InvalidCursor, Store, stable_id
 
@@ -137,6 +138,9 @@ def list_collectors_summary(store: Store) -> dict[str, Any]:
                 "id": collector["id"],
                 "name": collector["name"],
                 "status": collector["status"],
+                "lifecycle": collector.get("lifecycle", "active"),
+                "collectionId": collector["collectionId"],
+                "collectionName": collector["collectionName"],
                 "sourceHost": collector["sourceHost"],
                 "activeRuleVersion": collector.get("activeRuleVersion"),
                 "scheduleEnabled": bool(schedule.get("enabled")),
@@ -149,6 +153,7 @@ def list_collectors_summary(store: Store) -> dict[str, Any]:
                     "duration": run.get("duration"),
                     "acceptedCount": run.get("acceptedCount", 0),
                     "rejectedCount": run.get("rejectedCount", 0),
+                    "collectionAttribution": run.get("collectionAttribution"),
                 },
             }
         )
@@ -179,6 +184,7 @@ def get_collector_detail(store: Store, collector_id: str) -> dict[str, Any]:
             "rejectedCount": run.get("rejectedCount", 0),
             "duration": run.get("duration"),
             "startedAt": run.get("startedAtIso"),
+            "collectionAttribution": run.get("collectionAttribution"),
         }
         for run in store.list_runs()
         if run.get("collectorId") == collector_id
@@ -187,6 +193,8 @@ def get_collector_detail(store: Store, collector_id: str) -> dict[str, Any]:
         "id": collector["id"],
         "name": collector["name"],
         "status": collector["status"],
+        "lifecycle": collector.get("lifecycle", "active"),
+        "managementRevision": collector.get("managementRevision", 0),
         "intent": collector["intent"],
         "sourceUrl": collector["sourceUrl"],
         "sourceHost": collector["sourceHost"],
@@ -215,7 +223,7 @@ def query_items_page(
         raise _error("VALIDATION_FAILED", f"limit must be between 1 and {MAX_QUERY_LIMIT}")
     if decision is not None and decision not in ALLOWED_DECISIONS:
         raise _error("VALIDATION_FAILED", f"decision must be one of {list(ALLOWED_DECISIONS)}")
-    if collector_id is not None and store.get_collector(collector_id) is None:
+    if collector_id is not None and store.get_collector(collector_id, include_deleted=True) is None:
         raise _error("COLLECTOR_NOT_FOUND", f"collector {collector_id} does not exist")
     try:
         result = store.list_items_cursor(collector_id=collector_id, decision=decision, limit=limit, cursor=cursor)
@@ -226,6 +234,7 @@ def query_items_page(
             "id": item["id"],
             "collectorId": item.get("collectorId"),
             "collectorName": item.get("collectorName"),
+            "collectorDeleted": item.get("collectorDeleted", False),
             "title": item.get("title"),
             "entityKey": item.get("entityKey"),
             "publishedAt": item.get("publishedAt"),
@@ -234,6 +243,7 @@ def query_items_page(
             "decision": item.get("decision"),
             "changeType": item.get("changeType"),
             "extractedData": item.get("extractedData"),
+            "collectionAttribution": item.get("collectionAttribution"),
         }
         for item in result["items"]
     ]
@@ -459,7 +469,7 @@ def build_server(*, host: str = "127.0.0.1", port: int = 8000) -> FastMCP:
     return server
 
 
-def run() -> None:
+def run_active() -> None:
     """Console entry point for ``extrio-mcp``."""
 
     parser = argparse.ArgumentParser(
@@ -489,6 +499,12 @@ def run() -> None:
         )
     server = build_server(host=args.host, port=args.port)
     uvicorn.run(BearerTokenMiddleware(server.streamable_http_app(), token), host=args.host, port=args.port, log_level="info")
+
+
+def run() -> None:
+    with instance_lock(control_plane.settings.artifact_path):
+        shared_store().initialize()
+        run_active()
 
 
 if __name__ == "__main__":

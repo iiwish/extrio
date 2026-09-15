@@ -32,6 +32,8 @@ describe('AiRunPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'https://www.zfcg.sh.gov.cn' })).toBeInTheDocument()
     expect(screen.getByText('候选规则等待审核')).toBeInTheDocument()
+    expect(screen.getByLabelText('AI 任务摘要')).toHaveClass('detail-panel')
+    expect(screen.getByRole('heading', { name: '产出与审核' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /审核候选规则/ })).toBeInTheDocument()
     expect(screen.queryByText(seedAiRuns[0].operationId)).not.toBeInTheDocument()
   })
@@ -45,5 +47,28 @@ describe('AiRunPage', () => {
     expect(screen.getByText('页面结构发现')).toBeInTheDocument()
     expect(screen.getByText('规则编译')).toBeInTheDocument()
     expect(screen.getByText('不保存原始提示词与响应正文', { exact: false })).toBeInTheDocument()
+  })
+
+  it('shows bounded operator guidance and structured activity instead of a chat transcript', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await screen.findByText('候选规则等待审核')
+    await user.click(screen.getByRole('tab', { name: '执行过程' }))
+
+    expect(screen.getByText('本次操作指引')).toBeInTheDocument()
+    expect(screen.getByText('优先识别公告标题、发布日期和每行的详情入口。')).toBeInTheDocument()
+    expect(screen.getByText('AI 分析页面结构')).toBeInTheDocument()
+    expect(screen.getByText('识别分页与详情链接')).toBeInTheDocument()
+    expect(screen.getByText('验证候选规则')).toBeInTheDocument()
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+  })
+
+  it('retains a deleted-source candidate as history without an actionable review link', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ ...seedAiRuns[0], collectorDeleted: true }), { headers: { 'Content-Type': 'application/json' } })))
+    renderPage()
+    expect(await screen.findByText('来源已删除')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /审核候选规则|查看采集来源/ })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('tab', { name: /模型调用/ }))
+    expect(screen.getByText('规则编译')).toBeInTheDocument()
   })
 })

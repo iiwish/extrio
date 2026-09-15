@@ -1,0 +1,455 @@
+{
+  "checkedAt": "2026-09-06T10:22:38.154Z",
+  "mode": "authenticated real API, read-only QA",
+  "checks": [
+    {
+      "width": 1440,
+      "height": 900,
+      "page": "overview",
+      "overflow": false,
+      "main": 446
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "page": "requirements",
+      "overflow": false,
+      "main": 586
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "page": "requirement-detail",
+      "overflow": false,
+      "main": 386
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "page": "sources",
+      "overflow": false,
+      "main": 1024
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "page": "onboarding",
+      "overflow": false,
+      "main": 443
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "page": "source-detail",
+      "overflow": false,
+      "main": 816
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "page": "source-rule",
+      "overflow": false,
+      "main": 1090
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "page": "source-config",
+      "overflow": false,
+      "main": 712
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "page": "runs",
+      "overflow": false,
+      "main": 2679
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "page": "run-detail",
+      "overflow": false,
+      "main": 1347
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "page": "ai-runs",
+      "overflow": false,
+      "main": 3309
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "page": "ai-detail",
+      "overflow": false,
+      "main": 260
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "page": "items",
+      "overflow": false,
+      "main": 6805
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "page": "item-detail",
+      "overflow": false,
+      "main": 1925
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "page": "settings",
+      "overflow": false,
+      "main": 230
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "page": "models",
+      "overflow": false,
+      "main": 142
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "page": "overview",
+      "overflow": false,
+      "main": 446
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "page": "requirements",
+      "overflow": false,
+      "main": 586
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "page": "requirement-detail",
+      "overflow": false,
+      "main": 386
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "page": "sources",
+      "overflow": false,
+      "main": 1024
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "page": "onboarding",
+      "overflow": false,
+      "main": 443
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "page": "source-detail",
+      "overflow": false,
+      "main": 816
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "page": "source-rule",
+      "overflow": false,
+      "main": 1090
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "page": "source-config",
+      "overflow": false,
+      "main": 712
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "page": "runs",
+      "overflow": false,
+      "main": 2679
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "page": "run-detail",
+      "overflow": false,
+      "main": 1347
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "page": "ai-runs",
+      "overflow": false,
+      "main": 3309
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "page": "ai-detail",
+      "overflow": false,
+      "main": 260
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "page": "items",
+      "overflow": false,
+      "main": 6805
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "page": "item-detail",
+      "overflow": false,
+      "main": 1925
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "page": "settings",
+      "overflow": false,
+      "main": 230
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "page": "models",
+      "overflow": false,
+      "main": 142
+    },
+    {
+      "width": 1132,
+      "height": 1028,
+      "page": "overview",
+      "overflow": false,
+      "main": 446
+    },
+    {
+      "width": 1132,
+      "height": 1028,
+      "page": "requirements",
+      "overflow": false,
+      "main": 586
+    },
+    {
+      "width": 1132,
+      "height": 1028,
+      "page": "requirement-detail",
+      "overflow": false,
+      "main": 386
+    },
+    {
+      "width": 1132,
+      "height": 1028,
+      "page": "sources",
+      "overflow": false,
+      "main": 1024
+    },
+    {
+      "width": 1132,
+      "height": 1028,
+      "page": "onboarding",
+      "overflow": false,
+      "main": 443
+    },
+    {
+      "width": 1132,
+      "height": 1028,
+      "page": "source-detail",
+      "overflow": false,
+      "main": 816
+    },
+    {
+      "width": 1132,
+      "height": 1028,
+      "page": "source-rule",
+      "overflow": false,
+      "main": 1090
+    },
+    {
+      "width": 1132,
+      "height": 1028,
+      "page": "source-config",
+      "overflow": false,
+      "main": 712
+    },
+    {
+      "width": 1132,
+      "height": 1028,
+      "page": "runs",
+      "overflow": false,
+      "main": 2679
+    },
+    {
+      "width": 1132,
+      "height": 1028,
+      "page": "run-detail",
+      "overflow": false,
+      "main": 1347
+    },
+    {
+      "width": 1132,
+      "height": 1028,
+      "page": "ai-runs",
+      "overflow": false,
+      "main": 3309
+    },
+    {
+      "width": 1132,
+      "height": 1028,
+      "page": "ai-detail",
+      "overflow": false,
+      "main": 260
+    },
+    {
+      "width": 1132,
+      "height": 1028,
+      "page": "items",
+      "overflow": false,
+      "main": 6805
+    },
+    {
+      "width": 1132,
+      "height": 1028,
+      "page": "item-detail",
+      "overflow": false,
+      "main": 1925
+    },
+    {
+      "width": 1132,
+      "height": 1028,
+      "page": "settings",
+      "overflow": false,
+      "main": 230
+    },
+    {
+      "width": 1132,
+      "height": 1028,
+      "page": "models",
+      "overflow": false,
+      "main": 136
+    },
+    {
+      "width": 1024,
+      "height": 800,
+      "page": "overview",
+      "overflow": false,
+      "main": 446
+    },
+    {
+      "width": 1024,
+      "height": 800,
+      "page": "requirements",
+      "overflow": false,
+      "main": 586
+    },
+    {
+      "width": 1024,
+      "height": 800,
+      "page": "requirement-detail",
+      "overflow": false,
+      "main": 386
+    },
+    {
+      "width": 1024,
+      "height": 800,
+      "page": "sources",
+      "overflow": false,
+      "main": 1024
+    },
+    {
+      "width": 1024,
+      "height": 800,
+      "page": "onboarding",
+      "overflow": false,
+      "main": 443
+    },
+    {
+      "width": 1024,
+      "height": 800,
+      "page": "source-detail",
+      "overflow": false,
+      "main": 816
+    },
+    {
+      "width": 1024,
+      "height": 800,
+      "page": "source-rule",
+      "overflow": false,
+      "main": 1090
+    },
+    {
+      "width": 1024,
+      "height": 800,
+      "page": "source-config",
+      "overflow": false,
+      "main": 712
+    },
+    {
+      "width": 1024,
+      "height": 800,
+      "page": "runs",
+      "overflow": false,
+      "main": 2679
+    },
+    {
+      "width": 1024,
+      "height": 800,
+      "page": "run-detail",
+      "overflow": false,
+      "main": 1347
+    },
+    {
+      "width": 1024,
+      "height": 800,
+      "page": "ai-runs",
+      "overflow": false,
+      "main": 3309
+    },
+    {
+      "width": 1024,
+      "height": 800,
+      "page": "ai-detail",
+      "overflow": false,
+      "main": 260
+    },
+    {
+      "width": 1024,
+      "height": 800,
+      "page": "items",
+      "overflow": false,
+      "main": 6805
+    },
+    {
+      "width": 1024,
+      "height": 800,
+      "page": "item-detail",
+      "overflow": false,
+      "main": 1925
+    },
+    {
+      "width": 1024,
+      "height": 800,
+      "page": "settings",
+      "overflow": false,
+      "main": 230
+    },
+    {
+      "width": 1024,
+      "height": 800,
+      "page": "models",
+      "overflow": false,
+      "main": 136
+    }
+  ],
+  "pageErrors": []
+}

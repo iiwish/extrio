@@ -1,0 +1,154 @@
+{
+  "mode": "complete explorer loop with deterministic model and browser fixtures",
+  "realModelCalls": 0,
+  "realNetworkRequests": 0,
+  "databaseWrites": 0,
+  "published": false,
+  "results": [
+    {
+      "case": "valid_four_field_contract",
+      "status": "validated",
+      "phases": [
+        "fetching_list",
+        "analyzing_structure",
+        "analyzing_structure",
+        "discovering_details",
+        "fetching_details",
+        "compiling_rule",
+        "validating",
+        "finalizing"
+      ],
+      "diagnostic": {
+        "version": "adaptive-dom-v1",
+        "phase": "validated",
+        "budget": {
+          "calls": 3,
+          "maxCalls": 16,
+          "inputTokens": 300,
+          "outputTokens": 300,
+          "maxInputTokens": 120000,
+          "maxOutputTokens": 16000,
+          "contextTokens": 32768,
+          "tokenMethod": "utf8_upper_estimate",
+          "elapsedSeconds": 0.32,
+          "maxSeconds": 240,
+          "stopReason": null,
+          "startedAt": "2026-09-14T03:43:24.997377+00:00"
+        },
+        "pages": [
+          {
+            "pageId": "list-1",
+            "indexedNodes": 555,
+            "readNodes": 0,
+            "readFragmentChars": 0
+          },
+          {
+            "pageId": "detail-1",
+            "indexedNodes": 363,
+            "readNodes": 0,
+            "readFragmentChars": 0
+          },
+          {
+            "pageId": "detail-2",
+            "indexedNodes": 358,
+            "readNodes": 0,
+            "readFragmentChars": 0
+          },
+          {
+            "pageId": "detail-3",
+            "indexedNodes": 358,
+            "readNodes": 0,
+            "readFragmentChars": 0
+          }
+        ],
+        "reads": [],
+        "validation": [],
+        "validated": true,
+        "limitsSource": "conservative_default"
+      }
+    },
+    {
+      "case": "changing_bad_selector",
+      "status": "MODEL_NO_PROGRESS",
+      "phases": [
+        "fetching_list",
+        "analyzing_structure",
+        "analyzing_structure",
+        "discovering_details",
+        "fetching_details",
+        "compiling_rule",
+        "validating",
+        "compiling_rule",
+        "validating",
+        "compiling_rule",
+        "validating",
+        "compiling_rule",
+        "validating"
+      ],
+      "diagnostic": {
+        "version": "adaptive-dom-v1",
+        "phase": "failed",
+        "budget": {
+          "calls": 6,
+          "maxCalls": 16,
+          "inputTokens": 600,
+          "outputTokens": 600,
+          "maxInputTokens": 120000,
+          "maxOutputTokens": 16000,
+          "contextTokens": 32768,
+          "tokenMethod": "utf8_upper_estimate",
+          "elapsedSeconds": 0.7,
+          "maxSeconds": 240,
+          "stopReason": "MODEL_NO_PROGRESS",
+          "startedAt": "2026-09-14T03:43:25.676116+00:00"
+        },
+        "pages": [
+          {
+            "pageId": "list-1",
+            "indexedNodes": 555,
+            "readNodes": 0,
+            "readFragmentChars": 0
+          },
+          {
+            "pageId": "detail-1",
+            "indexedNodes": 363,
+            "readNodes": 0,
+            "readFragmentChars": 0
+          },
+          {
+            "pageId": "detail-2",
+            "indexedNodes": 358,
+            "readNodes": 0,
+            "readFragmentChars": 0
+          },
+          {
+            "pageId": "detail-3",
+            "indexedNodes": 358,
+            "readNodes": 0,
+            "readFragmentChars": 0
+          }
+        ],
+        "reads": [],
+        "validation": [
+          {
+            "code": "FIELD_MISSING",
+            "field": "content",
+            "sample": 1
+          },
+          {
+            "code": "FIELD_MISSING",
+            "field": "content",
+            "sample": 2
+          },
+          {
+            "code": "FIELD_MISSING",
+            "field": "content",
+            "sample": 3
+          }
+        ],
+        "validated": false,
+        "limitsSource": "conservative_default"
+      }
+    }
+  ]
+}

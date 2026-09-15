@@ -1,0 +1,84 @@
+{
+  "model": "deterministic fixture, not the real provider",
+  "realModelCalls": 0,
+  "databaseWrites": 0,
+  "results": [
+    {
+      "window": 8192,
+      "status": "MODEL_CONTEXT_INSUFFICIENT",
+      "calls": []
+    },
+    {
+      "window": 16384,
+      "status": "fixture_validated",
+      "calls": [
+        {
+          "inputReservation": 14292,
+          "evidencePages": []
+        },
+        {
+          "inputReservation": 14267,
+          "evidencePages": [
+            "detail-1",
+            "detail-2",
+            "detail-3"
+          ]
+        }
+      ],
+      "readPages": [
+        "detail-1",
+        "detail-2",
+        "detail-3"
+      ],
+      "accepted": 3
+    },
+    {
+      "window": 32768,
+      "status": "fixture_validated",
+      "calls": [
+        {
+          "inputReservation": 18376,
+          "evidencePages": []
+        },
+        {
+          "inputReservation": 27484,
+          "evidencePages": [
+            "detail-1",
+            "detail-2",
+            "detail-3"
+          ]
+        }
+      ],
+      "readPages": [
+        "detail-1",
+        "detail-2",
+        "detail-3"
+      ],
+      "accepted": 3
+    },
+    {
+      "window": 131072,
+      "status": "fixture_validated",
+      "calls": [
+        {
+          "inputReservation": 18376,
+          "evidencePages": []
+        },
+        {
+          "inputReservation": 27484,
+          "evidencePages": [
+            "detail-1",
+            "detail-2",
+            "detail-3"
+          ]
+        }
+      ],
+      "readPages": [
+        "detail-1",
+        "detail-2",
+        "detail-3"
+      ],
+      "accepted": 3
+    }
+  ]
+}

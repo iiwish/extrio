@@ -29,6 +29,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 import uvicorn
 from fastapi import FastAPI
@@ -50,6 +51,7 @@ def configure_environment(workdir: Path) -> None:
     os.environ["EXTRIO_ARTIFACT_PATH"] = str(workdir / "artifacts")
     os.environ["EXTRIO_SIGNING_PRIVATE_KEY_PATH"] = str(workdir / "keys" / "bench-rule-signing-key.pem")
     os.environ["EXTRIO_CREDENTIAL_ENCRYPTION_KEY_PATH"] = str(workdir / "keys" / "bench-credential-encryption.key")
+    os.environ["EXTRIO_ALLOW_HTTP_LOCALHOST"] = "true"
 
 
 def start_demo_server() -> tuple[uvicorn.Server, int]:
@@ -329,19 +331,23 @@ def setup_collectors(collector_count: int, entrypoint: str, host: str) -> list[s
     store.initialize()
     collector_ids: list[str] = []
     for index in range(1, collector_count + 1):
+        parsed = urlsplit(entrypoint)
+        scoped_entrypoint = urlunsplit(parsed._replace(query=urlencode([*parse_qsl(parsed.query), ("benchmarkCollector", str(index))])))
         collector = store.create_collector(
             f"基准采集器 {index:03d}",
             "采集演示源的公开招标公告，提取项目名称、采购单位、发布日期、预算和详情链接。",
-            entrypoint,
+            scoped_entrypoint,
             host,
         )
-        spec = build_gather_spec(collector["id"], entrypoint, host)
+        spec = build_gather_spec(collector["id"], scoped_entrypoint, host)
         collector["candidate"] = {
             "id": f"candidate_benchmark_{index:03d}",
             "digest": sha256_digest(spec),
             "mode": "list_detail",
             "gatherSpec": spec,
         }
+        collector["status"] = "ready_review"
+        store.save_collector(collector)
         result = persist_published_rule(
             collector,
             rule_version_id=f"rv_benchmark_{index:03d}",
@@ -374,24 +380,9 @@ async def execute_runs(collector_ids: list[str], runs_per_collector: int) -> lis
             run = store.get_run(run_id)
             if run is None:
                 raise RuntimeError(f"run {run_id} was not persisted by create_run_operation")
-            job = {
-                "operationId": operation["id"],
-                "kind": "run",
-                "payload": {
-                    "collectorId": collector_id,
-                    "runId": run_id,
-                    "integrity": {
-                        "ruleVersionId": run["ruleVersion"],
-                        "attestationId": run["ruleAttestationId"],
-                        "ruleDigest": run["ruleDigest"],
-                        "keyId": run["signingKeyId"],
-                        "trustRevision": run["trustRevision"],
-                    },
-                    "policyVersionId": run["policyVersion"],
-                    "policyDigest": run["policyDigest"],
-                    "checkpointBefore": run["checkpointBefore"],
-                },
-            }
+            job = store.claim_job(120)
+            if not job or job["operationId"] != operation["id"]:
+                raise RuntimeError("benchmark did not claim its queued job")
             started = time.perf_counter()
             await worker.process(job)
             elapsed = time.perf_counter() - started

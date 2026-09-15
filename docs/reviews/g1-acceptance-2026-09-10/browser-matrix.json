@@ -1,0 +1,392 @@
+{
+  "date": "2026-09-10",
+  "scope": "G1 desktop review; 12 surfaces x 4 viewports plus 3 supplementary viewport-labelled screenshots",
+  "screenshots": [
+    {
+      "file": "01-requirements-1440.jpg",
+      "width": 1440,
+      "height": 900,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "02-sources-1440.jpg",
+      "width": 1440,
+      "height": 900,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "03-source-detail-1024.jpg",
+      "width": 1024,
+      "height": 800,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "03-source-detail-1132.jpg",
+      "width": 1132,
+      "height": 1028,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "03-source-detail-1280.jpg",
+      "width": 1280,
+      "height": 800,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "03-source-detail-1440.jpg",
+      "width": 1440,
+      "height": 900,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "04-run-detail-1024.jpg",
+      "width": 1024,
+      "height": 800,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "04-run-detail-1132.jpg",
+      "width": 1132,
+      "height": 1028,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "04-run-detail-1280.jpg",
+      "width": 1280,
+      "height": 800,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "04-run-detail-1440.jpg",
+      "width": 1440,
+      "height": 900,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "05-item-detail-1024.jpg",
+      "width": 1024,
+      "height": 800,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "05-item-detail-1132.jpg",
+      "width": 1132,
+      "height": 1028,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "05-item-detail-1280.jpg",
+      "width": 1280,
+      "height": 800,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "05-item-detail-1440.jpg",
+      "width": 1440,
+      "height": 900,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "06-sources-1024.jpg",
+      "width": 1024,
+      "height": 800,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "06-sources-1132.jpg",
+      "width": 1132,
+      "height": 1028,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "06-sources-1280.jpg",
+      "width": 1280,
+      "height": 800,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "06-sources-1440.jpg",
+      "width": 1440,
+      "height": 900,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "07-onboarding-1024.jpg",
+      "width": 1024,
+      "height": 800,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "07-onboarding-1132.jpg",
+      "width": 1132,
+      "height": 1028,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "07-onboarding-1280.jpg",
+      "width": 1280,
+      "height": 800,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "07-onboarding-1440.jpg",
+      "width": 1440,
+      "height": 900,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "09-overview-1024.jpg",
+      "width": 1024,
+      "height": 800,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "09-overview-1132.jpg",
+      "width": 1132,
+      "height": 1028,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "09-overview-1280.jpg",
+      "width": 1280,
+      "height": 800,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "09-overview-1440.jpg",
+      "width": 1440,
+      "height": 900,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "10-settings-1024.jpg",
+      "width": 1024,
+      "height": 800,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "10-settings-1132.jpg",
+      "width": 1132,
+      "height": 1028,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "10-settings-1280.jpg",
+      "width": 1280,
+      "height": 800,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "10-settings-1440.jpg",
+      "width": 1440,
+      "height": 900,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "11-models-1024.jpg",
+      "width": 1024,
+      "height": 800,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "11-models-1132.jpg",
+      "width": 1132,
+      "height": 1028,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "11-models-1280.jpg",
+      "width": 1280,
+      "height": 800,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "11-models-1440.jpg",
+      "width": 1440,
+      "height": 900,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "12-settings-en-1024.jpg",
+      "width": 1024,
+      "height": 800,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "13-runs-en-1024.jpg",
+      "width": 1024,
+      "height": 800,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "13-runs-en-1132.jpg",
+      "width": 1132,
+      "height": 1028,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "13-runs-en-1280.jpg",
+      "width": 1280,
+      "height": 800,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "13-runs-en-1440.jpg",
+      "width": 1440,
+      "height": 900,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "14-ai-list-en-1024.jpg",
+      "width": 1024,
+      "height": 800,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "14-ai-list-en-1132.jpg",
+      "width": 1132,
+      "height": 1028,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "14-ai-list-en-1280.jpg",
+      "width": 1280,
+      "height": 800,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "14-ai-list-en-1440.jpg",
+      "width": 1440,
+      "height": 900,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "15-ai-detail-en-1024.jpg",
+      "width": 1024,
+      "height": 800,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "15-ai-detail-en-1132.jpg",
+      "width": 1132,
+      "height": 1028,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "15-ai-detail-en-1280.jpg",
+      "width": 1280,
+      "height": 800,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "15-ai-detail-en-1440.jpg",
+      "width": 1440,
+      "height": 900,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "16-data-en-1024.jpg",
+      "width": 1024,
+      "height": 800,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "16-data-en-1132.jpg",
+      "width": 1132,
+      "height": 1028,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "16-data-en-1280.jpg",
+      "width": 1280,
+      "height": 800,
+      "dimensionsMatch": true
+    },
+    {
+      "file": "16-data-en-1440.jpg",
+      "width": 1440,
+      "height": 900,
+      "dimensionsMatch": true
+    }
+  ],
+  "finalSourceChecks": [
+    {
+      "page": "06-sources",
+      "width": 1440,
+      "height": 900,
+      "main": 1074,
+      "overflow": false,
+      "imageWidth": 1440,
+      "imageHeight": 900
+    },
+    {
+      "page": "06-sources",
+      "width": 1280,
+      "height": 800,
+      "main": 1074,
+      "overflow": false,
+      "imageWidth": 1280,
+      "imageHeight": 800
+    },
+    {
+      "page": "06-sources",
+      "width": 1132,
+      "height": 1028,
+      "main": 1074,
+      "overflow": false,
+      "imageWidth": 1132,
+      "imageHeight": 1028
+    },
+    {
+      "page": "06-sources",
+      "width": 1024,
+      "height": 800,
+      "main": 1074,
+      "overflow": false,
+      "imageWidth": 1024,
+      "imageHeight": 800
+    },
+    {
+      "page": "03-source-detail",
+      "width": 1440,
+      "height": 900,
+      "main": 763,
+      "overflow": false,
+      "imageWidth": 1440,
+      "imageHeight": 900
+    },
+    {
+      "page": "03-source-detail",
+      "width": 1280,
+      "height": 800,
+      "main": 763,
+      "overflow": false,
+      "imageWidth": 1280,
+      "imageHeight": 800
+    },
+    {
+      "page": "03-source-detail",
+      "width": 1132,
+      "height": 1028,
+      "main": 763,
+      "overflow": false,
+      "imageWidth": 1132,
+      "imageHeight": 1028
+    },
+    {
+      "page": "03-source-detail",
+      "width": 1024,
+      "height": 800,
+      "main": 763,
+      "overflow": false,
+      "imageWidth": 1024,
+      "imageHeight": 800
+    }
+  ],
+  "notes": [
+    "03 and 06 were recaptured against the final G1 fixes.",
+    "13 through 16 were captured after the Vite file-watcher restart and list layout fix.",
+    "Other screenshots are review-time evidence for unchanged surfaces, not injected error cases.",
+    "Detailed interaction observations and limitations are in review.md."
+  ]
+}

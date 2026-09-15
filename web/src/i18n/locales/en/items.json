@@ -1,13 +1,13 @@
 {
   "toolbar": {
     "aria": "Data toolbar",
-    "sourceAria": "Filter by source",
-    "allSources": "All sources",
-    "collectorAria": "Filter by collector",
-    "allCollectors": "All collectors",
+    "sourceAria": "Filter by site host",
+    "allSources": "All site hosts",
+    "collectorAria": "Filter by source",
+    "allCollectors": "All sources",
     "decisionAria": "Quality decision filter",
     "decisionAll": "All",
-    "searchPlaceholder": "Search title, content, collector, or entity key",
+    "searchPlaceholder": "Search title, content, source, or entity key",
     "searchAria": "Search items"
   },
   "export": {
@@ -20,6 +20,10 @@
     "failed": "Export failed: {{message}}"
   },
   "list": {
+    "loadMore": "Load more",
+    "loaded": "{{count}} of {{total}} loaded",
+    "loadFailed": "Unable to load data",
+    "retry": "Retry",
     "aria": "Item list",
     "columnItem": "Data item",
     "columnDecision": "Quality decision",
@@ -41,6 +45,8 @@
     }
   },
   "detail": {
+    "bodyView": "Content view",
+    "readable": "Text",
     "notFound": "Item not found",
     "backToItems": "Back to items",
     "revisionMissing": "No revision generated",
@@ -96,8 +102,8 @@
     "bodyAvailable": "Normalized body text is available",
     "bodyOptional": "The current contract allows an empty body",
     "lineageTitle": "Source & lineage",
-    "lineageSubtitle": "Traceable relationships from collector and run to this data",
-    "collectorLabel": "Collector",
+    "lineageSubtitle": "Traceable relationships from source and run to this data",
+    "collectorLabel": "Source",
     "sourceLabel": "Detail source",
     "latestRunLabel": "Latest run",
     "viewRunRecord": "View run record",
