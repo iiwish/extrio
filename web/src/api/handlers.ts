@@ -1,6 +1,10 @@
 import { delay, http, HttpResponse } from 'msw'
+import { mockCollectionPage, mockCollectorPage, mockRunPage, mockAiRunPage } from './workspace-mock'
 import { collectionPolicyFor, createCandidateRule, createItemsForCollector, scheduleFor, seedAiRuns, seedCollectors, seedRuns } from './fixtures'
 import type {
+  Collection,
+  CollectionInput,
+  CollectionUpdateInput,
   AiRunDetail,
   BatchCollectorImportItem,
   CandidateRuleEditInput,
@@ -14,6 +18,7 @@ import type {
   DeliveryStatus,
   DeliverySummary,
   FieldReviewDecision,
+  HarvestItem,
   ModelConfiguration,
   ModelConfigurationInput,
   ModelSetting,
@@ -33,7 +38,42 @@ import type {
 } from './types'
 
 const collectors = structuredClone(seedCollectors)
+const collections = new Map<string, Collection>()
+for (const source of collectors) {
+  if (!collections.has(source.collectionId)) collections.set(source.collectionId, {
+    id: source.collectionId, name: source.collectionName, intent: source.intent, collectionVersion: source.collectionVersion,
+    status: 'active', revision: 1, sourceCount: 0, publishedSourceCount: 0,
+    createdAt: '2026-09-06T00:00:00Z', updatedAt: '2026-09-06T00:00:00Z',
+  })
+}
+function collectionSummary(value: Collection): Collection {
+  const sources = collectors.filter((source) => source.collectionId === value.id)
+  return { ...value, sourceCount: sources.length, publishedSourceCount: sources.filter((source) => source.activeRuleVersion).length }
+}
 const runs = structuredClone(seedRuns)
+
+function queryItems(params: URLSearchParams) {
+  let all = runs.flatMap(run => run.items).sort((a, b) =>
+    b.observedAt.localeCompare(a.observedAt) || b.entityKey.localeCompare(a.entityKey) || b.id.localeCompare(a.id))
+  if (params.get('view') === 'entities') {
+    const latest = new Map<string, HarvestItem>()
+    for (const item of all) {
+      const key = `${item.collectorId}:${item.entityKey}`
+      if (!latest.has(key)) latest.set(key, item)
+    }
+    all = [...latest.values()]
+  }
+  const facets = {
+    sourceHosts: [...new Set(all.map(item => item.sourceHost))].sort(),
+    collectors: [...new Map(all.map(item => [item.collectorId, item.collectorName])).entries()].map(([id, name]) => ({ id, name })),
+  }
+  const q = params.get('q')?.trim().toLowerCase()
+  const items = all.filter(item =>
+    ['collectorId', 'decision', 'entityKey', 'sourceHost'].every(key => !params.has(key) || item[key as keyof HarvestItem] === params.get(key))
+    && (!params.has('runId') || item.lineage.runId === params.get('runId'))
+    && (!q || [item.title, item.content, item.collectorName, item.entityKey].some(value => value?.toLowerCase().includes(q))))
+  return { items, facets }
+}
 const aiRuns = structuredClone(seedAiRuns)
 const sinks: Sink[] = [{
   id: 'sink_beijing_webhook',
@@ -335,6 +375,7 @@ function createMockDelivery(sink: Sink, itemEventId: string): Delivery {
 
 function createOperation(kind: Operation['kind'], collectorId: string, resourceId: string): MockOperation {
   const id = `op_${crypto.randomUUID().replaceAll('-', '').slice(0, 12)}`
+  const queuedAt = new Date().toISOString()
   const operation: MockOperation = {
     value: {
       id,
@@ -346,8 +387,10 @@ function createOperation(kind: Operation['kind'], collectorId: string, resourceI
       resourceId,
       statusUrl: `/api/v1/operations/${id}`,
       pollAfterMs: 140,
+      queuedAt,
       metrics: emptyMetrics(),
       error: null,
+      activity: [{ phase: 'queued', status: 'running', startedAt: queuedAt, finishedAt: null, durationMs: null, metrics: emptyMetrics() }],
     },
     collectorId,
     polls: 0,
@@ -376,15 +419,21 @@ function advanceOperation(operation: MockOperation) {
   const phases = operation.value.kind === 'explore'
     ? mode === 'single'
       ? [
-          { phase: 'fetching_list' as const, progress: 38, metrics: [1, 0, 0, 0] },
-          { phase: 'validating' as const, progress: 82, metrics: [1, 0, 0, 1] },
+          { phase: 'fetching_list' as const, progress: 10, metrics: [1, 0, 0, 0] },
+          { phase: 'analyzing_structure' as const, progress: 25, metrics: [1, 0, 0, 0] },
+          { phase: 'compiling_rule' as const, progress: 70, metrics: [1, 0, 0, 0] },
+          { phase: 'validating' as const, progress: 85, metrics: [1, 0, 0, 1] },
+          { phase: 'finalizing' as const, progress: 95, metrics: [1, 0, 0, 1] },
           { phase: 'completed' as const, progress: 100, metrics: [1, 0, 0, 1] },
         ]
       : [
-          { phase: 'fetching_list' as const, progress: 28, metrics: [3, 0, 0, 0] },
-          { phase: 'discovering_details' as const, progress: 54, metrics: [3, 12, 0, 0] },
-          { phase: 'fetching_details' as const, progress: 76, metrics: [3, 12, 3, 0] },
-          { phase: 'validating' as const, progress: 90, metrics: [3, 12, 3, 1] },
+          { phase: 'fetching_list' as const, progress: 10, metrics: [1, 0, 0, 0] },
+          { phase: 'analyzing_structure' as const, progress: 25, metrics: [1, 0, 0, 0] },
+          { phase: 'discovering_details' as const, progress: 45, metrics: [1, 12, 0, 0] },
+          { phase: 'fetching_details' as const, progress: 52, metrics: [1, 12, 3, 0] },
+          { phase: 'compiling_rule' as const, progress: 70, metrics: [1, 12, 3, 0] },
+          { phase: 'validating' as const, progress: 85, metrics: [1, 12, 3, 1] },
+          { phase: 'finalizing' as const, progress: 95, metrics: [1, 12, 3, 1] },
           { phase: 'completed' as const, progress: 100, metrics: [3, 12, 3, 1] },
         ]
     : mode === 'single'
@@ -410,6 +459,19 @@ function advanceOperation(operation: MockOperation) {
     progress: snapshot.progress,
     metrics: { ...emptyMetrics(), listPagesFetched, detailUrlsDiscovered, detailPagesFetched, warningCount },
   }
+  const now = new Date().toISOString()
+  const activity = [...(operation.value.activity ?? [])]
+  const current = activity.at(-1)
+  if (current?.status === 'running' && current.phase !== snapshot.phase) {
+    const durationMs = Math.max(0, Date.parse(now) - Date.parse(current.startedAt))
+    activity[activity.length - 1] = { ...current, status: 'succeeded', finishedAt: now, durationMs, metrics: operation.value.metrics }
+  }
+  if (snapshot.phase === 'completed') {
+    activity.push({ phase: 'completed', status: 'succeeded', startedAt: now, finishedAt: now, durationMs: 0, metrics: operation.value.metrics })
+  } else if (current?.phase !== snapshot.phase) {
+    activity.push({ phase: snapshot.phase, status: 'running', startedAt: now, finishedAt: null, durationMs: null, metrics: operation.value.metrics })
+  }
+  operation.value.activity = activity
 
   if (operation.value.kind === 'explore') {
     const aiRun = aiRuns.find((row) => row.operationId === operation.value.id)
@@ -419,6 +481,7 @@ function advanceOperation(operation: MockOperation) {
       aiRun.progress = snapshot.progress
       aiRun.startedAt ??= new Date().toISOString()
       aiRun.attemptCount = 1
+      aiRun.activity = structuredClone(activity)
     }
   }
 
@@ -441,6 +504,7 @@ function advanceOperation(operation: MockOperation) {
       aiRun.durationMs = 24000
       aiRun.validationSummary = { acceptedSamples: 3, rejectedSamples: 0, warningCount: 0 }
       aiRun.candidateRuleDigest = createCandidateRule(collector).digest
+      aiRun.activity = structuredClone(activity)
     }
     collector.status = 'ready_review'
     collector.activeOperationId = null
@@ -527,6 +591,48 @@ function mockEvidenceBundleZip(collectorId: string): Uint8Array {
 }
 
 export const handlers = [
+  http.get('*/api/v1/overview', () => errorResponse('INTERNAL_ERROR', '全量概览仅在真实 API 模式下可用。', 503)),
+  http.get('*/api/v1/collections', ({ request }) => {
+    const params = new URL(request.url).searchParams
+    const items = [...collections.values()].map(collectionSummary)
+    return successResponse(params.has('page') ? mockCollectionPage(params, items) : { items, total: items.length })
+  }),
+  http.get('*/api/v1/collections/:id', ({ params }) => {
+    const value = collections.get(String(params.id))
+    if (!value) return errorResponse('COLLECTION_NOT_FOUND', '采集需求不存在', 404)
+    return successResponse({ ...collectionSummary(value), sources: collectors.filter((source) => source.collectionId === value.id).map((source) => ({ ...source, collectionName: value.name })) })
+  }),
+  http.post('*/api/v1/collections', async ({ request }) => {
+    if (!requireIdempotency(request)) return errorResponse('IDEMPOTENCY_KEY_REQUIRED', '缺少 Idempotency-Key', 400)
+    const input = await request.json() as CollectionInput
+    if (typeof input.name !== 'string' || typeof input.intent !== 'string' || !input.name.trim() || !input.intent.trim()) return errorResponse('VALIDATION_FAILED', '名称和目标不能为空', 422)
+    const now = new Date().toISOString()
+    const value: Collection = { id: `collection_${crypto.randomUUID()}`, name: input.name.trim(), intent: input.intent.trim(), collectionVersion: 'tender_notice_v4', status: 'active', revision: 1, createdAt: now, updatedAt: now, sourceCount: 0, publishedSourceCount: 0 }
+    collections.set(value.id, value)
+    return successResponse(value, 201)
+  }),
+  http.patch('*/api/v1/collections/:id', async ({ request, params }) => {
+    if (!requireIdempotency(request)) return errorResponse('IDEMPOTENCY_KEY_REQUIRED', '缺少 Idempotency-Key', 400)
+    const value = collections.get(String(params.id))
+    if (!value) return errorResponse('COLLECTION_NOT_FOUND', '采集需求不存在', 404)
+    const input = await request.json() as CollectionUpdateInput
+    if (value.revision !== input.revision) return errorResponse('COLLECTION_CONFLICT', '需求版本已更新，请重新加载', 409)
+    if (value.status === 'archived' && (input.name || input.intent || input.fieldDraft)) return errorResponse('COLLECTION_ARCHIVED', '需求已归档', 409)
+    const next = { ...value, ...input, revision: value.revision + 1, updatedAt: new Date().toISOString() }
+    collections.set(value.id, next)
+    for (const source of collectors) if (source.collectionId === value.id) source.collectionName = next.name
+    return successResponse(collectionSummary(next))
+  }),
+  http.delete('*/api/v1/collections/:id', async ({ request, params }) => {
+    if (!requireIdempotency(request)) return errorResponse('IDEMPOTENCY_KEY_REQUIRED', '缺少 Idempotency-Key', 400)
+    const value = collections.get(String(params.id))
+    if (!value) return errorResponse('COLLECTION_NOT_FOUND', '采集需求不存在', 404)
+    const input = await request.json() as { revision: number }
+    if (value.revision !== input.revision) return errorResponse('COLLECTION_CONFLICT', '需求版本已更新，请重新加载', 409)
+    if (collectionSummary(value).sourceCount) return errorResponse('COLLECTION_HAS_SOURCES', '存在关联来源，请归档', 409)
+    collections.delete(value.id)
+    return successResponse({ id: value.id, deleted: true })
+  }),
   http.get('*/api/v1/auth/state', () => successResponse({
     authEnabled: true,
     setupRequired: false,
@@ -672,7 +778,10 @@ export const handlers = [
     if (typeof localStorage !== 'undefined') localStorage.setItem(platformSettingsStorageKey, JSON.stringify(platformSettings))
     return successResponse(platformSettings)
   }),
-  http.get('*/api/v1/collectors', () => successResponse(page(collectors))),
+  http.get('*/api/v1/collectors', ({ request }) => {
+    const params = new URL(request.url).searchParams
+    return successResponse(params.has('page') ? mockCollectorPage(params, collectors, runs) : page(collectors))
+  }),
   http.get('*/api/v1/collectors/:id', ({ params }) => {
     const collector = byId(collectors, String(params.id))
     return collector ? successResponse(collector) : errorResponse('COLLECTOR_NOT_FOUND', 'Collector 不存在', 404)
@@ -741,6 +850,11 @@ export const handlers = [
     collector.collectionPolicy = collectionPolicyFor(collector.id)
     collector.activeCollectionPolicyId = collector.collectionPolicy.id
     collectors.unshift(collector)
+    collections.set(collector.collectionId, {
+      id: collector.collectionId, name: collector.collectionName, intent: collector.intent,
+      collectionVersion: collector.collectionVersion, status: 'active', revision: 1,
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), sourceCount: 1, publishedSourceCount: 0,
+    })
     return successResponse(collector, 201, { Location: `/api/v1/collectors/${collector.id}` })
   }),
   http.post('*/api/v1/collectors/batch', async ({ request }) => {
@@ -748,17 +862,21 @@ export const handlers = [
     await delay(180)
     const input = (await request.json()) as CreateCollectorsInput
     const existingCollection = input.collectionId
-      ? collectors.find((collector) => collector.collectionId === input.collectionId)
+      ? collections.get(input.collectionId)
       : undefined
     if (input.collectionId && !existingCollection) return errorResponse('COLLECTION_NOT_FOUND', '采集需求不存在', 404)
-    const collectionId = existingCollection?.collectionId ?? `collection_${crypto.randomUUID().replaceAll('-', '').slice(0, 16)}`
-    const collectionName = existingCollection?.collectionName ?? input.collectionName
+    if (existingCollection?.status === 'archived') return errorResponse('COLLECTION_ARCHIVED', '采集需求已归档', 409)
+    const collectionId = existingCollection?.id ?? `collection_${crypto.randomUUID().replaceAll('-', '').slice(0, 16)}`
+    const collectionName = existingCollection?.name ?? input.collectionName
     const collectionVersion = existingCollection?.collectionVersion ?? 'tender_notice_v4'
     const intent = existingCollection?.intent ?? input.intent
     const seen = new Set<string>()
-    const results: BatchCollectorImportItem[] = input.sourceUrls.map((rawUrl, index) => {
-      const sourceUrl = rawUrl.trim()
+    const results: BatchCollectorImportItem[] = input.sources.map((source, index) => {
+      const sourceUrl = source.entryUrl.trim()
       let url: URL
+      if ((source.mode ?? 'exact') !== 'exact') {
+        return { sourceUrl, status: 'rejected', collector: null, error: platformError('UNSUPPORTED_SOURCE_MODE', '当前版本仅支持 exact 模式') }
+      }
       try {
         url = new URL(sourceUrl)
       } catch {
@@ -766,6 +884,9 @@ export const handlers = [
       }
       if (!['http:', 'https:'].includes(url.protocol)) {
         return { sourceUrl, status: 'rejected', collector: null, error: platformError('INVALID_URL', 'Source 仅支持 HTTP 或 HTTPS') }
+      }
+      if ((url.pathname === '' || url.pathname === '/') && !url.search) {
+        return { sourceUrl, status: 'rejected', collector: null, error: platformError('EXACT_ENTRY_REQUIRED', 'exact 模式需要具体列表页，不能使用站点根目录') }
       }
       const canonicalUrl = url.toString()
       if (seen.has(canonicalUrl)) {
@@ -778,10 +899,11 @@ export const handlers = [
       const collectorId = `collector_${url.host.replace(/[^a-z0-9]+/gi, '_')}_${Date.now()}_${index}`
       const collector: CollectorDetail = {
         id: collectorId,
-        name: url.host,
+        name: source.name?.trim() || url.host,
         intent,
         sourceUrl: canonicalUrl,
         sourceHost: url.host,
+        scopeHint: source.scopeHint?.trim() || '',
         status: 'draft',
         collectionId,
         collectionName,
@@ -804,6 +926,10 @@ export const handlers = [
       return { sourceUrl, status: 'created', collector, error: null }
     })
     const createdCount = results.filter((result) => result.status === 'created').length
+    if (createdCount > 0 && !collections.has(collectionId)) collections.set(collectionId, {
+      id: collectionId, name: collectionName, intent, collectionVersion, status: 'active', revision: 1,
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), sourceCount: createdCount, publishedSourceCount: 0,
+    })
     return successResponse({
       collectionId,
       collectionName,
@@ -825,15 +951,17 @@ export const handlers = [
       }
     }
     collector.status = 'exploring'
+    const guidance = (await request.json().catch(() => null) as { guidance?: string } | null)?.guidance?.trim()
     const operation = createOperation('explore', collector.id, collector.id)
     const aiRunId = `ai_run_${crypto.randomUUID().replaceAll('-', '').slice(0, 12)}`
+    operation.value.aiRunId = aiRunId
     const aiRun: AiRunDetail = {
       id: aiRunId,
       operationId: operation.value.id,
       collectorId: collector.id,
       collectorName: collector.name,
       sourceUrl: collector.sourceUrl,
-      kind: collector.activeRuleVersion || collector.candidate ? 'rule_repair' : 'rule_generation',
+      kind: 'rule_generation',
       trigger: collector.activeRuleVersion || collector.candidate ? 'regeneration' : 'initial_generation',
       initiatedBy: mockAuthUser.id,
       status: 'queued',
@@ -851,6 +979,8 @@ export const handlers = [
       finishedAt: null,
       durationMs: null,
       error: null,
+      guidance: guidance || null,
+      activity: structuredClone(operation.value.activity ?? []),
       attempts: [],
     }
     aiRuns.unshift(aiRun)
@@ -874,6 +1004,7 @@ export const handlers = [
     collector.status = 'exploring'
     const operation = createOperation('explore', collector.id, collector.id)
     const aiRunId = `ai_run_${crypto.randomUUID().replaceAll('-', '').slice(0, 12)}`
+    operation.value.aiRunId = aiRunId
     const aiRun: AiRunDetail = {
       id: aiRunId,
       operationId: operation.value.id,
@@ -898,6 +1029,7 @@ export const handlers = [
       finishedAt: null,
       durationMs: null,
       error: null,
+      activity: structuredClone(operation.value.activity ?? []),
       attempts: [],
     }
     if (note) aiRun.note = note
@@ -1076,14 +1208,19 @@ export const handlers = [
     runs.unshift(run)
     return successResponse(operation.value, 202, { Location: operation.value.statusUrl })
   }),
-  http.get('*/api/v1/runs', () => successResponse(page(runs))),
+  http.get('*/api/v1/runs', ({ request }) => {
+    const params = new URL(request.url).searchParams
+    return successResponse(params.has('page') ? mockRunPage(params, runs) : page(runs))
+  }),
   http.get('*/api/v1/runs/:id', ({ params }) => {
     const run = byId(runs, String(params.id))
     return run ? successResponse(run) : errorResponse('RUN_NOT_FOUND', 'Run 不存在', 404)
   }),
   http.get('*/api/v1/ai-runs', ({ request }) => {
-    const collectorId = new URL(request.url).searchParams.get('collectorId')
+    const params = new URL(request.url).searchParams
+    const collectorId = params.get('collectorId')
     const matches = collectorId ? aiRuns.filter((run) => run.collectorId === collectorId) : aiRuns
+    if (params.has('page')) return successResponse(mockAiRunPage(params, matches.map(({ attempts: _attempts, ...run }) => run)))
     return successResponse(page(matches.map(({ attempts: _attempts, ...run }) => run)))
   }),
   http.get('*/api/v1/ai-runs/:id', ({ params }) => {
@@ -1096,13 +1233,7 @@ export const handlers = [
     if (format !== 'csv' && format !== 'jsonl') {
       return errorResponse('VALIDATION_FAILED', 'format 必须是 csv 或 jsonl', 422)
     }
-    const collectorId = url.searchParams.get('collectorId')
-    const decision = url.searchParams.get('decision')
-    const entityKey = url.searchParams.get('entityKey')
-    const items = runs.flatMap((run) => run.items).filter((item) =>
-      (!collectorId || item.collectorId === collectorId)
-      && (!decision || item.decision === decision)
-      && (!entityKey || item.entityKey === entityKey))
+    const { items } = queryItems(url.searchParams)
     const headers: Record<string, string> = {
       'X-Request-ID': requestId(),
       'Content-Disposition': `attachment; filename="extrio-items.${format}"`,
@@ -1135,9 +1266,15 @@ export const handlers = [
   http.get('*/api/v1/items', ({ request }) => {
     const url = new URL(request.url)
     const limit = Number.parseInt(url.searchParams.get('limit') ?? '50', 10) || 50
-    const all = runs.flatMap((run) => run.items)
+    const { items: all, facets } = queryItems(url.searchParams)
     const cursor = url.searchParams.get('cursor')
+    const requestedPage = url.searchParams.get('page')
+    if (requestedPage !== null && cursor !== null) return errorResponse('INVALID_CURSOR', 'page 与 cursor 不能同时使用', 400)
+    if (requestedPage !== null && (!Number.isSafeInteger(Number(requestedPage)) || Number(requestedPage) < 1)) return errorResponse('VALIDATION_FAILED', 'page must be a positive integer', 422)
+    const totalPages = Math.max(1, Math.ceil(all.length / limit))
+    const pageNumber = requestedPage === null ? undefined : Math.min(Number(requestedPage), totalPages)
     let start = 0
+    if (pageNumber !== undefined) start = (pageNumber - 1) * limit
     if (cursor) {
       const decoded = Number.parseInt(atob(cursor), 10)
       if (!Number.isInteger(decoded) || decoded < 0) {
@@ -1147,7 +1284,9 @@ export const handlers = [
     }
     const items = all.slice(start, start + limit)
     const nextCursor = start + limit < all.length ? btoa(String(start + limit)) : null
-    return successResponse({ items, page: { nextCursor }, nextCursor })
+    return successResponse({ items, page: { nextCursor }, nextCursor,
+      ...(pageNumber !== undefined ? { total: all.length, pagination: { page: pageNumber, pageSize: limit, totalPages, total: all.length } } : {}),
+      ...(url.searchParams.get('view') === 'entities' ? { total: all.length, facets } : {}) })
   }),
   http.get('*/api/v1/items/:id', ({ params }) => {
     const item = runs.flatMap((run) => run.items).find((row) => row.id === String(params.id))

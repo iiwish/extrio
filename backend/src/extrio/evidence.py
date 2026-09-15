@@ -142,7 +142,7 @@ def build_evidence_bundle(
     rebuilds pass a fixed value.
     """
 
-    collector = store.get_collector(collector_id)
+    collector = store.get_collector(collector_id, include_deleted=True)
     if collector is None:
         raise KeyError(collector_id)
 

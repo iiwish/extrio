@@ -113,8 +113,9 @@ function json(data: unknown, status = 200) {
 
 let commandCalls: Array<{ path: string; method: string; body?: unknown; headers?: Record<string, string> }>
 
-function stubApi(options: { invalidSink?: boolean } = {}) {
+function stubApi(options: { invalidSink?: boolean; initiallyEmpty?: boolean } = {}) {
   commandCalls = []
+  let deliveryReads = 0
   vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(String(input), 'http://localhost')
     const path = url.pathname
@@ -151,7 +152,7 @@ function stubApi(options: { invalidSink?: boolean } = {}) {
       sink.version += 1
       return json(sink)
     }
-    if (path.endsWith('/deliveries')) return json({ items: deliveries, page: { nextCursor: null } })
+    if (path.endsWith('/deliveries')) return json({ items: options.initiallyEmpty && deliveryReads++ === 0 ? [] : deliveries, page: { nextCursor: null } })
     if (path.endsWith('/redeliver')) {
       commandCalls.push({ path, method, headers })
       const delivery = deliveries.find((row) => path.includes(row.id))
@@ -189,6 +190,7 @@ function renderCollectorPage() {
 async function openConfigurationTab(user: ReturnType<typeof userEvent.setup>) {
   await screen.findByText('北京市公共资源交易标讯')
   await user.click(screen.getByRole('tab', { name: '采集配置' }))
+  await user.click(screen.getByText('数据推送与投递记录'))
   await screen.findByLabelText('Webhook 推送配置')
 }
 
@@ -207,6 +209,15 @@ describe('Collector output loop surfaces', () => {
     cleanup()
     vi.unstubAllGlobals()
   })
+
+  it('refreshes an initially empty delivery log when background delivery completes', async () => {
+    stubApi({initiallyEmpty: true})
+    renderCollectorPage()
+    await openConfigurationTab(userEvent.setup())
+    const panel = screen.getByLabelText('Webhook 投递记录')
+    expect(within(panel).getByText('暂无投递记录。发送测试推送或等待新数据触发。')).toBeInTheDocument()
+    expect(await within(panel).findByText('已送达', {}, {timeout: 7000})).toBeInTheDocument()
+  }, 10000)
 
   it('renders webhook sinks and the delivery log inside the configuration tab', async () => {
     const user = userEvent.setup()

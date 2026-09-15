@@ -9,6 +9,7 @@ from extrio.harvest import (
     contract_field_values,
     discover_records_from_spec,
     make_item,
+    titles_consistent,
 )
 from extrio.model_gateway import _field_rule, normalize_rule_plan
 
@@ -242,6 +243,57 @@ def test_required_regex_extract_no_match_rejects_the_item() -> None:
     assert rejected["extractedData"]["budgetAmount"] is None
     assert accepted["decision"] == "accepted"
     assert accepted["extractedData"]["budgetAmount"] == 355.6
+
+
+def test_list_and_detail_title_mismatch_rejects_the_item() -> None:
+    collector = {
+        "id": "collector_title_gate",
+        "name": "Title gate",
+        "sourceHost": "example.com",
+        "collectionVersion": "tender_notice_v4",
+        "candidate": {
+            "gatherSpec": {
+                "collect": {
+                    "list": {"fields": {}},
+                    "detail": {
+                        "fields": {
+                            "heading": {
+                                "selector": "css:h1::text",
+                                "required": True,
+                                "multipleMatchPolicy": "first",
+                                "transforms": ["trim"],
+                            }
+                        }
+                    },
+                },
+                "contract": {
+                    "fieldBindings": {"title": "list.listTitle", "listTitle": "list.listTitle"},
+                    "identityFields": ["detailUrl"],
+                },
+                "sourceRevisionRef": {"sourceRevisionId": "source_revision_title_gate"},
+            }
+        },
+    }
+    detail_url = "https://example.com/detail/1"
+
+    item = make_item(
+        collector,
+        {"id": "run_title_gate", "ruleVersion": "rule_title_gate_v1"},
+        detail_url,
+        "<h1>某单位服务器采购项目征求意见公告</h1>",
+        1,
+        source_record={"listTitle": "国家减灾中心卫星系统建设项目招标公告", "detailUrl": detail_url},
+    )
+
+    assert item["title"] == "某单位服务器采购项目征求意见公告"
+    assert item["listTitle"] == "国家减灾中心卫星系统建设项目招标公告"
+    assert item["decision"] == "rejected"
+    assert item["rejectionReason"] == "列表标题与详情标题不一致"
+    assert item["revision"] is None
+
+
+def test_title_gate_ignores_a_short_bracketed_list_label() -> None:
+    assert titles_consistent("国家减灾中心卫星系统建设项目招标公告", "【采购公告】国家减灾中心卫星系统建设项目招标公告")
 
 
 def test_regex_extract_applies_inside_list_discovery() -> None:

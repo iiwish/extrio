@@ -9,7 +9,7 @@ import type { AuthState, User } from '@/api/types'
 import { AppShell } from '@/app/app-shell'
 import { AuthGate } from '@/features/auth/auth-gate'
 import { CollectorPage } from '@/features/collectors/collector-page'
-import { ModelSettingsPage } from './model-settings-page'
+import { SystemSettingsPage } from './model-settings-page'
 
 window.HTMLElement.prototype.hasPointerCapture = () => false
 window.HTMLElement.prototype.releasePointerCapture = () => undefined
@@ -69,7 +69,7 @@ const configuration = {
   updatedAt: null,
 }
 
-function renderSettingsPage(children = <ModelSettingsPage />) {
+function renderSettingsPage(children = <SystemSettingsPage />) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   return render(
     <QueryClientProvider client={client}>
@@ -204,9 +204,9 @@ describe('Settings 用户管理', () => {
     vi.spyOn(api, 'authState').mockResolvedValue(authenticatedState('viewer'))
     vi.spyOn(api, 'modelConfiguration').mockResolvedValue(configuration)
 
-    renderSettingsPage(<AuthGate><ModelSettingsPage /></AuthGate>)
+    renderSettingsPage(<AuthGate><SystemSettingsPage /></AuthGate>)
 
-    expect(await screen.findByText('OpenAI')).toBeInTheDocument()
+    expect(await screen.findByText('界面语言')).toBeInTheDocument()
     expect(screen.queryByRole('region', { name: '用户列表' })).not.toBeInTheDocument()
     expect(screen.queryByText('用户管理')).not.toBeInTheDocument()
   })
@@ -227,17 +227,21 @@ describe('Role surfaces in the console chrome', () => {
     vi.unstubAllGlobals()
   })
 
-  it('shows the signed-in role label in the topbar pill', async () => {
+  it('keeps the signed-in role and logout in settings rather than the topbar', async () => {
     vi.spyOn(api, 'authState').mockResolvedValue(authenticatedState('reviewer'))
+    vi.spyOn(api, 'modelConfiguration').mockResolvedValue(configuration)
 
-    render(
-      <MemoryRouter>
-        <AuthGate><AppShell /></AuthGate>
-      </MemoryRouter>,
-    )
+    renderSettingsPage(<AuthGate><Routes><Route element={<AppShell />}>
+      <Route index element={<div>工作台</div>} />
+      <Route path="settings" element={<SystemSettingsPage />} />
+    </Route></Routes></AuthGate>)
 
-    const pill = await screen.findByText('规则审核员')
-    expect(pill).toHaveClass('role-pill')
+    const settings = await screen.findByRole('link', { name: '设置' })
+    expect(screen.queryByText('规则审核员')).not.toBeInTheDocument()
+    await userEvent.setup().click(settings)
+    expect(await screen.findByText('规则审核员')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '退出登录' })).toBeInTheDocument()
+    expect(document.querySelector('.topbar .role-pill')).toBeNull()
   })
 
   it('locks rule publication for the engineer role with an explanatory hint', async () => {

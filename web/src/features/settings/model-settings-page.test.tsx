@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -29,13 +29,27 @@ const configuration: ModelConfiguration = {
 }
 
 describe('ModelSettingsPage', () => {
-  afterEach(() => vi.restoreAllMocks())
+  afterEach(() => { cleanup(); vi.restoreAllMocks() })
 
   it('uses provider endpoint presets without presetting a credential', () => {
     expect(providerPreset('deepseek')).toMatchObject({
       baseUrl: 'https://api.deepseek.com/v1',
     })
     expect(providerPreset('deepseek')).not.toHaveProperty('apiKey')
+  })
+
+  it('keeps provider save errors visible inside the open dialog', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(api, 'modelConfiguration').mockResolvedValue(configuration)
+    vi.spyOn(api, 'updateModelConfiguration').mockRejectedValue(new Error('保存失败，请重试'))
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+    render(<QueryClientProvider client={client}><MemoryRouter><ModelSettingsPage /></MemoryRouter></QueryClientProvider>)
+    await user.click(await screen.findByRole('button', { name: 'OpenAI 供应商操作' }))
+    await user.click(screen.getByRole('menuitem', { name: '编辑供应商' }))
+    const dialog = screen.getByRole('dialog')
+    await user.click(within(dialog).getByRole('button', { name: '保存供应商' }))
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('保存失败，请重试')
+    expect(within(dialog).getByLabelText('API 密钥')).toHaveAttribute('type', 'password')
   })
 
   it('groups models under their provider and saves a default model', async () => {

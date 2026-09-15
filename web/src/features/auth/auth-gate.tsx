@@ -1,4 +1,4 @@
-import { AlertCircle, LoaderCircle, LockKeyhole } from 'lucide-react'
+import { AlertCircle, Eye, EyeOff, LoaderCircle, LockKeyhole } from 'lucide-react'
 import { createContext, type FormEvent, type ReactNode, useCallback, useContext, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api, ApiRequestError } from '@/api/client'
@@ -29,6 +29,7 @@ function AuthForm({ state, onAuthenticated }: { state: AuthState; onAuthenticate
   const setup = state.setupRequired
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -57,10 +58,10 @@ function AuthForm({ state, onAuthenticated }: { state: AuthState; onAuthenticate
           <LockKeyhole aria-hidden="true" />
           <div><h1 id="auth-title">{setup ? t('setup.title') : t('login.title')}</h1><p>{setup ? t('setup.subtitle') : t('login.subtitle')}</p></div>
         </div>
-        <form className="auth-form" onSubmit={submit}>
+        <form className="auth-form" onSubmit={submit} aria-busy={submitting}>
           {setup && <label><span>{t('form.displayName')}</span><Input name="displayName" autoComplete="name" maxLength={64} placeholder={t('form.displayNamePlaceholder')} /></label>}
           <label><span>{t('form.username')}</span><Input name="username" autoComplete="username" minLength={3} maxLength={64} required autoFocus /></label>
-          <label><span>{t('form.password')}</span><Input name="password" type="password" autoComplete={setup ? 'new-password' : 'current-password'} minLength={setup ? 8 : undefined} maxLength={256} required /></label>
+          <div className="auth-password-field"><label htmlFor="auth-password">{t('form.password')}</label><div><Input id="auth-password" name="password" type={showPassword ? 'text' : 'password'} autoComplete={setup ? 'new-password' : 'current-password'} minLength={setup ? 8 : undefined} maxLength={256} required /><Button type="button" variant="ghost" size="icon-sm" aria-label={t(showPassword ? 'form.hidePassword' : 'form.showPassword')} title={t(showPassword ? 'form.hidePassword' : 'form.showPassword')} onClick={() => setShowPassword(value => !value)}>{showPassword ? <EyeOff /> : <Eye />}</Button></div></div>
           {error && <div className="auth-error" role="alert"><AlertCircle />{error}</div>}
           <Button type="submit" size="lg" disabled={submitting}>
             {submitting && <LoaderCircle className="animate-spin" />}{setup ? t('setup.submit') : t('login.submit')}

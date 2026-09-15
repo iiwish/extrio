@@ -83,8 +83,13 @@ class LocalEd25519Signer:
         self._private_key: Ed25519PrivateKey | None = None
 
     def _load_or_create(self) -> Ed25519PrivateKey:
+        if self.private_key_path.is_symlink() or (self.private_key_path.exists() and not self.private_key_path.is_file()):
+            raise IntegrityError("signing key must be a regular file")
+        if self.private_key_path.exists() and self.private_key_path.stat().st_mode & 0o077:
+            raise IntegrityError("signing key permissions must exclude group and other users")
         if self._private_key is not None:
-            return self._private_key
+            if not self.private_key_path.exists():
+                raise IntegrityError("signing key file is missing")
         self.private_key_path.parent.mkdir(parents=True, exist_ok=True)
         try:
             payload = self.private_key_path.read_bytes()
@@ -111,6 +116,16 @@ class LocalEd25519Signer:
     def sign(self, payload: bytes) -> str:
         signature = self._load_or_create().sign(payload)
         return base64.urlsafe_b64encode(signature).rstrip(b"=").decode()
+
+    def validate_registered_identity(self, store) -> None:
+        trust = store.get_signing_key(self.key_id)
+        if trust:
+            if not self.private_key_path.is_file():
+                raise IntegrityError("registered signing key file is missing; restore the original material")
+            if self.public_key_pem() != trust["publicKeyPem"]:
+                raise IntegrityError("signing key identity does not match the registered key")
+            if trust["status"] != "trusted":
+                raise IntegrityError("configured signing key is not trusted")
 
     def public_key_pem(self) -> str:
         return (
@@ -145,14 +160,15 @@ def build_rule_attestation(
     signer: LocalEd25519Signer,
     contracts: ContractBundle,
     tenant_id: str = "tenant_demo",
+    reviewer_subject_id: str = "user_local_operator",
 ) -> dict[str, Any]:
     signed_at = utc_now()
     rule_digest = finalize_rule_spec(spec, rule_version_id)
     approval = {
         "decisionId": f"approval_{uuid.uuid4().hex}",
         "decision": "approved",
-        "submitterSubjectId": "user_collection_editor_demo",
-        "reviewerSubjectIds": ["user_rule_reviewer_demo"],
+        "submitterSubjectId": reviewer_subject_id,
+        "reviewerSubjectIds": [reviewer_subject_id],
         "approvedAt": signed_at,
         "reviewPolicyDigest": digest_value({"policy": "manual_rule_review_v1", "requiredRoles": ["RuleReviewer"], "minimumReviewers": 1}),
         "evidenceDigest": digest_value({"reviewDecisions": review_decisions, "ruleDigest": rule_digest}),

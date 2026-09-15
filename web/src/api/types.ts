@@ -2,6 +2,29 @@ import type { components } from './generated/schema'
 
 type Schemas = components['schemas']
 
+export type Overview = Schemas['Overview']
+export type OverviewBucket = Schemas['OverviewBucket']
+
+export type Collection = Schemas['Collection']
+export type CollectionInput = Schemas['CollectionInput']
+export type CollectionField = Schemas['CollectionField']
+export type CollectionVersion = Schemas['CollectionVersion']
+export type CollectionVersionPublishInput = Schemas['CollectionVersionPublishInput']
+export type CollectionVersionList = Schemas['CollectionVersionList']
+export type CollectionTemplate = Schemas['CollectionTemplate']
+export type CollectionTemplateList = Schemas['CollectionTemplateList']
+export type FieldSuggestion = Schemas['FieldSuggestion']
+export type FieldSuggestionList = Schemas['FieldSuggestionList']
+export type FieldSuggestionInput = Schemas['FieldSuggestionInput']
+export type ApplyTemplateInput = Schemas['ApplyTemplateInput']
+export type ApplySuggestionInput = Schemas['ApplySuggestionInput']
+export type CollectionMigrationPlan = Schemas['CollectionMigrationPlan']
+export type CollectionMigrationInput = Schemas['CollectionMigrationInput']
+export type CancelCollectionMigrationInput = Schemas['CancelCollectionMigrationInput']
+export type SourceFieldContract = Schemas['SourceFieldContract']
+export type CollectionUpdateInput = Schemas['CollectionUpdateInput']
+export type CollectionDetail = Omit<Schemas['CollectionDetail'], 'sources'> & { sources: CollectorDetail[] }
+
 export type CollectorStatus = Schemas['CollectorStatus']
 export type RunStatus = Schemas['RunStatus']
 export type OperationStatus = Schemas['OperationStatus']
@@ -22,6 +45,9 @@ export type UpdateUserInput = Schemas['UpdateUserInput']
 
 export type PlatformError = Schemas['PlatformError']
 export type Operation = Schemas['Operation']
+export type RuntimeDiagnostics = Schemas['RuntimeDiagnostics']
+export type RunEvidenceStatus = Schemas['RunEvidence']
+export type OperationActivity = Schemas['OperationActivity']
 export type CandidateField = Schemas['CandidateField']
 export type GatherSpec = Omit<Schemas['gather-spec.schema'], '$defs'>
 export type CandidateRule = Omit<Schemas['CandidateRule'], 'gatherSpec'> & { gatherSpec: GatherSpec }
@@ -37,10 +63,19 @@ export type CollectionPolicy = Schemas['CollectionPolicy']
 export type CollectionPolicyInput = Schemas['CollectionPolicyInput']
 export type CollectorSchedule = Schemas['CollectorSchedule']
 export type CollectorScheduleInput = Schemas['CollectorScheduleInput']
-export type CollectorCheckpoint = Schemas['CollectorCheckpoint']
-export type CollectorDetail = Omit<Schemas['CollectorDetail'], 'candidate'> & { candidate: CandidateRule | null }
+export type CollectorDetail = Omit<Schemas['CollectorDetail'], 'candidate'> & {
+  candidate: CandidateRule | null
+  collectionFields?: CollectionField[]
+}
 export type CreateCollectorInput = Schemas['CreateCollectorInput']
+export type ExplorationInput = Schemas['ExplorationInput']
 export type UpdateCollectorInput = Schemas['UpdateCollectorInput']
+export type CollectorLifecyclePlan = Schemas['CollectorLifecyclePlan']
+export type CollectorLifecycleInput = Schemas['CollectorLifecycleInput']
+export type CollectorLifecycleResult = CollectorDetail | { id: string; deleted: true }
+export type CollectorReassignmentPlan = Schemas['CollectorReassignmentPlan']
+export type CollectorReassignmentInput = Schemas['CollectorReassignmentInput']
+export type CollectionAttribution = Schemas['CollectionAttribution']
 export type CandidateRuleEditInput = Schemas['CandidateRuleEditInput']
 export type CreateCollectorsInput = Schemas['CreateCollectorsInput']
 export type RepairInput = Schemas['RepairInput']
@@ -48,6 +83,8 @@ export type BatchCollectorImportItem = Omit<Schemas['BatchCollectorImportItem'],
 export type BatchCollectorImportResult = Omit<Schemas['BatchCollectorImportResult'], 'results'> & { results: BatchCollectorImportItem[] }
 export type CollectorPage = Omit<Schemas['CollectorPage'], 'items'> & { items: CollectorDetail[] }
 export type RunPage = Schemas['RunPage']
+export type CollectionPage = Schemas['CollectionPage']
+export type NumberedPagination = Schemas['NumberedPagination']
 export type AiRunPage = Schemas['AiRunPage']
 export type ItemPage = Schemas['ItemPage']
 export type ModelSetting = Schemas['ModelSetting']

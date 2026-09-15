@@ -6,21 +6,23 @@ import json
 import logging
 import os
 import re
+import tempfile
 import threading
 import uuid
 from collections.abc import Iterator
 from contextlib import asynccontextmanager, suppress
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, TextIO
 from urllib.parse import urlparse
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import uvicorn
 from bs4 import BeautifulSoup
 from fastapi import Depends, FastAPI, Header, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, StreamingResponse
+from starlette.background import BackgroundTask
 
 from extrio.auth import (
     ROLE_ADMINISTRATOR,
@@ -36,12 +38,24 @@ from extrio.auth import (
     validate_username,
     verify_password,
 )
+from extrio.collection_fields import validate_field_draft
+from extrio.collector_lifecycle import (
+    LifecycleError,
+    definition_command,
+    lifecycle_command,
+    lifecycle_plan,
+    reassignment_command,
+    reassignment_plan,
+    require_active,
+    source_execution_digest,
+)
 from extrio.config import get_settings
 from extrio.contracts import ContractBundle
-from extrio.credentials import CredentialCipher
+from extrio.credentials import CredentialCipher, validate_stored_credentials
 from extrio.demo import router as demo_router
 from extrio.evidence import EvidenceBundleError, build_evidence_bundle
 from extrio.harvest import discover_records_from_spec, make_item
+from extrio.instance_guard import instance_lock
 from extrio.integrity import (
     IntegrityError,
     LocalEd25519Signer,
@@ -51,7 +65,9 @@ from extrio.integrity import (
     immutable_rule_version,
     verify_rule_attestation,
 )
+from extrio.local_evidence import evidence_status
 from extrio.metrics import METRICS_CONTENT_TYPE, render_metrics
+from extrio.runtime_health import deployment_digest, runtime_status
 from extrio.security import SourceUrlError, normalize_source_url
 from extrio.store import (
     DEFAULT_COLLECTION_ID,
@@ -161,7 +177,7 @@ async def schedule_dispatch_loop() -> None:
                         run_id=operation["resourceId"],
                         reason=None,
                     )
-                except RunStartError as exc:
+                except (RunStartError, LifecycleError) as exc:
                     store.finish_schedule_occurrence(
                         occurrence["occurrenceKey"],
                         status="skipped",
@@ -182,6 +198,7 @@ def persist_published_rule(
     actor_id: str,
     action: str = "rule.published",
 ) -> dict[str, Any]:
+    rule_signer.validate_registered_identity(store)
     rule_version = immutable_rule_version(
         collector_id=collector["id"],
         spec=collector["candidate"]["gatherSpec"],
@@ -198,6 +215,7 @@ def persist_published_rule(
         signer=rule_signer,
         contracts=contracts,
         tenant_id=settings.tenant_id,
+        reviewer_subject_id=actor_id,
     )
     rule_version["ruleDigest"] = attestation["ruleDigest"]
     candidate = copy.deepcopy(collector["candidate"])
@@ -205,6 +223,7 @@ def persist_published_rule(
     candidate["digest"] = digest_value(rule_version["gatherSpec"])
     return store.publish_rule_bundle(
         collector_id=collector["id"],
+        expected_source_digest=source_execution_digest(collector),
         rule_version=rule_version,
         attestation=attestation,
         collector_changes={
@@ -308,22 +327,30 @@ def model_configuration_view(value: dict[str, Any] | None = None) -> dict[str, A
         provider_id = "provider_default"
         model_id = "model_default"
         configured = {
-            "providers": [{
-                "id": provider_id,
-                "name": MODEL_PROVIDER_NAMES.get(str(provider.get("provider", "openai")), "模型供应商"),
-                "provider": provider.get("provider", "openai"),
-                "baseUrl": provider.get("baseUrl", ""),
-                "secretRef": provider.get("secretRef", ""),
-                "enabled": True,
-                "updatedAt": provider.get("updatedAt"),
-            }],
-            "models": ([{
-                "id": model_id,
-                "providerId": provider_id,
-                "modelId": provider.get("model", ""),
-                "enabled": True,
-                "updatedAt": provider.get("updatedAt"),
-            }] if provider.get("model") else []),
+            "providers": [
+                {
+                    "id": provider_id,
+                    "name": MODEL_PROVIDER_NAMES.get(str(provider.get("provider", "openai")), "模型供应商"),
+                    "provider": provider.get("provider", "openai"),
+                    "baseUrl": provider.get("baseUrl", ""),
+                    "secretRef": provider.get("secretRef", ""),
+                    "enabled": True,
+                    "updatedAt": provider.get("updatedAt"),
+                }
+            ],
+            "models": (
+                [
+                    {
+                        "id": model_id,
+                        "providerId": provider_id,
+                        "modelId": provider.get("model", ""),
+                        "enabled": True,
+                        "updatedAt": provider.get("updatedAt"),
+                    }
+                ]
+                if provider.get("model")
+                else []
+            ),
             "defaultModelId": model_id if provider.get("model") else None,
             "updatedAt": provider.get("updatedAt"),
         }
@@ -334,16 +361,18 @@ def model_configuration_view(value: dict[str, Any] | None = None) -> dict[str, A
     for provider in configured.get("providers", []):
         secret_ref = str(provider.get("secretRef", ""))
         secret_name = secret_ref.removeprefix("env:") if secret_ref.startswith("env:") else ""
-        providers.append({
-            "id": provider.get("id", ""),
-            "name": provider.get("name", ""),
-            "provider": provider.get("provider", "openai"),
-            "baseUrl": provider.get("baseUrl", ""),
-            "enabled": provider.get("enabled", True),
-            "credentialConfigured": credential_cipher.can_decrypt(encrypted_credentials.get(str(provider.get("id", ""))))
-            or bool(secret_name and os.getenv(secret_name)),
-            "updatedAt": provider.get("updatedAt", configured.get("updatedAt")),
-        })
+        providers.append(
+            {
+                "id": provider.get("id", ""),
+                "name": provider.get("name", ""),
+                "provider": provider.get("provider", "openai"),
+                "baseUrl": provider.get("baseUrl", ""),
+                "enabled": provider.get("enabled", True),
+                "credentialConfigured": credential_cipher.can_decrypt(encrypted_credentials.get(str(provider.get("id", ""))))
+                or bool(secret_name and os.getenv(secret_name)),
+                "updatedAt": provider.get("updatedAt", configured.get("updatedAt")),
+            }
+        )
     models = [
         {
             **model,
@@ -399,21 +428,28 @@ def validate_model_configuration(body: dict[str, Any], request: Request) -> tupl
             return None, platform_error(request, "VALIDATION_FAILED", "供应商启用状态必须是布尔值", 422, pointer=f"{pointer}/enabled")
         provider_ids.add(provider_id)
         provider_names.add(name.casefold())
-        normalized_providers.append({
-            "id": provider_id,
-            "name": name,
-            "provider": provider_type,
-            "baseUrl": base_url,
-            "enabled": provider["enabled"],
-            "apiKey": api_key or None,
-        })
+        normalized_providers.append(
+            {
+                "id": provider_id,
+                "name": name,
+                "provider": provider_type,
+                "baseUrl": base_url,
+                "enabled": provider["enabled"],
+                "apiKey": api_key or None,
+            }
+        )
 
     model_ids: set[str] = set()
     provider_model_ids: set[tuple[str, str]] = set()
     normalized_models = []
     for index, model in enumerate(models):
         pointer = f"/models/{index}"
-        if not isinstance(model, dict) or set(model) != {"id", "providerId", "modelId", "enabled"}:
+        required_model_fields = {"id", "providerId", "modelId", "enabled"}
+        if (
+            not isinstance(model, dict)
+            or not required_model_fields.issubset(model)
+            or not set(model).issubset(required_model_fields | {"limits"})
+        ):
             return None, platform_error(request, "VALIDATION_FAILED", "模型字段与 API 合同不一致", 422, pointer=pointer)
         model_id = str(model.get("id", "")).strip()
         provider_id = str(model.get("providerId", "")).strip()
@@ -428,14 +464,40 @@ def validate_model_configuration(body: dict[str, Any], request: Request) -> tupl
             )
         if not isinstance(model.get("enabled"), bool):
             return None, platform_error(request, "VALIDATION_FAILED", "模型启用状态必须是布尔值", 422, pointer=f"{pointer}/enabled")
+        if "limits" in model:
+            from extrio.model_budget import ModelLimits
+
+            limits = model["limits"]
+            fields = {"contextTokens", "maxInputTokens", "maxOutputTokens", "reasoningTokens"}
+            valid = isinstance(limits, dict) and set(limits) == fields and all(type(value) is int for value in limits.values())
+            if valid:
+                context = limits["contextTokens"]
+                valid = (
+                    4096 <= context <= 2_000_000
+                    and 1 <= limits["maxInputTokens"] <= context
+                    and 256 <= limits["maxOutputTokens"] <= context
+                    and 0 <= limits["reasoningTokens"] <= context
+                    and ModelLimits.from_config(limits).input_budget() > 0
+                )
+            if not valid:
+                return None, platform_error(
+                    request,
+                    "VALIDATION_FAILED",
+                    "模型上下文、输入、输出与推理预留预算无效",
+                    422,
+                    pointer=f"{pointer}/limits",
+                )
         model_ids.add(model_id)
         provider_model_ids.add((provider_id, provider_model_id.casefold()))
-        normalized_models.append({
-            "id": model_id,
-            "providerId": provider_id,
-            "modelId": provider_model_id,
-            "enabled": model["enabled"],
-        })
+        normalized_models.append(
+            {
+                "id": model_id,
+                "providerId": provider_id,
+                "modelId": provider_model_id,
+                "enabled": model["enabled"],
+                **({"limits": model["limits"]} if "limits" in model else {}),
+            }
+        )
 
     if default_model_id is not None:
         default = next((model for model in normalized_models if model["id"] == default_model_id), None)
@@ -506,15 +568,19 @@ async def read_contract_body(
 
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI):
+async def active_lifespan(_app: FastAPI):
     store.initialize()
+    _app.state.deployment_digest = deployment_digest(settings)
     if settings.seed_demo and not store.list_collectors():
-        store.create_collector(
-            "北京市公共资源交易演示源",
-            "采集公开招标公告，提取项目名称、采购单位、发布日期、预算和详情链接。",
-            f"http://{settings.host}:{settings.port}/demo/tenders",
-            settings.host,
-        )
+        with store.connect() as connection:
+            has_deleted_sources = connection.execute("SELECT 1 FROM deleted_collectors LIMIT 1").fetchone()
+        if not has_deleted_sources:
+            store.create_collector(
+                "北京市公共资源交易演示源",
+                "采集公开招标公告，提取项目名称、采购单位、发布日期、预算和详情链接。",
+                f"http://{settings.host}:{settings.port}/demo/tenders",
+                settings.host,
+            )
     for collector in store.list_collectors():
         collector = store.ensure_collection_policy(collector["id"])
         collector = store.ensure_schedule(collector["id"])
@@ -541,6 +607,13 @@ async def lifespan(_app: FastAPI):
         schedule_task.cancel()
         with suppress(asyncio.CancelledError):
             await schedule_task
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    with instance_lock(settings.artifact_path):
+        async with active_lifespan(_app):
+            yield
 
 
 app = FastAPI(title="Extrio Control Plane API", version="1.14.0", lifespan=lifespan)
@@ -580,10 +653,11 @@ async def request_id_middleware(request: Request, call_next):
             request.state.auth_user = session_user
 
         public_path = (
-            request.url.path == "/healthz"
+            request.url.path in {"/healthz", "/readyz", "/robots.txt"}
             or request.url.path == "/metrics"
             or request.url.path.startswith("/demo/")
-            or request.url.path in {
+            or request.url.path
+            in {
                 "/api/v1/auth/state",
                 "/api/v1/auth/setup",
                 "/api/v1/auth/login",
@@ -664,9 +738,28 @@ def require_roles(*roles: str):
     return Depends(dependency)
 
 
+@app.get("/robots.txt", include_in_schema=False, response_class=PlainTextResponse)
+def demo_robots():
+    return "User-agent: *\nAllow: /demo/\nDisallow: /\n"
+
+
 @app.get("/healthz", include_in_schema=False)
 def health() -> dict[str, str]:
     return {"status": "ok", "contract": "extrio.control-plane.v1"}
+
+
+@app.get("/readyz", include_in_schema=False)
+def readiness():
+    try:
+        state = runtime_status(store, app.state.deployment_digest, settings)
+    except Exception:
+        return JSONResponse({"ready": False}, status_code=503)
+    return JSONResponse({"ready": state["ready"]}, status_code=200 if state["ready"] else 503)
+
+
+@app.get("/api/v1/runtime")
+def runtime_diagnostics():
+    return runtime_status(store, app.state.deployment_digest, settings)
 
 
 @app.get("/metrics", include_in_schema=False)
@@ -687,9 +780,17 @@ def auth_state_view(request: Request) -> dict[str, Any]:
     }
 
 
-def authenticated_response(request: Request, user: dict[str, Any]) -> JSONResponse:
+def authenticated_response(request: Request, user: dict[str, Any], expected_password_hash: str | None = None) -> JSONResponse:
     token, token_hash, expires_at = new_session(settings.auth_session_hours)
-    store.create_auth_session(token_hash=token_hash, user_id=user["id"], expires_at=expires_at)
+    try:
+        store.create_auth_session(
+            token_hash=token_hash, user_id=user["id"], expires_at=expires_at, expected_password_hash=expected_password_hash
+        )
+    except ValueError as exc:
+        if str(exc) != "AUTH_CREDENTIALS_CHANGED":
+            raise
+        request.state.auth_user = None
+        return platform_error(request, "INVALID_CREDENTIALS", "用户名或密码不正确", 401)
     response = JSONResponse({**auth_state_view(request), "setupRequired": False, "authenticated": True, "user": user})
     response.set_cookie(
         settings.auth_cookie_name,
@@ -719,17 +820,18 @@ async def setup_auth(request: Request):
         username = validate_username(body["username"])
         password = validate_password(body["password"])
         display_name = validate_display_name(body.get("displayName"), username)
+        password_hash = hash_password(password)
         user = store.create_first_auth_user(
             username=username,
             display_name=display_name,
-            password_hash=hash_password(password),
+            password_hash=password_hash,
         )
     except ValueError as exc:
         return platform_error(request, "VALIDATION_FAILED", str(exc), 422)
     except AuthSetupComplete:
         return platform_error(request, "SETUP_ALREADY_COMPLETED", "管理员初始化已经完成", 409)
     request.state.auth_user = user
-    return authenticated_response(request, user)
+    return authenticated_response(request, user, password_hash)
 
 
 @app.post("/api/v1/auth/login")
@@ -751,7 +853,7 @@ async def login(request: Request):
         return platform_error(request, "INVALID_CREDENTIALS", "用户名或密码不正确", 401)
     user = {key: value for key, value in credentials.items() if key != "passwordHash"}
     request.state.auth_user = user
-    return authenticated_response(request, user)
+    return authenticated_response(request, user, credentials["passwordHash"])
 
 
 @app.post("/api/v1/auth/logout")
@@ -854,7 +956,12 @@ async def update_user(
     )
     if demotes_last_administrator:
         return platform_error(request, "LAST_ADMINISTRATOR", "不能移除最后一个可用的管理员账号", 409)
-    user = store.update_user(user_id, **changes) if changes else target
+    try:
+        user = store.update_user(user_id, **changes) if changes else target
+    except ValueError as exc:
+        if str(exc) == "LAST_ADMINISTRATOR":
+            return platform_error(request, "LAST_ADMINISTRATOR", "不能移除最后一个可用的管理员账号", 409)
+        raise
     if password_hash is not None:
         store.update_user_password(user_id, password_hash)
         user = store.get_user(user_id)
@@ -867,9 +974,397 @@ def gather_spec_schema() -> JSONResponse:
     return JSONResponse(contracts.gather_schema)
 
 
+COLLECTION_ERRORS = {
+    "COLLECTION_NOT_FOUND": (404, "采集需求不存在"),
+    "COLLECTION_CONFLICT": (409, "需求已被其他操作修改，请重新加载后再试"),
+    "COLLECTION_HAS_SOURCES": (409, "需求存在关联来源，不能删除；请使用归档保留采集成果"),
+    "COLLECTION_ARCHIVED": (409, "需求已归档，请先恢复后再修改或添加来源"),
+    "NO_FIELD_DRAFT": (422, "当前采集需求没有可发布的字段草稿"),
+    "VERSION_NOT_FOUND": (404, "指定的字段版本不存在"),
+    "COLLECTOR_NOT_FOUND": (404, "采集来源不存在"),
+    "COLLECTOR_ARCHIVED": (409, "采集来源已归档，请先恢复"),
+    "COLLECTOR_CONFLICT": (409, "采集来源已变化，请重新加载"),
+    "TASK_ALREADY_ACTIVE": (409, "来源存在排队中或运行中的任务"),
+    "SOURCE_ALREADY_EXISTS": (409, "该 Source URL 已存在"),
+    "MIGRATION_ALREADY_ACTIVE": (409, "来源已有待完成的字段迁移"),
+    "MIGRATION_NOT_ACTIVE": (409, "指定迁移已结束或不存在"),
+    "VERSION_ALREADY_BOUND": (409, "来源已绑定该字段版本"),
+    "MIGRATION_CONFLICT": (409, "迁移计划已过期，请重新加载并审核"),
+    "MIGRATION_REVIEW_REQUIRED": (409, "请逐项确认全部字段差异"),
+    "RUN_ALREADY_ACTIVE": (409, "来源存在运行中的任务，暂不能迁移"),
+    "OPERATION_ALREADY_ACTIVE": (409, "来源存在未完成的异步任务"),
+    "SUGGESTION_ALREADY_ACTIVE": (409, "该需求已有正在生成的字段建议"),
+    "SUGGESTION_RATE_LIMIT": (429, "每个需求每小时最多生成 5 次字段建议，请稍后再试"),
+    "SUGGESTION_NOT_FOUND": (404, "字段建议不存在"),
+    "SUGGESTION_NOT_READY": (409, "建议尚未生成成功或已应用"),
+    "SUGGESTION_SELECTION_INVALID": (422, "请选择有效且不重复的建议字段"),
+    "TEMPLATE_NOT_FOUND": (404, "字段模板不存在"),
+    "COLLECTION_HAS_HISTORY": (409, "需求已有已发布版本或 AI 建议记录，请使用归档保留历史"),
+}
+
+
+def collection_workflow_error(request, exc):
+    if isinstance(exc, IdempotencyConflict):
+        return platform_error(request, "IDEMPOTENCY_KEY_REUSED", "Idempotency-Key 已被不同请求占用", 409)
+    code = str(exc)
+    status, message = COLLECTION_ERRORS.get(code, (422, "请求不符合字段工作流合同"))
+    return platform_error(request, code if code in COLLECTION_ERRORS else "VALIDATION_FAILED", message, status)
+
+
+def request_audit(request):
+    return {"tenantId": settings.tenant_id, "actorId": request.state.auth_user["id"], "requestId": request.state.request_id}
+
+
+@app.exception_handler(LifecycleError)
+async def lifecycle_error(request: Request, exc: LifecycleError):
+    code = str(exc)
+    return platform_error(request, code, code, 404 if code in {"COLLECTOR_NOT_FOUND", "COLLECTION_NOT_FOUND"} else 409)
+
+
+@app.get("/api/v1/collectors/{collector_id}/lifecycle")
+def get_collector_lifecycle(collector_id: str, request: Request):
+    try:
+        return lifecycle_plan(store, collector_id)
+    except ValueError as exc:
+        raise LifecycleError(str(exc)) from exc
+
+
+@app.post("/api/v1/collectors/{collector_id}/lifecycle", dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
+async def manage_collector_lifecycle(
+    collector_id: str, request: Request, idempotency_key: str | None = Header(None, alias="Idempotency-Key")
+):
+    if error := require_idempotency(request, idempotency_key):
+        return error
+    body, error = await read_contract_body(request, required={"action", "planDigest"})
+    if error:
+        return error
+    if body["action"] not in ("archive", "restore", "delete") or not isinstance(body["planDigest"], str):
+        return platform_error(request, "VALIDATION_FAILED", "Invalid lifecycle command", 422)
+    try:
+        status, value, repeated = lifecycle_command(store, collector_id, body, idempotency_key, request_audit(request))
+        return JSONResponse(value, status_code=status, headers={"Idempotency-Replayed": "true"} if repeated else {})
+    except IdempotencyConflict as exc:
+        return collection_workflow_error(request, exc)
+    except ValueError as exc:
+        raise LifecycleError(str(exc)) from exc
+
+
+@app.get("/api/v1/collectors/{collector_id}/reassignment")
+def get_collector_reassignment(collector_id: str, request: Request, target_collection_id: str = Query(alias="targetCollectionId")):
+    try:
+        return reassignment_plan(store, collector_id, target_collection_id)
+    except ValueError as exc:
+        raise LifecycleError(str(exc)) from exc
+
+
+@app.post("/api/v1/collectors/{collector_id}/reassignment", dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
+async def reassign_collector(collector_id: str, request: Request, idempotency_key: str | None = Header(None, alias="Idempotency-Key")):
+    if error := require_idempotency(request, idempotency_key):
+        return error
+    body, error = await read_contract_body(request, required={"targetCollectionId", "planDigest", "confirmedChanges"})
+    if error:
+        return error
+    if (
+        not isinstance(body["targetCollectionId"], str)
+        or not body["targetCollectionId"]
+        or not isinstance(body["planDigest"], str)
+        or not isinstance(body["confirmedChanges"], list)
+        or not all(isinstance(key, str) for key in body["confirmedChanges"])
+    ):
+        return platform_error(request, "VALIDATION_FAILED", "Invalid reassignment command", 422)
+    try:
+        status, value, repeated = reassignment_command(store, collector_id, body, idempotency_key, request_audit(request))
+        return JSONResponse(value, status_code=status, headers={"Idempotency-Replayed": "true"} if repeated else {})
+    except IdempotencyConflict as exc:
+        return collection_workflow_error(request, exc)
+    except ValueError as exc:
+        raise LifecycleError(str(exc)) from exc
+
+
+@app.get("/api/v1/collection-templates")
+def collection_templates():
+    from extrio.field_suggestions import TEMPLATES
+
+    return {"items": TEMPLATES}
+
+
+@app.get("/api/v1/collections/{collection_id}/field-suggestions")
+def collection_field_suggestions(collection_id: str, request: Request):
+    from extrio.field_suggestions import list_suggestions
+
+    try:
+        return {"items": list_suggestions(store, collection_id)}
+    except ValueError as exc:
+        return collection_workflow_error(request, exc)
+
+
+@app.post("/api/v1/collections/{collection_id}/apply-template", dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
+async def apply_collection_template(
+    collection_id: str, request: Request, idempotency_key: str | None = Header(None, alias="Idempotency-Key")
+):
+    return await execute_field_workflow(request, collection_id, "apply-template", idempotency_key)
+
+
+@app.post("/api/v1/collections/{collection_id}/field-suggestions", status_code=202, dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
+async def start_field_suggestion(collection_id: str, request: Request, idempotency_key: str | None = Header(None, alias="Idempotency-Key")):
+    return await execute_field_workflow(request, collection_id, "field-suggestions", idempotency_key)
+
+
+@app.post("/api/v1/collections/{collection_id}/field-suggestions/{suggestion_id}/apply", dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
+async def apply_field_suggestion(
+    collection_id: str, suggestion_id: str, request: Request, idempotency_key: str | None = Header(None, alias="Idempotency-Key")
+):
+    return await execute_field_workflow(request, collection_id, "apply-suggestion", idempotency_key, suggestion_id)
+
+
+async def execute_field_workflow(request, collection_id, kind, key, suggestion_id=None):
+    from extrio.field_suggestions import field_workflow_command
+
+    if error := require_idempotency(request, key):
+        return error
+    extra = {"templateId"} if kind == "apply-template" else {"selectedKeys"} if kind == "apply-suggestion" else set()
+    body, error = await read_contract_body(request, required={"revision"} | extra)
+    if error:
+        return error
+    if type(body["revision"]) is not int or body["revision"] < 1:
+        return platform_error(request, "VALIDATION_FAILED", "revision 必须是正整数", 422)
+    if kind == "apply-template" and not isinstance(body["templateId"], str):
+        return platform_error(request, "VALIDATION_FAILED", "请选择字段模板", 422)
+    if kind == "apply-suggestion" and (
+        not isinstance(body["selectedKeys"], list)
+        or len(body["selectedKeys"]) > 32
+        or any(not isinstance(k, str) for k in body["selectedKeys"])
+    ):
+        return platform_error(request, "VALIDATION_FAILED", "建议字段选择无效", 422)
+    try:
+        status, value, replayed = field_workflow_command(store, collection_id, kind, body, key, request_audit(request), suggestion_id)
+        return JSONResponse(value, status_code=status, headers={"Idempotency-Replayed": "true"} if replayed else {})
+    except (ValueError, IdempotencyConflict) as exc:
+        return collection_workflow_error(request, exc)
+
+
+@app.get("/api/v1/collections")
+def list_collections(
+    page_number: int | None = Query(None, alias="page", ge=1), limit: int = Query(50, ge=1, le=200),
+    status: str = Query("active", pattern="^(active|archived|all)$"), q: str | None = Query(None, max_length=500),
+    sort: str = Query("updated_desc", pattern="^(updated_asc|updated_desc)$"),
+):
+    if page_number is not None:
+        from extrio.workspace_pagination import collection_page
+        return collection_page(store, page_number, limit, status, q, sort)
+    values = store.list_collections()
+    return {"items": values, "total": len(values)}
+
+
+@app.get("/api/v1/collections/{collection_id}")
+def collection_detail(collection_id: str, request: Request):
+    value = store.get_collection(collection_id)
+    if value is None:
+        return platform_error(request, "COLLECTION_NOT_FOUND", COLLECTION_ERRORS["COLLECTION_NOT_FOUND"][1], 404)
+    sources = store.collection_sources(collection_id)
+    return {
+        **value,
+        "sources": sources,
+        "sourceContracts": store.collection_source_contracts(sources, value),
+        "sourceCount": len(sources),
+        "publishedSourceCount": sum(bool(source.get("activeRuleVersion")) for source in sources),
+    }
+
+
+async def execute_collection_command(request: Request, collection_id: str | None, key: str | None):
+    if error := require_idempotency(request, key):
+        return error
+    method = request.method
+    required = {"name", "intent"} if method == "POST" else {"revision"}
+    optional = {"name", "intent", "status", "fieldDraft"} if method == "PATCH" else set()
+    body, error = await read_contract_body(request, required=required, optional=optional)
+    if error:
+        return error
+    for field, maximum in (("name", 200), ("intent", 10000)):
+        if field in body:
+            if not isinstance(body[field], str) or not body[field].strip() or len(body[field].strip()) > maximum:
+                return platform_error(request, "VALIDATION_FAILED", f"{field} 必须包含 1 至 {maximum} 个字符", 422, pointer=f"/{field}")
+            body[field] = body[field].strip()
+    if method != "POST" and (type(body["revision"]) is not int or body["revision"] < 1):
+        return platform_error(request, "VALIDATION_FAILED", "revision 必须是正整数", 422, pointer="/revision")
+    if method == "PATCH":
+        if "fieldDraft" in body:
+            try:
+                validate_field_draft(body["fieldDraft"])
+            except ValueError as exc:
+                return platform_error(request, "VALIDATION_FAILED", str(exc), 422, pointer="/fieldDraft")
+        if len(body) == 1 or (
+            "status" in body and (not isinstance(body["status"], str) or body["status"] not in {"active", "archived"} or len(body) != 2)
+        ):
+            return platform_error(request, "VALIDATION_FAILED", "名称/目标编辑与归档/恢复必须分别提交", 422)
+    try:
+        status, value, replayed = store.collection_command(
+            method,
+            collection_id,
+            body,
+            key,
+            audit={
+                "tenantId": settings.tenant_id,
+                "actorId": request.state.auth_user["id"],
+                "requestId": request.state.request_id,
+            },
+        )
+    except IdempotencyConflict:
+        return platform_error(request, "IDEMPOTENCY_KEY_REUSED", "Idempotency-Key 已被不同请求占用", 409)
+    except ValueError as exc:
+        code = str(exc)
+        if code not in COLLECTION_ERRORS:
+            raise
+        status, message = COLLECTION_ERRORS[code]
+        return platform_error(request, code, message, status)
+    headers = {"Idempotency-Replayed": "true"} if replayed else {}
+    if method == "POST":
+        headers["Location"] = f"/api/v1/collections/{value['id']}"
+    return JSONResponse(value, status_code=status, headers=headers)
+
+
+@app.post("/api/v1/collections", dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
+async def create_collection(request: Request, idempotency_key: str | None = Header(None, alias="Idempotency-Key")):
+    return await execute_collection_command(request, None, idempotency_key)
+
+
+@app.patch("/api/v1/collections/{collection_id}", dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
+async def update_collection(collection_id: str, request: Request, idempotency_key: str | None = Header(None, alias="Idempotency-Key")):
+    return await execute_collection_command(request, collection_id, idempotency_key)
+
+
+@app.delete("/api/v1/collections/{collection_id}", dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
+async def delete_collection(collection_id: str, request: Request, idempotency_key: str | None = Header(None, alias="Idempotency-Key")):
+    return await execute_collection_command(request, collection_id, idempotency_key)
+
+
+@app.post(
+    "/api/v1/collections/{collection_id}/publish-version",
+    status_code=201,
+    dependencies=[require_roles(*REVIEWER_OR_ADMIN)],
+)
+async def publish_collection_version(
+    collection_id: str,
+    request: Request,
+    idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
+):
+    if error := require_idempotency(request, idempotency_key):
+        return error
+    target = store.get_collection(collection_id)
+    if target is None:
+        return platform_error(request, "COLLECTION_NOT_FOUND", COLLECTION_ERRORS["COLLECTION_NOT_FOUND"][1], 404)
+    body, error = await read_contract_body(request, required={"revision"}, optional={"note"})
+    if error:
+        return error
+    if type(body["revision"]) is not int or body["revision"] < 1:
+        return platform_error(request, "VALIDATION_FAILED", "revision 必须是正整数", 422, pointer="/revision")
+    if "note" in body and (not isinstance(body["note"], str) or len(body["note"]) > 1000):
+        return platform_error(request, "VALIDATION_FAILED", "版本说明必须是不超过 1000 字的字符串", 422, pointer="/note")
+
+    try:
+        status, value, replayed = store.publish_collection_version_command(
+            collection_id,
+            body,
+            idempotency_key,
+            audit={
+                "tenantId": settings.tenant_id,
+                "actorId": request.state.auth_user["id"],
+                "requestId": request.state.request_id,
+            },
+        )
+    except IdempotencyConflict:
+        return platform_error(request, "IDEMPOTENCY_KEY_REUSED", "Idempotency-Key 已被不同请求占用", 409)
+    except ValueError as exc:
+        code = str(exc)
+        if code in COLLECTION_ERRORS:
+            status, message = COLLECTION_ERRORS[code]
+            return platform_error(request, code, message, status)
+        return platform_error(request, "VALIDATION_FAILED", str(exc), 422)
+
+    headers = {"Idempotency-Replayed": "true"} if replayed else {}
+    return JSONResponse(value, status_code=status, headers=headers)
+
+
+@app.get("/api/v1/collections/{collection_id}/versions")
+def list_collection_versions(collection_id: str, request: Request):
+    target = store.get_collection(collection_id)
+    if target is None:
+        return platform_error(request, "COLLECTION_NOT_FOUND", COLLECTION_ERRORS["COLLECTION_NOT_FOUND"][1], 404)
+    items = store.list_collection_versions(collection_id)
+    return {"collectionId": collection_id, "items": items, "total": len(items)}
+
+
+@app.get("/api/v1/collections/{collection_id}/versions/{version_id}")
+def get_collection_version(collection_id: str, version_id: str, request: Request):
+    target = store.get_collection(collection_id)
+    if target is None:
+        return platform_error(request, "COLLECTION_NOT_FOUND", COLLECTION_ERRORS["COLLECTION_NOT_FOUND"][1], 404)
+    version = store.get_collection_version(version_id)
+    if version is None or version.get("collectionId") != collection_id:
+        return platform_error(request, "VERSION_NOT_FOUND", COLLECTION_ERRORS["VERSION_NOT_FOUND"][1], 404)
+    return version
+
+
 @app.get("/api/v1/collectors")
-def list_collectors(limit: int = 50):
-    return page(store.list_collectors(), limit)
+def list_collectors(
+    limit: int = Query(50, ge=1, le=200), lifecycle: str = Query("active", pattern="^(active|archived|all)$"),
+    page_number: int | None = Query(None, alias="page", ge=1), q: str | None = Query(None, max_length=500),
+    view: str = Query("all", pattern="^(all|attention|published)$"), collection_id: str | None = Query(None, alias="collectionId"),
+):
+    if page_number is not None:
+        from extrio.workspace_pagination import collector_page
+        return collector_page(store, page_number, limit, lifecycle, view, q, collection_id)
+    return page([value for value in store.list_collectors() if lifecycle == "all" or value["lifecycle"] == lifecycle], limit)
+
+
+@app.get("/api/v1/collectors/{collector_id}/collection-migration")
+def get_collection_migration(collector_id: str, request: Request, target_version_id: str = Query(alias="targetVersionId")):
+    from extrio.collection_workflows import migration_plan
+
+    try:
+        return migration_plan(store, collector_id, target_version_id)
+    except ValueError as exc:
+        return collection_workflow_error(request, exc)
+
+
+@app.post("/api/v1/collectors/{collector_id}/collection-migration", dependencies=[require_roles(*REVIEWER_OR_ADMIN)])
+async def migrate_collection_version(
+    collector_id: str, request: Request, idempotency_key: str | None = Header(None, alias="Idempotency-Key")
+):
+    return await execute_migration(request, collector_id, idempotency_key)
+
+
+@app.post("/api/v1/collectors/{collector_id}/collection-migration/cancel", dependencies=[require_roles(*REVIEWER_OR_ADMIN)])
+async def cancel_collection_migration(
+    collector_id: str, request: Request, idempotency_key: str | None = Header(None, alias="Idempotency-Key")
+):
+    return await execute_migration(request, collector_id, idempotency_key, cancel=True)
+
+
+async def execute_migration(request, collector_id, key, *, cancel=False):
+    from extrio.collection_workflows import migration_command
+
+    if error := require_idempotency(request, key):
+        return error
+    body, error = await read_contract_body(
+        request, required={"targetVersionId"} if cancel else {"targetVersionId", "planDigest", "confirmedChanges"}
+    )
+    if error:
+        return error
+    if not isinstance(body["targetVersionId"], str) or not body["targetVersionId"]:
+        return platform_error(request, "VALIDATION_FAILED", "请选择目标字段版本", 422)
+    if not cancel and (
+        not isinstance(body["planDigest"], str)
+        or not isinstance(body["confirmedChanges"], list)
+        or any(not isinstance(k, str) for k in body["confirmedChanges"])
+    ):
+        return platform_error(request, "VALIDATION_FAILED", "迁移计划或审核决定无效", 422)
+    try:
+        with mutation_lock:
+            status, value, replayed = migration_command(store, collector_id, body, key, request_audit(request), cancel=cancel)
+        return JSONResponse(value, status_code=status, headers={"Idempotency-Replayed": "true"} if replayed else {})
+    except (ValueError, IdempotencyConflict) as exc:
+        return collection_workflow_error(request, exc)
 
 
 @app.get("/api/v1/settings/model")
@@ -905,18 +1400,23 @@ async def update_model_setting(request: Request, idempotency_key: str | None = H
         "model",
         {"provider": provider, "baseUrl": base_url, "model": model, "secretRef": secret_ref},
     )
-    store.save_platform_setting("model-configurations", {
-        "providers": [{
-            "id": "provider_legacy",
-            "name": MODEL_PROVIDER_NAMES.get(provider, "模型供应商"),
-            "provider": provider,
-            "baseUrl": base_url,
-            "secretRef": secret_ref,
-            "enabled": True,
-        }],
-        "models": [{"id": "model_legacy", "providerId": "provider_legacy", "modelId": model, "enabled": True}],
-        "defaultModelId": "model_legacy",
-    })
+    store.save_platform_setting(
+        "model-configurations",
+        {
+            "providers": [
+                {
+                    "id": "provider_legacy",
+                    "name": MODEL_PROVIDER_NAMES.get(provider, "模型供应商"),
+                    "provider": provider,
+                    "baseUrl": base_url,
+                    "secretRef": secret_ref,
+                    "enabled": True,
+                }
+            ],
+            "models": [{"id": "model_legacy", "providerId": "provider_legacy", "modelId": model, "enabled": True}],
+            "defaultModelId": "model_legacy",
+        },
+    )
     value = model_setting_view(saved)
     remember(scope, idempotency_key, body, 200, value)
     return value
@@ -941,6 +1441,10 @@ async def update_model_configuration(request: Request, idempotency_key: str | No
     if validation_error:
         return validation_error
     existing_credentials = provider_credentials()
+    try:
+        validate_stored_credentials(store, credential_cipher)
+    except (ValueError, OSError):
+        return platform_error(request, "KEY_MATERIAL_UNAVAILABLE", "凭据密钥不可用，请管理员恢复原密钥", 503)
     existing_configuration = store.get_platform_setting("model-configurations") or {}
     legacy_secret_refs = {
         str(provider.get("id")): str(provider.get("secretRef"))
@@ -1011,7 +1515,13 @@ async def update_platform_settings(request: Request, idempotency_key: str | None
 @app.get("/api/v1/collectors/{collector_id}")
 def get_collector(collector_id: str, request: Request):
     collector = store.get_collector(collector_id)
-    return collector if collector else platform_error(request, "COLLECTOR_NOT_FOUND", "Collector 不存在", 404)
+    if not collector:
+        return platform_error(request, "COLLECTOR_NOT_FOUND", "Collector 不存在", 404)
+    enriched = dict(collector)
+    version_id = collector.get("pendingCollectionVersion") or collector.get("collectionVersion")
+    version = store.get_collection_version(version_id)
+    enriched["collectionFields"] = version["fields"] if version and version["collectionId"] == collector["collectionId"] else []
+    return enriched
 
 
 @app.patch("/api/v1/collectors/{collector_id}", dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
@@ -1022,40 +1532,39 @@ async def update_collector_definition(
 ):
     if error := require_idempotency(request, idempotency_key):
         return error
-    body, body_error = await read_contract_body(request, required={"name", "intent", "sourceUrl"})
+    body, body_error = await read_contract_body(request, required={"name", "intent", "sourceUrl", "managementRevision"})
     if body_error:
         return body_error
-    with mutation_lock:
-        scope = f"PATCH:/collectors/{collector_id}"
-        if found := replay(scope, idempotency_key, body, request):
-            return found
-        collector = store.get_collector(collector_id)
-        if not collector:
-            return platform_error(request, "COLLECTOR_NOT_FOUND", "Collector 不存在", 404)
-        if collector.get("activeOperationId") or store.has_active_run(collector_id):
-            return platform_error(request, "OPERATION_ALREADY_ACTIVE", "异步任务运行期间不能修改采集器定义", 409)
-        name = str(body.get("name", "")).strip()
-        intent = str(body.get("intent", "")).strip()
-        if not name or not intent:
-            return platform_error(request, "VALIDATION_FAILED", "name 与 intent 不能为空", 422)
-        try:
-            source_url, source_host = normalize_source_url(
-                body.get("sourceUrl", ""),
-                allow_http_localhost=settings.allow_http_localhost,
-                allow_http_public=store.effective_allow_http_public(),
-            )
-        except SourceUrlError as exc:
-            return platform_error(request, exc.code, str(exc), 422, pointer="/sourceUrl")
-        if store.source_exists(source_url, exclude_collector_id=collector_id):
-            return platform_error(request, "SOURCE_ALREADY_EXISTS", "该 Source URL 已存在", 409, pointer="/sourceUrl")
-
-        rule_input_changed = intent != collector["intent"] or source_url != collector["sourceUrl"]
-        collector.update(name=name, intent=intent, sourceUrl=source_url, sourceHost=source_host, updatedAt="刚刚")
-        if rule_input_changed:
-            collector.update(status="draft", candidate=None, previewItems=[], reviewDecisions=None)
-        store.save_collector(collector)
-        remember(scope, idempotency_key, body, 200, collector)
-        return collector
+    if (
+        not isinstance(body["name"], str)
+        or not body["name"].strip()
+        or not isinstance(body["intent"], str)
+        or not body["intent"].strip()
+        or not isinstance(body["sourceUrl"], str)
+        or type(body["managementRevision"]) is not int
+        or body["managementRevision"] < 0
+    ):
+        return platform_error(request, "VALIDATION_FAILED", "Invalid source definition or management revision", 422)
+    try:
+        source_url, source_host = normalize_source_url(
+            body["sourceUrl"], allow_http_localhost=settings.allow_http_localhost, allow_http_public=store.effective_allow_http_public()
+        )
+    except SourceUrlError as exc:
+        return platform_error(request, exc.code, str(exc), 422, pointer="/sourceUrl")
+    try:
+        status, value, repeated = definition_command(
+            store,
+            collector_id,
+            body,
+            idempotency_key,
+            request_audit(request),
+            {"name": body["name"].strip(), "intent": body["intent"].strip(), "sourceUrl": source_url, "sourceHost": source_host},
+        )
+        return JSONResponse(value, status_code=status, headers={"Idempotency-Replayed": "true"} if repeated else {})
+    except IdempotencyConflict as exc:
+        return collection_workflow_error(request, exc)
+    except ValueError as exc:
+        raise LifecycleError(str(exc)) from exc
 
 
 def _valid_selector(value: Any) -> bool:
@@ -1177,6 +1686,7 @@ async def update_candidate_rule(
         collector = store.get_collector(collector_id)
         if not collector:
             return platform_error(request, "COLLECTOR_NOT_FOUND", "Collector 不存在", 404)
+        require_active(collector)
         if collector.get("activeOperationId") or store.has_active_run(collector_id):
             return platform_error(request, "OPERATION_ALREADY_ACTIVE", "异步任务运行期间不能修改候选规则", 409)
         candidate = copy.deepcopy(collector.get("candidate"))
@@ -1343,10 +1853,13 @@ async def save_collection_policy(
         collector = store.get_collector(collector_id)
         if not collector:
             return platform_error(request, "COLLECTOR_NOT_FOUND", "Collector 不存在", 404)
+        require_active(collector)
         if collector.get("activeOperationId") or store.has_active_run(collector_id):
             return platform_error(request, "OPERATION_ALREADY_ACTIVE", "异步任务运行期间不能修改采集范围", 409)
         try:
             updated = store.create_collection_policy(collector_id, body)
+        except LifecycleError:
+            raise
         except ValueError as exc:
             return platform_error(request, "VALIDATION_FAILED", str(exc), 422, pointer="/collectionPolicy")
         remember(scope, idempotency_key, body, 200, updated)
@@ -1374,6 +1887,8 @@ async def update_collector_schedule(
             return platform_error(request, "COLLECTOR_NOT_FOUND", "Collector 不存在", 404)
         try:
             updated = store.save_schedule(collector_id, body)
+        except LifecycleError:
+            raise
         except ValueError as exc:
             return platform_error(request, "VALIDATION_FAILED", str(exc), 422, pointer="/schedule")
         remember(scope, idempotency_key, body, 200, updated)
@@ -1422,7 +1937,7 @@ async def create_collectors_batch(request: Request, idempotency_key: str | None 
         return error
     body, body_error = await read_contract_body(
         request,
-        required={"collectionName", "intent", "sourceUrls"},
+        required={"collectionName", "intent", "sources"},
         optional={"collectionId"},
     )
     if body_error:
@@ -1430,54 +1945,83 @@ async def create_collectors_batch(request: Request, idempotency_key: str | None 
     scope = "POST:/collectors/batch"
     if found := replay(scope, idempotency_key, body, request):
         return found
-    urls = body.get("sourceUrls") or []
+    sources = body.get("sources") or []
     if not str(body.get("collectionName", "")).strip() or not str(body.get("intent", "")).strip():
         return platform_error(request, "VALIDATION_FAILED", "collectionName 与 intent 不能为空", 422)
-    if not isinstance(urls, list) or not 1 <= len(urls) <= 1000:
-        return platform_error(request, "VALIDATION_FAILED", "sourceUrls 必须包含 1 至 1000 个网址", 422, pointer="/sourceUrls")
+    if not isinstance(sources, list) or not 1 <= len(sources) <= 1000:
+        return platform_error(request, "VALIDATION_FAILED", "sources 必须包含 1 至 1000 个精确入口", 422, pointer="/sources")
     requested_collection_id = str(body.get("collectionId", "")).strip()
     collection_name = str(body.get("collectionName", "")).strip()
     intent = str(body.get("intent", "")).strip()
     collection_version = "tender_notice_v4"
     if requested_collection_id:
-        reference = next((item for item in store.list_collectors() if item.get("collectionId") == requested_collection_id), None)
+        reference = store.get_collection(requested_collection_id)
         if reference is None:
             return platform_error(request, "COLLECTION_NOT_FOUND", "采集需求不存在", 404, pointer="/collectionId")
         collection_id = requested_collection_id
-        collection_name = reference["collectionName"]
+        if reference["status"] == "archived":
+            return platform_error(request, "COLLECTION_ARCHIVED", COLLECTION_ERRORS["COLLECTION_ARCHIVED"][1], 409)
+        collection_name = reference["name"]
         intent = reference["intent"]
-        collection_version = reference["collectionVersion"]
+        collection_version = reference.get("activeVersionId") or reference.get("collectionVersion", "tender_notice_v4")
     else:
         collection_id = stable_id("collection", f"{collection_name}_{uuid.uuid4().hex[:12]}", 40)
     seen: set[str] = set()
     results = []
-    for index, raw in enumerate(urls):
+    for index, raw in enumerate(sources):
+        source_input = raw if isinstance(raw, dict) else {}
+        raw_url = str(source_input.get("entryUrl", "")).strip()
+        pointer = f"/sources/{index}/entryUrl"
         try:
+            allowed_fields = {"entryUrl", "mode", "name", "scopeHint"}
+            if not isinstance(raw, dict) or set(raw) - allowed_fields:
+                raise SourceUrlError("VALIDATION_FAILED", "采集入口字段与 API 合同不一致")
+            mode = str(source_input.get("mode", "exact") or "exact").strip().lower()
+            if mode != "exact":
+                pointer = f"/sources/{index}/mode"
+                raise SourceUrlError("UNSUPPORTED_SOURCE_MODE", "当前版本仅支持 exact 模式")
+            pointer = f"/sources/{index}/entryUrl"
             source_url, source_host = normalize_source_url(
-                str(raw),
+                raw_url,
                 allow_http_localhost=settings.allow_http_localhost,
                 allow_http_public=store.effective_allow_http_public(),
             )
+            parsed_url = urlparse(source_url)
+            if parsed_url.path in {"", "/"} and not parsed_url.query:
+                raise SourceUrlError("EXACT_ENTRY_REQUIRED", "exact 模式需要具体列表页，不能使用站点根目录")
             if source_url in seen:
                 raise SourceUrlError("DUPLICATE_IN_BATCH", "批次内 URL 重复")
             seen.add(source_url)
             if store.source_exists(source_url):
                 raise SourceUrlError("SOURCE_ALREADY_EXISTS", "该 Source URL 已存在")
-            name = source_host
+            name = str(source_input.get("name", "")).strip() or source_host
+            scope_hint = str(source_input.get("scopeHint", "")).strip()
+            if len(name) > 200:
+                pointer = f"/sources/{index}/name"
+                raise SourceUrlError("VALIDATION_FAILED", "采集器名称不能超过 200 个字符")
+            if len(scope_hint) > 1000:
+                pointer = f"/sources/{index}/scopeHint"
+                raise SourceUrlError("VALIDATION_FAILED", "范围提示不能超过 1000 个字符")
             collector = store.create_collector(
                 name,
                 intent,
                 source_url,
                 source_host,
+                scope_hint=scope_hint,
                 collection_id=collection_id,
                 collection_name=collection_name,
                 collection_version=collection_version,
+                require_existing_collection=bool(requested_collection_id),
             )
-            results.append({"sourceUrl": str(raw).strip(), "status": "created", "collector": collector, "error": None})
-        except SourceUrlError as exc:
+            results.append({"sourceUrl": raw_url, "status": "created", "collector": collector, "error": None})
+        except (SourceUrlError, ValueError) as exc:
+            if not isinstance(exc, SourceUrlError):
+                if str(exc) not in COLLECTION_ERRORS:
+                    raise
+                exc = SourceUrlError(str(exc), COLLECTION_ERRORS[str(exc)][1])
             results.append(
                 {
-                    "sourceUrl": str(raw).strip(),
+                    "sourceUrl": raw_url,
                     "status": "rejected",
                     "collector": None,
                     "error": {
@@ -1485,7 +2029,7 @@ async def create_collectors_batch(request: Request, idempotency_key: str | None 
                         "message": str(exc),
                         "requestId": request.state.request_id,
                         "retryable": False,
-                        "pointer": f"/sourceUrls/{index}",
+                        "pointer": pointer,
                         "details": {},
                     },
                 }
@@ -1505,26 +2049,44 @@ async def create_collectors_batch(request: Request, idempotency_key: str | None 
 
 
 @app.post("/api/v1/collectors/{collector_id}/explorations", status_code=202, dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
-def start_exploration(
+async def start_exploration(
     collector_id: str,
     request: Request,
     response: Response,
     idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
 ):
+    body: dict[str, Any] = {}
+    if (await request.body()).strip():
+        body, body_error = await read_contract_body(request, required=set(), optional={"guidance"})
+        if body_error:
+            return body_error
     with mutation_lock:
-        return _start_exploration(collector_id, request, response, idempotency_key)
+        return _start_exploration(collector_id, request, response, idempotency_key, body)
 
 
-def _start_exploration(collector_id: str, request: Request, response: Response, idempotency_key: str | None):
+def _start_exploration(
+    collector_id: str,
+    request: Request,
+    response: Response,
+    idempotency_key: str | None,
+    body: dict[str, Any] | None = None,
+):
     if error := require_idempotency(request, idempotency_key):
         return error
-    body = {"collectorId": collector_id}
+    raw_guidance = (body or {}).get("guidance")
+    if raw_guidance is not None and (not isinstance(raw_guidance, str) or len(raw_guidance) > 500):
+        return platform_error(request, "VALIDATION_FAILED", "guidance 必须是不超过 500 字的字符串", 422, pointer="/guidance")
+    guidance = (raw_guidance.strip() or None) if isinstance(raw_guidance, str) else None
+    replay_body = {"collectorId": collector_id}
+    if guidance is not None:
+        replay_body["guidance"] = guidance
     scope = f"POST:/collectors/{collector_id}/explorations"
-    if found := replay(scope, idempotency_key, body, request):
+    if found := replay(scope, idempotency_key, replay_body, request):
         return found
     collector = store.get_collector(collector_id)
     if not collector:
         return platform_error(request, "COLLECTOR_NOT_FOUND", "Collector 不存在", 404)
+    require_active(collector)
     if collector["activeOperationId"]:
         active = store.get_operation(collector["activeOperationId"])
         if active and active["status"] not in TERMINAL:
@@ -1534,9 +2096,15 @@ def _start_exploration(collector_id: str, request: Request, response: Response, 
     operation = store.create_async_command(
         kind="explore",
         collector_id=collector_id,
+        expected_source_digest=source_execution_digest(collector),
         resource_type="collector",
         resource_id=collector_id,
-        job_payload={"collectorId": collector_id, "previousStatus": collector["status"], "aiRunId": ai_run_id},
+        job_payload={
+            "collectorId": collector_id,
+            "previousStatus": collector["status"],
+            "aiRunId": ai_run_id,
+            "guidance": guidance,
+        },
         collector_changes={"status": "exploring", "updatedAt": "刚刚"},
         ai_run={
             "id": ai_run_id,
@@ -1546,10 +2114,11 @@ def _start_exploration(collector_id: str, request: Request, response: Response, 
             "kind": "rule_generation",
             "trigger": trigger,
             "initiatedBy": request.state.auth_user["id"] if request.state.auth_user else "system",
+            "guidance": guidance,
         },
     )
     response.headers["Location"] = operation["statusUrl"]
-    remember(scope, idempotency_key, body, 202, operation)
+    remember(scope, idempotency_key, replay_body, 202, operation)
     return operation
 
 
@@ -1578,7 +2147,10 @@ def _start_repair(
     idempotency_key: str | None,
     body: dict[str, Any],
 ):
-    note = str(body.get("note") or "").strip()[:500] or None
+    raw_note = body.get("note")
+    if raw_note is not None and (not isinstance(raw_note, str) or len(raw_note) > 500):
+        return platform_error(request, "VALIDATION_FAILED", "note 必须是不超过 500 字的字符串", 422, pointer="/note")
+    note = (raw_note.strip() or None) if isinstance(raw_note, str) else None
     replay_body = {"collectorId": collector_id, "note": note}
     scope = f"POST:/collectors/{collector_id}/repairs"
     if found := replay(scope, idempotency_key, replay_body, request):
@@ -1586,6 +2158,9 @@ def _start_repair(
     collector = store.get_collector(collector_id)
     if not collector:
         return platform_error(request, "COLLECTOR_NOT_FOUND", "Collector 不存在", 404)
+    require_active(collector)
+    if collector.get("pendingCollectionVersion"):
+        return platform_error(request, "MIGRATION_ALREADY_ACTIVE", "字段迁移需要重新生成规则，不使用保持旧合同的规则修复", 409)
     if not (collector.get("candidate") or {}).get("gatherSpec"):
         return platform_error(request, "REPAIR_NOT_APPLICABLE", "Collector 尚无可修复的规则，请先完成探索并发布或生成候选规则", 409)
     if collector["activeOperationId"]:
@@ -1607,9 +2182,16 @@ def _start_repair(
     operation = store.create_async_command(
         kind="explore",
         collector_id=collector_id,
+        expected_source_digest=source_execution_digest(collector),
         resource_type="collector",
         resource_id=collector_id,
-        job_payload={"collectorId": collector_id, "previousStatus": collector["status"], "aiRunId": ai_run_id, "repair": True},
+        job_payload={
+            "collectorId": collector_id,
+            "previousStatus": collector["status"],
+            "aiRunId": ai_run_id,
+            "repair": True,
+            "guidance": note,
+        },
         collector_changes={"status": "exploring", "updatedAt": "刚刚"},
         ai_run=ai_run,
     )
@@ -1627,9 +2209,10 @@ def download_evidence_bundle(
     rule_version_id: str | None = Query(None, alias="ruleVersionId"),
 ):
     # Read endpoint for any authenticated role (mirrors items/export): intentionally no require_roles.
-    if store.get_collector(collector_id) is None:
+    if store.get_collector(collector_id, include_deleted=True) is None:
         return platform_error(request, "COLLECTOR_NOT_FOUND", "Collector 不存在", 404)
     try:
+        rule_signer.validate_registered_identity(store)
         zip_bytes = build_evidence_bundle(
             store,
             collector_id=collector_id,
@@ -1659,8 +2242,33 @@ def get_operation(operation_id: str, request: Request, response: Response):
     return operation
 
 
+@app.post("/api/v1/operations/{operation_id}/cancel", dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
+def cancel_operation(operation_id: str, request: Request, idempotency_key: str | None = Header(None, alias="Idempotency-Key")):
+    from extrio.job_control import request_cancel
+
+    if error := require_idempotency(request, idempotency_key):
+        return error
+    scope = f"POST:/operations/{operation_id}/cancel"
+    body = {"operationId": operation_id}
+    if found := replay(scope, idempotency_key, body, request):
+        return found
+    try:
+        value = request_cancel(store, operation_id, request_audit(request))
+    except KeyError:
+        return platform_error(request, "OPERATION_NOT_FOUND", "Operation 不存在", 404)
+    remember(scope, idempotency_key, body, 200, value)
+    return value
+
+
 @app.get("/api/v1/ai-runs")
-def list_ai_runs(limit: int = 50, collector_id: str | None = Query(None, alias="collectorId")):
+def list_ai_runs(
+    limit: int = Query(50, ge=1, le=200), collector_id: str | None = Query(None, alias="collectorId"),
+    page_number: int | None = Query(None, alias="page", ge=1), q: str | None = Query(None, max_length=500),
+    status: str = Query("all", pattern="^(all|running|attention|review)$"),
+):
+    if page_number is not None:
+        from extrio.workspace_pagination import history_page
+        return history_page(store, "ai-runs", page_number, limit, status, q, collector_id)
     return page(store.list_ai_runs(collector_id), limit)
 
 
@@ -1688,6 +2296,7 @@ def _publish_rule(collector_id: str, request: Request, idempotency_key: str, bod
     collector = store.get_collector(collector_id)
     if not collector:
         return platform_error(request, "COLLECTOR_NOT_FOUND", "Collector 不存在", 404)
+    require_active(collector)
     fields = (collector.get("candidate") or {}).get("fields", [])
     decisions = body.get("reviewDecisions") or {}
     invalid = []
@@ -1706,8 +2315,8 @@ def _publish_rule(collector_id: str, request: Request, idempotency_key: str, bod
             409,
             pointer=f"/reviewDecisions/{invalid[0]}" if invalid else "/reviewDecisions",
         )
-    version_match = re.search(r"(\d+)$", collector.get("activeRuleVersion") or "0")
-    current = int(version_match.group(1)) if version_match else 0
+    versions = store.list_rule_versions_for_collector(collector_id)
+    current = max((int(match.group(1)) for version in versions if (match := re.search(r"_v(\d+)$", version["id"]))), default=0)
     try:
         published = persist_published_rule(
             collector,
@@ -1733,6 +2342,10 @@ def create_run_operation(collector_id: str) -> dict[str, Any]:
     collector = store.get_collector(collector_id)
     if not collector:
         raise RunStartError("COLLECTOR_NOT_FOUND", "Collector 不存在", 404)
+    if collector.get("lifecycle", "active") == "archived":
+        raise RunStartError("COLLECTOR_ARCHIVED", "请先恢复采集来源")
+    if collector.get("pendingCollectionVersion"):
+        raise RunStartError("MIGRATION_ALREADY_ACTIVE", "请完成字段迁移审核并发布规则，或放弃迁移")
     if collector["status"] != "published" or not collector["activeRuleVersion"]:
         raise RunStartError("RULE_NOT_PUBLISHED", "Collector 没有可执行的已发布规则")
     try:
@@ -1796,6 +2409,7 @@ def create_run_operation(collector_id: str) -> dict[str, Any]:
     operation = store.create_async_command(
         kind="run",
         collector_id=collector_id,
+        expected_source_digest=source_execution_digest(collector),
         resource_type="run",
         resource_id=run_id,
         job_payload={
@@ -1828,13 +2442,32 @@ def _start_run(collector_id: str, request: Request, response: Response, idempote
         operation = create_run_operation(collector_id)
     except RunStartError as exc:
         return platform_error(request, exc.code, str(exc), exc.status_code)
+    except ValueError as exc:
+        if str(exc) == "MIGRATION_ALREADY_ACTIVE":
+            return collection_workflow_error(request, exc)
+        raise
     response.headers["Location"] = operation["statusUrl"]
     remember(scope, idempotency_key, body, 202, operation)
     return operation
 
 
+@app.get("/api/v1/overview")
+def get_overview(request: Request, timezone: str = Query(default="UTC", max_length=100)):
+    try:
+        ZoneInfo(timezone)
+    except (ValueError, ZoneInfoNotFoundError):
+        return platform_error(request, "INVALID_REQUEST", "Unknown IANA timezone", 422, pointer="/timezone")
+    return store.overview(timezone=timezone)
+
+
 @app.get("/api/v1/runs")
-def list_runs(limit: int = 50):
+def list_runs(
+    limit: int = Query(50, ge=1, le=200), page_number: int | None = Query(None, alias="page", ge=1),
+    q: str | None = Query(None, max_length=500), status: str = Query("all", pattern="^(all|attention|succeeded)$"),
+):
+    if page_number is not None:
+        from extrio.workspace_pagination import history_page
+        return history_page(store, "runs", page_number, limit, status, q)
     return page(store.list_runs(), limit)
 
 
@@ -1842,6 +2475,12 @@ def list_runs(limit: int = 50):
 def get_run(run_id: str, request: Request):
     run = store.get_run(run_id)
     return run if run else platform_error(request, "RUN_NOT_FOUND", "Run 不存在", 404)
+
+
+@app.get("/api/v1/runs/{run_id}/evidence")
+def get_run_evidence(run_id: str, request: Request):
+    run = store.get_run(run_id)
+    return evidence_status(settings.artifact_path, run) if run else platform_error(request, "RUN_NOT_FOUND", "Run 不存在", 404)
 
 
 EXPORT_CSV_COLUMNS = (
@@ -1907,6 +2546,12 @@ def get_collector_sink(collector_id: str, sink_id: str) -> dict[str, Any] | None
     return sink
 
 
+def safe_csv_cell(value: Any) -> Any:
+    if isinstance(value, str) and (value.lstrip().startswith(("=", "+", "-", "@")) or value.startswith(("\t", "\r", "\n"))):
+        return "'" + value
+    return value
+
+
 def export_csv_row(item: dict[str, Any], extracted_columns: list[str]) -> list[Any]:
     row = [item.get(column) for column in EXPORT_CSV_COLUMNS]
     extracted = item.get("extractedData")
@@ -1917,38 +2562,66 @@ def export_csv_row(item: dict[str, Any], extracted_columns: list[str]) -> list[A
             row.append(value)
         else:
             row.append(json.dumps(value, ensure_ascii=False))
-    return row
+    return [safe_csv_cell(value) for value in row]
 
 
 def iter_export_csv(
-    filters: dict[str, Any],
+    snapshot: TextIO,
     columns: list[str],
 ) -> Iterator[str]:
     yield "\ufeff"
     buffer = io.StringIO()
     writer = csv.writer(buffer)
-    writer.writerow(columns)
+    writer.writerow([safe_csv_cell(column) for column in columns])
     yield buffer.getvalue()
-    for item in store.iter_items_export(**filters):
+    for line in snapshot:
+        item = json.loads(line)
         buffer.seek(0)
         buffer.truncate()
-        writer.writerow(export_csv_row(item, columns[len(EXPORT_CSV_COLUMNS):]))
+        writer.writerow(export_csv_row(item, columns[len(EXPORT_CSV_COLUMNS) :]))
         yield buffer.getvalue()
 
 
-def iter_export_jsonl(filters: dict[str, Any]) -> Iterator[str]:
-    for item in store.iter_items_export(**filters):
-        yield json.dumps(item, ensure_ascii=False) + "\n"
+def iter_export_jsonl(snapshot: TextIO) -> Iterator[str]:
+    yield from snapshot
+
+
+EXPORT_BYTES_CAP = 256 * 1024 * 1024
 
 
 @app.get("/api/v1/items")
-def list_items(request: Request, limit: int = Query(50, ge=1, le=200), cursor: str | None = Query(None)):
+def list_items(
+    request: Request,
+    limit: int = Query(50, ge=1, le=200),
+    cursor: str | None = Query(None),
+    page_number: int | None = Query(None, alias="page", ge=1),
+    view: str = Query("observations", pattern="^(observations|entities)$"),
+    collector_id: str | None = Query(None, alias="collectorId"),
+    run_id: str | None = Query(None, alias="runId"),
+    decision: str | None = Query(None),
+    entity_key: str | None = Query(None, alias="entityKey"),
+    source_host: str | None = Query(None, alias="sourceHost"),
+    q: str | None = Query(None, max_length=500),
+):
+    if page_number is not None and cursor is not None:
+        return platform_error(request, "INVALID_CURSOR", "page 与 cursor 不能同时使用", 400)
     try:
-        result = store.list_items_cursor(limit=limit, cursor=cursor)
+        result = store.list_items_cursor(
+            limit=limit,
+            cursor=cursor,
+            page_number=page_number,
+            view=view,
+            collector_id=collector_id,
+            run_id=run_id,
+            decision=decision,
+            entity_key=entity_key,
+            source_host=source_host,
+            q=q,
+        )
     except InvalidCursor:
         return invalid_cursor_error(request)
     next_cursor = result["nextCursor"]
-    return {"items": result["items"], "page": {"nextCursor": next_cursor}, "nextCursor": next_cursor}
+    return {**result, "page": {"nextCursor": next_cursor}}
 
 
 @app.get("/api/v1/items/export")
@@ -1959,33 +2632,56 @@ def export_items(
     run_id: str | None = Query(None, alias="runId"),
     decision: str | None = Query(None),
     entity_key: str | None = Query(None, alias="entityKey"),
+    view: str = Query("observations", pattern="^(observations|entities)$"),
+    source_host: str | None = Query(None, alias="sourceHost"),
+    q: str | None = Query(None, max_length=500),
 ):
-    filters = {"collector_id": collector_id, "run_id": run_id, "decision": decision, "entity_key": entity_key}
+    filters = {
+        "collector_id": collector_id,
+        "run_id": run_id,
+        "decision": decision,
+        "entity_key": entity_key,
+        "view": view,
+        "source_host": source_host,
+        "q": q,
+    }
     probe = store.iter_items_export(**filters)
+    snapshot = tempfile.SpooledTemporaryFile(max_size=1024 * 1024, mode="w+", encoding="utf-8", newline="\n")
     count = 0
+    byte_count = 0
     extracted_columns: set[str] = set()
     try:
         for item in probe:
             count += 1
-            if count > EXPORT_ITEMS_CAP:
+            line = json.dumps(item, ensure_ascii=False) + "\n"
+            byte_count += len(line.encode("utf-8"))
+            if count > EXPORT_ITEMS_CAP or byte_count > EXPORT_BYTES_CAP:
+                snapshot.close()
                 return platform_error(request, "EXPORT_TOO_LARGE", "导出范围超过单次导出上限，请缩小过滤条件后重试", 400)
+            snapshot.write(line)
             extracted = item.get("extractedData")
             if isinstance(extracted, dict):
                 extracted_columns.update(str(key) for key in extracted)
+        snapshot.seek(0)
+    except BaseException:
+        snapshot.close()
+        raise
     finally:
         probe.close()
 
     if format == "csv":
         columns = [*EXPORT_CSV_COLUMNS, *sorted(extracted_columns)]
         return StreamingResponse(
-            iter_export_csv(filters, columns),
+            iter_export_csv(snapshot, columns),
             media_type="text/csv; charset=utf-8",
             headers={"Content-Disposition": 'attachment; filename="extrio-items.csv"'},
+            background=BackgroundTask(snapshot.close),
         )
     return StreamingResponse(
-        iter_export_jsonl(filters),
+        iter_export_jsonl(snapshot),
         media_type="application/x-ndjson",
         headers={"Content-Disposition": 'attachment; filename="extrio-items.jsonl"'},
+        background=BackgroundTask(snapshot.close),
     )
 
 
@@ -1997,7 +2693,7 @@ def get_item(item_id: str, request: Request):
 
 @app.get("/api/v1/collectors/{collector_id}/sinks")
 def list_sinks(collector_id: str, request: Request):
-    if store.get_collector(collector_id) is None:
+    if store.get_collector(collector_id, include_deleted=True) is None:
         return platform_error(request, "COLLECTOR_NOT_FOUND", "Collector 不存在", 404)
     sinks = [sink_view(sink) for sink in store.list_sinks_for_collector(collector_id)]
     return {"items": sinks, "page": {"nextCursor": None}}
@@ -2132,7 +2828,7 @@ def test_sink(
 
 @app.get("/api/v1/collectors/{collector_id}/deliveries")
 def list_deliveries(collector_id: str, request: Request):
-    if store.get_collector(collector_id) is None:
+    if store.get_collector(collector_id, include_deleted=True) is None:
         return platform_error(request, "COLLECTOR_NOT_FOUND", "Collector 不存在", 404)
     items = []
     for delivery in store.list_deliveries_for_collector(collector_id):
@@ -2165,7 +2861,7 @@ def redeliver_delivery(
     if delivery is None:
         return platform_error(request, "DELIVERY_NOT_FOUND", "Delivery 不存在", 404)
     try:
-        redelivered = store.redeliver_delivery(delivery_id)
+        redelivered = store.redeliver_delivery(delivery_id, audit=request_audit(request))
     except ValueError:
         return platform_error(request, "DELIVERY_IN_FLIGHT", "Delivery 正在投递中，请等待租约过期后再重试", 409)
     value = delivery_view(redelivered)

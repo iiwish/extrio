@@ -1,14 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
 import type { TFunction } from 'i18next'
-import { ArrowRight, CheckCircle2, CircleAlert, Plus } from 'lucide-react'
+import { ArrowRight, CheckCircle2, CircleAlert, Plus, RefreshCw } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '@/api/client'
-import type { CollectorDetail, HarvestItem, Run } from '@/api/types'
+import type { CollectorDetail, OverviewBucket, Run } from '@/api/types'
+import { useAuth } from '@/features/auth/auth-gate'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { collectorDisplayName } from '@/features/collectors/collector-presentation'
+import { collectorAttention } from '@/features/collectors/collector-attention'
 
 type AttentionItem = {
   collector: CollectorDetail
@@ -21,11 +23,6 @@ type AttentionItem = {
 }
 
 type TrendGranularity = 'day' | 'week' | 'month'
-
-type DashboardRange = {
-  start: Date
-  end: Date
-}
 
 type TrendBucket = {
   key: string
@@ -50,62 +47,57 @@ function trendGranularityOptions(t: TFunction): { value: TrendGranularity; label
 }
 
 function attentionFor(collector: CollectorDetail, latestRun: Run | undefined, t: TFunction): AttentionItem | null {
-  if (latestRun && ['failed', 'cancelled', 'timed_out'].includes(latestRun.status)) {
-    return { collector, run: latestRun, label: t('attention.fixFailedRun'), detail: latestRun.summary, target: `/runs/${latestRun.id}`, tone: 'danger', rank: 0 }
+  const attention = collectorAttention(collector, latestRun)
+  if (!attention) return null
+  const rank = attention.rank
+  if (attention.reason === 'migration' || attention.reason === 'checkPublish') {
+    return { collector, label: t(`attention.${attention.reason}`), detail: t(`attention.${attention.reason}Detail`), target: `/collectors/${collector.id}?section=rule`, tone: 'warning', rank: attention.rank }
   }
-  if (latestRun?.status === 'partially_succeeded') {
-    return { collector, run: latestRun, label: t('attention.partialRun'), detail: partialRunDetail(latestRun, t), target: `/runs/${latestRun.id}`, tone: 'danger', rank: 1 }
+  if (attention.reason === 'fixFailedRun' && latestRun) {
+    return { collector, run: latestRun, label: t('attention.fixFailedRun'), detail: latestRun.summary, target: `/runs/${latestRun.id}`, tone: 'danger', rank }
   }
-  if (collector.status === 'ready_review') {
-    return { collector, label: t('attention.reviewRule'), detail: t('attention.reviewRuleDetail'), target: `/collectors/${collector.id}`, tone: 'warning', rank: 2 }
+  if (attention.reason === 'partialRun' && latestRun) {
+    return { collector, run: latestRun, label: t('attention.partialRun'), detail: partialRunDetail(latestRun, t), target: `/runs/${latestRun.id}`, tone: 'danger', rank }
   }
-  if (collector.status === 'draft') {
-    return { collector, label: t('attention.generateRule'), detail: t('attention.generateRuleDetail'), target: `/collectors/${collector.id}`, tone: 'info', rank: 3 }
+  if (attention.reason === 'reviewRule') {
+    return { collector, label: t('attention.reviewRule'), detail: t('attention.reviewRuleDetail'), target: `/collectors/${collector.id}`, tone: 'warning', rank }
   }
-  if (collector.status === 'exploring') {
-    return { collector, label: t('attention.exploreProgress'), detail: t('attention.exploreProgressDetail'), target: `/collectors/${collector.id}`, tone: 'info', rank: 4 }
+  if (attention.reason === 'generateRule') {
+    return { collector, label: t('attention.generateRule'), detail: t('attention.generateRuleDetail'), target: `/collectors/${collector.id}`, tone: 'info', rank }
   }
-  if (collector.status === 'published' && !latestRun) {
-    return { collector, label: t('attention.firstRun'), detail: t('attention.firstRunDetail'), target: `/collectors/${collector.id}`, tone: 'info', rank: 5 }
+  if (attention.reason === 'exploreProgress') {
+    return { collector, label: t('attention.exploreProgress'), detail: t('attention.exploreProgressDetail'), target: `/collectors/${collector.id}`, tone: 'info', rank }
   }
-  if (latestRun && latestRun.rejectedCount > 0) {
-    return { collector, run: latestRun, label: t('attention.checkRejected'), detail: t('attention.checkRejectedDetail', { count: latestRun.rejectedCount }), target: `/runs/${latestRun.id}`, tone: 'warning', rank: 6 }
+  if (attention.reason === 'firstRun' || attention.reason === 'inspectRun') {
+    if (collector.latestRunId) return { collector, label: t('attention.inspectRun'), detail: t('common:state.unavailable'), target: `/runs/${collector.latestRunId}`, tone:'info', rank }
+    return { collector, label: t('attention.firstRun'), detail: t('attention.firstRunDetail'), target: `/collectors/${collector.id}`, tone: 'info', rank }
+  }
+  if (attention.reason === 'checkRejected' && latestRun) {
+    return { collector, run: latestRun, label: t('attention.checkRejected'), detail: t('attention.checkRejectedDetail', { count: latestRun.rejectedCount }), target: `/runs/${latestRun.id}?section=results&decision=rejected`, tone: 'warning', rank }
   }
   return null
 }
 
 export function HomePage() {
-  const { t } = useTranslation('home')
+  const { t, i18n } = useTranslation('home')
+  const { user } = useAuth()
   const [granularity, setGranularity] = useState<TrendGranularity>('day')
-  const collectorsQuery = useQuery({ queryKey: ['collectors'], queryFn: api.collectors })
+  const collectorsQuery = useQuery({ queryKey: ['collectors'], queryFn: () => api.collectors() })
   const runsQuery = useQuery({ queryKey: ['runs'], queryFn: api.runs })
-  const itemsQuery = useQuery({ queryKey: ['items'], queryFn: api.items })
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+  const overviewQuery = useQuery({ queryKey: ['overview', timezone], queryFn: () => api.overview(timezone), refetchInterval: 60000 })
   const collectors = useMemo(() => collectorsQuery.data ?? [], [collectorsQuery.data])
   const runs = useMemo(() => runsQuery.data ?? [], [runsQuery.data])
-  const items = useMemo(() => latestEntities(itemsQuery.data ?? []), [itemsQuery.data])
   const runById = useMemo(() => new Map(runs.map((run) => [run.id, run])), [runs])
   const attentionItems = useMemo(() => collectors
     .map((collector) => attentionFor(collector, collector.latestRunId ? runById.get(collector.latestRunId) : undefined, t))
     .filter((item): item is AttentionItem => item !== null)
     .sort((left, right) => left.rank - right.rank), [collectors, runById, t])
 
-  const now = new Date()
-  const todayRange = dashboardPeriodRange('day', now)
-  const weekRange = dashboardPeriodRange('week', now)
-  const monthRange = dashboardPeriodRange('month', now)
-  const todayRuns = runs.filter((run) => isWithinRange(run.startedAtIso ?? run.startedAt, todayRange))
-  const weekRuns = runs.filter((run) => isWithinRange(run.startedAtIso ?? run.startedAt, weekRange))
-  const monthItems = items.filter((item) => isWithinRange(item.observedAt, monthRange))
-  const todayAccepted = todayRuns.reduce((total, run) => total + run.acceptedCount, 0)
-  const todayRejected = todayRuns.reduce((total, run) => total + run.rejectedCount, 0)
-  const weekSuccessful = weekRuns.filter((run) => run.status === 'succeeded').length
-  const weekAbnormal = weekRuns.length - weekSuccessful
-  const weekSuccessRate = weekRuns.length ? Math.round((weekSuccessful / weekRuns.length) * 100) : null
-  const publishedCollectors = collectors.filter((collector) => collector.status === 'published').length
-  const monthAccepted = monthItems.filter((item) => item.decision === 'accepted').length
-  const monthRejected = monthItems.filter((item) => item.decision === 'rejected').length
+  const overview = overviewQuery.data
+  const weekSuccessRate = overview?.week.completed ? Math.round(overview.week.successful / overview.week.completed * 100) : null
   const granularityOptions = trendGranularityOptions(t)
-  const trendBuckets = useMemo(() => dashboardTrendBuckets(granularity, new Date(), runs, t), [granularity, runs, t])
+  const trendBuckets = (overview?.trends[granularity] ?? []).map(bucket => presentBucket(bucket, granularity, t))
   const trendRange = granularityOptions.find((option) => option.value === granularity)?.range ?? t('range.day')
   const trendRuns = trendBuckets.reduce((total, bucket) => total + bucket.runs, 0)
   const successfulRuns = trendBuckets.reduce((total, bucket) => total + bucket.successful, 0)
@@ -113,27 +105,39 @@ export function HomePage() {
   const failedRuns = trendBuckets.reduce((total, bucket) => total + bucket.failed, 0)
   const trendAccepted = trendBuckets.reduce((total, bucket) => total + bucket.accepted, 0)
   const trendRejected = trendBuckets.reduce((total, bucket) => total + bucket.rejected, 0)
-  const trendSuccessRate = trendRuns ? Math.round((successfulRuns / trendRuns) * 100) : null
+  const completedRuns = successfulRuns + partialRuns + failedRuns
+  const activeRuns = trendRuns - completedRuns
+  const trendSuccessRate = completedRuns ? Math.round((successfulRuns / completedRuns) * 100) : null
   const trendDataPassRate = trendAccepted + trendRejected ? Math.round((trendAccepted / (trendAccepted + trendRejected)) * 100) : null
   const maxRunVolume = Math.max(1, ...trendBuckets.map((bucket) => bucket.volume))
-  const isLoading = collectorsQuery.isLoading || runsQuery.isLoading || itemsQuery.isLoading
-  const hasError = collectorsQuery.isError || runsQuery.isError || itemsQuery.isError
+  const isLoading = collectorsQuery.isLoading || runsQuery.isLoading
+  const attentionError = collectorsQuery.isError || runsQuery.isError
+  const hasError = attentionError || overviewQuery.isError
+  const unavailable = t(overviewQuery.isLoading ? 'common:state.loading' : 'common:state.unavailable')
+
+  function refresh() {
+    void overviewQuery.refetch()
+    void collectorsQuery.refetch()
+    void runsQuery.refetch()
+  }
 
   return (
     <div className="page-frame dashboard-page overview-dashboard overview-dashboard-board">
       <h1 className="sr-only">{t('common:nav.overview')}</h1>
 
       <div className="overview-board-actions">
-        <Button asChild><Link to="/collectors/new"><Plus />{t('action.newCollector')}</Link></Button>
+        <span className="overview-snapshot">{overview ? t('snapshot', { timezone: overview.timezone, time: new Date(overview.generatedAt).toLocaleTimeString(i18n.language === 'en' ? 'en-GB' : 'zh-CN', {hour:'2-digit',minute:'2-digit'}) }) : unavailable}</span>
+        <Button variant="outline" size="icon-sm" aria-label={t('common:action.refresh')} title={t('common:action.refresh')} disabled={overviewQuery.isFetching || collectorsQuery.isFetching || runsQuery.isFetching} onClick={refresh}><RefreshCw /></Button>
+        {(user.role === 'administrator' || user.role === 'engineer') && <Button asChild><Link to="/collectors/new"><Plus />{t('action.newCollector')}</Link></Button>}
       </div>
 
       {hasError && <div className="dashboard-error" role="alert"><CircleAlert /><span>{t('error.loadFailed')}</span></div>}
 
       <section className="overview-kpi-strip" aria-label={t('kpi.ariaLabel')}>
-        <div className="overview-kpi-primary"><span>{t('kpi.todayCollect')}</span><strong>{isLoading ? '—' : todayAccepted}</strong><small>{t('kpi.todayCollectDetail', { runs: todayRuns.length, rejected: todayRejected })}</small></div>
-        <div><span>{t('kpi.weekSuccessRate')}</span><strong>{isLoading || weekSuccessRate === null ? '—' : `${weekSuccessRate}%`}</strong><small>{t('kpi.weekSuccessRateDetail', { success: weekSuccessful, abnormal: weekAbnormal })}</small></div>
-        <div><span>{t('kpi.monthValidItems')}</span><strong>{isLoading ? '—' : monthAccepted}</strong><small>{t('kpi.monthValidDetail', { entities: monthItems.length, rejected: monthRejected })}</small></div>
-        <div><span>{t('kpi.ruleCoverage')}</span><strong>{isLoading ? '—' : `${publishedCollectors}/${collectors.length}`}</strong><small>{collectors.length - publishedCollectors > 0 ? t('kpi.ruleCoverageUnpublished', { count: collectors.length - publishedCollectors }) : t('kpi.ruleCoverageAll')}</small></div>
+        <div className="overview-kpi-primary"><span>{t('kpi.todayCollect')}</span><strong>{overview?.today.accepted ?? '—'}</strong><small>{overview ? t('kpi.todayCollectDetail', { runs: overview.today.runs, rejected: overview.today.rejected }) : unavailable}</small></div>
+        <div><span>{t('kpi.weekSuccessRate')}</span><strong>{weekSuccessRate === null ? '—' : `${weekSuccessRate}%`}</strong><small>{overview ? t('kpi.weekSuccessRateDetail', { success: overview.week.successful, abnormal: overview.week.partial + overview.week.failed }) : unavailable}</small></div>
+        <div title={t('kpi.monthBasis')}><span>{t('kpi.monthValidItems')}</span><strong>{overview?.monthEntities.accepted ?? '—'}</strong><small>{overview ? t('kpi.monthValidDetail', { entities: overview.monthEntities.total, rejected: overview.monthEntities.rejected }) : unavailable}</small></div>
+        <div><span>{t('kpi.ruleCoverage')}</span><strong>{overview ? `${overview.collectors.published}/${overview.collectors.total}` : '—'}</strong><small>{!overview ? unavailable : !overview.collectors.total ? t('kpi.noCollectors') : overview.collectors.total > overview.collectors.published ? t('kpi.ruleCoverageUnpublished', { count: overview.collectors.total - overview.collectors.published }) : t('kpi.ruleCoverageAll')}</small></div>
       </section>
 
       <div className="overview-board-grid">
@@ -149,14 +153,14 @@ export function HomePage() {
               <Link to="/runs">{t('trend.viewRuns')} <ArrowRight /></Link>
             </div>
           </header>
-          {runsQuery.isLoading ? <OverviewSkeleton /> : trendRuns > 0 ? (
+          {overviewQuery.isLoading ? <OverviewSkeleton /> : !overview ? <p className="card-empty">{unavailable}</p> : trendRuns > 0 ? (
             <div className="overview-run-chart" role="group" aria-label={t('trend.chartAria', { range: trendRange, runs: trendRuns, accepted: trendAccepted, rejected: trendRejected })}>
               <div className={`overview-chart-bars ${granularity}`}>
                 {trendBuckets.map((bucket) => {
                   const height = bucket.volume === 0 ? 0 : Math.max(10, Math.round((bucket.volume / maxRunVolume) * 100))
                   const acceptedShare = bucket.volume ? Math.round((bucket.accepted / bucket.volume) * 100) : 0
                   return (
-                    <div className={`overview-chart-point ${bucket.tone}`} key={bucket.key} title={t('trend.pointTitle', { title: bucket.title, runs: bucket.runs, accepted: bucket.accepted, rejected: bucket.rejected })}>
+                    <div tabIndex={0} className={`overview-chart-point ${bucket.tone}`} key={bucket.key} aria-label={t('trend.pointTitle', { title: bucket.title, runs: bucket.runs, accepted: bucket.accepted, rejected: bucket.rejected })} title={t('trend.pointTitle', { title: bucket.title, runs: bucket.runs, accepted: bucket.accepted, rejected: bucket.rejected })}>
                       <span className="overview-chart-bar" style={{ height: `${height}%` }}>
                         <i className="accepted" style={{ height: `${acceptedShare}%` }} />
                         <i className="rejected" style={{ height: `${100 - acceptedShare}%` }} />
@@ -176,15 +180,16 @@ export function HomePage() {
             <header className="overview-panel-header"><div><h2 id="quality-heading">{t('quality.title')}</h2><p>{trendRange}</p></div><strong className={trendSuccessRate !== null && trendSuccessRate < 80 ? 'warning-text' : ''}>{trendSuccessRate === null ? '—' : `${trendSuccessRate}%`}</strong></header>
             <div className="overview-quality-body">
               <div className="overview-quality-bar" aria-label={t('quality.barAria', { success: successfulRuns, partial: partialRuns, failed: failedRuns })}>
-                {trendRuns > 0 && <><i className="success" style={{ width: `${(successfulRuns / trendRuns) * 100}%` }} /><i className="warning" style={{ width: `${(partialRuns / trendRuns) * 100}%` }} /><i className="danger" style={{ width: `${(failedRuns / trendRuns) * 100}%` }} /></>}
+                {completedRuns > 0 && <><i className="success" style={{ width: `${(successfulRuns / completedRuns) * 100}%` }} /><i className="warning" style={{ width: `${(partialRuns / completedRuns) * 100}%` }} /><i className="danger" style={{ width: `${(failedRuns / completedRuns) * 100}%` }} /></>}
               </div>
-              <div className="overview-quality-stats"><span><i className="success" />{t('quality.success')} <strong>{successfulRuns}</strong></span><span><i className="warning" />{t('quality.partial')} <strong>{partialRuns}</strong></span><span><i className="danger" />{t('quality.failed')} <strong>{failedRuns}</strong></span></div>
+              <div className="overview-quality-stats"><span><i className="success" />{t('quality.success')} <strong>{overview ? successfulRuns : '—'}</strong></span><span><i className="warning" />{t('quality.partial')} <strong>{overview ? partialRuns : '—'}</strong></span><span><i className="danger" />{t('quality.failed')} <strong>{overview ? failedRuns : '—'}</strong></span></div>
+              {activeRuns > 0 && <p className="overview-active-runs">{t('quality.active', {count:activeRuns})}</p>}
               <div className="overview-quality-foot"><span>{t('quality.dataPassRate')}</span><strong>{trendDataPassRate === null ? '—' : `${trendDataPassRate}%`}</strong></div>
             </div>
           </section>
 
           <section className="overview-panel overview-board-attention" aria-labelledby="attention-heading">
-            <header className="overview-panel-header"><div><h2 id="attention-heading">{t('attention.title')}</h2><p>{isLoading ? t('attention.loading') : attentionItems.length > 0 ? t('attention.count', { count: attentionItems.length }) : t('attention.none')}</p></div><Link to="/collectors?view=attention">{t('attention.viewAll')} <ArrowRight /></Link></header>
+            <header className="overview-panel-header"><div><h2 id="attention-heading">{t('attention.title')}</h2><p>{isLoading ? t('attention.loading') : attentionError ? t('common:state.unavailable') : attentionItems.length > 0 ? t('attention.count', { count: attentionItems.length }) : t('attention.none')}</p></div><Link to="/collectors?view=attention">{t('attention.viewAll')} <ArrowRight /></Link></header>
             <div className="overview-board-alerts">
               {isLoading ? <OverviewSkeleton /> : attentionItems.slice(0, 3).map((item) => (
                 <Link className="overview-board-alert" to={item.target} key={`${item.collector.id}:${item.label}`}>
@@ -193,7 +198,7 @@ export function HomePage() {
                   <ArrowRight />
                 </Link>
               ))}
-              {!isLoading && attentionItems.length === 0 && <OverviewEmpty title={t('attention.emptyTitle')} detail={t('attention.emptyDetail')} />}
+              {!isLoading && !attentionError && attentionItems.length === 0 && <OverviewEmpty title={t('attention.emptyTitle')} detail={t('attention.emptyDetail')} />}
             </div>
           </section>
         </div>
@@ -202,98 +207,15 @@ export function HomePage() {
   )
 }
 
-function latestEntities(items: HarvestItem[]) {
-  const latest = new Map<string, HarvestItem>()
-  for (const item of items) {
-    const key = `${item.collectorId}:${item.entityKey}`
-    const current = latest.get(key)
-    if (!current || item.observedAt > current.observedAt) latest.set(key, item)
-  }
-  return [...latest.values()]
-}
-
-function dashboardPeriodRange(period: TrendGranularity, now: Date): DashboardRange {
-  if (period === 'day') {
-    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    return { start, end: new Date(start.getFullYear(), start.getMonth(), start.getDate() + 1) }
-  }
-
-  if (period === 'week') {
-    const mondayOffset = (now.getDay() + 6) % 7
-    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - mondayOffset)
-    return { start, end: new Date(start.getFullYear(), start.getMonth(), start.getDate() + 7) }
-  }
-
+function presentBucket(bucket: OverviewBucket, granularity: TrendGranularity, t: TFunction): TrendBucket {
+  const [year, month, day] = bucket.labelDate.split('-').map(Number)
   return {
-    start: new Date(now.getFullYear(), now.getMonth(), 1),
-    end: new Date(now.getFullYear(), now.getMonth() + 1, 1),
+    ...bucket,
+    volume: bucket.accepted + bucket.rejected,
+    label: t(granularity === 'month' ? 'bucket.monthLabel' : 'bucket.dayLabel', {year, month, day}),
+    title: t(`bucket.${granularity}Title`, {year, month, day}),
+    tone: bucket.failed > 0 ? 'failed' : bucket.partial > 0 ? 'partially_succeeded' : bucket.successful > 0 ? 'succeeded' : 'empty',
   }
-}
-
-function parseDashboardDate(value?: string) {
-  if (!value) return null
-  const parsed = new Date(value.includes('T') ? value : value.replace(' ', 'T'))
-  return Number.isNaN(parsed.getTime()) ? null : parsed
-}
-
-function isWithinRange(value: string, range: DashboardRange) {
-  const date = parseDashboardDate(value)
-  return date !== null && date >= range.start && date < range.end
-}
-
-function dashboardTrendBuckets(granularity: TrendGranularity, now: Date, runs: Run[], t: TFunction): TrendBucket[] {
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const currentMonday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - ((today.getDay() + 6) % 7))
-  const rangeStart = granularity === 'day'
-    ? new Date(today.getFullYear(), today.getMonth(), today.getDate() - 13)
-    : granularity === 'week'
-      ? new Date(currentMonday.getFullYear(), currentMonday.getMonth(), currentMonday.getDate() - 11 * 7)
-      : new Date(today.getFullYear(), today.getMonth() - 11, 1)
-
-  return Array.from({ length: granularity === 'day' ? 14 : 12 }, (_, index) => {
-    const start = granularity === 'day'
-      ? new Date(rangeStart.getFullYear(), rangeStart.getMonth(), rangeStart.getDate() + index)
-      : granularity === 'week'
-        ? new Date(rangeStart.getFullYear(), rangeStart.getMonth(), rangeStart.getDate() + index * 7)
-        : new Date(rangeStart.getFullYear(), rangeStart.getMonth() + index, 1)
-    const end = granularity === 'day'
-      ? new Date(start.getFullYear(), start.getMonth(), start.getDate() + 1)
-      : granularity === 'week'
-        ? new Date(start.getFullYear(), start.getMonth(), start.getDate() + 7)
-        : new Date(start.getFullYear(), start.getMonth() + 1, 1)
-    const bucketRuns = runs.filter((run) => {
-      const runDate = parseDashboardDate(run.startedAtIso ?? run.startedAt)
-      return runDate !== null && runDate >= start && runDate < end
-    })
-    const successful = bucketRuns.filter((run) => run.status === 'succeeded').length
-    const partial = bucketRuns.filter((run) => run.status === 'partially_succeeded').length
-    const failed = bucketRuns.filter((run) => ['failed', 'cancelled', 'timed_out'].includes(run.status)).length
-    const accepted = bucketRuns.reduce((total, run) => total + run.acceptedCount, 0)
-    const rejected = bucketRuns.reduce((total, run) => total + run.rejectedCount, 0)
-    const volume = accepted + rejected
-    const label = granularity === 'month'
-      ? t('bucket.monthLabel', { month: start.getMonth() + 1 })
-      : t('bucket.dayLabel', { month: start.getMonth() + 1, day: start.getDate() })
-    const title = granularity === 'day'
-      ? t('bucket.dayTitle', { month: start.getMonth() + 1, day: start.getDate() })
-      : granularity === 'week'
-        ? t('bucket.weekTitle', { month: start.getMonth() + 1, day: start.getDate() })
-        : t('bucket.monthTitle', { year: start.getFullYear(), month: start.getMonth() + 1 })
-
-    return {
-      key: start.toISOString(),
-      label,
-      title,
-      volume,
-      accepted,
-      rejected,
-      runs: bucketRuns.length,
-      successful,
-      partial,
-      failed,
-      tone: failed > 0 ? 'failed' : partial > 0 ? 'partially_succeeded' : successful > 0 ? 'succeeded' : 'empty',
-    }
-  })
 }
 
 function partialRunDetail(run: Run, t: TFunction) {

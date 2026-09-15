@@ -1,0 +1,242 @@
+{
+  "authorization": "2026-09-10 user explicitly authorized real-model validation",
+  "environment": "isolated local G2 QA SQLite",
+  "providerHost": "open.bigmodel.cn",
+  "fictionalRequirement": {
+    "name": "G2 验收 · 虚构产品目录",
+    "intent": "采集虚构产品的编号、名称、价格和说明。仅用于 G2 隔离验收。"
+  },
+  "suggestion": {
+    "id": "field_suggestion_x_354b922b74454e34bd533b87b95795",
+    "collectionId": "collection_x_5d24a1ae31c04ea7a3d58d7c857e1830",
+    "baseRevision": 5,
+    "status": "succeeded",
+    "fields": [
+      {
+        "key": "sku",
+        "label": "产品编号",
+        "type": "string",
+        "required": true,
+        "identity": true,
+        "fingerprint": false,
+        "description": "虚构产品的唯一编号。"
+      },
+      {
+        "key": "title",
+        "label": "产品名称",
+        "type": "string",
+        "required": true,
+        "identity": false,
+        "fingerprint": true,
+        "description": "虚构产品的名称。"
+      },
+      {
+        "key": "price",
+        "label": "价格",
+        "type": "integer",
+        "required": false,
+        "identity": false,
+        "fingerprint": false,
+        "description": "虚构产品的价格。"
+      },
+      {
+        "key": "description",
+        "label": "产品说明",
+        "type": "string",
+        "required": false,
+        "identity": false,
+        "fingerprint": false,
+        "description": "虚构产品的说明文字。"
+      }
+    ],
+    "error": null,
+    "attempt": 1,
+    "createdAt": "2026-09-10T09:38:29.201263Z",
+    "finishedAt": "2026-09-10T09:38:31.369901Z",
+    "appliedAt": null,
+    "modelInvocations": [
+      {
+        "provider": "custom",
+        "model": "glm-5.3-flash",
+        "purpose": "field_suggestion",
+        "status": "succeeded",
+        "promptVersion": "collection-fields-1.0",
+        "startedAt": "2026-09-10T09:38:29.427298Z",
+        "finishedAt": "2026-09-10T09:38:31.364301Z",
+        "durationMs": 1936,
+        "promptTokens": 429,
+        "completionTokens": 139,
+        "totalTokens": 568,
+        "responseDigest": "sha256:0cac719a4918ccbfa49b4e674ca91d74ee72c60e2781898c0795aa76b65ff711",
+        "error": null,
+        "attempt": 1
+      }
+    ]
+  },
+  "beforeApply": {
+    "revision": 5,
+    "fields": [
+      {
+        "key": "sku",
+        "label": "产品编号",
+        "type": "string",
+        "required": true,
+        "identity": true,
+        "fingerprint": false,
+        "description": ""
+      },
+      {
+        "key": "title",
+        "label": "产品名称",
+        "type": "string",
+        "required": true,
+        "identity": false,
+        "fingerprint": true,
+        "description": ""
+      },
+      {
+        "key": "price",
+        "label": "价格",
+        "type": "integer",
+        "required": false,
+        "identity": false,
+        "fingerprint": true,
+        "description": ""
+      },
+      {
+        "key": "description",
+        "label": "产品说明",
+        "type": "string",
+        "required": false,
+        "identity": false,
+        "fingerprint": true,
+        "description": ""
+      }
+    ],
+    "activeVersionId": "colver_collection_x_5d24a1ae31c04ea7a3d58d7c857e1830_v2",
+    "activeVersionDigest": "sha256:56a3608eeb6399c04a5054d014c789a49e15e4b6e02496474db53f2549dab19b",
+    "sourceBinding": "colver_collection_x_5d24a1ae31c04ea7a3d58d7c857e1830_v1",
+    "sourceActiveRule": null
+  },
+  "selectedKeys": [
+    "title"
+  ],
+  "noAutomaticApplyVerified": true,
+  "billing": "Provider-reported token usage only; monetary charges not returned by the API.",
+  "afterApply": {
+    "revision": 6,
+    "fields": [
+      {
+        "key": "sku",
+        "label": "产品编号",
+        "type": "string",
+        "required": true,
+        "identity": true,
+        "fingerprint": false,
+        "description": ""
+      },
+      {
+        "key": "title",
+        "label": "产品名称",
+        "type": "string",
+        "required": true,
+        "identity": false,
+        "fingerprint": true,
+        "description": "虚构产品的名称。"
+      },
+      {
+        "key": "price",
+        "label": "价格",
+        "type": "integer",
+        "required": false,
+        "identity": false,
+        "fingerprint": true,
+        "description": ""
+      },
+      {
+        "key": "description",
+        "label": "产品说明",
+        "type": "string",
+        "required": false,
+        "identity": false,
+        "fingerprint": true,
+        "description": ""
+      }
+    ],
+    "activeVersionId": "colver_collection_x_5d24a1ae31c04ea7a3d58d7c857e1830_v2",
+    "activeVersionDigest": "sha256:56a3608eeb6399c04a5054d014c789a49e15e4b6e02496474db53f2549dab19b",
+    "sourceBinding": "colver_collection_x_5d24a1ae31c04ea7a3d58d7c857e1830_v1",
+    "sourceActiveRule": null
+  },
+  "appliedSuggestion": {
+    "id": "field_suggestion_x_354b922b74454e34bd533b87b95795",
+    "collectionId": "collection_x_5d24a1ae31c04ea7a3d58d7c857e1830",
+    "baseRevision": 5,
+    "status": "succeeded",
+    "fields": [
+      {
+        "key": "sku",
+        "label": "产品编号",
+        "type": "string",
+        "required": true,
+        "identity": true,
+        "fingerprint": false,
+        "description": "虚构产品的唯一编号。"
+      },
+      {
+        "key": "title",
+        "label": "产品名称",
+        "type": "string",
+        "required": true,
+        "identity": false,
+        "fingerprint": true,
+        "description": "虚构产品的名称。"
+      },
+      {
+        "key": "price",
+        "label": "价格",
+        "type": "integer",
+        "required": false,
+        "identity": false,
+        "fingerprint": false,
+        "description": "虚构产品的价格。"
+      },
+      {
+        "key": "description",
+        "label": "产品说明",
+        "type": "string",
+        "required": false,
+        "identity": false,
+        "fingerprint": false,
+        "description": "虚构产品的说明文字。"
+      }
+    ],
+    "error": null,
+    "attempt": 1,
+    "createdAt": "2026-09-10T09:38:29.201263Z",
+    "finishedAt": "2026-09-10T09:38:31.369901Z",
+    "appliedAt": "2026-09-10T09:40:56.273084Z",
+    "modelInvocations": [
+      {
+        "provider": "custom",
+        "model": "glm-5.3-flash",
+        "purpose": "field_suggestion",
+        "status": "succeeded",
+        "promptVersion": "collection-fields-1.0",
+        "startedAt": "2026-09-10T09:38:29.427298Z",
+        "finishedAt": "2026-09-10T09:38:31.364301Z",
+        "durationMs": 1936,
+        "promptTokens": 429,
+        "completionTokens": 139,
+        "totalTokens": 568,
+        "responseDigest": "sha256:0cac719a4918ccbfa49b4e674ca91d74ee72c60e2781898c0795aa76b65ff711",
+        "error": null,
+        "attempt": 1
+      }
+    ]
+  },
+  "selectedOnlyVerified": true,
+  "publishedVersionUnchanged": true,
+  "sourceBindingUnchanged": true,
+  "auditChainValid": true
+}

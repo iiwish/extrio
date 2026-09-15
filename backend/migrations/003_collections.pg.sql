@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS collections (
+    id TEXT PRIMARY KEY,
+    data JSONB NOT NULL
+);

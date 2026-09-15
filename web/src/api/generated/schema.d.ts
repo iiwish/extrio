@@ -4,6 +4,218 @@
  */
 
 export interface paths {
+    "/runtime": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getRuntimeDiagnostics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/collections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listCollections"];
+        put?: never;
+        post: operations["createCollection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/collections/{collectionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collectionId: string;
+            };
+            cookie?: never;
+        };
+        get: operations["getCollection"];
+        put?: never;
+        post?: never;
+        delete: operations["deleteCollection"];
+        options?: never;
+        head?: never;
+        patch: operations["updateCollection"];
+        trace?: never;
+    };
+    "/collections/{collectionId}/publish-version": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collectionId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["publishCollectionVersion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/collections/{collectionId}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collectionId: string;
+            };
+            cookie?: never;
+        };
+        get: operations["listCollectionVersions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/collections/{collectionId}/versions/{versionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collectionId: string;
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        get: operations["getCollectionVersion"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/collection-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["collectionTemplates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/collections/{collectionId}/apply-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collectionId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["applyCollectionTemplate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/collections/{collectionId}/field-suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collectionId: string;
+            };
+            cookie?: never;
+        };
+        get: operations["listFieldSuggestions"];
+        put?: never;
+        post: operations["startFieldSuggestion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/collections/{collectionId}/field-suggestions/{suggestionId}/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collectionId: string;
+                suggestionId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["applyFieldSuggestion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/collectors/{collectorId}/collection-migration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collectorId: string;
+            };
+            cookie?: never;
+        };
+        get: operations["getCollectionMigration"];
+        put?: never;
+        post: operations["migrateCollectionVersion"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/collectors/{collectorId}/collection-migration/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collectorId: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancelCollectionMigration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/state": {
         parameters: {
             query?: never;
@@ -199,6 +411,38 @@ export interface paths {
         patch: operations["updateCollectorDefinition"];
         trace?: never;
     };
+    "/collectors/{collectorId}/lifecycle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getCollectorLifecyclePlan"];
+        put?: never;
+        post: operations["changeCollectorLifecycle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/collectors/{collectorId}/reassignment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getCollectorReassignmentPlan"];
+        put?: never;
+        post: operations["reassignCollector"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/collectors/{collectorId}/explorations": {
         parameters: {
             query?: never;
@@ -208,6 +452,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** @description Starts a governed AI rule-generation task. Optional operator guidance is treated as untrusted intent, is recorded on the AiRun, and may influence rule discovery and compilation without relaxing the selector dialect, source boundary, output contract, deterministic validation, or human-review gate. */
         post: operations["startCollectorExploration"];
         delete?: never;
         options?: never;
@@ -351,6 +596,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/operations/{operationId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Engineer or administrator requests cancellation. Active work stops before terminal cancellation; completed operations are unchanged. */
+        post: operations["cancelOperation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/ai-runs": {
         parameters: {
             query?: never;
@@ -383,6 +645,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Full-database aggregates for authenticated users. Calendar windows use the requested IANA timezone, weeks start Monday. Run timestamps are persisted created_at; success rates use completed runs only. Month entities are ranked like the entity list before filtering by the latest row's UTC persistence timestamp, not the legacy observedAt display string. No 200-row list cap applies. */
+        get: operations["getOverview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/runs": {
         parameters: {
             query?: never;
@@ -391,6 +670,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["listRuns"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{runId}/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getRunEvidence"];
         put?: never;
         post?: never;
         delete?: never;
@@ -584,6 +879,230 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        RuntimeDiagnostics: {
+            ready: boolean;
+            /** @enum {unknown} */
+            reason: "worker_unavailable" | "worker_deployment_mismatch" | "credential_key_unavailable" | "signing_key_unavailable" | "signing_key_mismatch" | "signing_key_not_trusted" | null;
+            liveWorkers: number;
+            mismatchedWorkers: number;
+            workers: {
+                id: string;
+                /** Format: date-time */
+                lastSeen: string;
+                deploymentMatches: boolean;
+            }[];
+            queue: {
+                queuedJobs: number;
+                runningJobs: number;
+                oldestDueSeconds: number;
+            };
+            heartbeatMaxAgeSeconds: number;
+            /** Format: date-time */
+            checkedAt: string;
+        };
+        CollectionInput: {
+            name: string;
+            intent: string;
+        };
+        CollectionUpdateInput: {
+            fieldDraft?: components["schemas"]["CollectionFieldDraft"];
+            revision: number;
+            name?: string;
+            intent?: string;
+            /** @enum {string} */
+            status?: "active" | "archived";
+        } & (unknown | (unknown | unknown | unknown));
+        CollectionField: {
+            key: string;
+            label: string;
+            /** @enum {string} */
+            type: "string" | "number" | "integer" | "boolean" | "date" | "datetime" | "url" | "html" | "object" | "array";
+            required: boolean;
+            identity: boolean;
+            fingerprint: boolean;
+            description: string;
+        };
+        CollectionFieldDraft: {
+            fields: components["schemas"]["CollectionField"][];
+        };
+        CollectionTemplate: {
+            id: string;
+            name: string;
+            version: number;
+            fields: components["schemas"]["CollectionField"][];
+        };
+        CollectionTemplateList: {
+            items: components["schemas"]["CollectionTemplate"][];
+        };
+        FieldSuggestionInvocation: {
+            provider: string;
+            model: string;
+            /** @constant */
+            purpose: "field_suggestion";
+            /** @enum {unknown} */
+            status: "succeeded" | "failed";
+            promptVersion: string;
+            startedAt: string;
+            finishedAt: string;
+            durationMs: number;
+            promptTokens: number;
+            completionTokens: number;
+            totalTokens: number;
+            responseDigest: string | null;
+            error: {
+                [key: string]: unknown;
+            } | null;
+            attempt: number;
+        };
+        FieldSuggestion: {
+            id: string;
+            collectionId: string;
+            baseRevision: number;
+            /** @enum {unknown} */
+            status: "queued" | "running" | "succeeded" | "failed";
+            fields: components["schemas"]["CollectionField"][];
+            error: {
+                code: string;
+                message: string;
+            } | null;
+            attempt: number;
+            createdAt: string;
+            finishedAt: string | null;
+            appliedAt: string | null;
+            modelInvocations: components["schemas"]["FieldSuggestionInvocation"][];
+        };
+        FieldSuggestionList: {
+            items: components["schemas"]["FieldSuggestion"][];
+        };
+        FieldSuggestionInput: {
+            revision: number;
+        };
+        ApplyTemplateInput: {
+            revision: number;
+            templateId: string;
+        };
+        ApplySuggestionInput: {
+            revision: number;
+            selectedKeys: string[];
+        };
+        CollectionMigrationState: {
+            fromVersionId: string;
+            targetVersionId: string;
+            targetVersionNumber: number;
+            /** @enum {unknown} */
+            status: "awaiting_compile" | "ready_review" | "failed";
+            startedAt: string;
+        };
+        CollectionMigrationChange: {
+            key: string;
+            /** @enum {unknown} */
+            kind: "added" | "removed" | "changed";
+            before: components["schemas"]["CollectionField"] | null;
+            after: components["schemas"]["CollectionField"] | null;
+            breaking: boolean;
+        };
+        CollectionMigrationPlan: {
+            collectorId: string;
+            fromVersionId: string;
+            targetVersionId: string;
+            targetVersionNumber: number;
+            changes: components["schemas"]["CollectionMigrationChange"][];
+            blockers: string[];
+            /** @constant */
+            requiresRecompile: true;
+            planDigest: string;
+        };
+        CollectionMigrationInput: {
+            targetVersionId: string;
+            planDigest: string;
+            confirmedChanges: string[];
+        };
+        CancelCollectionMigrationInput: {
+            targetVersionId: string;
+        };
+        SourceFieldContract: {
+            sourceId: string;
+            sourceName: string;
+            /** @enum {string} */
+            state: "published" | "candidate" | "unavailable" | "empty";
+            ruleVersion: string | null;
+            fields: components["schemas"]["CollectionField"][];
+            schema: {
+                [key: string]: unknown;
+            };
+            quality: {
+                [key: string]: unknown;
+            };
+            targetVersionNumber?: number | null;
+            sourceVersion?: string | null;
+            sourceVersionNumber?: number | null;
+            isAligned?: boolean;
+        };
+        Collection: {
+            fieldDraft?: components["schemas"]["CollectionFieldDraft"];
+            id: string;
+            name: string;
+            intent: string;
+            collectionVersion: string;
+            /** @enum {string} */
+            status: "active" | "archived";
+            revision: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            sourceCount: number;
+            publishedSourceCount: number;
+            activeVersionId?: string | null;
+            latestVersionNumber?: number;
+            activeVersion?: components["schemas"]["CollectionVersionSummary"] | null;
+        };
+        CollectionVersionSummary: {
+            id: string;
+            versionNumber: number;
+            fieldCount: number;
+            outputContractDigest: string;
+            /** Format: date-time */
+            publishedAt: string;
+        };
+        CollectionVersionPublishInput: {
+            revision: number;
+            note?: string;
+        };
+        CollectionVersion: {
+            id: string;
+            collectionId: string;
+            versionNumber: number;
+            fields: components["schemas"]["CollectionField"][];
+            fieldCount?: number;
+            normalizedItemSchema: {
+                [key: string]: unknown;
+            };
+            identityFields: string[];
+            fingerprintFields: string[];
+            outputContractDigest: string;
+            /** Format: date-time */
+            publishedAt: string;
+            publishedBy: string;
+            note?: string;
+        };
+        CollectionVersionList: {
+            collectionId: string;
+            items: components["schemas"]["CollectionVersion"][];
+            total: number;
+        };
+        CollectionDetail: {
+            sourceContracts?: components["schemas"]["SourceFieldContract"][];
+            sources: components["schemas"]["CollectorDetail"][];
+        } & components["schemas"]["Collection"];
+        CollectionPage: {
+            pagination?: components["schemas"]["NumberedPagination"];
+            counts?: {
+                [key: string]: number;
+            };
+            items: components["schemas"]["Collection"][];
+            total: number;
+        };
         AuthUser: {
             id: string;
             username: string;
@@ -648,7 +1167,7 @@ export interface components {
         /** @enum {string} */
         OperationKind: "explore" | "run";
         /** @enum {string} */
-        OperationPhase: "queued" | "fetching_list" | "discovering_details" | "fetching_details" | "validating" | "finalizing" | "completed";
+        OperationPhase: "queued" | "fetching_list" | "analyzing_structure" | "discovering_details" | "fetching_details" | "compiling_rule" | "validating" | "finalizing" | "completed";
         /** @enum {string} */
         CollectionMode: "single" | "list_detail";
         /** @enum {string} */
@@ -679,13 +1198,21 @@ export interface components {
             /** Format: date-time */
             updatedAt: string | null;
         };
+        ModelContextLimits: {
+            contextTokens: number;
+            maxInputTokens: number;
+            maxOutputTokens: number;
+            reasoningTokens: number;
+        };
         ModelConfigurationItemInput: {
+            limits?: components["schemas"]["ModelContextLimits"];
             id: string;
             providerId: string;
             modelId: string;
             enabled: boolean;
         };
         ModelConfigurationItem: {
+            limits?: components["schemas"]["ModelContextLimits"];
             id: string;
             providerId: string;
             modelId: string;
@@ -752,7 +1279,7 @@ export interface components {
          * @description Stable v1 error taxonomy. New codes may be added without changing existing meanings.
          * @enum {string}
          */
-        ErrorCode: "AUTH_REQUIRED" | "INVALID_CREDENTIALS" | "SETUP_ALREADY_COMPLETED" | "RATE_LIMITED" | "FORBIDDEN" | "VALIDATION_FAILED" | "INVALID_URL" | "HTTPS_REQUIRED" | "DUPLICATE_IN_BATCH" | "SOURCE_ALREADY_EXISTS" | "SOURCE_UNREACHABLE" | "COLLECTION_NOT_FOUND" | "COLLECTOR_NOT_FOUND" | "OPERATION_NOT_FOUND" | "AI_RUN_NOT_FOUND" | "RUN_NOT_FOUND" | "ITEM_NOT_FOUND" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "OPERATION_ALREADY_ACTIVE" | "REPAIR_NOT_APPLICABLE" | "RUN_ALREADY_ACTIVE" | "RULE_NOT_PUBLISHED" | "CANDIDATE_RULE_NOT_FOUND" | "CANDIDATE_VALIDATION_FAILED" | "RULE_ATTESTATION_INVALID" | "REVIEW_DECISION_INVALID" | "OPERATION_CANCELLED" | "OPERATION_TIMED_OUT" | "INVALID_CURSOR" | "EXPORT_TOO_LARGE" | "EVIDENCE_BUNDLE_ERROR" | "SINK_NOT_FOUND" | "USER_NOT_FOUND" | "USERNAME_TAKEN" | "LAST_ADMINISTRATOR" | "SELF_DISABLE" | "DELIVERY_NOT_FOUND" | "DELIVERY_IN_FLIGHT" | "INTERNAL_ERROR" | "UNEXPECTED_RESPONSE";
+        ErrorCode: "AUTH_REQUIRED" | "INVALID_CREDENTIALS" | "SETUP_ALREADY_COMPLETED" | "RATE_LIMITED" | "FORBIDDEN" | "VALIDATION_FAILED" | "INVALID_URL" | "HTTPS_REQUIRED" | "DUPLICATE_IN_BATCH" | "EXACT_ENTRY_REQUIRED" | "UNSUPPORTED_SOURCE_MODE" | "SOURCE_ALREADY_EXISTS" | "SOURCE_UNREACHABLE" | "COLLECTION_NOT_FOUND" | "COLLECTION_CONFLICT" | "COLLECTION_HAS_SOURCES" | "COLLECTION_ARCHIVED" | "COLLECTOR_NOT_FOUND" | "OPERATION_NOT_FOUND" | "AI_RUN_NOT_FOUND" | "RUN_NOT_FOUND" | "ITEM_NOT_FOUND" | "IDEMPOTENCY_KEY_REQUIRED" | "IDEMPOTENCY_KEY_REUSED" | "OPERATION_ALREADY_ACTIVE" | "REPAIR_NOT_APPLICABLE" | "RUN_ALREADY_ACTIVE" | "RULE_NOT_PUBLISHED" | "CANDIDATE_RULE_NOT_FOUND" | "CANDIDATE_VALIDATION_FAILED" | "RULE_ATTESTATION_INVALID" | "REVIEW_DECISION_INVALID" | "OPERATION_CANCELLED" | "OPERATION_TIMED_OUT" | "JOB_CANCELLED" | "JOB_TIMED_OUT" | "JOB_LEASE_LOST" | "JOB_ATTEMPTS_EXHAUSTED" | "SOURCE_NETWORK_REJECTED" | "KEY_MATERIAL_UNAVAILABLE" | "INVALID_CURSOR" | "EXPORT_TOO_LARGE" | "EVIDENCE_BUNDLE_ERROR" | "SINK_NOT_FOUND" | "USER_NOT_FOUND" | "USERNAME_TAKEN" | "LAST_ADMINISTRATOR" | "SELF_DISABLE" | "DELIVERY_NOT_FOUND" | "DELIVERY_IN_FLIGHT" | "INTERNAL_ERROR" | "UNEXPECTED_RESPONSE";
         OperationMetrics: {
             listPagesFetched: number;
             detailUrlsDiscovered: number;
@@ -764,7 +1291,24 @@ export interface components {
             unchangedItems: number;
             warningCount: number;
         };
+        /** @enum {string} */
+        ActivityStatus: "running" | "succeeded" | "failed";
+        OperationActivity: {
+            phase: components["schemas"]["OperationPhase"];
+            status: components["schemas"]["ActivityStatus"];
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: date-time */
+            finishedAt: string | null;
+            durationMs: number | null;
+            metrics: components["schemas"]["OperationMetrics"];
+        };
         Operation: {
+            collectionAttribution?: components["schemas"]["CollectionAttribution"];
+            /** @description The source was deleted; this historical record remains available. */
+            collectorDeleted?: boolean;
+            /** @description Cancellation is persisted; running work remains active until its owning worker has stopped it or its lease expires. */
+            cancelRequested?: boolean;
             id: string;
             kind: components["schemas"]["OperationKind"];
             status: components["schemas"]["OperationStatus"];
@@ -775,6 +1319,15 @@ export interface components {
             resourceId: string;
             statusUrl: string;
             pollAfterMs: number;
+            /**
+             * Format: date-time
+             * @description UTC time when the operation entered the durable queue. Older migrated operations may omit it.
+             */
+            queuedAt?: string;
+            /** @description Stable AI task identifier for exploration operations. Run operations omit this field. */
+            aiRunId?: string;
+            /** @description Sanitized, append-only phase history for live progress and post-run audit. Older migrated operations may omit it. */
+            activity?: components["schemas"]["OperationActivity"][];
             metrics: components["schemas"]["OperationMetrics"];
             error: components["schemas"]["PlatformError"] | null;
         } & (unknown & unknown & unknown & unknown);
@@ -838,7 +1391,58 @@ export interface components {
             error: components["schemas"]["PlatformError"] | null;
             modelInvocations: components["schemas"]["ModelInvocation"][];
         };
+        AdaptiveEvidenceSummary: {
+            /** @constant */
+            version: "adaptive-dom-v1";
+            /** @enum {string} */
+            phase: "indexing" | "locating" | "reading" | "validating" | "validated" | "failed" | "cancelled";
+            /** @enum {string} */
+            limitsSource: "configured" | "conservative_default";
+            validated: boolean;
+            budget: {
+                calls: number;
+                maxCalls: number;
+                inputTokens: number;
+                outputTokens: number;
+                maxInputTokens: number;
+                maxOutputTokens: number;
+                contextTokens: number;
+                /** @enum {string} */
+                tokenMethod: "tiktoken_with_margin" | "utf8_upper_estimate";
+                elapsedSeconds: number;
+                /** Format: date-time */
+                startedAt?: string;
+                maxSeconds: number;
+                stopReason: string | null;
+            };
+            pages: {
+                pageId: string;
+                indexedNodes: number;
+                readNodes: number;
+                readFragmentChars: number;
+            }[];
+            reads: {
+                pageId: string;
+                nodeId: string;
+                /** @enum {string} */
+                action: "expand_nodes" | "read_nodes";
+                digest: string;
+                start: number;
+                end: number;
+                complete: boolean;
+            }[];
+            validation: {
+                code?: string;
+                field?: string;
+                sample?: number;
+                stage?: string;
+            }[];
+        };
         AiRun: {
+            /** @description The source was deleted; this historical record remains available. */
+            collectorDeleted?: boolean;
+            evidence?: components["schemas"]["AdaptiveEvidenceSummary"];
+            collectionAttribution?: components["schemas"]["CollectionAttribution"];
             id: string;
             operationId: string;
             collectorId: string;
@@ -858,8 +1462,12 @@ export interface components {
             validationSummary: components["schemas"]["AiValidationSummary"];
             candidateRuleDigest: string | null;
             publishedRuleVersionId: string | null;
-            /** @description Optional reason recorded when the run was triggered as a repair. */
+            /** @description Optional operator guidance recorded and applied when the run was triggered as a repair. */
             note?: string | null;
+            /** @description Optional operator guidance recorded and applied to rule discovery and compilation. */
+            guidance?: string | null;
+            /** @description Sanitized phase history. It never contains raw prompts, source bodies, model responses, or credentials. */
+            activity?: components["schemas"]["OperationActivity"][];
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -921,7 +1529,88 @@ export interface components {
             warningChecks: number;
             gatherSpec: components["schemas"]["gather-spec.schema"];
         } & (unknown & unknown);
+        CollectionAttribution: {
+            collectionId: string;
+            collectionName: string;
+            collectionVersion: string;
+        };
+        CollectorLifecycleInput: {
+            /** @enum {string} */
+            action: "archive" | "restore" | "delete";
+            planDigest: string;
+        };
+        CollectorLifecycleResult: components["schemas"]["CollectorDetail"] | {
+            id: string;
+            /** @constant */
+            deleted: true;
+        };
+        CollectorLifecyclePlan: {
+            collectorId: string;
+            collectorName: string;
+            sourceUrl: string;
+            collectionName: string;
+            /** @enum {string} */
+            lifecycle: "active" | "archived";
+            blockers: string[];
+            /** @description Active tasks, runs or migration only; retained history does not block deletion. */
+            deleteBlockers: string[];
+            hasHistory: boolean;
+            historyCounts: {
+                operations: number;
+                ai_runs: number;
+                rules: number;
+                runs: number;
+                items: number;
+                sinks: number;
+                deliveries: number;
+            };
+            scheduleEnabled: boolean;
+            planDigest: string;
+        };
+        CollectorReassignmentInput: {
+            targetCollectionId: string;
+            planDigest: string;
+            confirmedChanges: string[];
+        };
+        CollectorReassignmentPlan: {
+            collectorId: string;
+            collectorName: string;
+            sourceUrl: string;
+            fromCollectionId: string;
+            fromCollectionName: string;
+            targetCollectionId: string;
+            targetCollectionName: string;
+            targetIntent: string;
+            targetVersionId: string;
+            targetRevision: number;
+            changes: components["schemas"]["CollectorReassignmentFieldChange"][];
+            blockers: string[];
+            requiresRecompile: boolean;
+            historyCounts: {
+                [key: string]: number;
+            };
+            unresolvedHistory: {
+                type: string;
+                id: string;
+            }[];
+            planDigest: string;
+        };
+        CollectorReassignmentFieldChange: {
+            key: string;
+            /** @enum {string} */
+            kind: "added" | "removed" | "changed";
+            before: components["schemas"]["CollectionField"] | null;
+            after: components["schemas"]["CollectionField"] | null;
+        };
         Collector: {
+            /**
+             * @description Missing on legacy payloads means active.
+             * @enum {string}
+             */
+            lifecycle?: "active" | "archived";
+            /** @description Missing on legacy payloads means revision zero. */
+            managementRevision?: number;
+            hasReassignmentHistory?: boolean;
             id: string;
             name: string;
             intent: string;
@@ -931,6 +1620,8 @@ export interface components {
              */
             sourceUrl: string;
             sourceHost: string;
+            /** @description Optional source-specific hint used while compiling the Collector rule; it does not change the Collection data contract. */
+            scopeHint?: string;
             status: components["schemas"]["CollectorStatus"];
             /** @description Stable Collection identity used to group Collectors that share one business requirement. */
             collectionId: string;
@@ -938,12 +1629,16 @@ export interface components {
             collectionName: string;
             collectionVersion: string;
             activeRuleVersion: string | null;
+            pendingCollectionVersion?: string | null;
+            collectionMigration?: components["schemas"]["CollectionMigrationState"] | null;
             activeCollectionPolicyId: string | null;
             activeOperationId: string | null;
             latestRunId: string | null;
             updatedAt: string;
         };
         CollectorDetail: components["schemas"]["Collector"] & {
+            /** @description Fields frozen in the pending migration target, or the source binding when no migration is pending. Never the mutable requirement draft. */
+            collectionFields?: components["schemas"]["CollectionField"][];
             candidate: components["schemas"]["CandidateRule"] | null;
             previewItems: components["schemas"]["HarvestResult"][];
             reviewDecisions: {
@@ -954,6 +1649,17 @@ export interface components {
             schedule: components["schemas"]["CollectorSchedule"];
         };
         CollectorPage: {
+            pagination?: components["schemas"]["NumberedPagination"];
+            counts?: {
+                [key: string]: number;
+            };
+            total?: number;
+            collections?: {
+                id: string;
+                name: string;
+                version: string;
+            }[];
+            latestRuns?: components["schemas"]["Run"][];
             items: components["schemas"]["CollectorDetail"][];
             page: components["schemas"]["PageMeta"];
         };
@@ -967,6 +1673,7 @@ export interface components {
             intent: string;
         };
         UpdateCollectorInput: {
+            managementRevision: number;
             name: string;
             /**
              * Format: uri
@@ -976,8 +1683,12 @@ export interface components {
             intent: string;
         };
         RepairInput: {
-            /** @description Optional reason for the repair, stored on the rule_repair AI run for the AI task history. */
+            /** @description Optional operator guidance for the repair, stored on the rule_repair AI run and supplied to the constrained compiler. */
             note?: string;
+        };
+        ExplorationInput: {
+            /** @description Optional one-run instruction for discovery and compilation. It cannot relax safety, contract, validation, or review gates. */
+            guidance?: string;
         };
         CandidateRuleEditInput: {
             listSelector: string;
@@ -991,12 +1702,28 @@ export interface components {
             key: string;
             selector: string;
         };
+        CollectorSourceInput: {
+            /**
+             * Format: uri
+             * @description Exact HTTP(S) list entry URL. A bare site root is not accepted.
+             */
+            entryUrl: string;
+            /**
+             * @description Optional import mode. Omission defaults to exact; discovery mode is not yet supported.
+             * @enum {string}
+             */
+            mode?: "exact";
+            /** @description Optional user-visible Collector name; the source host is used when omitted. */
+            name?: string;
+            /** @description Optional source-specific scope used during rule compilation. */
+            scopeHint?: string;
+        };
         CreateCollectorsInput: {
             /** @description Existing Collection identity to reuse. When present, the server uses its canonical name, intent, and version. */
             collectionId?: string;
             collectionName: string;
             intent: string;
-            sourceUrls: string[];
+            sources: components["schemas"]["CollectorSourceInput"][];
         };
         BatchCollectorImportItem: {
             sourceUrl: string;
@@ -1088,9 +1815,12 @@ export interface components {
             ruleVersion: string;
             runId: string;
             observationId: string | null;
-            artifactId: string;
+            artifactId: string | null;
         };
         HarvestResult: {
+            /** @description The source was deleted; this historical record remains available. */
+            collectorDeleted?: boolean;
+            collectionAttribution?: components["schemas"]["CollectionAttribution"];
             id: string;
             collectorId: string;
             collectorName: string;
@@ -1132,7 +1862,24 @@ export interface components {
             }[];
             lineage: components["schemas"]["ItemLineage"];
         } & (unknown & unknown);
+        RunEvidence: {
+            /** @enum {unknown} */
+            mode: "sampled" | "metadata_only";
+            /** @enum {unknown} */
+            state: "available" | "missing" | "expired" | "invalid" | "incomplete";
+            fileCount: number;
+            totalBytes: number;
+            /** Format: date-time */
+            expiresAt: string | null;
+            /** @constant */
+            canReplay: false;
+            /** @constant */
+            replayReason: "complete_replayable_evidence_unavailable";
+        };
         Run: {
+            /** @description The source was deleted; this historical record remains available. */
+            collectorDeleted?: boolean;
+            collectionAttribution?: components["schemas"]["CollectionAttribution"];
             id: string;
             operationId: string | null;
             collectorId: string;
@@ -1174,19 +1921,92 @@ export interface components {
             checkpointBefore: components["schemas"]["CollectorCheckpoint"] | null;
             checkpointAfter: components["schemas"]["CollectorCheckpoint"] | null;
             artifactMode: components["schemas"]["ArtifactMode"];
+            localEvidenceRef?: string | null;
+            localEvidenceDigest?: string | null;
             summary: string;
             recoveryAction: string;
             items: components["schemas"]["HarvestResult"][];
         } & unknown;
+        OverviewBucket: {
+            key: string;
+            /** Format: date */
+            labelDate: string;
+            /** Format: date-time */
+            start: string;
+            /** Format: date-time */
+            end: string;
+            runs: number;
+            completed: number;
+            successful: number;
+            partial: number;
+            failed: number;
+            active: number;
+            accepted: number;
+            rejected: number;
+        };
+        Overview: {
+            /** Format: date-time */
+            generatedAt: string;
+            timezone: string;
+            today: components["schemas"]["OverviewBucket"];
+            week: components["schemas"]["OverviewBucket"];
+            monthEntities: {
+                total: number;
+                accepted: number;
+                rejected: number;
+            };
+            collectors: {
+                total: number;
+                published: number;
+            };
+            trends: {
+                day: components["schemas"]["OverviewBucket"][];
+                week: components["schemas"]["OverviewBucket"][];
+                month: components["schemas"]["OverviewBucket"][];
+            };
+        };
         RunPage: {
+            pagination?: components["schemas"]["NumberedPagination"];
+            counts?: {
+                [key: string]: number;
+            };
+            total?: number;
             items: components["schemas"]["Run"][];
             page: components["schemas"]["PageMeta"];
         };
         AiRunPage: {
+            pagination?: components["schemas"]["NumberedPagination"];
+            counts?: {
+                [key: string]: number;
+            };
+            total?: number;
             items: components["schemas"]["AiRun"][];
             page: components["schemas"]["PageMeta"];
         };
+        NumberedPagination: {
+            page: number;
+            pageSize: number;
+            totalPages: number;
+            total: number;
+        };
         ItemPage: {
+            /** @description Total matching rows before pagination; present for view=entities or numbered requests. */
+            total?: number;
+            /** @description Present for numbered requests only. */
+            pagination?: {
+                page: number;
+                pageSize: number;
+                totalPages: number;
+                total: number;
+            };
+            /** @description Available filters across all latest entities, not just the current page; present for view=entities. */
+            facets?: {
+                sourceHosts: string[];
+                collectors: {
+                    id: string;
+                    name: string;
+                }[];
+            };
             items: components["schemas"]["HarvestResult"][];
             page: components["schemas"]["PageMeta"];
             /** @description Opaque continuation token for the next page in deterministic output-loop order; null on the last page. */
@@ -1847,6 +2667,16 @@ export interface components {
         };
     };
     parameters: {
+        /** @description Opt into numbered pagination and full-dataset filtering. Out-of-range pages clamp to the last page; empty results use page 1 of 1. Counts describe the lifecycle or collector scope before search/status filtering. Omit page for legacy reads. */
+        NumberedPage: number;
+        /** @description Literal case-insensitive text search for numbered lists. */
+        ListSearch: string;
+        /** @description Observations retain history. Entities select the latest observation per collectorId and entityKey before applying all filters. */
+        ItemView: "observations" | "entities";
+        /** @description Trimmed, case-insensitive literal substring search across title, content, collectorName and entityKey. Percent and underscore are literal characters. */
+        ItemSearch: string;
+        /** @description Exact site host filter, shared by list and export. */
+        ItemSourceHost: string;
         CollectorId: string;
         OperationId: string;
         AiRunId: string;
@@ -1868,6 +2698,470 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    getRuntimeDiagnostics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Authenticated deployment readiness without paths or secrets. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuntimeDiagnostics"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    listCollections: {
+        parameters: {
+            query?: {
+                /** @description Opt into numbered pagination and full-dataset filtering. Out-of-range pages clamp to the last page; empty results use page 1 of 1. Counts describe the lifecycle or collector scope before search/status filtering. Omit page for legacy reads. */
+                page?: components["parameters"]["NumberedPage"];
+                /** @description Literal case-insensitive text search for numbered lists. */
+                q?: components["parameters"]["ListSearch"];
+                limit?: components["parameters"]["Limit"];
+                status?: "active" | "archived" | "all";
+                sort?: "updated_asc" | "updated_desc";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description All requirement summaries, including archived and empty requirements. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionPage"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    createCollection: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionInput"];
+            };
+        };
+        responses: {
+            /** @description Independent requirement created. Engineer or administrator required. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Collection"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    getCollection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collectionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Requirement and all linked sources, without the collectors list limit. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionDetail"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    deleteCollection: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                collectionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    revision: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Empty requirement deleted. Associated sources block deletion with 409. Engineer or administrator required. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        /** @constant */
+                        deleted: true;
+                    };
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    updateCollection: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                collectionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionUpdateInput"];
+            };
+        };
+        responses: {
+            /** @description Metadata updated or archived/restored. Does not change existing extraction rules or stop runs. Engineer or administrator required. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Collection"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    publishCollectionVersion: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                collectionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionVersionPublishInput"];
+            };
+        };
+        responses: {
+            /** @description Collection version published immutably. Reviewer or administrator required. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionVersion"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    listCollectionVersions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collectionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description All published versions for a collection, ordered by versionNumber descending. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionVersionList"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    getCollectionVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collectionId: string;
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Specified collection version details and frozen contract schema. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionVersion"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    collectionTemplates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Collection field workflow result. Mutations require the documented engineer/reviewer role. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionTemplateList"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    applyCollectionTemplate: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                collectionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplyTemplateInput"];
+            };
+        };
+        responses: {
+            /** @description Collection field workflow result. Mutations require the documented engineer/reviewer role. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Collection"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    listFieldSuggestions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collectionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Collection field workflow result. Mutations require the documented engineer/reviewer role. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldSuggestionList"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    startFieldSuggestion: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                collectionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FieldSuggestionInput"];
+            };
+        };
+        responses: {
+            /** @description Collection field workflow result. Mutations require the documented engineer/reviewer role. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldSuggestion"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    applyFieldSuggestion: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                collectionId: string;
+                suggestionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplySuggestionInput"];
+            };
+        };
+        responses: {
+            /** @description Collection field workflow result. Mutations require the documented engineer/reviewer role. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Collection"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    getCollectionMigration: {
+        parameters: {
+            query: {
+                targetVersionId: string;
+            };
+            header?: never;
+            path: {
+                collectorId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Collection field workflow result. Mutations require the documented engineer/reviewer role. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionMigrationPlan"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    migrateCollectionVersion: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                collectorId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionMigrationInput"];
+            };
+        };
+        responses: {
+            /** @description Collection field workflow result. Mutations require the documented engineer/reviewer role. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectorDetail"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    cancelCollectionMigration: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                collectorId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelCollectionMigrationInput"];
+            };
+        };
+        responses: {
+            /** @description Collection field workflow result. Mutations require the documented engineer/reviewer role. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectorDetail"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
     getAuthState: {
         parameters: {
             query?: never;
@@ -2203,6 +3497,13 @@ export interface operations {
     listCollectors: {
         parameters: {
             query?: {
+                /** @description Opt into numbered pagination and full-dataset filtering. Out-of-range pages clamp to the last page; empty results use page 1 of 1. Counts describe the lifecycle or collector scope before search/status filtering. Omit page for legacy reads. */
+                page?: components["parameters"]["NumberedPage"];
+                /** @description Literal case-insensitive text search for numbered lists. */
+                q?: components["parameters"]["ListSearch"];
+                view?: "all" | "attention" | "published";
+                collectionId?: string;
+                lifecycle?: "active" | "archived" | "all";
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
             };
@@ -2339,6 +3640,118 @@ export interface operations {
             default: components["responses"]["PlatformError"];
         };
     };
+    getCollectorLifecyclePlan: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collectorId: components["parameters"]["CollectorId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Locked source lifecycle preview and deletion blockers. */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectorLifecyclePlan"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    changeCollectorLifecycle: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                collectorId: components["parameters"]["CollectorId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectorLifecycleInput"];
+            };
+        };
+        responses: {
+            /** @description Archived or restored source, or source deletion receipt. Deletion retains history and releases the URL. Schedule remains disabled. */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectorLifecycleResult"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    getCollectorReassignmentPlan: {
+        parameters: {
+            query: {
+                targetCollectionId: string;
+            };
+            header?: never;
+            path: {
+                collectorId: components["parameters"]["CollectorId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Target version, field differences, frozen history and blockers. */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectorReassignmentPlan"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    reassignCollector: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                collectorId: components["parameters"]["CollectorId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectorReassignmentInput"];
+            };
+        };
+        responses: {
+            /** @description Source bound to target; execution invalidated, immutable history retained under its original requirement. */
+            200: {
+                headers: {
+                    "X-Request-ID": components["headers"]["RequestId"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectorDetail"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
     startCollectorExploration: {
         parameters: {
             query?: never;
@@ -2351,7 +3764,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ExplorationInput"];
+            };
+        };
         responses: {
             /** @description Exploration accepted for asynchronous execution. */
             202: {
@@ -2617,9 +4034,40 @@ export interface operations {
             default: components["responses"]["PlatformError"];
         };
     };
+    cancelOperation: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                operationId: components["parameters"]["OperationId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Durable cancellation request or terminal operation. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Operation"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
     listAiRuns: {
         parameters: {
             query?: {
+                /** @description Opt into numbered pagination and full-dataset filtering. Out-of-range pages clamp to the last page; empty results use page 1 of 1. Counts describe the lifecycle or collector scope before search/status filtering. Omit page for legacy reads. */
+                page?: components["parameters"]["NumberedPage"];
+                /** @description Literal case-insensitive text search for numbered lists. */
+                q?: components["parameters"]["ListSearch"];
+                status?: "all" | "running" | "attention" | "review";
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
                 /** @description Restrict history to one collector. */
@@ -2668,9 +4116,38 @@ export interface operations {
             default: components["responses"]["PlatformError"];
         };
     };
+    getOverview: {
+        parameters: {
+            query?: {
+                /** @description IANA timezone. Unknown zones return 422. */
+                timezone?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Consistent database snapshot of overview metrics. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Overview"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
     listRuns: {
         parameters: {
             query?: {
+                /** @description Opt into numbered pagination and full-dataset filtering. Out-of-range pages clamp to the last page; empty results use page 1 of 1. Counts describe the lifecycle or collector scope before search/status filtering. Omit page for legacy reads. */
+                page?: components["parameters"]["NumberedPage"];
+                /** @description Literal case-insensitive text search for numbered lists. */
+                q?: components["parameters"]["ListSearch"];
+                status?: "all" | "attention" | "succeeded";
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
             };
@@ -2688,6 +4165,29 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RunPage"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    getRunEvidence: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runId: components["parameters"]["RunId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Verified local sampled evidence availability. Does not authorize equivalent replay. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunEvidence"];
                 };
             };
             default: components["responses"]["PlatformError"];
@@ -2722,6 +4222,18 @@ export interface operations {
             query?: {
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
+                /** @description One-based page number, mutually exclusive with cursor. Out-of-range pages clamp to the last page. Numbered requests include pagination metadata; empty results use page 1 of 1. Separate requests do not share a snapshot. */
+                page?: number;
+                /** @description Observations retain history. Entities select the latest observation per collectorId and entityKey before applying all filters. */
+                view?: components["parameters"]["ItemView"];
+                /** @description Trimmed, case-insensitive literal substring search across title, content, collectorName and entityKey. Percent and underscore are literal characters. */
+                q?: components["parameters"]["ItemSearch"];
+                /** @description Exact site host filter, shared by list and export. */
+                sourceHost?: components["parameters"]["ItemSourceHost"];
+                collectorId?: string;
+                runId?: string;
+                decision?: components["schemas"]["ItemDecision"];
+                entityKey?: string;
             };
             header?: never;
             path?: never;
@@ -2729,7 +4241,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Accepted items and rejected candidates in deterministic output-loop order. */
+            /** @description Observations or latest entities in deterministic order. Entity selection precedes filtering; entities include total and global filter facets. */
             200: {
                 headers: {
                     "X-Request-ID": components["headers"]["RequestId"];
@@ -2754,6 +4266,12 @@ export interface operations {
     exportItems: {
         parameters: {
             query: {
+                /** @description Observations retain history. Entities select the latest observation per collectorId and entityKey before applying all filters. */
+                view?: components["parameters"]["ItemView"];
+                /** @description Trimmed, case-insensitive literal substring search across title, content, collectorName and entityKey. Percent and underscore are literal characters. */
+                q?: components["parameters"]["ItemSearch"];
+                /** @description Exact site host filter, shared by list and export. */
+                sourceHost?: components["parameters"]["ItemSourceHost"];
                 /** @description Export wire format. */
                 format: "csv" | "jsonl";
                 collectorId?: string;

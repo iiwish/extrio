@@ -1,0 +1,17 @@
+{
+  "mode": "deterministic offline fixture, not real model acceptance",
+  "realModelCalls": 0,
+  "databaseWrites": 0,
+  "published": false,
+  "samplesAccepted": 3,
+  "contextSource": "Store.collector_compilation_context (Worker equivalent)",
+  "outputFields": [
+    "title",
+    "detail_url",
+    "content",
+    "publish_date"
+  ],
+  "handoff": "list.detailUrl",
+  "frozenContractPreserved": true,
+  "businessUrlsMatchDetailSamples": true
+}

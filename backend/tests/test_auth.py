@@ -51,6 +51,7 @@ def test_first_run_setup_protects_control_plane_and_logout_revokes_session(tmp_p
                 "user": None,
             }
             assert client.get("/api/v1/collectors").status_code == 401
+            assert client.get("/api/v1/overview").status_code == 401
             assert client.get("/gather-spec.schema.json").status_code == 401
 
             setup = client.post(
@@ -64,6 +65,7 @@ def test_first_run_setup_protects_control_plane_and_logout_revokes_session(tmp_p
             assert "SameSite=strict" in cookie
             assert "Path=/" in cookie
             assert client.get("/api/v1/collectors").status_code == 200
+            assert client.get("/api/v1/overview").status_code == 200
 
             duplicate = client.post(
                 "/api/v1/auth/setup",

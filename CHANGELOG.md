@@ -4,6 +4,19 @@ All notable changes to Extrio are documented in this file. The project follows
 [Semantic Versioning](https://semver.org/) and keeps pending work under
 `Unreleased`.
 
+## Unreleased
+
+- Unify operational lists with a shared scroll region, totals, page size and numbered pagination.
+- Refine requirement, source, run, AI task and item details, plus creation and settings workflows.
+- Pin the repository-root pytest configuration and refresh public-alpha demonstration materials.
+
+- Add live, refresh-safe structured activity for AI rule generation and repair, with stages,
+  timings, non-sensitive metrics, and a direct link from the active Collector workflow.
+- Add optional one-run operator guidance for rule generation and repair. Guidance is treated as
+  untrusted input to the constrained compiler and does not weaken validation or human review.
+- Clarify Extrio's initial data-operations positioning, current evidence level, experimental
+  boundaries, and validation roadmap without claiming hosted or large-scale proof.
+
 ## 0.6.0 - 2026-09-03
 
 - Allow anonymous `http://` collection sources by default and make the policy

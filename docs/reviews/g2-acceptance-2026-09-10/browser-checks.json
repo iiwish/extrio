@@ -1,0 +1,98 @@
+[
+  {
+    "state": "ai-restored-zh",
+    "file": "ai-restored-zh-1440x900.jpg",
+    "dialogs": [
+      {
+        "inside": true
+      }
+    ],
+    "height": 900,
+    "overflow": false,
+    "width": 1440
+  },
+  {
+    "state": "ai-restored-zh",
+    "file": "ai-restored-zh-1280x800.jpg",
+    "dialogs": [
+      {
+        "inside": true
+      }
+    ],
+    "height": 800,
+    "overflow": false,
+    "width": 1280
+  },
+  {
+    "state": "ai-restored-zh",
+    "file": "ai-restored-zh-1132x1028.jpg",
+    "dialogs": [
+      {
+        "inside": true
+      }
+    ],
+    "height": 1028,
+    "overflow": false,
+    "width": 1132
+  },
+  {
+    "state": "ai-restored-zh",
+    "file": "ai-restored-zh-1024x800.jpg",
+    "dialogs": [
+      {
+        "inside": true
+      }
+    ],
+    "height": 800,
+    "overflow": false,
+    "width": 1024
+  },
+  {
+    "state": "migration-review-zh",
+    "file": "migration-review-zh-1440x900.jpg",
+    "dialogs": [
+      {
+        "inside": true
+      }
+    ],
+    "height": 900,
+    "overflow": false,
+    "width": 1440
+  },
+  {
+    "state": "migration-review-zh",
+    "file": "migration-review-zh-1280x800.jpg",
+    "dialogs": [
+      {
+        "inside": true
+      }
+    ],
+    "height": 800,
+    "overflow": false,
+    "width": 1280
+  },
+  {
+    "state": "migration-review-zh",
+    "file": "migration-review-zh-1132x1028.jpg",
+    "dialogs": [
+      {
+        "inside": true
+      }
+    ],
+    "height": 1028,
+    "overflow": false,
+    "width": 1132
+  },
+  {
+    "state": "migration-review-zh",
+    "file": "migration-review-zh-1024x800.jpg",
+    "dialogs": [
+      {
+        "inside": true
+      }
+    ],
+    "height": 800,
+    "overflow": false,
+    "width": 1024
+  }
+]

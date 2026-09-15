@@ -1,4 +1,20 @@
 import os
+import tempfile
+from pathlib import Path
+
+_instance = tempfile.TemporaryDirectory(prefix="extrio-pytest-")
+_root = Path(_instance.name)
+for variable, relative in {
+    "EXTRIO_DATABASE_PATH": "extrio.db",
+    "EXTRIO_ARTIFACT_PATH": "artifacts",
+    "EXTRIO_SIGNING_PRIVATE_KEY_PATH": "keys/signing.pem",
+    "EXTRIO_CREDENTIAL_ENCRYPTION_KEY_PATH": "keys/credentials.key",
+}.items():
+    os.environ[variable] = str(_root / relative)
+
+
+def pytest_unconfigure(config):
+    _instance.cleanup()
 
 # Existing control-plane tests exercise endpoint behavior independently from the
 # authentication boundary. Dedicated authentication tests enable it explicitly.

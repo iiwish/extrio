@@ -1,8 +1,29 @@
 {
+  "execution": {
+    "title": "执行日志",
+    "view": "查看执行日志",
+    "collapse": "收起",
+    "details": "任务详情",
+    "errorCode": "错误代码",
+    "reason": "具体原因",
+    "requestId": "请求标识",
+    "errors": {
+      "browser_navigation_timed_out": "来源页面加载超时，自动重试后仍未完成。请稍后重试当前任务。",
+      "source_request_timed_out": "来源请求超时，请稍后重试。",
+      "browser_fetch_failed": "来源浏览器加载失败，未取得可验证的页面。",
+      "http_status_0": "浏览器未取得有效的页面响应。这条历史记录未区分超时与其他加载故障。"
+    },
+    "result": {
+      "succeeded": "执行完成",
+      "failed": "执行失败",
+      "cancelled": "执行已取消",
+      "timed_out": "执行超时"
+    }
+  },
   "notFound": {
     "title": "无法打开对象",
-    "backToCollectors": "返回采集器",
-    "missingCollector": "Collector 不存在"
+    "backToCollectors": "返回采集来源",
+    "missingCollector": "采集来源不存在"
   },
   "header": {
     "currentPhase": "当前阶段：",
@@ -12,9 +33,10 @@
     "runningNow": "正在运行",
     "runNow": "立即运行",
     "operationIncomplete": "操作未完成",
-    "viewsAria": "采集器详情视图",
+    "viewsAria": "采集来源详情视图",
     "ruleReviewTab": "规则审核",
-    "ruleTab": "规则",
+    "ruleTab": "规则与证据",
+    "resultsTab": "运行与结果",
     "configTab": "采集配置"
   },
   "evidenceSheet": {
@@ -22,6 +44,14 @@
     "description": "查看当前字段、规则或 Item 的采集证据与谱系。"
   },
   "overview": {
+    "firstRunPending": "规则已发布，尚未首次运行",
+    "deliveryStatus": "持续更新状态",
+    "manualDetail": "不会自动更新数据",
+    "viewConfig": "查看采集配置",
+    "runLoading": "正在读取最近运行结果",
+    "runUnavailable": "最近运行结果不可用",
+    "runUnavailableDetail": "结果确认前不显示样本推算值；可重试读取或进入运行详情检查。",
+    "needsAttention": "最近运行需要处理",
     "pagination": {
       "maxPages": "最多 {{maxPages}} 页",
       "nextLink": "连续翻页，最多 {{maxPages}} 页",
@@ -30,14 +60,14 @@
     },
     "runningTitle": "正在执行采集任务",
     "state": {
-      "published": "采集器已就绪",
+      "published": "采集规则已发布",
       "readyReview": "候选规则等待审核",
       "exploring": "正在生成候选规则",
       "draft": "来源定义已保存"
     },
     "description": {
       "running": "固定活动规则执行中，完成后会更新最近运行和检查点。",
-      "published": "活动规则和采集范围已生效，可直接运行或检查最近结果。",
+      "published": "运行使用已发布规则；结果与调度状态分别列示。",
       "readyReview": "候选字段和样本已准备好，需要完成人工决策后发布。",
       "exploring": "系统正在分析入口、分页、详情链接和字段质量。",
       "draft": "确认采集说明、入口网址和运行范围后生成候选规则。"
@@ -60,7 +90,8 @@
       "notPublished": "尚未发布",
       "publishedFrozen": "已发布并冻结",
       "awaitingReview": "生成候选规则后进入审核",
-      "runScope": "运行范围",
+      "runScope": "规则分页与策略",
+      "policyLimits": "策略上限 {{maxPages}} 页 · {{maxItems}} 条 · 回看 {{days}} 天",
       "lookbackSummary": "回看 {{days}} 天 · 上限 {{maxItems}} 条",
       "defaultPolicy": "使用默认采集策略",
       "latestRun": "最近运行",
@@ -109,6 +140,11 @@
   "review": {
     "blockingTitle": "{{total}} 项问题阻止发布",
     "blockingDetail": "：{{warning}}",
+    "recoveryExplanation": "该字段尚未通过样本验证，不代表来源网页没有该内容。AI 修复会重新采样并验证选择器，结果仍需人工审核。",
+    "recoveryConsequence": "不需要的可选字段可以排除，排除后该字段不再输出；接受风险不会补齐缺失内容。",
+    "repairField": "修复此字段",
+    "repairFieldAria": "让 AI 修复字段 {{key}}",
+    "repairGuidance": "修复字段 {{key}}（{{label}}）。\n当前问题：{{warning}}\n请重新采集完整样本，核对字段所在区域与选择器并重新验证。保留原输出字段、必填约束和质量门，不要通过排除字段、接受风险或填入占位值消除问题。",
     "warningJoin": "、",
     "viewEvidence": "查看证据",
     "clearTitle": "字段风险已处置",
@@ -133,7 +169,23 @@
     "excludeOption": "排除字段",
     "viewFieldEvidence": "查看{{label}}证据",
     "samplesTitle": "样本数据与质量结论",
-    "samplesDescription": "选择一条样本查看 Item 谱系、详情 URL 和采集版本。"
+    "samplesDescription": "选择一条样本查看 Item 谱系、详情 URL 和采集版本。",
+    "contractCoverageLabel": "契约覆盖度",
+    "missingRequiredLabel": "必填缺口",
+    "contractGapTitle": "{{total}} 个必填需求字段缺失",
+    "contractGapDetail": "未在当前来源网页中提取到，属于阻断性契约缺口，需人工核对或修改需求。",
+    "matchedContract": "已对齐契约",
+    "extraField": "新发现字段",
+    "missingFieldsTitle": "需求未覆盖字段（契约缺口）",
+    "missingFieldsDescription": "所属需求已定义但当前采集源未能提取到的字段。发布后将在入库时自动补空。",
+    "missingCount": "共 {{total}} 个未覆盖",
+    "requirementStatus": "需求状态",
+    "runtimeTreatment": "运行时处理",
+    "gapSeverity": "缺口影响",
+    "sourceNotProvided": "源站未提供",
+    "fillsNull": "自动补空 (null)",
+    "gapBlocker": "阻断 (必填缺失)",
+    "gapOptional": "安全 (选填缺口)"
   },
   "flow": {
     "singleAria": "单阶段采集流程",
@@ -164,18 +216,25 @@
     "detailUrlSamples": "发现的详情 URL 样本"
   },
   "config": {
-    "gridAria": "采集器定义与规则工作区",
+    "entryAria": "采集入口配置",
+    "entryTitle": "采集入口 URL",
+    "copyUrl": "复制采集入口 URL",
+    "openUrl": "打开采集入口",
+    "urlCopied": "URL 已复制",
+    "urlCopyFailed": "复制失败，请选择 URL 后手动复制。",
+    "outputDetails": "数据推送与投递记录",
+    "gridAria": "采集来源定义与规则工作区",
     "definition": {
-      "title": "采集器定义",
+      "title": "采集来源定义",
       "requirement": "所属需求",
       "intent": "来源采集说明",
       "dataContract": "数据合同",
       "edit": "编辑",
-      "dialogTitle": "编辑采集器定义",
-      "dialogDescription": "所属需求与数据合同保持不变；采集器名称用于识别来源，来源采集说明和入口网址共同决定候选规则。",
-      "name": "采集器名称",
+      "dialogTitle": "编辑采集来源定义",
+      "dialogDescription": "所属需求与数据合同保持不变；采集来源名称用于识别来源，来源采集说明和入口网址共同决定候选规则。",
+      "name": "采集来源名称",
       "newRuleTitle": "需要生成新规则",
-      "newRuleDescription": "当前候选将失效，已发布规则保持不可变并留作历史证据。",
+      "newRuleDescription": "保存后关闭调度并清除当前候选、活动规则和检查点。历史规则保持不可变；后续运行须重新探索、审核与发布。",
       "saveOnly": "仅保存定义",
       "save": "保存信息",
       "saveAndRegenerate": "保存并重新生成"
@@ -214,6 +273,14 @@
       "dialogDescription": "系统会重新访问 Source 并替换当前候选。已发布规则和历史 Run 不会改变；新候选必须重新审核和发布。",
       "confirm": "确认重新生成"
     },
+    "generate": {
+      "dialogTitle": "生成候选规则",
+      "dialogDescription": "系统将访问 Source、分析页面结构、编译受约束规则并执行确定性样本验证。结果必须经过人工审核才能发布。",
+      "guidanceLabel": "本次希望 AI 重点关注什么（可选）",
+      "guidancePlaceholder": "例如：标题在公告名称列，详情链接由每行的“查看”按钮打开",
+      "guidanceHint": "仅用于本次任务，最多 500 字。它不会放宽网络、安全、数据合同、验证或人工审核门。",
+      "confirm": "开始生成"
+    },
     "editor": {
       "editRule": "编辑规则",
       "dialogDescription": "修改 selector 与分页，保存后生成新的待审核候选。",
@@ -249,7 +316,7 @@
   "schedule": {
     "panelAria": "定时运行计划",
     "title": "定时运行",
-    "description": "控制采集器何时自动执行；已有运行尚未结束时跳过本次，不并发重复采集。",
+    "description": "控制采集来源何时自动执行；已有运行尚未结束时跳过本次，不并发重复采集。",
     "configure": "配置计划",
     "dialogTitle": "配置定时运行",
     "dialogDescription": "使用常用频率即可，Cron 仅在自定义模式下需要填写。",
@@ -331,6 +398,10 @@
         "titleList": "正在获取列表入口",
         "detail": "传输协议与主机边界已确认，正在读取 Source 响应。"
       },
+      "analyzingStructure": {
+        "title": "AI 正在分析页面结构",
+        "detail": "模型正在识别重复记录、字段位置和可执行的列表规则。"
+      },
       "discoveringDetails": {
         "title": "正在识别分页与详情链接",
         "detail": "正在生成列表 selector、分页策略和 detail URL 规则。"
@@ -338,6 +409,10 @@
       "fetchingDetails": {
         "title": "正在采集详情样本",
         "detail": "每个 detail URL 都在重新执行网络边界和请求预算检查。"
+      },
+      "compilingRule": {
+        "title": "AI 正在编译候选规则",
+        "detail": "模型正在把意图和样本转换为受约束的 RulePlan。"
       },
       "validating": {
         "titleSingle": "正在验证直接提取字段",
@@ -356,17 +431,26 @@
     "stage": {
       "queued": "排队",
       "fetch": "获取入口",
+      "analysis": "AI 结构分析",
+      "compile": "AI 规则编译",
       "validate": "字段验证",
       "finale": "候选终结"
     },
     "stageList": {
       "queued": "排队",
       "listPages": "列表分页",
+      "analysis": "AI 结构分析",
       "detailDiscovery": "详情发现",
       "detailFetch": "详情采集",
+      "compile": "AI 规则编译",
       "validate": "字段验证",
       "finale": "候选终结"
-    }
+    },
+    "viewDetails": "查看实时执行详情"
+  },
+  "queueStalled": {
+    "title": "等待 Worker 超时",
+    "detail": "任务尚未被领取。请确认 extrio-worker 正在运行，并与 API 使用同一数据库；Worker 恢复后任务会自动继续。"
   },
   "runs": {
     "phase": {
@@ -422,7 +506,6 @@
     "title": "发布规则？",
     "description": "发布后规则内容不可变。请确认字段决定与质量检查结果。",
     "reviewer": "审核人",
-    "reviewerName": "林然",
     "fieldDecisions": "字段决定",
     "decisionSummary": "{{approved}} 确认 · {{riskAccepted}} 接受风险 · {{excluded}} 排除",
     "qualityChecks": "质量检查",
@@ -441,14 +524,14 @@
     "dialogDescription": "AI 将重新探索站点并生成修复候选规则。修复保留原数据契约（输出字段与质量门不变），必须经过人工审核后才能发布。",
     "noteLabel": "修复原因（可选）",
     "notePlaceholder": "例如：站点改版导致列表 selector 失效",
-    "notApplicable": "该采集器没有可修复的规则",
+    "notApplicable": "该采集来源没有可修复的规则",
     "confirm": "启动修复",
     "repairing": "正在启动修复"
   },
   "evidence": {
     "export": "导出证据包",
     "exporting": "正在导出",
-    "exportAria": "导出该采集器的签名证据包（ZIP）",
+    "exportAria": "导出该采集来源的签名证据包（ZIP）",
     "bundleError": "证据包生成失败，请调整范围后重试"
   }
 }

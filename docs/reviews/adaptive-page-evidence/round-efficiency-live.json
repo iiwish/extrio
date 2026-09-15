@@ -1,0 +1,126 @@
+{
+  "status": "validated",
+  "model": "glm-5.3-flash",
+  "provider": "custom",
+  "sourceUrl": "https://ggzyfw.beijing.gov.cn/jyxxgcjszbjh/index.html",
+  "maxCalls": 16,
+  "published": false,
+  "databaseWrites": 0,
+  "calls": [
+    {
+      "purpose": "discover",
+      "call": 1,
+      "action": "expand_nodes",
+      "requests": [
+        {
+          "pageId": "list-1",
+          "nodeId": "n234",
+          "cursor": null
+        }
+      ],
+      "status": "returned"
+    },
+    {
+      "purpose": "discover",
+      "call": 2,
+      "action": "expand_nodes",
+      "requests": [
+        {
+          "pageId": "list-1",
+          "nodeId": "n238",
+          "cursor": null
+        }
+      ],
+      "status": "returned"
+    },
+    {
+      "purpose": "discover",
+      "call": 3,
+      "action": "propose_rule",
+      "status": "returned"
+    },
+    {
+      "purpose": "compile",
+      "call": 4,
+      "action": "propose_rule",
+      "status": "returned"
+    },
+    {
+      "purpose": "compile",
+      "call": 5,
+      "action": "propose_rule",
+      "status": "returned"
+    }
+  ],
+  "previewCount": 3,
+  "accepted": 3,
+  "candidatePath": "/tmp/extrio-round-efficiency-verification/candidate.json",
+  "diagnostic": {
+    "version": "adaptive-dom-v1",
+    "phase": "validated",
+    "budget": {
+      "calls": 5,
+      "maxCalls": 16,
+      "inputTokens": 20423,
+      "outputTokens": 1386,
+      "maxInputTokens": 120000,
+      "maxOutputTokens": 16000,
+      "contextTokens": 32768,
+      "tokenMethod": "utf8_upper_estimate",
+      "elapsedSeconds": 56.83,
+      "maxSeconds": 240,
+      "stopReason": null,
+      "startedAt": "2026-09-11T10:26:22.765703+00:00"
+    },
+    "pages": [
+      {
+        "pageId": "list-1",
+        "indexedNodes": 557,
+        "readNodes": 0,
+        "readFragmentChars": 0
+      },
+      {
+        "pageId": "detail-1",
+        "indexedNodes": 358,
+        "readNodes": 0,
+        "readFragmentChars": 0
+      },
+      {
+        "pageId": "detail-2",
+        "indexedNodes": 358,
+        "readNodes": 0,
+        "readFragmentChars": 0
+      },
+      {
+        "pageId": "detail-3",
+        "indexedNodes": 358,
+        "readNodes": 0,
+        "readFragmentChars": 0
+      }
+    ],
+    "reads": [
+      {
+        "pageId": "list-1",
+        "nodeId": "n234",
+        "action": "expand_nodes",
+        "digest": "sha256:69ab8c4f6795589c81b2077ec716fa384a9c2363f0d09b073ce72380691fe8be",
+        "start": 0,
+        "end": 13,
+        "complete": true
+      },
+      {
+        "pageId": "list-1",
+        "nodeId": "n238",
+        "action": "expand_nodes",
+        "digest": "sha256:69ab8c4f6795589c81b2077ec716fa384a9c2363f0d09b073ce72380691fe8be",
+        "start": 0,
+        "end": 2,
+        "complete": true
+      }
+    ],
+    "validation": [],
+    "validated": true,
+    "limitsSource": "conservative_default"
+  },
+  "collectorUnchanged": true
+}
