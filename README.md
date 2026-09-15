@@ -1,95 +1,92 @@
+<div align="center">
+
 # Extrio
 
+**Web data you can trace. Collection rules you control.**
+
+AI-assisted rule creation. Human-reviewed publication. Deterministic execution.
+
+[Website](https://extrio.ouvo.ai) · [Quick Start](#quick-start) · [Documentation](#documentation) · [中文](README.zh-CN.md)
+
 [![CI](https://github.com/iiwish/extrio/actions/workflows/ci.yml/badge.svg)](https://github.com/iiwish/extrio/actions/workflows/ci.yml)
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![Status: Public Alpha](https://img.shields.io/badge/Status-Public_Alpha-orange.svg)](docs/releases/public-alpha-readiness.md)
 
-Extrio is a self-hosted, trusted web data pipeline for data operations teams. It
-turns public or authorized list/detail sources into reviewable extraction rules,
-then runs approved rules deterministically with item-level lineage and evidence.
-Its initial focus is tender, regulatory, and public-notice workflows where teams
-need to explain what was collected and exactly how it was produced.
+</div>
 
-The repository contains a desktop React operations console and a Python control
-plane with exploration and execution workers, durable operations, SQLite state,
-and contract-first APIs.
+Extrio is a **self-hosted web data collection platform for data operations teams**. Turn public or authorized websites into structured data using reviewable extraction rules, then trace every collected item back to its source, run, and rule version.
 
-> **Project status:** v0.6 self-hosted public alpha. Current proof is repository-local: automated
-> tests, deterministic fixtures, contract checks, and desktop visual reviews. A hosted trial,
-> external-user validation, published scale benchmarks, and hardened multi-tenant operation are not
-> yet claimed. Keep the API and worker behind the bundled web proxy and review
-> [SECURITY.md](SECURITY.md) before deployment.
+Built around tender, regulatory, and public-notice workflows, Extrio helps teams answer more than “did the scraper run?”: **What did we collect, what was rejected, and how was this result produced?**
 
-Extrio's product boundary is deliberate: AI assists onboarding, a human approves
-the generated rule, and production runs execute the frozen rule without an LLM.
-Extrio is not a general crawler toolkit, webpage chatbot, or autonomous agent platform.
+![Extrio desktop console showing collected data, totals, and pagination](docs/reviews/unified-list-pagination/items-1440.png)
 
-## What is included
+*Local acceptance instance with demonstration data, not a hosted trial. [Explore the console walkthrough](docs/showcase.md).*
 
-- Intent-driven collector creation with reusable collection requirements.
-- Batch collector creation from an imported URL list with per-URL validation.
-- Evidence-based rule review and immutable rule publication.
-- Durable AI rule-task history with a live structured activity timeline, attempts, model usage,
-  optional one-run operator guidance, and review status. Raw prompts, model reasoning, page bodies,
-  and model response bodies are not exposed as logs.
-- Two-stage list discovery and detail extraction with deterministic execution.
-- Scheduled and manual runs with incremental checkpoints and quality gates.
-- Multi-user local accounts with role-based access control: administrator (full access plus user
-  management), engineer (collector, exploration, run, schedule, and sink operations), reviewer (rule
-  review and publication), and viewer (read-only access with export).
-- Prometheus `/metrics` endpoint with scrape-time counters for collectors, runs, items, deliveries,
-  and sinks, plus build info (`EXTRIO_METRICS_ENABLED`; enabled by default and unauthenticated by
-  design, so bind it to an internal interface).
-- AI rule auto-repair: re-explore a changed site, preserve the frozen data contract, and route the
-  repaired candidate through human review before publication.
-- Signed evidence-bundle export: a verifiable ZIP containing rules, attestations, runs, item
-  lineage, and SHA256SUMS — signed with the same Ed25519 key as rule attestations.
-- MCP server for AI agents: governed collection creation and attested data queries over stdio or
-  token-protected HTTP (see [MCP Server](#mcp-server)).
-- Item lineage, revisions, rejection evidence, and operational dashboards.
-- Bilingual operations console (中文 / English) with an in-app language switcher.
-- Versioned JSON Schema and OpenAPI contracts under `docs/contracts`.
+> **Public alpha.** The self-hosted workflow is implemented and backed by repository-local tests and review evidence. Arbitrary-site compatibility, production-scale capacity, hardened multi-tenancy, and a production SLA are not claimed. Read the [security policy](SECURITY.md) before deployment.
 
-## Product maturity
+## Why Extrio
 
-- **Available now:** the self-hosted vertical workflow, constrained AI rule generation and repair,
-  human review and publication, deterministic runs, evidence export, Webhook delivery, and MCP access.
-- **Experimental:** broad compatibility across real-world websites, browser-rendered sources, drift
-  recovery quality, and operating limits beyond the repository fixtures.
-- **Planned:** a hosted evaluation environment, a curated public source corpus, published benchmarks,
-  client SDKs, and production multi-tenant hardening.
+Data operations need more than extracted text. They need repeatable rules, explicit review, and enough evidence to investigate failures without guessing.
 
-## Console preview
+| What you need | What Extrio provides |
+| --- | --- |
+| A shared definition of the data | Reusable collection requirements, field definitions, and versioned output contracts. |
+| Less hand-written extraction setup | AI-assisted exploration and candidate rules with sample evidence for review. |
+| Control over production changes | Human publication of immutable, signed rules. Repair candidates return to review. |
+| Repeatable collection | Manual and scheduled runs execute frozen rules without an LLM at collection time. |
+| Results you can investigate | Item lineage, revisions, quality decisions, rejected records, and run evidence. |
+| Data usable outside the console | CSV/JSONL export, Webhook delivery, signed evidence bundles, and governed MCP tools. |
 
-![Collection requirements with shared numbered pagination](docs/reviews/unified-list-pagination/collections-1440.png)
+**AI proposes; people publish; the worker executes.** Extrio is not a webpage chatbot, a general-purpose crawler toolkit, or an agent that silently rewrites its production rules.
 
-![Collection requirement fields and output contract](docs/reviews/collection-detail-polish/fields-1440.png)
+## From Source to Structured Data
 
-![Collected items with explicit totals and page navigation](docs/reviews/unified-list-pagination/items-1440.png)
+1. **Define the requirement.** Describe the collection goal and expected fields so multiple sources can share a data contract.
+2. **Add sources.** Enter a source URL or import a URL list with per-URL validation. Configure a model for AI exploration.
+3. **Review the rule.** Inspect candidate fields and sample evidence, resolve problems, and explicitly publish an approved version.
+4. **Run and monitor.** Collect manually or on a schedule. Inspect outcomes, quality rejections, checkpoints, and collection-scope limits.
+5. **Use the results.** Query or export records, deliver them to a Webhook, or retrieve them through MCP with their lineage.
 
-These desktop screenshots come from repository-local acceptance instances, not a
-hosted service. See the [three-minute walkthrough](docs/showcase.md) for the
-demonstration sequence and the distinction between deterministic and AI evidence.
+A successful run does not automatically mean complete coverage. Page limits, missing pages, and quality rejections remain part of the result, not details hidden behind a success badge.
 
-The console ships in Chinese and switches to English from Settings → Interface
-language. The choice is remembered per device.
+<details>
+<summary><strong>See requirements and field contracts</strong></summary>
 
-## Repository layout
+![Collection requirements](docs/reviews/unified-list-pagination/collections-1440.png)
 
-```text
-backend/             FastAPI control plane, worker, storage, and tests
-web/                 React desktop console and frontend tests
-docs/contracts/      OpenAPI, JSON Schema, examples, and semantics
-docs/architecture/   Architecture decisions
-docs/releases/       Acceptance contract and documentation manifest
-docs/reviews/        Visual QA evidence and review records
-docker/              Production-style container definitions
-scripts/             Local development and verification utilities
+![Requirement fields and output contract](docs/reviews/collection-detail-polish/fields-1440.png)
+
+</details>
+
+The desktop console supports **中文 and English**, with a per-device language setting. Supported viewport widths start at **1024px**; mobile is outside the current scope.
+
+## Quick Start
+
+### Docker Compose
+
+Install Git and Docker with the Compose plugin, then run:
+
+```bash
+git clone https://github.com/iiwish/extrio.git
+cd extrio
+docker compose up --build --wait
 ```
 
-## Quick start from source
+Open **[http://127.0.0.1:8080](http://127.0.0.1:8080)** and create the first administrator account. Passwords require at least 8 characters. The stack includes the console, API, and worker, with persistent state in a named volume. The initial image build installs browser dependencies and may take several minutes.
 
-Prerequisites: [uv](https://docs.astral.sh/uv/), Python 3.12, Node.js 22, pnpm,
-and Chromium installed through Crawl4AI.
+A local tender source is seeded for evaluation. **Fresh AI rule generation requires a configured model and credentials**; the key-free deterministic smoke test below validates execution, not AI generation.
+
+Stop the stack without deleting your data:
+
+```bash
+docker compose down
+```
+
+Do not add `-v` unless you intend to delete the database, keys, and artifacts in the volume. If a default port is occupied, choose unused ports with `EXTRIO_API_PORT` and `EXTRIO_WEB_PORT`.
+
+### From Source
+
+Prerequisites: Git, **Python 3.12**, [uv](https://docs.astral.sh/uv/), **Node.js 22**, and the pnpm version pinned in [web/package.json](web/package.json). Run from a clone of this repository:
 
 ```bash
 uv sync --project backend --locked --python 3.12
@@ -98,106 +95,105 @@ pnpm --dir web install --frozen-lockfile
 ./scripts/dev.sh
 ```
 
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173). The API documentation is
-available at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) after login.
-The first page creates the instance administrator; passwords must contain at least 8 characters. A local
-tender source is seeded automatically, so the full workflow can be evaluated
-without scraping a third-party site.
+Open **[http://127.0.0.1:5173](http://127.0.0.1:5173)**. The API uses port `8000`, with interactive documentation at `/docs` after login. Stop the local processes with `./scripts/stop.sh`.
 
-Stop the local processes with `./scripts/stop.sh`.
+For isolated instances, set `EXTRIO_INSTANCE_DIR`, `EXTRIO_API_PORT`, and `EXTRIO_WEB_PORT`; use the same instance directory when stopping. The launcher checks port conflicts and waits for worker readiness.
 
-For isolated instances, set `EXTRIO_INSTANCE_DIR`, `EXTRIO_API_PORT`, and
-`EXTRIO_WEB_PORT`; use the same instance directory when stopping. The launcher
-rejects occupied ports before starting processes and waits for Worker readiness.
-See the [self-hosted operations guide](docs/self-hosted-operations.md) for supported
-source boundaries, SQLite/PostgreSQL upgrades, diagnostics, key rotation,
-full-instance backup/restore, API/MCP clients, and observation procedures.
+### Try Collection Without a Model Key
 
-## Run with containers
-
-Docker Compose runs the web console, API, and worker from the same source and
-persists local state in a named volume.
-
-`/healthz` is API liveness only. `/readyz` requires a fresh, deployment-matched
-Worker and usable key material. `extrio-doctor` additionally checks migrations,
-artifact access, restore state, and backup tools without creating missing state.
+After installing the backend dependencies:
 
 ```bash
-docker compose up --build
+uv run --project backend python scripts/benchmark.py --collectors 1 --pages 1
 ```
 
-Open [http://127.0.0.1:8080](http://127.0.0.1:8080). Stop the stack with
-`docker compose down`. Add `-v` only when you intentionally want to delete the
-local database, keys, and artifacts.
+This executes a hand-written, signed rule through the real worker against a bundled local source in temporary storage. It makes no third-party scraping requests, incurs no model charges, and does not write to your existing instance. It is an execution smoke test, not a compatibility or capacity benchmark.
 
-Production TLS termination must set `EXTRIO_AUTH_COOKIE_SECURE=true`. The default localhost
-configuration intentionally uses a non-secure cookie so HTTP evaluation works.
+## Capabilities and Boundaries
+
+| Area | Current scope |
+| --- | --- |
+| Sources | Constrained HTML/JSON extraction, single-page and list/detail workflows, declared pagination, and bounded browser rendering. Broad real-world compatibility remains experimental. |
+| Incremental collection | Checkpoints and controlled time windows for supported date-ordered `next_link` sources, not arbitrary cursors or infinite scrolling. |
+| AI assistance | Rule generation and repair, structured task history, attempts, model usage, and one-run guidance. No raw prompts, reasoning, or model response bodies in activity logs. |
+| Governance | Local administrator, engineer, reviewer, and viewer roles; human publication, signed attestations, and audit records. No enforced independent two-person approval. |
+| Operations | Durable work, schedules, readiness checks, diagnostics, backup/restore, key rotation, and Prometheus metrics. |
+| Storage | SQLite WAL for local evaluation; PostgreSQL for self-hosted deployments; shared filesystem artifacts. |
+| Evidence | Item/run/rule lineage and signed evidence bundles. Sampled page evidence is not a complete replay engine; evidence ZIPs are not disaster-recovery backups. |
+
+Production login flows, CAPTCHA or access-control bypass, universal website support, SSO/MFA, multi-tenant isolation, and distributed high availability are outside the validated scope. Use only public or explicitly authorized sources and respect their access conditions.
+
+See the [operations guide](docs/self-hosted-operations.md) for exact restrictions and the [roadmap](ROADMAP.md) for direction. The [1.0 scope contract](docs/planning/v1.0-scope-matrix.md) describes a delivery target, not a claim that a stable release has shipped.
 
 ## MCP Server
 
-Extrio ships a [Model Context Protocol](https://modelcontextprotocol.io) server
-(`extrio-mcp`) so AI agents such as Claude Code, Cursor, DeepSeek, or Doubao can
-use Extrio as a governed data-collection tool instead of scraping freely. Unlike
-generic crawl MCPs, three properties hold:
-
-- **Governed creation** — `create_collection` is an engineer-equivalent action that
-  queues AI exploration, but the candidate rule lands in the human review queue.
-  No data is collected until a reviewer publishes the rule; agents cannot publish rules.
-- **Deterministic runs** — `trigger_run` executes an already-published,
-  integrity-verified frozen rule. No LLM is involved at runtime.
-- **Attested data** — every item read back carries the rule version, run, and
-  artifact lineage that produced it.
-
-The server opens the same store as `extrio-api` and `extrio-worker`
-(`EXTRIO_DATABASE_URL` / `EXTRIO_DATABASE_PATH`), and never returns secrets.
+Extrio exposes seven tools for AI clients through `extrio-mcp`:
 
 | Tool | Purpose |
 | --- | --- |
-| `list_collectors` | Summaries: status, source host, active rule version, schedule, last run outcome. |
-| `get_collector` | Detail: entry URL, intent, rule fields from the frozen GatherSpec, last 5 runs, sinks. |
-| `query_items` | Deterministic, cursor-paginated item pages with collector/decision filters. |
-| `get_item` | Full item record: extracted data, decision evidence, lineage, observations. |
-| `trigger_run` | Queue a run against the published rule; fails while another run is active. |
-| `create_collection` | Create a governed source and queue exploration for human review. |
-| `get_run` | Run status, counts, stop reason, integrity verification, checkpoint. |
+| `list_collectors` | List sources, publication state, schedules, and recent outcomes. |
+| `get_collector` | Inspect a source, frozen fields, recent runs, and delivery sinks. |
+| `create_collection` | Create a governed source and queue AI exploration for human review. |
+| `trigger_run` | Queue collection against an already-published, integrity-verified rule. |
+| `get_run` | Inspect status, counts, stop reason, integrity checks, and checkpoint. |
+| `query_items` | Read filtered, cursor-paginated records. |
+| `get_item` | Inspect data, decision evidence, observations, and full lineage. |
 
-Stdio (default) for local, trusted clients:
+**There is no rule-publication tool.** An agent can request exploration, but a human must publish the rule before a collection run can use it.
 
-```bash
-uv run --project backend extrio-mcp            # or extrio-mcp once installed
-```
-
-```json
-{
-  "mcpServers": {
-    "extrio": {
-      "command": "extrio-mcp"
-    }
-  }
-}
-```
-
-Streamable HTTP, enabled only with a bearer token (`EXTRIO_MCP_TOKEN`; requests
-without a matching `Authorization: Bearer <token>` header receive `401`):
+For trusted local clients, launch from the repository root:
 
 ```bash
-EXTRIO_MCP_TOKEN=change-me extrio-mcp --transport http --host 127.0.0.1 --port 8818
+uv run --project backend extrio-mcp
 ```
 
-```json
-{
-  "mcpServers": {
-    "extrio": {
-      "url": "http://127.0.0.1:8818/mcp",
-      "headers": {
-        "Authorization": "Bearer change-me"
-      }
-    }
-  }
-}
+For Streamable HTTP, set a strong secret in `EXTRIO_MCP_TOKEN`, then launch:
+
+```bash
+uv run --project backend extrio-mcp --transport http --host 127.0.0.1 --port 8818
 ```
 
-## Verification
+The endpoint is `http://127.0.0.1:8818/mcp` and requires `Authorization: Bearer <token>`. MCP must use the **same database, artifact directory, and signing/encryption keys** as the API and worker. The HTTP token grants access to all seven tools; it is not a browser user's role-scoped session. Use TLS for remote access. See [API and MCP client guidance](docs/self-hosted-operations.md#api-与-mcp-客户端).
+
+## Self-Hosting Safely
+
+- Keep the API and worker off the public internet; route console traffic through the bundled web proxy and a controlled TLS reverse proxy.
+- Set `EXTRIO_AUTH_COOKIE_SECURE=true` behind HTTPS. The local HTTP evaluation profile intentionally defaults to `false`.
+- Protect credentials, signing keys, persistent volumes, and outbound network access. Never reuse development keys in production.
+- Back up the database, artifacts, and keys together, and test restoration before upgrading.
+- Restrict `/metrics` to trusted monitoring access: it is unauthenticated by design. `/healthz` proves API liveness; `/readyz` also checks the worker and deployment/key consistency.
+
+Read [SECURITY.md](SECURITY.md) and the [operations guide](docs/self-hosted-operations.md) before handling sensitive data or exposing an instance beyond localhost.
+
+## Documentation
+
+Several detailed design and operations documents are maintained in Chinese; API contracts and code identifiers are shared across both languages.
+
+| Start here | What you will find |
+| --- | --- |
+| [Console walkthrough](docs/showcase.md) | A three-minute product tour and local screenshots. |
+| [Product definition](docs/SSOT.md) · [Product contract](docs/product-contract.md) | Goals, scope, and behavioral boundaries. |
+| [Operations guide](docs/self-hosted-operations.md) | Configuration, PostgreSQL, upgrades, diagnostics, backup/restore, and keys. |
+| [Backend architecture](docs/backend-vertical-slice.md) · [Architecture decisions](docs/architecture/) | Runtime responsibilities and design decisions. |
+| [API contract](docs/contracts/api-contract.md) · [OpenAPI](docs/contracts/openapi.yaml) | Integration contracts, schemas, and examples. |
+| [Rules guide](docs/rules-guide.md) | Extraction rules and their semantics. |
+| [Release readiness](docs/releases/public-alpha-readiness.md) · [Roadmap](ROADMAP.md) | Release gates, evidence limits, and future direction. |
+
+## Development and Contribution
+
+The repository maintains one frontend and one backend package:
+
+```text
+backend/             Python / FastAPI control plane, worker, MCP, storage, tests
+web/                 React / TypeScript / Vite / Tailwind CSS / shadcn/ui console
+docs/contracts/      OpenAPI, JSON Schema, examples, extraction semantics
+docs/architecture/   Architecture decisions
+docs/reviews/        Review records and desktop QA evidence
+docker/              Container definitions
+scripts/             Development, verification, and operations utilities
+```
+
+Run checks from the repository root:
 
 ```bash
 uv run --project backend ruff check backend/src backend/tests
@@ -206,53 +202,14 @@ uv run --project backend python scripts/update-docset-manifest.py --check
 pnpm --dir web test
 pnpm --dir web lint
 pnpm --dir web build
-bash scripts/verify-source.sh
-./scripts/verify-compose.sh
 ```
 
-Run the commands from the repository root. The explicit pytest configuration is
-required: `uv --project` selects the Python project but does not change directory.
-PostgreSQL integration tests require `EXTRIO_TEST_DATABASE_URL`; without it those
-tests are skipped. Container verification requires a running Docker daemon.
-The disposable source check uses ports 18100 and 15173; the container check uses
-18000 and 18080. Set `EXTRIO_API_PORT` and `EXTRIO_WEB_PORT` to unused ports when
-needed. Neither check should take over another application's listener.
+PostgreSQL integration tests require an isolated `EXTRIO_TEST_DATABASE_URL`; otherwise they are skipped. Installation smoke checks are `bash scripts/verify-source.sh` and `./scripts/verify-compose.sh` (requires Docker). They use ports `18100`/`15173` and `18000`/`18080` respectively; override `EXTRIO_API_PORT` and `EXTRIO_WEB_PORT` when needed. Build the backend wheel with `uv build --project backend --wheel`.
 
-For a disposable first collection without a model key or third-party traffic:
+Contributions to source fixtures, reproducible bug reports, documentation, translations, and focused fixes are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md), and open an [issue](https://github.com/iiwish/extrio/issues) before starting a large behavioral or contract change. Include relevant tests and desktop evidence for UI changes.
 
-```bash
-uv run --project backend python scripts/benchmark.py --collectors 1 --pages 1
-```
+For help and project decisions, see [SUPPORT.md](SUPPORT.md) and [GOVERNANCE.md](GOVERNANCE.md). Report vulnerabilities **privately** using [SECURITY.md](SECURITY.md), not in a public issue.
 
-This executes a hand-written, signed rule through the real worker against the
-bundled local source in temporary storage. It verifies deterministic execution,
-not AI generation quality or production capacity.
+## License
 
-The [release readiness checklist](docs/releases/public-alpha-readiness.md) records
-the remaining commit, CI and stable-release gates.
-
-The backend can also be built as a wheel. Its contract bundle is included in the
-artifact, so the installed package does not depend on a source checkout:
-
-```bash
-uv build --project backend --wheel
-```
-
-## Design and contracts
-
-The canonical product position lives in [docs/SSOT.md](docs/SSOT.md). Start with
-[docs/product-contract.md](docs/product-contract.md) for product boundaries,
-[docs/backend-vertical-slice.md](docs/backend-vertical-slice.md) for runtime
-architecture, and [docs/contracts/api-contract.md](docs/contracts/api-contract.md)
-for the API contract.
-
-## Contributing and license
-
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before proposing a change and report
-vulnerabilities according to [SECURITY.md](SECURITY.md). Extrio is licensed under
-the [Apache License 2.0](LICENSE).
-
-Project decisions and support boundaries live in [GOVERNANCE.md](GOVERNANCE.md),
-[ROADMAP.md](ROADMAP.md), and [SUPPORT.md](SUPPORT.md). Tagged releases publish
-`linux/amd64` and `linux/arm64` GHCR images with SBOM, provenance, vulnerability gates, and
-keyless signatures.
+Extrio is licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for attribution notices.
