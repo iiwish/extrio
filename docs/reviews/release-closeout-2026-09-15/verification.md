@@ -48,3 +48,5 @@
 后续代码、检查状态与合并记录统一见 [PR #19](https://github.com/iiwish/extrio/pull/19)，不绕过失败门禁合并修复。
 
 TLS 修复后的本地 `test_source_network.py`、`test_source_samples.py`、`test_ci_prerequisites.py` 合计 57 passed，27.55 秒；相关 Ruff 与 `git diff --check` 通过。
+
+本机 ARM64 对 `7684960` 的最终容器验收退出码为 0：使用项目 `extrio-e2e-closeout-final-20260915`、端口 18100/18180 和独立镜像标签，从空卷启动 API/Worker/Web，完成 readiness、首次管理员、未登录拒绝、登录读取、退出后拒绝验证。脚本已删除该项目的容器、卷与网络，未影响 5173/8000 主实例。GitHub Linux 容器记录与本机 ARM64 记录分别成立。
