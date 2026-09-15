@@ -1,10 +1,9 @@
-import { useQuery } from '@tanstack/react-query'
 import type { TFunction } from 'i18next'
 import { ArrowRight, Bot, Clock3, PlayCircle, RefreshCw, Search, Sparkles, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api } from '@/api/client'
-import type { AiRun, Run } from '@/api/types'
+import type { AiRun, Run, RunPage, AiRunPage } from '@/api/types'
 import { StatusBadge } from '@/components/status-badge'
 import { collectorDisplayName } from '@/features/collectors/collector-presentation'
 import { Badge } from '@/components/ui/badge'
@@ -13,36 +12,33 @@ import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { QueryError } from '@/components/query-error'
+import { ListWorkspace } from '@/components/list-workspace'
+import { useListQuery } from '@/lib/use-list-query'
 import { useWorkspaceLink } from '@/lib/workspace-navigation'
 import { runTimestamp } from '@/lib/content-presentation'
 
-const attentionStatuses = ['partially_succeeded', 'failed', 'timed_out']
-
 export function RunsPage() {
   const { t } = useTranslation('runs')
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams] = useSearchParams()
   const view = searchParams.get('view') === 'ai' ? 'ai' : 'collection'
   const requestedFilter = searchParams.get('status') ?? 'all'
   const filter = (view === 'ai' ? ['all','running','attention','review'] : ['all','attention','succeeded']).includes(requestedFilter) ? requestedFilter : 'all'
   const search = searchParams.get('q') ?? ''
-  const runsQuery = useQuery({ queryKey: ['runs'], queryFn: api.runs, enabled: view === 'collection' })
-  const aiRunsQuery = useQuery({
-    queryKey: ['ai-runs'],
-    queryFn: () => api.aiRuns(),
+  const runsList = useListQuery({ queryKey: ['runs', 'list', filter, search], queryFn: (page, signal) => api.runsPage({ ...page, status: filter, q: search.trim() || undefined }, signal), enabled: view === 'collection' })
+  const aiList = useListQuery({
+    queryKey: ['ai-runs', 'list', filter, search],
+    queryFn: (page, signal) => api.aiRunsPage({ ...page, status: filter, q: search.trim() || undefined }, signal),
     enabled: view === 'ai',
-    refetchInterval: (current) => current.state.data?.some((run) => ['queued', 'running', 'finalizing'].includes(run.status)) ? 1000 : false,
+    refetchInterval: (current) => (current.state.data?.counts?.running ?? 0) > 0 ? 1000 : false,
   })
 
   function updateParam(key: 'view' | 'status' | 'q', value: string, emptyValue: string) {
-    const next = new URLSearchParams(searchParams)
-    if (!value || value === emptyValue) next.delete(key)
-    else next.set(key, value)
-    if (key === 'view') next.delete('status')
-    setSearchParams(next)
+    const list = view === 'ai' ? aiList : runsList
+    list.updateParams({ [key]: !value || value === emptyValue ? null : value, ...(key === 'view' ? { status: null } : {}) })
   }
 
   return (
-    <div className="page-frame entity-page runs-page">
+    <div className="page-frame entity-page runs-page list-page">
       <h1 className="sr-only">{t('title')}</h1>
       <Tabs value={view} onValueChange={(value) => updateParam('view', value, 'collection')} className="runs-view-tabs">
         <div className="run-workspace-nav runs-view-nav">
@@ -54,84 +50,69 @@ export function RunsPage() {
       </Tabs>
 
       {view === 'collection'
-        ? <CollectionRunsView query={runsQuery} filter={filter} search={search} updateParam={updateParam} />
-        : <AiRunsView query={aiRunsQuery} filter={filter} search={search} updateParam={updateParam} />}
+        ? <CollectionRunsView list={runsList} filter={filter} search={search} updateParam={updateParam} />
+        : <AiRunsView list={aiList} filter={filter} search={search} updateParam={updateParam} />}
     </div>
   )
 }
 
-type RunsQuery = ReturnType<typeof useQuery<Run[]>>
-type AiRunsQuery = ReturnType<typeof useQuery<AiRun[]>>
+type RunsList = ReturnType<typeof useListQuery<RunPage>>
+type AiRunsList = ReturnType<typeof useListQuery<AiRunPage>>
 type UpdateParam = (key: 'view' | 'status' | 'q', value: string, emptyValue: string) => void
 
-function CollectionRunsView({ query, filter, search, updateParam }: { query: RunsQuery; filter: string; search: string; updateParam: UpdateParam }) {
+function CollectionRunsView({ list, filter, search, updateParam }: { list: RunsList; filter: string; search: string; updateParam: UpdateParam }) {
   const { t } = useTranslation('runs')
-  const runs = query.data ?? []
-  const normalizedSearch = search.trim().toLowerCase()
-  const filtered = runs.filter((run) => {
-    const matchesStatus = filter === 'all' || (filter === 'attention' ? attentionStatuses.includes(run.status) : run.status === 'succeeded')
-    const matchesSearch = !normalizedSearch || `${run.collectorName} ${run.id}`.toLowerCase().includes(normalizedSearch)
-    return matchesStatus && matchesSearch
-  })
-  const attentionCount = runs.filter((run) => attentionStatuses.includes(run.status)).length
+  const { query } = list
+  const filtered = query.data?.items ?? []
+  const count = (key: string) => query.data?.counts?.[key] ?? '—'
 
-  return <>
-    <div className="filter-card runs-toolbar" aria-label={t('toolbar.aria')}>
+  return <ListWorkspace label={t('list.aria')} count={query.data?.total} loading={query.isLoading} refreshing={query.isFetching} failed={query.isError} resetKey={list.resetKey} pagination={list.pagination}
+    notices={<QueryError error={query.error} onRetry={() => void query.refetch()} retrying={query.isFetching} />}
+    toolbar={<div className="filter-card runs-toolbar" aria-label={t('toolbar.aria')}>
       <div className="segmented" role="group" aria-label={t('toolbar.filterAria')}>
-        <Button aria-pressed={filter === 'all'} variant={filter === 'all' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('status', 'all', 'all')}>{t('filter.all')} <span>{query.data ? runs.length : '—'}</span></Button>
-        <Button aria-pressed={filter === 'attention'} variant={filter === 'attention' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('status', 'attention', 'all')}>{t('filter.attention')} <span>{query.data ? attentionCount : '—'}</span></Button>
-        <Button aria-pressed={filter === 'succeeded'} variant={filter === 'succeeded' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('status', 'succeeded', 'all')}>{t('filter.succeeded')} <span>{query.data ? runs.filter((run) => run.status === 'succeeded').length : '—'}</span></Button>
+        <Button aria-pressed={filter === 'all'} variant={filter === 'all' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('status', 'all', 'all')}>{t('filter.all')} <span>{count('all')}</span></Button>
+        <Button aria-pressed={filter === 'attention'} variant={filter === 'attention' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('status', 'attention', 'all')}>{t('filter.attention')} <span>{count('attention')}</span></Button>
+        <Button aria-pressed={filter === 'succeeded'} variant={filter === 'succeeded' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('status', 'succeeded', 'all')}>{t('filter.succeeded')} <span>{count('succeeded')}</span></Button>
       </div>
       <RunToolbarActions refreshing={query.isFetching} search={search} onSearch={(value) => updateParam('q', value, '')} onRefresh={() => query.refetch()} label={t('toolbar.searchLabel')} placeholder={t('toolbar.searchPlaceholder')} />
-    </div>
-    <QueryError error={query.error} onRetry={() => void query.refetch()} retrying={query.isFetching} />
-
-    <section className="object-list run-object-list" aria-label={t('list.aria')}>
+    </div>}>
+    <div className="object-list run-object-list">
       <div className="object-list-head run-grid" aria-hidden="true">
         <span>{t('list.colRun')}</span><span>{t('list.colStatus')}</span><span>{t('list.colAccepted')}</span><span>{t('list.colRejected')}</span><span>{t('list.colScope')}</span><span>{t('list.colTime')}</span><span />
       </div>
       {query.isLoading && Array.from({ length: 6 }, (_, index) => <Skeleton className="run-list-skeleton" key={index} />)}
       {filtered.map((run) => <RunRow run={run} key={run.id} />)}
       {query.data && filtered.length === 0 && <div className="card-empty run-list-empty">{t('list.empty')}</div>}
-    </section>
-  </>
+    </div>
+  </ListWorkspace>
 }
 
-function AiRunsView({ query, filter, search, updateParam }: { query: AiRunsQuery; filter: string; search: string; updateParam: UpdateParam }) {
+function AiRunsView({ list, filter, search, updateParam }: { list: AiRunsList; filter: string; search: string; updateParam: UpdateParam }) {
   const { t } = useTranslation('runs')
-  const runs = query.data ?? []
-  const normalizedSearch = search.trim().toLowerCase()
-  const isAttention = (run: AiRun) => run.status === 'failed' || run.resultStatus === 'no_candidate'
-  const filtered = runs.filter((run) => {
-    const matchesStatus = filter === 'all'
-      || (filter === 'running' && ['queued', 'running', 'finalizing'].includes(run.status))
-      || (filter === 'attention' && isAttention(run))
-      || (filter === 'review' && !run.collectorDeleted && run.reviewStatus === 'ready_review')
-    const matchesSearch = !normalizedSearch || `${run.collectorName} ${run.sourceUrl}`.toLowerCase().includes(normalizedSearch)
-    return matchesStatus && matchesSearch
-  })
+  const { query } = list
+  const filtered = query.data?.items ?? []
+  const count = (key: string) => query.data?.counts?.[key] ?? '—'
 
-  return <>
-    <div className="filter-card runs-toolbar" aria-label={t('toolbar.aiAria')}>
+  return <ListWorkspace label={t('aiList.aria')} count={query.data?.total} loading={query.isLoading} refreshing={query.isFetching} failed={query.isError} resetKey={list.resetKey} pagination={list.pagination}
+    notices={<QueryError error={query.error} onRetry={() => void query.refetch()} retrying={query.isFetching} />}
+    toolbar={<div className="filter-card runs-toolbar" aria-label={t('toolbar.aiAria')}>
       <div className="segmented" role="group" aria-label={t('toolbar.aiFilterAria')}>
-        <Button aria-pressed={filter === 'all'} variant={filter === 'all' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('status', 'all', 'all')}>{t('filter.all')} <span>{query.data ? runs.length : '—'}</span></Button>
-        <Button aria-pressed={filter === 'running'} variant={filter === 'running' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('status', 'running', 'all')}>{t('filter.running')} <span>{query.data ? runs.filter((run) => ['queued', 'running', 'finalizing'].includes(run.status)).length : '—'}</span></Button>
-        <Button aria-pressed={filter === 'review'} variant={filter === 'review' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('status', 'review', 'all')}>{t('filter.review')} <span>{query.data ? runs.filter((run) => !run.collectorDeleted && run.reviewStatus === 'ready_review').length : '—'}</span></Button>
-        <Button aria-pressed={filter === 'attention'} variant={filter === 'attention' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('status', 'attention', 'all')}>{t('filter.attention')} <span>{query.data ? runs.filter(isAttention).length : '—'}</span></Button>
+        <Button aria-pressed={filter === 'all'} variant={filter === 'all' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('status', 'all', 'all')}>{t('filter.all')} <span>{count('all')}</span></Button>
+        <Button aria-pressed={filter === 'running'} variant={filter === 'running' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('status', 'running', 'all')}>{t('filter.running')} <span>{count('running')}</span></Button>
+        <Button aria-pressed={filter === 'review'} variant={filter === 'review' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('status', 'review', 'all')}>{t('filter.review')} <span>{count('review')}</span></Button>
+        <Button aria-pressed={filter === 'attention'} variant={filter === 'attention' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('status', 'attention', 'all')}>{t('filter.attention')} <span>{count('attention')}</span></Button>
       </div>
       <RunToolbarActions refreshing={query.isFetching} search={search} onSearch={(value) => updateParam('q', value, '')} onRefresh={() => query.refetch()} label={t('toolbar.aiSearchLabel')} placeholder={t('toolbar.aiSearchPlaceholder')} />
-    </div>
-    <QueryError error={query.error} onRetry={() => void query.refetch()} retrying={query.isFetching} />
-
-    <section className="object-list run-object-list ai-run-object-list" aria-label={t('aiList.aria')}>
+    </div>}>
+    <div className="object-list run-object-list ai-run-object-list">
       <div className="object-list-head ai-run-grid" aria-hidden="true">
         <span>{t('aiList.colCollector')}</span><span>{t('aiList.colTask')}</span><span>{t('aiList.colStatus')}</span><span>{t('aiList.colResult')}</span><span>{t('aiList.colModelUsage')}</span><span>{t('aiList.colTime')}</span><span />
       </div>
       {query.isLoading && Array.from({ length: 5 }, (_, index) => <Skeleton className="run-list-skeleton" key={index} />)}
       {filtered.map((run) => <AiRunRow run={run} key={run.id} />)}
       {query.data && filtered.length === 0 && <div className="card-empty run-list-empty">{t('aiList.empty')}</div>}
-    </section>
-  </>
+    </div>
+  </ListWorkspace>
 }
 
 function RunToolbarActions({ search, onSearch, onRefresh, label, placeholder, refreshing }: { search: string; onSearch: (value: string) => void; onRefresh: () => void; label: string; placeholder: string; refreshing: boolean }) {

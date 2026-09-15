@@ -1,0 +1,94 @@
+[
+  {
+    "surface": "partial",
+    "width": 1440,
+    "height": 900,
+    "documentWidth": 1440,
+    "overflow": false,
+    "selected": "仅拒绝"
+  },
+  {
+    "surface": "partial",
+    "width": 1280,
+    "height": 800,
+    "documentWidth": 1280,
+    "overflow": false,
+    "selected": "仅拒绝"
+  },
+  {
+    "surface": "partial",
+    "width": 1132,
+    "height": 1028,
+    "documentWidth": 1132,
+    "overflow": false,
+    "selected": "仅拒绝"
+  },
+  {
+    "surface": "partial",
+    "width": 1024,
+    "height": 800,
+    "documentWidth": 1024,
+    "overflow": false,
+    "selected": "仅拒绝"
+  },
+  {
+    "surface": "alignment",
+    "width": 1440,
+    "height": 900,
+    "documentWidth": 1440,
+    "overflow": false
+  },
+  {
+    "surface": "alignment",
+    "width": 1280,
+    "height": 800,
+    "documentWidth": 1280,
+    "overflow": false
+  },
+  {
+    "surface": "alignment",
+    "width": 1132,
+    "height": 1028,
+    "documentWidth": 1132,
+    "overflow": false
+  },
+  {
+    "surface": "alignment",
+    "width": 1024,
+    "height": 800,
+    "documentWidth": 1024,
+    "overflow": false
+  },
+  {
+    "surface": "source",
+    "width": 1440,
+    "height": 900,
+    "documentWidth": 1440,
+    "manual": "仅手动运行不会自动更新数据查看采集配置",
+    "overflow": false
+  },
+  {
+    "surface": "source",
+    "width": 1280,
+    "height": 800,
+    "documentWidth": 1280,
+    "manual": "仅手动运行不会自动更新数据查看采集配置",
+    "overflow": false
+  },
+  {
+    "surface": "source",
+    "width": 1132,
+    "height": 1028,
+    "documentWidth": 1132,
+    "manual": "仅手动运行不会自动更新数据查看采集配置",
+    "overflow": false
+  },
+  {
+    "surface": "source",
+    "width": 1024,
+    "height": 800,
+    "documentWidth": 1024,
+    "manual": "仅手动运行不会自动更新数据查看采集配置",
+    "overflow": false
+  }
+]

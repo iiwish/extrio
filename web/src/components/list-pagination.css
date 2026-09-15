@@ -1,0 +1,11 @@
+.list-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 32px; font-size: 12px; font-variant-numeric: tabular-nums; }
+.list-pagination-range { color: #59656e; white-space: nowrap; }
+.list-pagination-controls, .list-pagination-size, .list-pagination-buttons, .list-pagination-jump { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.list-pagination-controls { gap: 16px; }
+.list-pagination-size { gap: 8px; }
+.list-pagination-size select { height: 32px; width: 64px; padding: 0 7px; border: 1px solid #dfe4e9; border-radius: 6px; background: #fff; color: #26333d; }
+.list-pagination-jump input { width: 60px; height: 32px; padding: 0 6px; text-align: center; font-size: 12px; appearance: textfield; }
+.list-pagination-jump input::-webkit-inner-spin-button, .list-pagination-jump input::-webkit-outer-spin-button { appearance: none; margin: 0; }
+.list-pagination-size select:focus-visible { outline: 2px solid #315acb; outline-offset: 2px; }
+.list-pagination-size select:disabled { opacity: .5; }
+@media (max-width: 1132px) { .list-pagination-controls { gap: 10px; } }

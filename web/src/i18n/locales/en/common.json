@@ -1,4 +1,25 @@
 {
+  "pagination": {
+    "aria": "List pagination",
+    "range": "Rows {{start}}–{{end}} of {{total}}",
+    "unavailable": "Row and page counts unavailable",
+    "pageSize": "Rows per page",
+    "page": "Current page",
+    "pages": "/ {{totalPages}} pages",
+    "first": "First page",
+    "previous": "Previous page",
+    "next": "Next page",
+    "last": "Last page",
+    "jump": "Go to page"
+  },
+  "listWorkspace": {
+    "count": "{{count}} records",
+    "loaded": "{{count}} loaded",
+    "loadedTotal": "{{count}} / {{total}} loaded",
+    "unavailable": "Count unavailable",
+    "stale": "Not refreshed · Showing previous results",
+    "refreshing": "Refreshing"
+  },
   "g2": {
   "templates": "Field templates",
   "templateNotice": "Applying replaces the saved field draft. It does not publish a version.",
@@ -89,6 +110,8 @@
     "required": "Required", "identity": "Identity", "fingerprint": "Change detection", "editNamed": "Edit field {{name}}", "deleteNamed": "Remove field {{name}}",
     "extra": "Source-only field", "matches": "Matches", "differs": "Different constraints", "noFields": "No fields defined",
     "undoDelete": "Undo removal", "saveDraft": "Save field draft", "importSource": "Add missing fields from a source", "schema": "Full output schema and quality rules",
+    "tools": "Field tools",
+    "coverageMeaning": "Coverage counts sources containing this field; it does not confirm matching constraints or versions.",
     "generateFromSource": "Generate fields from source",
     "generateFromSourceDesc": "Select a collection source with extracted fields to populate or synchronize requirement fields.",
     "selectSource": "Select source",
@@ -216,6 +239,13 @@
     "lineageChainAria": "Lineage chain"
   },
   "collections": {
+    "alignmentPending_one": "{{count}} source has not applied the latest field requirements",
+    "alignmentPending_other": "{{count}} sources have not applied the latest field requirements",
+    "alignmentDetail": "Field requirements are published as v{{version}}. These sources still use their existing rules and are not updated automatically.",
+    "alignmentCount": "Sources using field requirements v{{version}}: {{count}}/{{total}}",
+    "alignmentUnknown_one": "Version unknown for {{count}} active source",
+    "alignmentUnknown_other": "Version unknown for {{count}} active sources",
+    "inspectAlignment": "View source field versions",
     "expandGoal": "Show full intent", "collapseGoal": "Collapse intent", "saved": "Requirement saved", "discardReload": "Discard edits and reload",
     "name": "Requirement name",
     "edit": "Edit basic information",
@@ -249,6 +279,7 @@
     "count": "{{count}} requirement",
     "count_other": "{{count}} requirements",
     "create": "New requirement",
+    "createSubmit": "Create requirement",
     "intent": "Collection intent",
     "version": "Field version",
     "sources": "Sources",

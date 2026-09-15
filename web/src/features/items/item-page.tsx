@@ -13,6 +13,9 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { DetailPanel } from '@/components/detail-panel'
+import '@/features/runs/run-detail.css'
+import './item-detail.css'
 import { QueryError } from '@/components/query-error'
 import { useWorkspaceLink, useWorkspaceSection } from '@/lib/workspace-navigation'
 import { readableContent } from '@/lib/content-presentation'
@@ -64,7 +67,7 @@ export function ItemPage() {
           </div>
 
           <TabsContent value="content" className="run-tab-panel item-tab-panel">
-            <section aria-label={t('detail.summaryAria')} className={`item-record-summary ${item.decision === 'accepted' ? 'success' : 'danger'}`}>
+            <DetailPanel aria-label={t('detail.summaryAria')} className={`item-record-summary ${item.decision === 'accepted' ? 'success' : 'danger'}`}>
               <div className="item-summary-heading">
                 <div><h2>{item.decision === 'accepted' ? t('detail.normalizedAvailable') : t('detail.rejectedByGate')}</h2><p>{item.changeType ? changeTypeLabel(item.changeType, t) : t('detail.notVersioned')}</p></div>
                 <dl className="item-summary-facts">
@@ -74,34 +77,33 @@ export function ItemPage() {
                   <div><dt>{t('detail.observationCount')}</dt><dd>{t('detail.observationCountValue', { count: item.observationHistory.length })}</dd></div>
                 </dl>
               </div>
-            </section>
+            </DetailPanel>
 
-            <section className="run-detail-section item-record-section">
-              <header><div><h2>{t('detail.announcementTitle')}</h2><p>{t('detail.announcementSubtitle')}</p></div></header>
+            <DetailPanel className="run-detail-section item-record-section">
+              <header><div><h2>{t('detail.announcementTitle')}</h2><p>{t('detail.announcementSubtitle')}</p></div>{body.isHtml && <div className="segmented" role="group" aria-label={t('detail.bodyView')}><Button size="sm" variant={rawContent ? 'ghost' : 'secondary'} aria-pressed={!rawContent} onClick={() => setRawContent(false)}>{t('detail.readable')}</Button><Button size="sm" variant={rawContent ? 'secondary' : 'ghost'} aria-pressed={rawContent} onClick={() => setRawContent(true)}><Braces />HTML</Button></div>}</header>
               {businessFacts.length > 0 && <dl className="item-business-fields">
                 {businessFacts.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
               </dl>}
               <div className={`item-body-reading${item.content ? '' : ' is-empty'}`}>
-                <div className="item-body-toolbar"><h3>{t('detail.announcementBody')}</h3>{body.isHtml && <div className="segmented" role="group" aria-label={t('detail.bodyView')}><Button size="sm" variant={rawContent ? 'ghost' : 'secondary'} aria-pressed={!rawContent} onClick={() => setRawContent(false)}>{t('detail.readable')}</Button><Button size="sm" variant={rawContent ? 'secondary' : 'ghost'} aria-pressed={rawContent} onClick={() => setRawContent(true)}><Braces />HTML</Button></div>}</div>
                 {rawContent && body.isHtml ? <pre className="item-raw-content">{item.content}</pre> : <p>{body.text || t('detail.bodyMissing')}</p>}
               </div>
-            </section>
+            </DetailPanel>
           </TabsContent>
 
           <TabsContent value="revisions" className="run-tab-panel item-tab-panel">
-            <section className="run-detail-section">
+            <DetailPanel className="run-detail-section">
               <header><div><h2>{t('detail.revisionTitle')}</h2><p>{revisionLabel} · {item.changeType ? changeTypeLabel(item.changeType, t) : t('detail.noPublishableVersion')}</p></div><Badge variant="outline">{t('detail.changeCount', { count: item.changeSummary.length })}</Badge></header>
               {item.changeSummary.length > 0 ? <div className="revision-diff item-revision-diff">{item.changeSummary.map((change) => <div key={change.field}><code>{change.field}</code><span className="diff-before">− {change.before}</span><ArrowRight /><span className="diff-after">+ {change.after}</span></div>)}</div> : <div className="revision-empty"><GitCompareArrows /><div><strong>{item.revision === null ? t('detail.revisionNotGenerated') : t('detail.firstRevision')}</strong><p>{item.revision === null ? t('detail.revisionRejectedDetail') : t('detail.firstRevisionDetail')}</p></div></div>}
-            </section>
+            </DetailPanel>
 
-            <section className="run-detail-section">
+            <DetailPanel className="run-detail-section">
               <header><div><h2>{t('detail.observationTitle')}</h2><p>{t('detail.observationSubtitle')}</p></div></header>
               {item.observationHistory.length > 0 ? <div className="observation-list item-observation-list">{item.observationHistory.map((observation, index) => <div key={observation.id}><span className="observation-marker">{index === item.observationHistory.length - 1 ? <CheckCircle2 /> : <History />}</span><div><strong>{observation.observedAt}</strong><StatusBadge status={observation.outcome} /><small><Link to={workspaceLink(`/runs/${observation.runId}`)}>{t('detail.viewObservationRun')} <ArrowRight /></Link></small></div></div>)}</div> : <div className="card-empty">{t('detail.observationEmpty')}</div>}
-            </section>
+            </DetailPanel>
           </TabsContent>
 
           <TabsContent value="quality" className="run-tab-panel item-tab-panel">
-            <section className="run-detail-section">
+            <DetailPanel className="run-detail-section">
               <header><div><h2>{t('detail.qualityTitle')}</h2><p>{item.decision === 'accepted' ? t('detail.qualityAcceptedDetail') : t('detail.qualityRejectedDetail')}</p></div></header>
               {item.rejectionReason && <div className="rejection-banner item-quality-rejection"><strong>{t('detail.rejectionReason')}</strong><p>{item.rejectionReason}</p></div>}
               <div className="run-proof-grid item-quality-grid">
@@ -110,11 +112,11 @@ export function ItemPage() {
                 <article className="verified"><Network /><span><strong>{t('detail.sourceBoundaryPassed')}</strong><small>{item.sourceHost}</small></span></article>
                 <article className={item.content ? 'verified' : 'neutral'}><FileText /><span><strong>{item.content ? t('detail.bodyExtracted') : t('detail.bodyNotExtracted')}</strong><small>{item.content ? t('detail.bodyAvailable') : t('detail.bodyOptional')}</small></span></article>
               </div>
-            </section>
+            </DetailPanel>
           </TabsContent>
 
           <TabsContent value="lineage" className="run-tab-panel item-tab-panel">
-            <section className="run-detail-section item-lineage-section">
+            <DetailPanel className="run-detail-section item-lineage-section">
               <header><div><h2>{t('detail.lineageTitle')}</h2><p>{t('detail.lineageSubtitle')}</p></div><Fingerprint /></header>
               <div className="item-lineage-links">
                 <article><Network /><span><small>{t('detail.collectorLabel')}</small>{item.collectorDeleted ? <strong>{collectorSourceLabel(item.collectorName, item.sourceHost)}</strong> : <Link to={workspaceLink(`/collectors/${item.collectorId}`)}>{collectorSourceLabel(item.collectorName, item.sourceHost)} <ArrowRight /></Link>}</span></article>
@@ -133,7 +135,7 @@ export function ItemPage() {
                   <div><dt>Artifact ID</dt><dd><code>{item.lineage.artifactId}</code></dd></div>
                 </dl>
               </details>
-            </section>
+            </DetailPanel>
           </TabsContent>
         </Tabs>
       </div>

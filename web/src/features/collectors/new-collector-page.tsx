@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import i18next from 'i18next'
-import { ArrowRight, CheckCircle2, CircleAlert, Download, FileUp, Globe2, Layers3, ListPlus, Trash2, XCircle } from 'lucide-react'
+import { ArrowRight, CheckCircle2, CircleAlert, CircleHelp, Download, FileUp, Globe2, Layers3, ListPlus, Trash2, XCircle } from 'lucide-react'
 import { useMemo, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
-import { Link, useBeforeUnload, useBlocker, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useBeforeUnload, useBlocker, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '@/api/client'
 import type { BatchCollectorImportResult, CreateCollectorsInput } from '@/api/types'
@@ -13,7 +13,10 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { returnTarget } from '@/lib/workspace-navigation'
+import { CollectorsPage } from './collectors-page'
+import './new-collector.css'
 import {
   MAX_SOURCE_FILE_BYTES,
   MAX_SOURCE_ROWS,
@@ -99,7 +102,6 @@ export function NewCollectorPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [searchParams] = useSearchParams()
-  const location = useLocation()
   const creationContext = collectorCreationContext(searchParams)
   const requestedCollectionId = creationContext.collectionId
   const collectorsQuery = useQuery({ queryKey: ['collections'], queryFn: api.collections })
@@ -251,9 +253,11 @@ export function NewCollectorPage() {
   }
 
   return (
-    <div className="page-frame narrow-page">
-      <h1 className="sr-only">{location.pathname === '/collections/new' ? t('common:collections.create') : t('create.title')}</h1>
-
+    <>
+      <CollectorsPage />
+      <Dialog open onOpenChange={(open) => { if (!open && !mutation.isPending) navigate(creationContext.returnPath) }}>
+      <DialogContent className="collector-create-dialog" aria-describedby={undefined} showCloseButton={!mutation.isPending} onInteractOutside={(event) => event.preventDefault()} onEscapeKeyDown={(event) => { if (mutation.isPending || blocker.state === 'blocked') event.preventDefault() }}>
+      <DialogHeader><DialogTitle>{t('create.title')}</DialogTitle></DialogHeader>
       <form className="collector-form collector-create-form" onSubmit={submit} noValidate>
         {collectorsQuery.isError && <Alert variant="destructive"><AlertDescription>{collectorsQuery.error.message}<Button type="button" variant="outline" onClick={() => collectorsQuery.refetch()}>{t('common:action.retry')}</Button></AlertDescription></Alert>}
         {requestedCollectionId && collectorsQuery.isSuccess && !collections.some((value) => value.id === requestedCollectionId)
@@ -277,20 +281,21 @@ export function NewCollectorPage() {
           <div className="collector-create-heading source-heading">
             <div><h2>{t('create.sources.heading')}</h2><p>{t('create.sources.headingHelp')}</p></div>
             <div className="source-file-actions">
+              <TooltipProvider delayDuration={300}><Tooltip>
+                <TooltipTrigger asChild><Button type="button" variant="ghost" size="icon-sm" className="source-format-help" aria-label={t('create.sources.formatTitle')}><CircleHelp /></Button></TooltipTrigger>
+                <TooltipContent side="bottom" align="end">{t('create.sources.formatHelp')}</TooltipContent>
+              </Tooltip></TooltipProvider>
               <Button type="button" variant="ghost" size="sm" onClick={downloadCsvTemplate}><Download />{t('create.sources.template')}</Button>
               <Button type="button" variant="outline" size="sm" aria-label={t('create.sources.importAria')} onClick={() => fileInputRef.current?.click()}><FileUp />{t('create.sources.import')}</Button>
               <input ref={fileInputRef} hidden tabIndex={-1} type="file" accept=".txt,.csv,text/plain,text/csv" onChange={(event) => void importSourceFile(event)} />
             </div>
           </div>
-          <div className="source-format-note" id="source-format-note">
-            <strong>{t('create.sources.formatTitle')}</strong>
-            <span>{t('create.sources.formatHelp')}</span>
-          </div>
+          <span className="sr-only" id="source-format-help">{t('create.sources.formatHelp')}</span>
           {sourceImportError && <Alert className="source-import-error" variant="destructive" role="alert"><AlertDescription>{sourceImportError}</AlertDescription></Alert>}
           <div className="form-fields source-form-fields">
             <label className="field-group" htmlFor="source-urls">
               <span>{t('create.sources.manualLabel')}</span>
-              <div className="source-batch-input"><Globe2 /><Textarea ref={sourceInputRef} id="source-urls" value={sourceInput} aria-invalid={Boolean(formErrors.sources)} aria-describedby={`source-format-note${formErrors.sources ? ' source-error' : ''}`} onChange={(event) => { setSourceInput(event.target.value); setFormErrors((current) => ({ ...current, sources: undefined })) }} placeholder={'http://www.ccgp-beijing.gov.cn/yxgk/sjcgyx/A002003001index_1.htm\nhttp://www.ccgp-beijing.gov.cn/yxgk/qjcgyx/A002003002index_1.htm'} rows={6} /></div>
+              <div className="source-batch-input"><Globe2 /><Textarea ref={sourceInputRef} id="source-urls" value={sourceInput} aria-invalid={Boolean(formErrors.sources)} aria-describedby={`source-format-help${formErrors.sources ? ' source-error' : ''}`} onChange={(event) => { setSourceInput(event.target.value); setFormErrors((current) => ({ ...current, sources: undefined })) }} placeholder={'http://www.ccgp-beijing.gov.cn/yxgk/sjcgyx/A002003001index_1.htm\nhttp://www.ccgp-beijing.gov.cn/yxgk/qjcgyx/A002003002index_1.htm'} rows={6} /></div>
               {formErrors.sources && <small id="source-error" className="field-error">{formErrors.sources}</small>}
             </label>
 
@@ -329,16 +334,18 @@ export function NewCollectorPage() {
 
         <div className="form-actions collector-create-actions">
           <span className={canSubmit ? 'form-readiness ready' : 'form-readiness'}>{readiness}</span>
-          <Button asChild variant="ghost"><Link to={location.pathname === '/collections/new' ? '/collections' : creationContext.returnPath}>{t('common:action.cancel')}</Link></Button>
+          <Button type="button" variant="ghost" disabled={mutation.isPending} onClick={() => navigate(creationContext.returnPath)}>{t('common:action.cancel')}</Button>
           <Button type="submit" size="lg" disabled={!canSubmit}>
             {mutation.isPending ? t('create.creating') : <><ListPlus />{t('create.createCount', { count: validCount })}<ArrowRight /></>}
           </Button>
         </div>
       </form>
+      </DialogContent>
+      </Dialog>
       <Dialog open={blocker.state === 'blocked'} onOpenChange={open => { if (!open && blocker.state === 'blocked') blocker.reset() }}>
         <DialogContent onCloseAutoFocus={event => { event.preventDefault(); sourceInputRef.current?.focus() }}><DialogHeader><DialogTitle>{t('leave.title')}</DialogTitle><DialogDescription>{t('leave.description')}</DialogDescription></DialogHeader><DialogFooter><Button variant="outline" disabled={mutation.isPending} onClick={() => blocker.state === 'blocked' && blocker.reset()}>{t('common:fields.keepEditing')}</Button><Button variant="destructive" disabled={mutation.isPending} onClick={() => blocker.state === 'blocked' && blocker.proceed()}>{t('common:fields.discardLeave')}</Button></DialogFooter></DialogContent>
       </Dialog>
-    </div>
+    </>
   )
 }
 

@@ -1,13 +1,14 @@
 import { useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Check, LayoutTemplate, LoaderCircle, RefreshCw, Sparkles } from 'lucide-react'
+import { Check, ChevronDown, Copy, LayoutTemplate, LoaderCircle, RefreshCw, Sparkles, WandSparkles } from 'lucide-react'
 import { api } from '@/api/client'
 import type { CollectionDetail, CollectionField } from '@/api/types'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
 export function FieldContractValue({ field }: { field: CollectionField | null | undefined }) {
   const { t } = useTranslation('common')
@@ -15,13 +16,19 @@ export function FieldContractValue({ field }: { field: CollectionField | null | 
   return <div className="g2-field-value"><strong>{field.label}</strong><span>{t(`fields.types.${field.type}`)} · {t(field.required ? 'fields.required' : 'fields.optional')}{field.identity && ` · ${t('fields.identity')}`}{field.fingerprint && ` · ${t('fields.fingerprint')}`}</span>{field.description && <small>{field.description}</small>}</div>
 }
 
-export function CollectionFieldTools({ requirement, disabled }: { requirement: CollectionDetail; disabled: boolean }) {
+export function CollectionFieldTools({ requirement, disabled, onImportSource }: { requirement: CollectionDetail; disabled: boolean; onImportSource?: (trigger: HTMLButtonElement | null) => void }) {
   const { t } = useTranslation('common')
   const [dialog, setDialog] = useState<{ type: 'template' | 'ai'; revision: number } | null>(null)
   const trigger = useRef<HTMLButtonElement | null>(null)
   return <>
-    <Button size="sm" variant="outline" disabled={disabled} onClick={(event) => { trigger.current = event.currentTarget; setDialog({ type: 'template', revision: requirement.revision }) }}><LayoutTemplate />{t('g2.templates')}</Button>
-    <Button size="sm" variant="outline" disabled={disabled} onClick={(event) => { trigger.current = event.currentTarget; setDialog({ type: 'ai', revision: requirement.revision }) }}><Sparkles />{t('g2.ai')}</Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild><Button ref={trigger} size="sm" variant="outline" disabled={disabled}><WandSparkles />{t('fields.tools')}<ChevronDown /></Button></DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-52" onCloseAutoFocus={event => { if (dialog) event.preventDefault() }}>
+        <DropdownMenuItem onSelect={() => setDialog({ type: 'template', revision: requirement.revision })}><LayoutTemplate />{t('g2.templates')}</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => setDialog({ type: 'ai', revision: requirement.revision })}><Sparkles />{t('g2.ai')}</DropdownMenuItem>
+        {onImportSource && <DropdownMenuItem onSelect={() => onImportSource(trigger.current)}><Copy />{t('fields.generateFromSource')}</DropdownMenuItem>}
+      </DropdownMenuContent>
+    </DropdownMenu>
     {dialog && <FieldToolsDialog key={dialog.type} requirement={requirement} mode={dialog.type} revision={dialog.revision} onClose={() => setDialog(null)} restoreFocus={() => trigger.current?.focus()} />}
   </>
 }

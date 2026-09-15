@@ -1,0 +1,33 @@
+.item-workbench .item-page-header > div { flex: 1; }
+.item-workbench .item-page-header > a { flex-shrink: 0; }
+.item-workbench .item-page-header .title-line { flex-wrap: wrap; gap: 8px; }
+.item-workbench .item-page-header h1 { max-width: 100%; }
+.item-workbench .item-summary-heading { padding: 20px; grid-template-columns: minmax(180px, .8fr) minmax(0, 2fr); gap: 24px; }
+.item-workbench .item-summary-heading h2 { font-size: 14px; line-height: 22px; }
+.item-workbench .item-summary-heading p { font-size: 12px; line-height: 18px; }
+.item-workbench .item-summary-facts { gap: 16px; }
+.item-workbench .item-summary-facts > div { border: 0; padding: 0; }
+.item-workbench .item-summary-facts dt,
+.item-workbench .item-business-fields dt { font-size: 12px; line-height: 18px; font-weight: 400; }
+.item-workbench .item-summary-facts dd,
+.item-workbench .item-business-fields dd { font-size: 13px; line-height: 20px; }
+.item-workbench .item-business-fields { padding: 4px 20px 16px; gap: 20px; border: 0; }
+.item-workbench .item-business-fields > div { padding: 0; border: 0; }
+.item-workbench .item-body-reading { padding: 12px 20px 24px; }
+.item-workbench .item-body-toolbar { flex-wrap: wrap; gap: 12px; }
+.item-workbench .item-body-reading h3 { font-size: 14px; line-height: 22px; }
+.item-workbench .item-body-reading > p { max-width: 90ch; font-size: 14px; line-height: 26px; }
+.item-workbench .item-raw-content { padding: 16px; background: #f5f7f8; border-radius: 4px; font-size: 12px; }
+.item-workbench .item-lineage-links { grid-template-columns: minmax(0, 1fr); padding: 0 20px 16px; gap: 0; }
+.item-workbench .item-lineage-links article { min-height: 72px; padding: 12px 0; border: 0; background: transparent; border-radius: 0; }
+.item-workbench .item-lineage-links small { font-size: 12px; font-weight: 400; }
+.item-workbench .item-lineage-links a { font-size: 13px; line-height: 20px; }
+.item-workbench .item-observation-list { padding: 0 20px 16px; }
+.item-workbench .item-observation-list > div { padding: 12px 0; border: 0; }
+.item-workbench .item-observation-list > div > div { grid-template-columns: minmax(140px, 1fr) minmax(80px, .5fr) minmax(160px, 1fr); }
+.item-workbench .item-revision-diff { padding: 0 20px 16px; }
+.item-workbench .item-revision-diff > div { padding: 12px 0; }
+.item-workbench .item-revision-diff span { white-space: pre-wrap; overflow-wrap: anywhere; min-width: 0; }
+@media (max-width: 1199px) {
+  .item-workbench .item-summary-heading { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+}

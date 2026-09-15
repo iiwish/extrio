@@ -35,7 +35,8 @@
     "operationIncomplete": "Operation not completed",
     "viewsAria": "Source detail views",
     "ruleReviewTab": "Rule review",
-    "ruleTab": "Rules",
+    "ruleTab": "Rule & evidence",
+    "resultsTab": "Runs & results",
     "configTab": "Configuration"
   },
   "evidenceSheet": {
@@ -43,6 +44,10 @@
     "description": "View collection evidence and lineage for the current field, rule, or item."
   },
   "overview": {
+    "firstRunPending": "Rule published; first run pending",
+    "deliveryStatus": "Continuous update status",
+    "manualDetail": "Data will not update automatically",
+    "viewConfig": "View collection settings",
     "runLoading": "Loading latest run results",
     "runUnavailable": "Latest run results unavailable",
     "runUnavailableDetail": "Results are not inferred from samples. Retry loading or inspect the run details.",
@@ -55,14 +60,14 @@
     },
     "runningTitle": "Collection task in progress",
     "state": {
-      "published": "Source is ready",
+      "published": "Collection rule published",
       "readyReview": "Candidate rule awaiting review",
       "exploring": "Generating candidate rules",
       "draft": "Source definition saved"
     },
     "description": {
       "running": "The pinned active rule is executing; the latest run and checkpoint update on completion.",
-      "published": "The active rule and collection scope are in effect; run now or inspect the latest results.",
+      "published": "Runs use the published rule; results and scheduling are reported separately.",
       "readyReview": "Candidate fields and samples are ready; complete manual decisions before publishing.",
       "exploring": "The system is analyzing the entry, pagination, detail links, and field quality.",
       "draft": "Confirm the collection brief, entry URL, and run scope, then generate candidate rules."
@@ -85,7 +90,8 @@
       "notPublished": "Not published",
       "publishedFrozen": "Published and frozen",
       "awaitingReview": "Review after candidate rules are generated",
-      "runScope": "Run scope",
+      "runScope": "Rule pagination & policy",
+      "policyLimits": "Policy cap {{maxPages}} pages · {{maxItems}} items · {{days}}-day lookback",
       "lookbackSummary": "Look back {{days}} days · cap {{maxItems}} items",
       "defaultPolicy": "Using the default collection policy",
       "latestRun": "Latest run",
@@ -210,6 +216,13 @@
     "detailUrlSamples": "Discovered detail URL samples"
   },
   "config": {
+    "entryAria": "Collection entry configuration",
+    "entryTitle": "Collection entry URL",
+    "copyUrl": "Copy collection entry URL",
+    "openUrl": "Open collection entry",
+    "urlCopied": "URL copied",
+    "urlCopyFailed": "Copy failed. Select the URL and copy it manually.",
+    "outputDetails": "Data delivery & history",
     "gridAria": "Source definition and rule workspace",
     "definition": {
       "title": "Source definition",

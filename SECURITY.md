@@ -21,6 +21,19 @@ can be disabled only for isolated development and automated test environments wi
 Runtime state under `backend/data`, including generated signing and encryption
 keys, is development-only and must never be committed or reused in production.
 
+## Dependency advisory boundary
+
+As of 2026-09-15, the transitive Crawl4AI dependency NLTK 3.10.3 has an unpatched
+model-artifact path containment advisory, [GHSA-8mgp-746c-j5xp](https://github.com/nltk/nltk/security/advisories/GHSA-8mgp-746c-j5xp).
+The affected APIs import or export parser/tagger models using caller-controlled
+filesystem paths. Extrio does not expose these APIs or accept NLTK model paths;
+its source code has no direct NLTK calls. The installed Crawl4AI integration uses
+tokenization and fixed `punkt` resource lookup, not the affected model persistence
+APIs. This is a scoped exposure assessment, not a dependency fix or a claim that
+the package is vulnerability-free. Do not add arbitrary model-artifact loading or
+untrusted Python execution without reassessing this boundary. The upstream alert
+remains open until a patched dependency is available.
+
 ## Reporting a vulnerability
 
 Please report vulnerabilities privately through the repository's GitHub

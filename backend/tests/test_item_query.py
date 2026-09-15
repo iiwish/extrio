@@ -55,3 +55,37 @@ def test_entity_search_and_export_share_filters_after_latest_selection(tmp_path)
         assert client.get("/api/v1/items", params={**filters, "collectorId": first["id"], "q": "missing"}).json()["total"] == 0
         exact = client.get("/api/v1/items/export", params={"format": "jsonl", "entityKey": "key_000"})
         assert len(exact.text.splitlines()) == 3, "legacy observation exports retain history and exact entityKey semantics"
+
+
+def test_numbered_pages_are_random_access_and_match_cursor_order(tmp_path):
+    with output_client(tmp_path) as (store, client):
+        seed_entity_query(store)
+        params = {"view": "entities", "limit": 50}
+        first = client.get("/api/v1/items", params={**params, "page": 1}).json()
+        last = client.get("/api/v1/items", params={**params, "page": 5}).json()
+        assert first["pagination"] == {"page": 1, "pageSize": 50, "totalPages": 5, "total": 206}
+        assert len(last["items"]) == 6
+        assert last["pagination"]["page"] == 5
+        second = client.get("/api/v1/items", params={**params, "page": 2}).json()
+        cursor_page = client.get("/api/v1/items", params={**params, "cursor": first["nextCursor"]}).json()
+        assert [row["id"] for row in second["items"]] == [row["id"] for row in cursor_page["items"]]
+        assert not {row["id"] for row in first["items"]} & {row["id"] for row in second["items"]}
+        assert client.get("/api/v1/items", params={**params, "page": 999}).json()["pagination"]["page"] == 5
+        for invalid in (0, -1, "invalid"):
+            assert client.get("/api/v1/items", params={**params, "page": invalid}).status_code == 422
+        assert client.get("/api/v1/items", params={**params, "page": 2, "cursor": first["nextCursor"]}).status_code == 400
+
+
+def test_numbered_page_totals_follow_filters_and_empty_results(tmp_path):
+    with output_client(tmp_path) as (store, client):
+        seed_entity_query(store)
+        filtered = client.get(
+            "/api/v1/items",
+            params={"view": "entities", "page": 3, "limit": 100, "decision": "accepted", "sourceHost": "one.example.com"},
+        ).json()
+        assert filtered["pagination"] == {"page": 3, "pageSize": 100, "totalPages": 3, "total": 204}
+        assert len(filtered["items"]) == 4
+        assert "old_000" not in {row["id"] for row in filtered["items"]}
+        empty = client.get("/api/v1/items", params={"view": "entities", "page": 20, "q": "missing"}).json()
+        assert empty["items"] == []
+        assert empty["pagination"] == {"page": 1, "pageSize": 50, "totalPages": 1, "total": 0}

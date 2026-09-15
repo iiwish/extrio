@@ -190,6 +190,7 @@ function renderCollectorPage() {
 async function openConfigurationTab(user: ReturnType<typeof userEvent.setup>) {
   await screen.findByText('北京市公共资源交易标讯')
   await user.click(screen.getByRole('tab', { name: '采集配置' }))
+  await user.click(screen.getByText('数据推送与投递记录'))
   await screen.findByLabelText('Webhook 推送配置')
 }
 

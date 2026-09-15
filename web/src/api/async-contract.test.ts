@@ -9,6 +9,20 @@ describe('asynchronous HTTP contract', () => {
   beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
   afterAll(() => server.close())
 
+  it('supports numbered item pages without breaking cursor compatibility', async () => {
+    const endpoint = 'http://localhost/api/v1/items?view=entities&limit=1'
+    const first = await (await fetch(`${endpoint}&page=1`)).json()
+    const second = await (await fetch(`${endpoint}&page=2`)).json()
+    expect(first.pagination).toEqual({ page: 1, pageSize: 1, totalPages: first.total, total: first.total })
+    const cursor = await (await fetch(`${endpoint}&cursor=${encodeURIComponent(first.nextCursor)}`)).json()
+    expect(second.items).toEqual(cursor.items)
+    const last = await (await fetch(`${endpoint}&page=999`)).json()
+    expect(last.pagination.page).toBe(first.total)
+    const empty = await (await fetch(`${endpoint}&q=nonexistent-pagination-result&page=999`)).json()
+    expect(empty.pagination).toEqual({ page: 1, pageSize: 1, totalPages: 1, total: 0 })
+    expect((await fetch(`${endpoint}&page=2&cursor=MQ==`)).status).toBe(400)
+  })
+
   it('does not mix real overview metrics into the isolated mock environment', async () => {
     const response = await fetch('http://localhost/api/v1/overview?timezone=UTC')
     expect(response.status).toBe(503)

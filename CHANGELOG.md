@@ -6,6 +6,10 @@ All notable changes to Extrio are documented in this file. The project follows
 
 ## Unreleased
 
+- Unify operational lists with a shared scroll region, totals, page size and numbered pagination.
+- Refine requirement, source, run, AI task and item details, plus creation and settings workflows.
+- Pin the repository-root pytest configuration and refresh public-alpha demonstration materials.
+
 - Add live, refresh-safe structured activity for AI rule generation and repair, with stages,
   timings, non-sensitive metrics, and a direct link from the active Collector workflow.
 - Add optional one-run operator guidance for rule generation and repair. Guidance is treated as

@@ -1,4 +1,5 @@
 import { delay, http, HttpResponse } from 'msw'
+import { mockCollectionPage, mockCollectorPage, mockRunPage, mockAiRunPage } from './workspace-mock'
 import { collectionPolicyFor, createCandidateRule, createItemsForCollector, scheduleFor, seedAiRuns, seedCollectors, seedRuns } from './fixtures'
 import type {
   Collection,
@@ -591,7 +592,11 @@ function mockEvidenceBundleZip(collectorId: string): Uint8Array {
 
 export const handlers = [
   http.get('*/api/v1/overview', () => errorResponse('INTERNAL_ERROR', '全量概览仅在真实 API 模式下可用。', 503)),
-  http.get('*/api/v1/collections', () => successResponse({ items: [...collections.values()].map(collectionSummary), total: collections.size })),
+  http.get('*/api/v1/collections', ({ request }) => {
+    const params = new URL(request.url).searchParams
+    const items = [...collections.values()].map(collectionSummary)
+    return successResponse(params.has('page') ? mockCollectionPage(params, items) : { items, total: items.length })
+  }),
   http.get('*/api/v1/collections/:id', ({ params }) => {
     const value = collections.get(String(params.id))
     if (!value) return errorResponse('COLLECTION_NOT_FOUND', '采集需求不存在', 404)
@@ -773,7 +778,10 @@ export const handlers = [
     if (typeof localStorage !== 'undefined') localStorage.setItem(platformSettingsStorageKey, JSON.stringify(platformSettings))
     return successResponse(platformSettings)
   }),
-  http.get('*/api/v1/collectors', () => successResponse(page(collectors))),
+  http.get('*/api/v1/collectors', ({ request }) => {
+    const params = new URL(request.url).searchParams
+    return successResponse(params.has('page') ? mockCollectorPage(params, collectors, runs) : page(collectors))
+  }),
   http.get('*/api/v1/collectors/:id', ({ params }) => {
     const collector = byId(collectors, String(params.id))
     return collector ? successResponse(collector) : errorResponse('COLLECTOR_NOT_FOUND', 'Collector 不存在', 404)
@@ -1200,14 +1208,19 @@ export const handlers = [
     runs.unshift(run)
     return successResponse(operation.value, 202, { Location: operation.value.statusUrl })
   }),
-  http.get('*/api/v1/runs', () => successResponse(page(runs))),
+  http.get('*/api/v1/runs', ({ request }) => {
+    const params = new URL(request.url).searchParams
+    return successResponse(params.has('page') ? mockRunPage(params, runs) : page(runs))
+  }),
   http.get('*/api/v1/runs/:id', ({ params }) => {
     const run = byId(runs, String(params.id))
     return run ? successResponse(run) : errorResponse('RUN_NOT_FOUND', 'Run 不存在', 404)
   }),
   http.get('*/api/v1/ai-runs', ({ request }) => {
-    const collectorId = new URL(request.url).searchParams.get('collectorId')
+    const params = new URL(request.url).searchParams
+    const collectorId = params.get('collectorId')
     const matches = collectorId ? aiRuns.filter((run) => run.collectorId === collectorId) : aiRuns
+    if (params.has('page')) return successResponse(mockAiRunPage(params, matches.map(({ attempts: _attempts, ...run }) => run)))
     return successResponse(page(matches.map(({ attempts: _attempts, ...run }) => run)))
   }),
   http.get('*/api/v1/ai-runs/:id', ({ params }) => {
@@ -1255,7 +1268,13 @@ export const handlers = [
     const limit = Number.parseInt(url.searchParams.get('limit') ?? '50', 10) || 50
     const { items: all, facets } = queryItems(url.searchParams)
     const cursor = url.searchParams.get('cursor')
+    const requestedPage = url.searchParams.get('page')
+    if (requestedPage !== null && cursor !== null) return errorResponse('INVALID_CURSOR', 'page 与 cursor 不能同时使用', 400)
+    if (requestedPage !== null && (!Number.isSafeInteger(Number(requestedPage)) || Number(requestedPage) < 1)) return errorResponse('VALIDATION_FAILED', 'page must be a positive integer', 422)
+    const totalPages = Math.max(1, Math.ceil(all.length / limit))
+    const pageNumber = requestedPage === null ? undefined : Math.min(Number(requestedPage), totalPages)
     let start = 0
+    if (pageNumber !== undefined) start = (pageNumber - 1) * limit
     if (cursor) {
       const decoded = Number.parseInt(atob(cursor), 10)
       if (!Number.isInteger(decoded) || decoded < 0) {
@@ -1266,6 +1285,7 @@ export const handlers = [
     const items = all.slice(start, start + limit)
     const nextCursor = start + limit < all.length ? btoa(String(start + limit)) : null
     return successResponse({ items, page: { nextCursor }, nextCursor,
+      ...(pageNumber !== undefined ? { total: all.length, pagination: { page: pageNumber, pageSize: limit, totalPages, total: all.length } } : {}),
       ...(url.searchParams.get('view') === 'entities' ? { total: all.length, facets } : {}) })
   }),
   http.get('*/api/v1/items/:id', ({ params }) => {

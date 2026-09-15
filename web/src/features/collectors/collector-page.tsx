@@ -9,9 +9,11 @@ import {
   ChevronRight,
   CircleAlert,
   ClipboardCheck,
+  Copy,
   Download,
   Eye,
   EyeOff,
+  ExternalLink,
   FileSearch,
   FileCheck2,
   Globe2,
@@ -41,13 +43,15 @@ import {
   Webhook,
   Wrench,
 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { DetailPanel } from '@/components/detail-panel'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { Link, useNavigate, useOutletContext, useParams, useSearchParams } from 'react-router-dom'
 import { ApiRequestError, api, downloadEvidenceBundle, waitForOperation } from '@/api/client'
 import type { AiRun, CandidateField, CandidateRule, CandidateRuleEditInput, CollectionField, CollectionPolicy, CollectionPolicyInput, CollectorDetail, CollectorSchedule, CollectorScheduleInput, DeliveryStatus, DeliverySummary, ExplorationInput, FieldReviewDecision, HarvestItem, Operation, RepairInput, Sink, SinkInput, SinkUpdateInput, UpdateCollectorInput } from '@/api/types'
 import { useAuth } from '@/features/auth/auth-gate'
+import './collector-detail.css'
 import { CollectionMigration } from '@/features/collections/collection-migration'
 import { EvidenceRail } from '@/components/evidence-rail'
 import { StatusBadge } from '@/components/status-badge'
@@ -378,9 +382,7 @@ function CollectorWorkspace() {
               />
             )}
             {collector.status === 'published' && <Button size="lg" onClick={startRun} disabled={readOnly || runPending || explore.isPending}>{runPending ? <><LoaderCircle className="animate-spin" />{t('header.runningNow')}</> : <><Play />{t('header.runNow')}</>}</Button>}
-            {repairable && !collector.pendingCollectionVersion && <RepairRuleDialog disabled={readOnly || explore.isPending || repair.isPending || runPending || Boolean(collector.activeOperationId)} pending={repair.isPending} onRepair={(input) => startRepair(input)} />}
             </>}
-            <EvidenceExportButton pending={exportEvidence.isPending} onExport={() => exportEvidence.mutate()} />
             {displayedOperation && <ExecutionLogDialog key={`${collectorId}:${displayedOperation.id}`} operation={displayedOperation} defaultOpen={Boolean(activeOperation)} queueStalled={queueStalled} singleStage={isSingleStageSource(collector.sourceUrl)} error={repairErrorMessage ?? explore.error?.message ?? run.error?.message ?? operationError?.message} />}
             <CollectorManagement collector={collector} />
           </div>
@@ -391,12 +393,12 @@ function CollectorWorkspace() {
 
         {((!activeOperation && (explore.error || repair.error || run.error || operationError)) || exportEvidence.error || publish.error || savePolicy.error || saveSchedule.error || updateDefinition.error || editCandidate.error) && <Alert variant="destructive" className="mt-5"><AlertTitle>{t('header.operationIncomplete')}</AlertTitle><AlertDescription>{evidenceErrorMessage ?? publish.error?.message ?? savePolicy.error?.message ?? saveSchedule.error?.message ?? updateDefinition.error?.message ?? editCandidate.error?.message ?? (!activeOperation ? repairErrorMessage ?? explore.error?.message ?? run.error?.message ?? operationError?.message : undefined)}</AlertDescription></Alert>}
 
-        <Tabs value={section === 'rule' && !candidate ? 'overview' : section} onValueChange={setSection} className="collector-workspace-tabs">
+        <Tabs value={section === 'rule' && !candidate ? 'config' : section} onValueChange={setSection} className="collector-workspace-tabs">
           <div className="collector-workspace-nav">
             <TabsList variant="line" aria-label={t('header.viewsAria')}>
-              <TabsTrigger value="overview"><LayoutDashboard />{t('common:nav.overview')}</TabsTrigger>
-              {candidate && <TabsTrigger value="rule"><ClipboardCheck />{collector.status === 'ready_review' ? t('header.ruleReviewTab') : t('header.ruleTab')}{pendingDecisionCount > 0 && <span className="tab-count">{pendingDecisionCount}</span>}</TabsTrigger>}
               <TabsTrigger value="config"><Settings2 />{t('header.configTab')}</TabsTrigger>
+              <TabsTrigger value="overview"><LayoutDashboard />{t('header.resultsTab')}</TabsTrigger>
+              {candidate && <TabsTrigger value="rule"><ClipboardCheck />{collector.status === 'ready_review' ? t('header.ruleReviewTab') : t('header.ruleTab')}{pendingDecisionCount > 0 && <span className="tab-count">{pendingDecisionCount}</span>}</TabsTrigger>}
             </TabsList>
           </div>
 
@@ -412,17 +414,16 @@ function CollectorWorkspace() {
             />
           </TabsContent>
 
-          <TabsContent value="config" className="collector-workspace-panel configuration-workspace">
+          <TabsContent value="config" className="collector-workspace-panel configuration-workspace source-url-workspace">
             <CollectorConfiguration
               key={`${collector.id}:${collector.collectionId}:${collector.sourceUrl}:${collector.intent}:${collector.name}:${collector.managementRevision ?? 0}:${candidate?.digest ?? 'none'}`}
               collector={collector}
               disabled={readOnly || archived || Boolean(collector.activeOperationId) || runPending}
               definitionPending={updateDefinition.isPending}
-              rulePending={editCandidate.isPending || explore.isPending}
               onSaveDefinition={(input, key) => updateDefinition.mutateAsync({ input, key })}
-              onSaveRule={(input) => editCandidate.mutateAsync(input)}
               onRegenerate={startExploration}
             />
+            <div className="source-settings-grid">
             <SchedulePanel
               key={`${collector.schedule.id}:${collector.schedule.revision}`}
               schedule={collector.schedule}
@@ -437,11 +438,21 @@ function CollectorWorkspace() {
               pending={savePolicy.isPending}
               onSave={(input) => savePolicy.mutate(input)}
             />
-            <WebhookPushPanel collectorId={collector.id} />
-            <DeliveryLogPanel collectorId={collector.id} />
+            </div>
+            <details className="source-output-details">
+              <summary><Webhook size={16} />{t('config.outputDetails')}<ChevronDown size={16} /></summary>
+              <WebhookPushPanel collectorId={collector.id} />
+              <DeliveryLogPanel collectorId={collector.id} />
+            </details>
+            {!candidate && <div className="source-evidence-actions"><EvidenceExportButton pending={exportEvidence.isPending} onExport={() => exportEvidence.mutate()} /></div>}
           </TabsContent>
 
           <TabsContent value="rule" className="collector-workspace-panel">
+            <div className="source-rule-workspace">
+              <CollectorRuleConfiguration collector={collector} disabled={readOnly || archived || Boolean(collector.activeOperationId) || runPending} rulePending={editCandidate.isPending || explore.isPending} onSaveRule={(input) => editCandidate.mutateAsync(input)} onRegenerate={startExploration}>
+                {!archived && repairable && !collector.pendingCollectionVersion && <RepairRuleDialog disabled={readOnly || explore.isPending || repair.isPending || runPending || Boolean(collector.activeOperationId)} pending={repair.isPending} onRepair={(input) => startRepair(input)} />}
+              </CollectorRuleConfiguration>
+            </div>
             {candidate && (collector.status === 'ready_review' ? <ReviewWorkspace
               candidate={candidate}
               collectionFields={collector.collectionFields}
@@ -458,6 +469,7 @@ function CollectorWorkspace() {
                 decisions: { ...(current.digest === candidate.digest ? current.decisions : {}), [key]: decision },
               }))}
             /> : <ValidationWorkspace candidate={candidate} sourceUrl={collector.sourceUrl} published={collector.status === 'published'} reviewDecisions={collector.reviewDecisions ?? reviewDecisions} />)}
+            <div className="source-evidence-actions"><EvidenceExportButton pending={exportEvidence.isPending} onExport={() => exportEvidence.mutate()} /></div>
           </TabsContent>
         </Tabs>
       </div>
@@ -484,7 +496,7 @@ function CollectorWorkspace() {
 
 export function defaultCollectorTab(status: CollectorDetail['status']) {
   if (status === 'ready_review') return 'rule'
-  return 'overview'
+  return 'config'
 }
 
 function collectorPhaseLabel(status: CollectorDetail['status'], exploring: boolean, running: boolean) {
@@ -509,7 +521,10 @@ function CollectorOverview({ collector, latestRun, latestRunLoading, latestAiRun
   onOpenRun: (id: string) => void
 }) {
   const workspaceLink = useWorkspaceLink()
-  const { t } = useTranslation('collectorDetail')
+  const { t, i18n } = useTranslation('collectorDetail')
+  const [overviewParams] = useSearchParams()
+  const configParams = new URLSearchParams(overviewParams)
+  configParams.set('section', 'config')
   const candidate = collector.candidate
   const runUnavailable = Boolean(collector.latestRunId && !latestRun)
   const unavailableLabel = t(latestRunLoading ? 'common:state.loading' : 'common:state.unavailable')
@@ -528,15 +543,21 @@ function CollectorOverview({ collector, latestRun, latestRunLoading, latestAiRun
     <section className="collector-overview-summary">
       <div className="overview-state">
         <span className={`overview-state-icon ${needsAttention || runUnavailable ? 'warning' : collector.status === 'published' ? 'success' : ''}`}>{needsAttention || runUnavailable ? <CircleAlert /> : collector.status === 'published' ? <ShieldCheck /> : <Route />}</span>
-        <div><h2>{runPending ? t('overview.runningTitle') : runUnavailable ? t(latestRunLoading ? 'overview.runLoading' : 'overview.runUnavailable') : needsAttention ? t('overview.needsAttention') : t(overviewTitle(collector.status))}</h2><p>{runUnavailable && !runPending ? t('overview.runUnavailableDetail') : needsAttention && !runPending ? latestRun?.summary : t(overviewDescription(collector.status, runPending))}</p></div>
+        <div><h2>{runPending ? t('overview.runningTitle') : runUnavailable ? t(latestRunLoading ? 'overview.runLoading' : 'overview.runUnavailable') : needsAttention ? t('overview.needsAttention') : collector.status === 'published' && !runId ? t('overview.firstRunPending') : t(overviewTitle(collector.status))}</h2><p>{runUnavailable && !runPending ? t('overview.runUnavailableDetail') : needsAttention && !runPending ? latestRun?.summary : t(overviewDescription(collector.status, runPending))}</p></div>
         {latestAiRun && <Link className="overview-ai-run" to={workspaceLink(`/ai-runs/${latestAiRun.id}`)}><WandSparkles /><span><strong>{t('overview.aiRun.title')}</strong><small>{t(aiRunReviewLabel(latestAiRun))} · {t('overview.aiRun.invocations', { total: latestAiRun.modelSummary.invocationCount })}</small></span><ChevronRight /></Link>}
       </div>
       <dl className="overview-facts">
         <div><dt>{t('overview.facts.sourceUrl')}</dt><dd><code className="overview-source-url" title={collector.sourceUrl}>{collector.sourceUrl}</code></dd></div>
         <div><dt>{t('overview.facts.activeRule')}</dt><dd><strong>{collector.activeRuleVersion ? t('overview.facts.fieldsSummary', { total: candidate?.fields.length ?? 0, mode: candidate?.mode === 'single' ? t('overview.mode.single') : t('overview.mode.listDetail') }) : t('overview.facts.notPublished')}</strong><span>{collector.activeRuleVersion ? t('overview.facts.publishedFrozen') : t('overview.facts.awaitingReview')}</span></dd></div>
-        <div><dt>{t('overview.facts.runScope')}</dt><dd><strong>{pagination}</strong><span>{collector.collectionPolicy ? t('overview.facts.lookbackSummary', { days: collector.collectionPolicy.lookbackDays, maxItems: collector.collectionPolicy.maxItems }) : t('overview.facts.defaultPolicy')}</span></dd></div>
+        <div><dt>{t('overview.facts.runScope')}</dt><dd><strong>{pagination}</strong><span title={collector.collectionPolicy ? t('overview.facts.policyLimits', { days: collector.collectionPolicy.lookbackDays, maxItems: collector.collectionPolicy.maxItems, maxPages: collector.collectionPolicy.maxPages }) : undefined}>{collector.collectionPolicy ? t('overview.facts.policyLimits', { days: collector.collectionPolicy.lookbackDays, maxItems: collector.collectionPolicy.maxItems, maxPages: collector.collectionPolicy.maxPages }) : t('overview.facts.defaultPolicy')}</span></dd></div>
         <div><dt>{t('overview.facts.latestRun')}</dt><dd><strong>{runUnavailable ? unavailableLabel : runId ? t('overview.facts.runDecisions', { accepted: acceptedCount, rejected: rejectedCount }) : t('overview.facts.noRuns')}</strong><span>{runUnavailable ? '—' : runId ? t('overview.facts.runMeta', { duration: latestRun?.duration ?? t('overview.facts.completedDuration'), watermark: collector.checkpoint?.watermark ?? t('overview.facts.noWatermark') }) : t('overview.facts.publishToRun')}</span></dd></div>
       </dl>
+      <section className="source-delivery-summary" aria-label={t('overview.deliveryStatus')}>
+        <CalendarClock size={16} />
+        <div><strong>{collector.schedule.enabled ? t('schedule.autoEnabled') : t('schedule.manualOnly')}</strong><span>{collector.schedule.enabled ? `${scheduleLabel(collector.schedule.cronExpression, t)} · ${collector.schedule.timezone}` : t('overview.manualDetail')}</span></div>
+        {collector.schedule.enabled && <div><span>{t('schedule.nextRun')}</span><strong>{collector.schedule.nextRunAt ? new Intl.DateTimeFormat(i18n.language, { dateStyle: 'short', timeStyle: 'short', timeZone: collector.schedule.timezone }).format(new Date(collector.schedule.nextRunAt)) : t('schedule.pendingCalculation')}</strong></div>}
+        <Button asChild variant="outline" size="sm"><Link to={`/collectors/${collector.id}?${configParams}`}>{t('overview.viewConfig')}<ArrowRight /></Link></Button>
+      </section>
     </section>
     {runPending ? <WorkspaceEmpty icon={Play} title={t('overview.empty.title')} description={t('overview.empty.description')} /> : runUnavailable ? <div className="workbench-content"><Button variant="outline" onClick={() => onOpenRun(runId!)}>{t('published.viewFullRun')}<ArrowRight /></Button></div> : collector.status === 'published' ? <PublishedView items={items} runId={runId} onSelectItem={onSelectItem} onOpenRun={onOpenRun} /> : <section className="overview-guidance"><div><h2>{collector.status === 'ready_review' ? t('overview.nextStep.readyReviewTitle') : t('overview.nextStep.designTitle')}</h2><p>{collector.status === 'ready_review' ? t('overview.nextStep.readyReviewDescription') : t('overview.nextStep.designDescription')}</p></div></section>}
   </div>
@@ -601,39 +622,39 @@ function CollectorConfiguration({
   collector,
   disabled,
   definitionPending,
-  rulePending,
   onSaveDefinition,
-  onSaveRule,
   onRegenerate,
 }: {
   collector: CollectorDetail
   disabled: boolean
   definitionPending: boolean
-  rulePending: boolean
   onSaveDefinition: (input: UpdateCollectorInput, key: string) => Promise<CollectorDetail>
-  onSaveRule: (input: CandidateRuleEditInput) => Promise<CollectorDetail>
   onRegenerate: (input?: ExplorationInput) => Promise<void>
 }) {
   const workspaceLink = useWorkspaceLink()
   const { t } = useTranslation('collectorDetail')
-  const candidate = collector.candidate
-  const ruleState = !candidate
-    ? t('config.ruleState.none')
-    : collector.status === 'published'
-      ? t('config.ruleState.active')
-      : t('config.ruleState.candidate')
-  const pagination = candidate?.pagination.type === 'next_link'
-    ? t('config.pagination.nextLink', { maxPages: candidate.pagination.maxPages })
-    : candidate?.pagination.type === 'page'
-      ? t('config.pagination.pageParam', { parameter: candidate.pagination.parameter, maxPages: candidate.pagination.maxPages })
-      : t('config.pagination.none')
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle')
+  const [copying, setCopying] = useState(false)
+  const canOpenUrl = /^https?:\/\//i.test(collector.sourceUrl)
+
+  async function copyUrl() {
+    setCopying(true)
+    try {
+      await navigator.clipboard.writeText(collector.sourceUrl)
+      setCopyState('copied')
+    } catch {
+      setCopyState('failed')
+    } finally {
+      setCopying(false)
+    }
+  }
 
   return (
-    <section className="collector-configuration-grid" aria-label={t('config.gridAria')}>
+    <section className="collector-configuration-grid" aria-label={t('config.entryAria')}>
       <article className="configuration-card definition-card">
         <div className="configuration-heading">
-          <span className="configuration-icon teal"><Settings2 /></span>
-          <div><h2>{t('config.definition.title')}</h2></div>
+          <span className="configuration-icon teal"><Globe2 /></span>
+          <div><h2>{t('config.entryTitle')}</h2></div>
           <DefinitionDialog
             collector={collector}
             disabled={disabled}
@@ -642,15 +663,41 @@ function CollectorConfiguration({
             onRegenerate={onRegenerate}
           />
         </div>
+        <div className="source-entry-url">
+          <code>{collector.sourceUrl}</code>
+          <div className="source-entry-tools">
+            <Button variant="ghost" size="icon-sm" disabled={copying} aria-label={t('config.copyUrl')} title={t('config.copyUrl')} onClick={() => void copyUrl()}><Copy /></Button>
+            {canOpenUrl && <Button asChild variant="ghost" size="icon-sm"><a href={collector.sourceUrl} target="_blank" rel="noopener noreferrer" aria-label={t('config.openUrl')} title={t('config.openUrl')}><ExternalLink /></a></Button>}
+          </div>
+        </div>
+        <p className="source-copy-feedback" role="status">{copyState === 'idle' ? '' : t(copyState === 'copied' ? 'config.urlCopied' : 'config.urlCopyFailed')}</p>
         <dl className="configuration-facts">
-          <div><dt>{t('config.definition.requirement')}</dt><dd><Link className="configuration-collection-link" to={workspaceLink(`/collections/${encodeURIComponent(collector.collectionId)}`)}><Layers3 />{collector.collectionName}</Link></dd></div>
           <div><dt>{t('config.definition.intent')}</dt><dd>{collector.intent}</dd></div>
-          <div><dt>{t('overview.facts.sourceUrl')}</dt><dd><code>{collector.sourceUrl}</code></dd></div>
+          <div><dt>{t('config.definition.requirement')}</dt><dd><Link className="configuration-collection-link" to={workspaceLink(`/collections/${encodeURIComponent(collector.collectionId)}`)}><Layers3 />{collector.collectionName}</Link></dd></div>
         </dl>
-        <div className="configuration-footer"><span><LockKeyhole />{t('config.definition.dataContract')}</span><code>{collector.collectionVersion}</code></div>
+        <details className="source-contract-details"><summary><LockKeyhole size={14} />{t('config.definition.dataContract')}</summary><code>{collector.collectionVersion}</code></details>
       </article>
+    </section>
+  )
+}
 
-      <article className="configuration-card rule-workspace-card">
+function CollectorRuleConfiguration({ collector, disabled, rulePending, onSaveRule, onRegenerate, children }: {
+  children?: ReactNode
+  collector: CollectorDetail
+  disabled: boolean
+  rulePending: boolean
+  onSaveRule: (input: CandidateRuleEditInput) => Promise<CollectorDetail>
+  onRegenerate: (input?: ExplorationInput) => Promise<void>
+}) {
+  const { t } = useTranslation('collectorDetail')
+  const candidate = collector.candidate
+  const ruleState = !candidate ? t('config.ruleState.none') : collector.status === 'published' ? t('config.ruleState.active') : t('config.ruleState.candidate')
+  const pagination = candidate?.pagination.type === 'next_link'
+    ? t('config.pagination.nextLink', { maxPages: candidate.pagination.maxPages })
+    : candidate?.pagination.type === 'page'
+      ? t('config.pagination.pageParam', { parameter: candidate.pagination.parameter, maxPages: candidate.pagination.maxPages })
+      : t('config.pagination.none')
+  return <DetailPanel as="article" className="configuration-card rule-workspace-card">
         <div className="configuration-heading">
           <span className="configuration-icon blue"><Braces /></span>
           <div><h2>{t('config.rule.workspaceTitle')}</h2></div>
@@ -662,12 +709,11 @@ function CollectorConfiguration({
         </> : <div className="rule-empty"><WandSparkles /><div><strong>{t('config.rule.emptyTitle')}</strong><p>{t('config.rule.emptyDescription')}</p></div></div>}
         {collector.status === 'draft' && collector.activeRuleVersion && <p className="rule-rebuild-warning">{t('config.rule.rebuildWarning')}</p>}
         <div className="configuration-actions">
+          {children}
           <RegenerateRuleDialog disabled={disabled || rulePending} pending={rulePending} hasCandidate={Boolean(candidate)} onRegenerate={onRegenerate} />
           {candidate && <RuleEditorDialog candidate={candidate} disabled={disabled || rulePending} pending={rulePending} onSave={onSaveRule} />}
         </div>
-      </article>
-    </section>
-  )
+      </DetailPanel>
 }
 
 function DefinitionDialog({ collector, disabled, pending: saving, onSave, onRegenerate }: {
@@ -732,9 +778,9 @@ function DefinitionDialog({ collector, disabled, pending: saving, onSave, onRege
     <DialogContent className="definition-dialog" showCloseButton={!pending} onInteractOutside={event => event.preventDefault()} onEscapeKeyDown={event => { if (pending) event.preventDefault() }}>
       <DialogHeader><DialogTitle>{t('config.definition.dialogTitle')}</DialogTitle><DialogDescription>{t('config.definition.dialogDescription')}</DialogDescription></DialogHeader>
       <div className="definition-form">
+        <label><span>{t('overview.facts.sourceUrl')}</span><Input disabled={pending} type="url" className="selector-input" value={draft.sourceUrl} onChange={event => setDraft(current => ({ ...current, sourceUrl: event.target.value }))} /></label>
         <label><span>{t('config.definition.name')}</span><Input disabled={pending} value={draft.name} onChange={event => setDraft(current => ({ ...current, name: event.target.value }))} /></label>
         <label><span>{t('config.definition.intent')}</span><Textarea disabled={pending} rows={5} value={draft.intent} onChange={event => setDraft(current => ({ ...current, intent: event.target.value }))} /></label>
-        <label><span>{t('overview.facts.sourceUrl')}</span><Input disabled={pending} className="selector-input" value={draft.sourceUrl} onChange={event => setDraft(current => ({ ...current, sourceUrl: event.target.value }))} /></label>
       </div>
       {ruleInputChanged && <Alert><RefreshCw /><AlertTitle>{t('config.definition.newRuleTitle')}</AlertTitle><AlertDescription>{t('config.definition.newRuleDescription')}</AlertDescription></Alert>}
       <ManagementError error={error} />

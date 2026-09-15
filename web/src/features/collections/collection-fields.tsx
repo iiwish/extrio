@@ -116,27 +116,14 @@ export function CollectionFields({ requirement, canEdit, canPublish = false, onE
     <div className={`requirement-fields-toolbar ${draft ? 'is-editing' : ''}`}>
       <div className="requirement-fields-heading">
         <span>{t('fields.count', { count: displayedFields.length })}</span>
-        <span className={`requirement-field-state ${hasUnpublishedDraft ? 'is-draft' : ''}`}>{t(matchesPublished ? 'fields.publishedDefinition' : hasUnpublishedDraft ? 'fields.draft' : saved ? 'fields.requirements' : 'fields.sourceSummary')}</span>
-        {requirement.activeVersion ? (
-          <span className="requirement-lifecycle" title={`Digest: ${requirement.activeVersion.outputContractDigest}`}>
-            <Check size={12} />v{requirement.activeVersion.versionNumber} ({t('collections.versionActive')})
-          </span>
-        ) : (
-          <span className="requirement-lifecycle is-archived">{t('collections.versionDraftOnly')}</span>
-        )}
+        <span className={`requirement-field-state ${hasUnpublishedDraft ? 'is-draft' : matchesPublished ? 'is-published' : ''}`}>{t(matchesPublished ? 'fields.publishedDefinition' : hasUnpublishedDraft ? 'fields.draft' : saved ? 'fields.requirements' : 'fields.sourceSummary')}</span>
         {draft && <span className="requirement-unsaved">{t('fields.unsaved')}</span>}
       </div>
       <div className="requirement-field-actions">
-        {canEdit && <CollectionFieldTools requirement={requirement} disabled={Boolean(draft) || mutation.isPending || publishMutation.isPending} />}
-        <Button size="sm" variant="outline" onClick={(event) => { dialogTrigger.current = event.currentTarget; setVersionHistoryOpen(true) }}>
-          <History size={14} />{t('collections.versionHistory')}
-          {requirement.activeVersion && ` (v${requirement.activeVersion.versionNumber})`}
+        <Button size="icon-sm" variant="ghost" title={t('collections.versionHistory')} aria-label={t('collections.versionHistory')} onClick={(event) => { dialogTrigger.current = event.currentTarget; setVersionHistoryOpen(true) }}>
+          <History size={14} />
         </Button>
-        {canEdit && availableContracts.length > 0 && (
-          <Button size="sm" variant="outline" disabled={Boolean(draft) || mutation.isPending || publishMutation.isPending} onClick={() => setImportSourceOpen(true)}>
-            <Copy size={14} />{t('fields.generateFromSource')}
-          </Button>
-        )}
+        {canEdit && <CollectionFieldTools requirement={requirement} disabled={Boolean(draft) || mutation.isPending || publishMutation.isPending} onImportSource={availableContracts.length ? trigger => { dialogTrigger.current = trigger; setImportSourceOpen(true) } : undefined} />}
         {canEdit && !draft && (
           <>
             <Button ref={editTrigger} size="sm" variant="outline" onClick={start}><Pencil size={14} />{t('fields.edit')}</Button>
@@ -162,7 +149,7 @@ export function CollectionFields({ requirement, canEdit, canPublish = false, onE
     {contracts.some((source) => source.state === 'unavailable') && <Alert variant="destructive"><AlertDescription>{t('fields.unavailableNotice')}</AlertDescription></Alert>}
     {displayedFields.length ? <div className="requirement-fields-scroll"><table className="requirement-fields-table requirement-fields-unified">
       <colgroup><col className="requirement-col-name" /><col className="requirement-col-type" /><col className="requirement-col-rules" /><col className="requirement-col-coverage" />{draft && <col className="requirement-col-actions" />}</colgroup>
-      <thead><tr><th scope="col">{t('fields.label')}</th><th scope="col">{t('fields.type')}</th><th scope="col">{t('fields.rules')}</th><th scope="col">{t('fields.coverage')}</th>{draft && <th scope="col"><span className="sr-only">{t('fields.actions')}</span></th>}</tr></thead>
+      <thead><tr><th scope="col">{t('fields.label')}</th><th scope="col">{t('fields.type')}</th><th scope="col">{t('fields.rules')}</th><th scope="col" title={t('fields.coverageMeaning')}>{t('fields.coverage')}</th>{draft && <th scope="col"><span className="sr-only">{t('fields.actions')}</span></th>}</tr></thead>
       <tbody>{displayedFields.map((field, index) => <tr key={field.key}>
         <td><span className="requirement-field-name">{labelFor(field)}</span><code className="requirement-field-key">{field.key}</code>{field.description && <p className="requirement-field-description">{field.description}</p>}{saved && !saved.fields.some((item) => item.key === field.key) && !draft && <small className="requirement-field-extra">{t('fields.extra')}</small>}</td><td>{!saved && !draft && hasDifference(field) && coverage(field).some((source) => source.fields.find((item) => item.key === field.key)?.type !== field.type) ? t('fields.varies') : t(`fields.types.${field.type}`, { defaultValue: field.type })}</td>
         <td>{!saved && !draft && hasDifference(field) ? <span className="requirement-field-diff">{t('fields.varies')}</span> : <div className="requirement-field-rules">{field.required && <span>{t('fields.required')}</span>}{field.identity && <span title={t('fields.identity')}><KeyRound size={12} />{t('fields.identity')}</span>}{field.fingerprint && <span>{t('fields.fingerprint')}</span>}{!field.required && !field.identity && !field.fingerprint && <span>{t('fields.optional')}</span>}</div>}</td>
@@ -176,8 +163,9 @@ export function CollectionFields({ requirement, canEdit, canPublish = false, onE
       const additions = item.fields.filter((field) => !keys.has(field.key)).map((field) => ({ ...field, required: field.required || field.identity }))
       setDraft({ ...draft, fields: [...draft.fields, ...additions].slice(0, 100) })
     }}><Plus />{item.sourceName}</Button>)}</div></details>}
-    <ImportSourceDialog open={importSourceOpen} onOpenChange={setImportSourceOpen} contracts={contracts} onApply={handleApplySource} />
+    <ImportSourceDialog open={importSourceOpen} onOpenChange={setImportSourceOpen} contracts={contracts} onApply={handleApplySource} restoreFocus={restoreFocus} />
     <Dialog open={Boolean(inspecting)} onOpenChange={(open) => { if (!open) setInspecting(null) }}><DialogContent className="requirement-source-dialog" onCloseAutoFocus={restoreFocus}><DialogHeader><DialogTitle>{inspecting && labelFor(inspecting)} · {t('fields.coverage')}</DialogTitle><DialogDescription>{inspecting?.key}</DialogDescription></DialogHeader>
+      <p className="requirement-field-notice">{t('fields.coverageMeaning')}</p>
       {contracts.length === 0 && <p>{t('collections.noSources')}</p>}
       {inspecting && contracts.map((source) => { const actual = source.fields.find((field) => field.key === inspecting.key); return <div key={source.sourceId} className="requirement-source-evidence"><div className="requirement-source-evidence-title"><Link to={`/collectors/${encodeURIComponent(source.sourceId)}`}>{source.sourceName}</Link><span>{t(`fields.${source.state}`)}</span></div>
         {actual ? <p className="requirement-source-rule">{t(`fields.types.${actual.type}`)} · {t(actual.required ? 'fields.required' : 'fields.optional')}{actual.identity && ` · ${t('fields.identity')}`}{actual.fingerprint && ` · ${t('fields.fingerprint')}`}</p> : <p className="requirement-field-diff">{t(source.state === 'unavailable' ? 'fields.unavailable' : source.state === 'empty' ? 'fields.empty' : 'fields.notCollected')}</p>}
@@ -214,11 +202,13 @@ function ImportSourceDialog({
   onOpenChange,
   contracts,
   onApply,
+  restoreFocus,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   contracts: SourceFieldContract[]
   onApply: (mode: 'replace' | 'merge', source: SourceFieldContract) => void
+  restoreFocus: (event: Event) => void
 }) {
   const { t } = useTranslation('common')
   const available = contracts.filter((c) => c.fields.length > 0)
@@ -230,7 +220,7 @@ function ImportSourceDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="requirement-source-dialog max-w-md">
+      <DialogContent className="requirement-source-dialog max-w-md" onCloseAutoFocus={restoreFocus}>
         <DialogHeader>
           <DialogTitle>{t('fields.generateFromSource')}</DialogTitle>
           <DialogDescription>{t('fields.generateFromSourceDesc')}</DialogDescription>

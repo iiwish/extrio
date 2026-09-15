@@ -6,6 +6,7 @@ import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, createRoutesFromElements, Route, RouterProvider } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { api, ApiRequestError } from '@/api/client'
+import { mockCollectionPage } from '@/api/workspace-mock'
 import { seedCollectors } from '@/api/fixtures'
 import { AppShell } from '@/app/app-shell'
 import { initI18n } from '@/i18n'
@@ -25,6 +26,36 @@ function mount(path = '/collections/collection_nationwide_tender', language?: i1
 afterEach(() => { cleanup(); vi.restoreAllMocks() })
 
 describe('requirement details', () => {
+  it('prioritizes the requirement name and gives all five source columns explicit tracks', async () => {
+    vi.spyOn(api, 'collection').mockResolvedValue(requirement())
+    const { container } = mount('/collections/collection_nationwide_tender?section=sources')
+    expect(await screen.findByRole('heading', { level: 1, name: requirement().name })).toBeInTheDocument()
+    expect(container.querySelector('.requirement-title-row')?.firstElementChild?.tagName).toBe('H1')
+    expect(container.querySelectorAll('.collection-sources-table col')).toHaveLength(5)
+    expect(screen.getByRole('columnheader', { name: '输出字段数' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: '编辑来源' })).toBeInTheDocument()
+  })
+
+  it('shows unresolved target alignment before opening sources and excludes archived sources', async () => {
+    const sources = [{ ...seedCollectors[0], lifecycle: 'active' as const }, { ...seedCollectors[1], lifecycle: 'archived' as const }]
+    vi.spyOn(api, 'collection').mockResolvedValue(requirement({ sources, activeVersionId: 'target', activeVersion: { id: 'target', versionNumber: 2, fieldCount: 1, outputContractDigest: 'digest', publishedAt: '2026-09-14T00:00:00Z' }, sourceContracts: sources.map(source => ({ sourceId: source.id, sourceName: source.name, state: 'published', ruleVersion: 'rule', fields: [], schema: {}, quality: {}, targetVersionNumber: 2, sourceVersionNumber: 1, isAligned: false })) }))
+    const { router } = mount('/collections/collection_nationwide_tender?q=全国')
+    expect(await screen.findByText('1 个采集来源尚未应用最新字段要求')).toBeInTheDocument()
+    expect(screen.getByText('需求字段已发布为 v2，这些来源仍按原规则采集，不会自动更新。')).toBeInTheDocument()
+    await userEvent.setup().click(screen.getByRole('button', { name: '查看来源字段版本' }))
+    await waitFor(() => expect(screen.getByRole('tab', { name: /关联来源/ })).toHaveFocus())
+    expect(screen.getByRole('tab', { name: /关联来源/ })).toHaveAttribute('aria-selected', 'true')
+    expect(new URLSearchParams(router.state.location.search).get('q')).toBe('全国')
+  })
+
+  it('does not treat missing alignment metadata as aligned', async () => {
+    vi.spyOn(api, 'collection').mockResolvedValue(requirement({ sources: [seedCollectors[0]], activeVersionId: 'target', activeVersion: { id: 'target', versionNumber: 2, fieldCount: 1, outputContractDigest: 'digest', publishedAt: '2026-09-14T00:00:00Z' } }))
+    mount()
+    expect(await screen.findByText('1 个活动来源的版本无法确认')).toBeInTheDocument()
+    await userEvent.setup().click(screen.getByRole('button', { name: '查看来源字段版本' }))
+    expect(screen.queryByText(/\(已对齐\)/)).not.toBeInTheDocument()
+  })
+
   it('creates in place with a fixed requirement ID and refreshes linked sources', async () => {
     const empty = requirement({ sources: [], sourceCount: 0 })
     const source = { ...seedCollectors[0], id: 'added-source', collectionId: empty.id, name: '新增来源' }
@@ -126,7 +157,7 @@ describe('requirement details', () => {
 
   it('keeps field edits across sections and confirms leaving before discarding them', async () => {
     vi.spyOn(api, 'collection').mockResolvedValue(requirement())
-    vi.spyOn(api, 'collections').mockResolvedValue([requirement()])
+    vi.spyOn(api, 'collectionsPage').mockResolvedValue(mockCollectionPage(new URLSearchParams(), [requirement()]))
     const update = vi.spyOn(api, 'updateCollection')
     mount()
     const user = userEvent.setup()
@@ -197,11 +228,13 @@ describe('requirement details', () => {
     const language = initI18n(createInstance())
     await language.changeLanguage('en')
     const name = '全国采购公告 / Cross-regional procurement and public contract requirements'.repeat(2)
-    vi.spyOn(api, 'collection').mockResolvedValue(requirement({ name, intent: 'Long business intent. '.repeat(30) }))
+    vi.spyOn(api, 'collection').mockResolvedValue(requirement({ name, intent: 'Long business intent. '.repeat(30), activeVersionId: 'target', activeVersion: { id: 'target', versionNumber: 2, fieldCount: 1, outputContractDigest: 'digest', publishedAt: '2026-09-14T00:00:00Z' } }))
     mount('/collections/collection_nationwide_tender?section=invalid', language)
     expect(await screen.findByRole('heading', { name })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Collection fields' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('button', { name: 'Show full intent' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'View source field versions' })).toBeInTheDocument()
+    expect(screen.getByText('Version unknown for 2 active sources')).toBeInTheDocument()
     await userEvent.setup().click(screen.getByRole('button', { name: 'Edit fields' }))
     await userEvent.setup().click(screen.getByRole('link', { name: /Back to Requirements/ }))
     expect(await screen.findByRole('dialog', { name: 'Discard unsaved field changes?' })).toBeInTheDocument()
@@ -209,7 +242,7 @@ describe('requirement details', () => {
 
   it('opens requirement details from search, scopes sources by ID and preserves the return filter', async () => {
     const sources = seedCollectors.map((source, index) => index ? { ...source, collectionId: 'another_id' } : source)
-    vi.spyOn(api, 'collections').mockResolvedValue([requirement()])
+    vi.spyOn(api, 'collectionsPage').mockResolvedValue(mockCollectionPage(new URLSearchParams(), [requirement()]))
     vi.spyOn(api, 'collection').mockResolvedValue(requirement({ sources: [sources[0]], sourceCount: 1 }))
     mount('/collections?q=全国&status=all&sort=updated_asc')
     await userEvent.setup().click((await screen.findAllByRole('link', { name: '全国公共资源交易标讯' }))[0])

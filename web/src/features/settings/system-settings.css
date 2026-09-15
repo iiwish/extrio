@@ -1,0 +1,25 @@
+.system-settings-page { gap: 16px; padding-top: 16px; }
+.system-settings-page .settings-preferences { padding: 18px 20px; margin-bottom: 0; flex-wrap: wrap; gap: 16px; }
+.system-settings-page .settings-preferences .field-group { margin: 0; }
+.system-settings-page .settings-runtime,
+.system-settings-page .settings-collection-policy { padding: 20px; }
+.system-settings-page .settings-collection-policy-header { padding: 0 0 16px; border: 0; background: transparent; }
+.system-settings-page .settings-collection-policy-header h2,
+.system-settings-page .settings-runtime h2,
+.system-settings-page .settings-users-toolbar h2 { font-size: 14px; line-height: 22px; }
+.system-settings-page .settings-collection-policy-header p,
+.system-settings-page .settings-users-toolbar p { font-size: 12px; line-height: 18px; }
+.system-settings-page .settings-collection-policy-row { padding: 0; border: 0; background: transparent; gap: 20px; }
+.system-settings-page .settings-collection-policy-row label { font-size: 13px; line-height: 20px; }
+.system-settings-page .runtime-facts { padding-block: 4px; margin: 16px 0; gap: 24px; }
+.system-settings-page .runtime-facts dd { font-size: 20px; line-height: 28px; }
+.system-settings-page .runtime-worker { padding: 10px 0; gap: 16px; font-size: 12px; }
+.system-settings-page .runtime-worker code { min-width: 0; overflow-wrap: anywhere; }
+.system-settings-page .settings-users { padding: 0 20px 12px; overflow-x: auto; }
+.system-settings-page .settings-users-toolbar { padding: 18px 0; border: 0; background: transparent; gap: 16px; }
+.system-settings-page .settings-users-head,
+.system-settings-page .settings-users-row { grid-template-columns: minmax(120px, 1fr) 100px 70px 100px 220px; min-width: 680px; padding-inline: 0; gap: 16px; }
+.system-settings-page .settings-users-head { background: transparent; color: #65737b; }
+.system-settings-page .settings-users-row { min-height: 76px; }
+.system-settings-page .settings-users-identity strong { font-size: 13px; overflow-wrap: anywhere; }
+.system-settings-page .settings-users-actions { gap: 4px; flex-wrap: wrap; }
