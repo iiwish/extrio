@@ -32,6 +32,8 @@ describe('AiRunPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'https://www.zfcg.sh.gov.cn' })).toBeInTheDocument()
     expect(screen.getByText('候选规则等待审核')).toBeInTheDocument()
+    expect(screen.getByLabelText('AI 任务摘要')).toHaveClass('detail-panel')
+    expect(screen.getByRole('heading', { name: '产出与审核' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /审核候选规则/ })).toBeInTheDocument()
     expect(screen.queryByText(seedAiRuns[0].operationId)).not.toBeInTheDocument()
   })

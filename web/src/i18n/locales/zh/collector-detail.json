@@ -35,7 +35,8 @@
     "operationIncomplete": "操作未完成",
     "viewsAria": "采集来源详情视图",
     "ruleReviewTab": "规则审核",
-    "ruleTab": "规则",
+    "ruleTab": "规则与证据",
+    "resultsTab": "运行与结果",
     "configTab": "采集配置"
   },
   "evidenceSheet": {
@@ -43,6 +44,10 @@
     "description": "查看当前字段、规则或 Item 的采集证据与谱系。"
   },
   "overview": {
+    "firstRunPending": "规则已发布，尚未首次运行",
+    "deliveryStatus": "持续更新状态",
+    "manualDetail": "不会自动更新数据",
+    "viewConfig": "查看采集配置",
     "runLoading": "正在读取最近运行结果",
     "runUnavailable": "最近运行结果不可用",
     "runUnavailableDetail": "结果确认前不显示样本推算值；可重试读取或进入运行详情检查。",
@@ -55,14 +60,14 @@
     },
     "runningTitle": "正在执行采集任务",
     "state": {
-      "published": "采集来源已就绪",
+      "published": "采集规则已发布",
       "readyReview": "候选规则等待审核",
       "exploring": "正在生成候选规则",
       "draft": "来源定义已保存"
     },
     "description": {
       "running": "固定活动规则执行中，完成后会更新最近运行和检查点。",
-      "published": "活动规则和采集范围已生效，可直接运行或检查最近结果。",
+      "published": "运行使用已发布规则；结果与调度状态分别列示。",
       "readyReview": "候选字段和样本已准备好，需要完成人工决策后发布。",
       "exploring": "系统正在分析入口、分页、详情链接和字段质量。",
       "draft": "确认采集说明、入口网址和运行范围后生成候选规则。"
@@ -85,7 +90,8 @@
       "notPublished": "尚未发布",
       "publishedFrozen": "已发布并冻结",
       "awaitingReview": "生成候选规则后进入审核",
-      "runScope": "运行范围",
+      "runScope": "规则分页与策略",
+      "policyLimits": "策略上限 {{maxPages}} 页 · {{maxItems}} 条 · 回看 {{days}} 天",
       "lookbackSummary": "回看 {{days}} 天 · 上限 {{maxItems}} 条",
       "defaultPolicy": "使用默认采集策略",
       "latestRun": "最近运行",
@@ -210,6 +216,13 @@
     "detailUrlSamples": "发现的详情 URL 样本"
   },
   "config": {
+    "entryAria": "采集入口配置",
+    "entryTitle": "采集入口 URL",
+    "copyUrl": "复制采集入口 URL",
+    "openUrl": "打开采集入口",
+    "urlCopied": "URL 已复制",
+    "urlCopyFailed": "复制失败，请选择 URL 后手动复制。",
+    "outputDetails": "数据推送与投递记录",
     "gridAria": "采集来源定义与规则工作区",
     "definition": {
       "title": "采集来源定义",

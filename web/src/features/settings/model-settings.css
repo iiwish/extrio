@@ -1,0 +1,35 @@
+.model-settings-page { padding-top: 16px; gap: 16px; }
+.model-settings-page .settings-ai-toolbar { padding: 0; border: 0; }
+.model-settings-page .settings-default-model { gap: 12px; grid-template-columns: auto minmax(180px, 380px); }
+.model-settings-page .settings-default-model > span { font-size: 13px; }
+.model-settings-page .settings-default-model [data-slot="select-trigger"] { height: 34px; }
+.model-settings-page .settings-provider-list { gap: 16px; }
+.model-settings-page .settings-provider-row {
+  grid-template-columns: 32px minmax(0, 1fr) auto 32px;
+  grid-template-areas: "icon identity add menu" "collapse status status status";
+  padding: 20px; gap: 12px; background: transparent;
+}
+.model-settings-page .settings-provider-icon { grid-area: icon; }
+.model-settings-page .settings-provider-identity { grid-area: identity; }
+.model-settings-page .settings-provider-add-model { grid-area: add; height: 32px; font-size: 12px; }
+.model-settings-page .settings-provider-row > [data-slot="dropdown-menu-trigger"] { grid-area: menu; }
+.model-settings-page .settings-provider-collapse { grid-area: collapse; }
+.model-settings-page .settings-provider-health { grid-area: status; display: flex; align-items: center; flex-wrap: wrap; gap: 12px 24px; min-width: 0; }
+.model-settings-page .settings-provider-count { display: inline; margin-left: auto; }
+.model-settings-page .settings-provider-identity strong { font-size: 14px; line-height: 22px; }
+.model-settings-page .settings-provider-identity small,
+.model-settings-page .settings-model-identity strong { white-space: normal; overflow-wrap: anywhere; }
+.model-settings-page .settings-provider-identity small,
+.model-settings-page .settings-model-identity small,
+.model-settings-page .settings-secret,
+.model-settings-page .settings-status,
+.model-settings-page .settings-provider-count { font-size: 12px; line-height: 18px; }
+.model-settings-page .settings-model-rows { margin: 0 20px 8px; }
+.model-settings-page .settings-model-row { padding: 12px 0; min-height: 64px; grid-template-columns: 32px minmax(0, 1fr) 90px 32px; border-color: #edf0f2; }
+.model-settings-page .settings-model-identity strong { font-size: 13px; line-height: 20px; }
+.model-settings-page .settings-model-empty { padding: 16px 0; font-size: 13px; }
+.model-settings-dialog.settings-dialog { width: min(560px, calc(100vw - 48px)); max-width: 560px; max-height: calc(100dvh - 64px); overflow-y: auto; border-radius: 8px; padding: 24px; }
+.model-settings-dialog .settings-dialog-form { gap: 16px; }
+.model-settings-dialog .field-group { min-width: 0; }
+.model-settings-dialog .field-group > input,
+.model-settings-dialog .field-group > [data-slot="select-trigger"] { width: 100%; }

@@ -144,7 +144,8 @@
     "activeHint": "The task runs in the background and is not interrupted by leaving this page.",
     "guidanceHeading": "Operator guidance",
     "guidanceSub": "Guidance applies only to this task and cannot change safety, data-contract, validation, or human-review gates",
-    "activityHeading": "Live execution record",
+    "outputHeading": "Output and review",
+    "activityHeading": "Execution record",
     "activitySub": "Only stages, time, duration, and non-sensitive outcomes are recorded; raw prompts, reasoning, and page bodies are never shown",
     "activityEmpty": "No recoverable phase record exists for this historical task.",
     "activityStatus": {

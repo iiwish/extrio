@@ -44,7 +44,7 @@ jobs:
           enable-cache: true
       - run: uv sync --project backend --locked --python 3.12
       - run: uv run --project backend ruff check backend/src backend/tests
-      - run: uv run --project backend pytest
+      - run: uv run --project backend pytest -c backend/pyproject.toml backend/tests
       - run: uv run --project backend python scripts/update-docset-manifest.py --check
       - run: uv build --project backend --wheel
       - name: Verify packaged contracts

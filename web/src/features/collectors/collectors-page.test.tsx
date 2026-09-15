@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { seedCollectors, seedRuns } from '@/api/fixtures'
+import { mockCollectorPage } from '@/api/workspace-mock'
 import { CollectorsPage } from './collectors-page'
 
 function json(data: unknown) {
@@ -29,8 +30,9 @@ describe('CollectorsPage operational list', () => {
       collectionName: index === 0 ? '全国公共资源交易标讯' : '政府采购公告',
     }))
     vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request) => {
-      const path = new URL(String(input), 'http://localhost').pathname
-      if (path.endsWith('/collectors')) return json({ items: collectors, page: { nextCursor: null } })
+      const url = new URL(String(input), 'http://localhost')
+      const path = url.pathname
+      if (path.endsWith('/collectors')) return json(mockCollectorPage(url.searchParams, collectors, seedRuns))
       if (path.endsWith('/runs')) return json({ items: seedRuns, page: { nextCursor: null } })
       return json({ message: 'Not found' })
     }))
@@ -94,13 +96,21 @@ describe('CollectorsPage operational list', () => {
     expect(screen.queryByText('当前筛选下没有采集来源。')).not.toBeInTheDocument()
   })
 
+  it('includes the first-run work linked from the home attention list', async () => {
+    const collector = { ...seedCollectors[0], status: 'published', activeRuleVersion: 'rule', activeOperationId: null, latestRunId: null }
+    vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request) => json(mockCollectorPage(new URL(String(input), 'http://localhost').searchParams, [collector as typeof seedCollectors[number]], []))))
+    renderPage('/collectors?view=attention')
+    expect(await screen.findByRole('link', { name: /执行首次运行/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /需处理/ })).toHaveTextContent('1')
+  })
+
   it.each(['cancelled', 'queued', 'running', 'finalizing', 'missing'] as const)(
     'does not label a %s latest run healthy or hide unresolved runs from attention', async (status) => {
       const collector = { ...seedCollectors[0], status: 'published', activeRuleVersion: 'rule_v1', latestRunId: 'latest' }
       const runs = status === 'missing' ? [] : [{ ...seedRuns[0], id: 'latest', status, rejectedCount: 0 }]
       vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request) => {
-        const path = new URL(String(input), 'http://localhost').pathname
-        return json({ items: path.endsWith('/collectors') ? [collector] : runs, page: { nextCursor: null } })
+        const url = new URL(String(input), 'http://localhost')
+        return json(mockCollectorPage(url.searchParams, [collector as typeof seedCollectors[number]], runs))
       }))
       renderPage(status === 'cancelled' || status === 'missing' ? '/collectors?view=attention' : '/collectors')
       const list = screen.getByLabelText('采集来源列表')

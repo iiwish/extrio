@@ -275,9 +275,19 @@ export async function waitForOperation(
   return operation
 }
 
+function workspacePage<T>(path: string, query: Record<string, string | number | undefined>, signal?: AbortSignal) {
+  const params = new URLSearchParams()
+  for (const [key, value] of Object.entries(query)) if (value !== undefined) params.set(key, String(value))
+  return request<T>(`/${path}?${params}`, { signal })
+}
+
 export const api = {
   overview: (timezone = Intl.DateTimeFormat().resolvedOptions().timeZone) => request<Overview>(`/overview?timezone=${encodeURIComponent(timezone)}`),
   collections: () => request<{ items: Collection[]; total: number }>('/collections').then((result) => result.items),
+  collectionsPage: (query: Record<string, string | number | undefined>, signal?: AbortSignal) => workspacePage<import('./types').CollectionPage>('collections', query, signal),
+  collectorsPage: (query: Record<string, string | number | undefined>, signal?: AbortSignal) => workspacePage<CollectorPage>('collectors', query, signal),
+  runsPage: (query: Record<string, string | number | undefined>, signal?: AbortSignal) => workspacePage<RunPage>('runs', query, signal),
+  aiRunsPage: (query: Record<string, string | number | undefined>, signal?: AbortSignal) => workspacePage<AiRunPage>('ai-runs', query, signal),
   collectionTemplates: () => request<CollectionTemplateList>('/collection-templates').then((result) => result.items),
   applyCollectionTemplate: (id: string, input: ApplyTemplateInput) => command<Collection>(`/collections/${encodeURIComponent(id)}/apply-template`, { body: JSON.stringify(input) }),
   fieldSuggestions: (id: string) => request<FieldSuggestionList>(`/collections/${encodeURIComponent(id)}/field-suggestions`).then((result) => result.items),
@@ -353,10 +363,11 @@ export const api = {
   aiRuns: (collectorId?: string) => request<AiRunPage>(`/ai-runs?limit=200${collectorId ? `&collectorId=${encodeURIComponent(collectorId)}` : ''}`).then((result) => result.items),
   aiRunDetail: (id: string) => request<AiRunDetail>(`/ai-runs/${id}`),
   items: () => request<ItemPage>('/items?limit=200').then((result) => result.items),
-  itemsPage: (query: ItemsQuery & { limit?: number; cursor?: string } = {}, signal?: AbortSignal) => {
+  itemsPage: (query: ItemsQuery & { limit?: number; cursor?: string; page?: number } = {}, signal?: AbortSignal) => {
     const params = itemQueryParams(query)
     params.set('limit', String(query.limit ?? 50))
     if (query.cursor) params.set('cursor', query.cursor)
+    if (query.page !== undefined) params.set('page', String(query.page))
     return request<ItemPage>(`/items?${params.toString()}`, { signal })
   },
   item: (id: string) => request<HarvestItem>(`/items/${id}`),

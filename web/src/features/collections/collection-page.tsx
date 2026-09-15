@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Archive, ArchiveRestore, Check, ChevronDown, ChevronRight, FileText, Layers3, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
+import { Archive, ArchiveRestore, Braces, Check, ChevronDown, ChevronRight, FileText, Layers3, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import { Link, useBlocker, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useWorkspaceLink } from '@/lib/workspace-navigation'
 import { useTranslation } from 'react-i18next'
@@ -19,6 +19,8 @@ import { CollectionFields } from './collection-fields'
 import { CollectionMigration } from './collection-migration'
 import { ArchivedBadge, CollectorManagement } from '@/features/collectors/collector-management'
 import { CollectionSourceDialog } from './collection-source-dialog'
+import { collectionAlignment, sourceAlignment } from './collection-alignment'
+import './collection-detail.css'
 
 export function CollectionPage() {
   const { collectionId = '' } = useParams()
@@ -45,6 +47,12 @@ function CollectionContent({ requirement, reload, readError }: { requirement: Co
   const [params, setParams] = useSearchParams()
   const workspaceLink = useWorkspaceLink()
   const section = params.get('section') === 'sources' ? 'sources' : 'fields'
+  const alignment = collectionAlignment(requirement)
+  function selectSection(value: string) {
+    const next = new URLSearchParams(params)
+    if (value === 'fields') next.delete('section'); else next.set('section', value)
+    setParams(next)
+  }
   const [goalExpanded, setGoalExpanded] = useState(false)
   const [addingSource, setAddingSource] = useState(false)
   const sourceTrigger = useRef<HTMLButtonElement | null>(null)
@@ -52,6 +60,7 @@ function CollectionContent({ requirement, reload, readError }: { requirement: Co
   const [fieldEditing, setFieldEditing] = useState(false)
   const [fieldSaving, setFieldSaving] = useState(false)
   const tabsRef = useRef<HTMLDivElement | null>(null)
+  const sourcesTabRef = useRef<HTMLButtonElement | null>(null)
   const blocker = useBlocker(({ currentLocation, nextLocation }) => fieldEditing && currentLocation.pathname !== nextLocation.pathname)
   const [notice, setNotice] = useState('')
   const invalidate = () => {
@@ -77,7 +86,10 @@ function CollectionContent({ requirement, reload, readError }: { requirement: Co
   </AlertDescription></Alert>
   return <div className="page-frame collection-detail-page">
     <header className="collection-detail-header">
-      <div className="requirement-heading"><div className="requirement-title-row"><span className={`requirement-lifecycle ${archived ? 'is-archived' : ''}`}>{archived ? <Archive size={13} /> : <Check size={13} />}{t(archived ? 'collections.archived' : 'collections.active')}</span>{requirement.activeVersion ? <span className="requirement-lifecycle" title={`Digest: ${requirement.activeVersion.outputContractDigest}`}><Check size={13} />v{requirement.activeVersion.versionNumber} ({t('collections.versionActive')})</span> : <span className="requirement-lifecycle is-archived">{t('collections.versionDraftOnly')}</span>}<h1>{requirement.name}</h1></div><div className="requirement-header-meta"><span>{t('collections.sourcePublication')} <strong>{requirement.publishedSourceCount} / {requirement.sourceCount}</strong></span><span>{t('fields.updatedAt')} <time dateTime={requirement.updatedAt}>{new Date(requirement.updatedAt).toLocaleString(i18n.resolvedLanguage)}</time></span></div></div>
+      <div className="requirement-heading">
+        <div className="requirement-title-row"><h1>{requirement.name}</h1><span className={`requirement-lifecycle ${archived ? 'is-archived' : ''}`}>{archived ? <Archive size={13} /> : <Check size={13} />}{t(archived ? 'collections.archived' : 'collections.active')}</span></div>
+        <div className="requirement-header-meta"><span>{t('fields.updatedAt')} <time dateTime={requirement.updatedAt}>{new Date(requirement.updatedAt).toLocaleString(i18n.resolvedLanguage)}</time></span></div>
+      </div>
       {canEdit && <div className="collection-detail-actions">
         {archived ? <Button variant="outline" disabled={pending} onClick={() => { reset(); update.mutate({ revision: requirement.revision, status: 'active' }) }}><ArchiveRestore />{t('collections.restore')}</Button>
           : <><Button ref={editTrigger} variant="outline" size="sm" disabled={pending || fieldEditing} onClick={() => { reset(); setNotice(''); setEditing(requirement) }}><Pencil />{t('collections.edit')}</Button>
@@ -86,24 +98,35 @@ function CollectionContent({ requirement, reload, readError }: { requirement: Co
         {requirement.sourceCount === 0 && !requirement.latestVersionNumber && <Button variant="ghost" size="icon-sm" title={t('collections.delete')} aria-label={t('collections.delete')} disabled={pending || fieldEditing} onClick={() => { reset(); setConfirmation({ type: 'delete', revision: requirement.revision }) }}><Trash2 /></Button>}
       </div>}
     </header>
+    <div className="requirement-overview">
+      <section className={`requirement-goal-summary ${longGoal ? 'can-collapse' : ''} ${goalExpanded ? 'is-expanded' : ''}`} aria-label={t('collections.intent')}><span>{t('collections.intent')}</span><div><p id="requirement-goal">{requirement.intent}</p>{longGoal && <button className="requirement-goal-toggle" aria-expanded={goalExpanded} aria-controls="requirement-goal" onClick={() => setGoalExpanded(!goalExpanded)}>{t(goalExpanded ? 'collections.collapseGoal' : 'collections.expandGoal')}<ChevronDown size={13} /></button>}</div></section>
+      <dl className="requirement-overview-facts">
+        <div><dt>{t('collections.sourcePublication')}</dt><dd>{requirement.publishedSourceCount}<span> / {requirement.sourceCount}</span></dd></div>
+        <div><dt>{t('collections.versionActive')}</dt><dd title={requirement.activeVersion?.outputContractDigest}>{requirement.activeVersion ? `v${requirement.activeVersion.versionNumber}` : <span>{t('collections.versionDraftOnly')}</span>}</dd></div>
+      </dl>
+    </div>
+    {requirement.activeVersion && alignment.total > 0 && <section className={`requirement-alignment-summary ${alignment.outdated || alignment.unknown ? 'needs-attention' : ''}`} aria-label={t('collections.versionAlignment')}>
+      <div><strong>{t(alignment.outdated ? 'collections.alignmentPending' : alignment.unknown ? 'collections.alignmentUnknown' : 'collections.alignmentCount', { version: requirement.activeVersion.versionNumber, count: alignment.outdated || alignment.unknown || alignment.aligned, total: alignment.total })}</strong>{alignment.outdated > 0 && <span>{t('collections.alignmentDetail', { version: requirement.activeVersion.versionNumber })}</span>}{alignment.outdated > 0 && alignment.unknown > 0 && <span>{t('collections.alignmentUnknown', { count: alignment.unknown })}</span>}</div>
+      <Button variant="outline" size="sm" onClick={() => { selectSection('sources'); requestAnimationFrame(() => sourcesTabRef.current?.focus()) }}>{t('collections.inspectAlignment')}<ChevronRight /></Button>
+    </section>}
     {archived && <Alert><AlertDescription>{t('collections.archivedNotice')}</AlertDescription></Alert>}
     {notice && <p role="status" className="requirement-save-success"><Check size={14} />{t(notice)}</p>}
     {readError && <Alert variant="destructive"><AlertDescription>{readError.message}<Button variant="outline" size="sm" onClick={reload}><RefreshCw />{t('action.retry')}</Button></AlertDescription></Alert>}
     {!editing && !confirmation && errorNotice}
-    <section className={`requirement-goal-summary ${longGoal ? 'can-collapse' : ''} ${goalExpanded ? 'is-expanded' : ''}`} aria-label={t('collections.intent')}><span>{t('collections.intent')}</span><div><p id="requirement-goal">{requirement.intent}</p>{longGoal && <button className="requirement-goal-toggle" aria-expanded={goalExpanded} aria-controls="requirement-goal" onClick={() => setGoalExpanded(!goalExpanded)}>{t(goalExpanded ? 'collections.collapseGoal' : 'collections.expandGoal')}<ChevronDown size={13} /></button>}</div></section>
-    <Tabs ref={tabsRef} value={section} onValueChange={value => { const next = new URLSearchParams(params); if (value === 'fields') next.delete('section'); else next.set('section', value); setParams(next) }} className="requirement-detail-tabs">
-      <TabsList variant="line" aria-label={t('fields.detailSections')}><TabsTrigger value="fields">{t('fields.unified')}{fieldEditing && <span className="requirement-unsaved">{t('fields.unsaved')}</span>}</TabsTrigger><TabsTrigger value="sources">{t('collections.linkedSources')} · {requirement.sourceCount}</TabsTrigger></TabsList>
+    <Tabs ref={tabsRef} value={section} onValueChange={selectSection} className="requirement-detail-tabs">
+      <TabsList variant="line" aria-label={t('fields.detailSections')}><TabsTrigger value="fields"><Braces size={15} />{t('fields.unified')}{fieldEditing && <span className="requirement-unsaved">{t('fields.unsaved')}</span>}</TabsTrigger><TabsTrigger ref={sourcesTabRef} value="sources"><Layers3 size={15} />{t('collections.linkedSources')} · {requirement.sourceCount}</TabsTrigger></TabsList>
       <TabsContent value="fields" forceMount><CollectionFields requirement={requirement} canEdit={canEdit && !archived} canPublish={!archived && ['administrator', 'reviewer'].includes(user.role)} onEditingChange={setFieldEditing} onSavingChange={setFieldSaving} />{requirement.sourceCount === 0 && <p className="requirement-no-sources">{t('collections.noSources')}</p>}</TabsContent>
       <TabsContent value="sources">
     <section aria-labelledby="collection-sources-title">
       <h2 id="collection-sources-title" className="sr-only">{t('collections.linkedSources')}</h2>
       {requirement.sources.length === 0 ? <div className="collections-empty"><Layers3 /><h2>{t('collections.noSources')}</h2></div>
         : <div className="collections-table-scroll"><table className="collection-sources-table">
+          <colgroup><col className="requirement-source-name-col" /><col className="requirement-source-status-col" /><col className="requirement-source-alignment-col" /><col className="requirement-source-fields-col" /><col className="requirement-source-actions-col" /></colgroup>
           <thead><tr><th scope="col">{t('nav.collectors')}</th><th scope="col">{t('collections.sourceStatus')}</th><th scope="col">{t('collections.versionAlignment')}</th><th scope="col">{t('fields.executionFields')}</th><th scope="col"><span className="sr-only">{t('collectors:management.edit')}</span></th></tr></thead>
-          <tbody>{requirement.sources.map((source) => { const contract = requirement.sourceContracts?.find((item) => item.sourceId === source.id); const isAligned = contract?.isAligned ?? true; return <tr key={source.id}>
+          <tbody>{requirement.sources.map((source) => { const contract = requirement.sourceContracts?.find((item) => item.sourceId === source.id); const alignmentState = sourceAlignment(contract, requirement.activeVersion?.versionNumber); return <tr key={source.id}>
             <td><Link to={workspaceLink(`/collectors/${encodeURIComponent(source.id)}`)}><Layers3 size={16} /><strong>{source.name}</strong><ChevronRight size={14} /></Link><span className="collection-source-url">{source.sourceUrl}</span></td>
             <td>{source.lifecycle === 'archived' ? <ArchivedBadge /> : <StatusBadge status={source.status} />}</td>
-            <td>{contract?.targetVersionNumber ? (isAligned ? <span className="requirement-lifecycle"><Check size={12} />v{contract.targetVersionNumber} ({t('collections.aligned')})</span> : <span className="requirement-lifecycle is-archived" title={`Source: ${contract.sourceVersion || 'unbound'}`}>{contract.sourceVersionNumber ? `v${contract.sourceVersionNumber}` : t('collections.unboundVersion')} → v{contract.targetVersionNumber} ({t('collections.outdated')})</span>) : <span className="requirement-lifecycle is-archived">{t('collections.versionDraftOnly')}</span>}<CollectionMigration source={source} targetVersionId={requirement.activeVersionId} canReview={!archived && ['administrator', 'reviewer'].includes(user.role)} /></td>
+            <td>{alignmentState === 'unknown' ? <span className="requirement-lifecycle is-archived">{t(requirement.activeVersion ? 'fields.unknownCount' : 'collections.versionDraftOnly')}</span> : alignmentState === 'aligned' ? <span className="requirement-lifecycle"><Check size={12} />v{contract!.targetVersionNumber} ({t('collections.aligned')})</span> : <span className="requirement-lifecycle is-archived" title={`Source: ${contract!.sourceVersion || 'unbound'}`}>{contract!.sourceVersionNumber ? `v${contract!.sourceVersionNumber}` : t('collections.unboundVersion')} → v{contract!.targetVersionNumber} ({t('collections.outdated')})</span>}<CollectionMigration source={source} targetVersionId={requirement.activeVersionId} canReview={!archived && ['administrator', 'reviewer'].includes(user.role)} /></td>
             <td>{!contract || contract.state === 'unavailable' ? <span className="requirement-field-diff">{t('fields.unknownCount')}</span> : contract.fields.length}</td>
             <td><CollectorManagement collector={source} /></td>
           </tr> })}</tbody>

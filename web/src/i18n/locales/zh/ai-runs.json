@@ -144,7 +144,8 @@
     "activeHint": "任务在后台执行，离开页面不会中断。",
     "guidanceHeading": "本次操作指引",
     "guidanceSub": "指引只作用于本次任务，不能改变安全、数据合同、验证或人工审核门",
-    "activityHeading": "实时执行记录",
+    "outputHeading": "产出与审核",
+    "activityHeading": "执行记录",
     "activitySub": "仅记录阶段、时间、耗时和非敏感结果，不展示原始提示词、思维过程或网页正文",
     "activityEmpty": "该历史任务没有可恢复的阶段记录。",
     "activityStatus": {

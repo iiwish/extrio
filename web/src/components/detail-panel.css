@@ -1,0 +1,7 @@
+.detail-panel.detail-panel {
+  min-width: 0;
+  border: 1px solid #e1e6e9;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: none;
+}

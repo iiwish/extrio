@@ -9,6 +9,9 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { DetailPanel } from '@/components/detail-panel'
+import './run-detail.css'
+import './ai-run-detail.css'
 import { QueryError } from '@/components/query-error'
 import { useWorkspaceLink, useWorkspaceSection } from '@/lib/workspace-navigation'
 import { DeletedSourceBadge, HistoryAttribution } from '@/features/collectors/collector-management'
@@ -68,54 +71,52 @@ export function AiRunPage() {
 
         <TabsContent value="result" className="run-tab-panel">
           <AiRunSummary run={run} failed={failed} />
-          <section className="run-detail-section ai-result-section">
-            <header><div><h2>{resultTitle(t, run)}</h2><p>{resultDescription(t, run)}</p></div>{!run.collectorDeleted && run.reviewStatus === 'ready_review' && <Badge variant="outline" className="ai-review-badge">{t('detail.awaitingReview')}</Badge>}</header>
+          <DetailPanel className="run-detail-section ai-result-section">
+            <header><div><h2>{t('detail.outputHeading')}</h2><p>{resultDescription(t, run)}</p></div>{!run.collectorDeleted && run.reviewStatus === 'ready_review' && <Badge variant="outline" className="ai-review-badge">{t('detail.awaitingReview')}</Badge>}</header>
             <dl className="ai-result-grid">
-              <div><dt>{t('detail.facts.sampleValidation')}</dt><dd>{t('detail.facts.sampleValidationValue', { accepted: run.validationSummary.acceptedSamples, rejected: run.validationSummary.rejectedSamples })}</dd></div>
-              <div><dt>{t('detail.facts.warnings')}</dt><dd>{run.validationSummary.warningCount}</dd></div>
               <div><dt>{t('detail.facts.attempts')}</dt><dd>{run.attemptCount}</dd></div>
               <div><dt>{t('detail.facts.reviewStatus')}</dt><dd>{reviewLabel(t, run.reviewStatus, run.collectorDeleted)}</dd></div>
             </dl>
             {failed && <div className="ai-run-error"><TriangleAlert /><span><strong>{t('detail.noCandidateTitle')}</strong><small>{run.error ? t(`adaptive.errors.${run.error.code}`, { defaultValue: run.error.message }) : t('detail.noCandidateFallback')}</small></span></div>}
             {active && <div className="ai-run-active"><Clock3 /><span><strong>{phaseLabel(t, run.phase)}</strong><small>{t('detail.activeHint')}</small></span><b>{run.progress}%</b></div>}
-          </section>
+          </DetailPanel>
         </TabsContent>
 
         <TabsContent value="process" className="run-tab-panel">
           {run.evidence && <AdaptiveEvidence value={run.evidence} />}
-          <section className="run-detail-section ai-activity-section">
+          <DetailPanel className="run-detail-section ai-activity-section">
             <header><div><h2>{t('detail.activityHeading')}</h2><p>{t('detail.activitySub')}</p></div>{active && <Badge variant="outline" className="ai-status-badge running"><span />{t('detail.activityStatus.running')}</Badge>}</header>
             {(run.guidance || run.note) && <div className="ai-run-guidance"><MessageSquareText /><span><strong>{t('detail.guidanceHeading')}</strong><small>{t('detail.guidanceSub')}</small><p>{run.guidance ?? run.note}</p></span></div>}
             <AiActivityTimeline activity={run.activity ?? []} />
-          </section>
-          <section className="run-detail-section">
+          </DetailPanel>
+          <DetailPanel className="run-detail-section">
             <header><div><h2>{t('detail.attemptsHeading')}</h2><p>{t('detail.attemptsSub')}</p></div></header>
             <div className="ai-attempt-list">
               {run.attempts.map((attempt) => <article key={attempt.id}>
-                <span className={`ai-attempt-index ${attempt.status}`}><Check /></span>
+                <span className={`ai-attempt-index ${attempt.status}`}>{['failed', 'timed_out'].includes(attempt.status) ? <TriangleAlert /> : attempt.status === 'running' ? <LoaderCircle className="animate-spin" /> : attempt.status === 'queued' ? <Clock3 /> : <Check />}</span>
                 <div><strong>{t('detail.attemptNo', { no: attempt.attemptNo })}</strong><small>{formatDateTime(attempt.startedAt)} · {durationLabel(t, attempt.durationMs)}</small></div>
                 <Badge variant="outline">{attemptStatusLabel(t, attempt.status)}</Badge>
                 <span className="ai-attempt-models">{t('detail.attemptInvocations', { count: attempt.modelInvocations.length })}</span>
               </article>)}
               {run.attempts.length === 0 && <div className="card-empty">{t('detail.noAttempts')}</div>}
             </div>
-          </section>
+          </DetailPanel>
         </TabsContent>
 
         <TabsContent value="models" className="run-tab-panel">
-          <section className="run-detail-section ai-model-section">
+          <DetailPanel className="run-detail-section ai-model-section">
             <header><div><h2>{t('detail.modelsHeading')}</h2><p>{t('detail.modelsSub')}</p></div></header>
             <div className="ai-model-table">
               <div className="ai-model-head"><span>{t('modelTable.purpose')}</span><span>{t('modelTable.model')}</span><span>{t('modelTable.status')}</span><span>{t('modelTable.token')}</span><span>{t('modelTable.duration')}</span></div>
               {invocations.map((invocation) => <ModelInvocationRow key={invocation.id} invocation={invocation} />)}
               {invocations.length === 0 && <div className="card-empty">{t('modelTable.empty')}</div>}
             </div>
-          </section>
+          </DetailPanel>
         </TabsContent>
 
         <TabsContent value="evidence" className="run-tab-panel">
           {run.evidence && <AdaptiveEvidence value={run.evidence} showReads />}
-          <section className="run-detail-section run-proof-section" aria-label={t('detail.evidenceAria')}>
+          <DetailPanel className="run-detail-section run-proof-section" aria-label={t('detail.evidenceAria')}>
             <header><div><h2>{t('detail.evidenceHeading')}</h2><p>{t('detail.evidenceSub')}</p></div><Fingerprint /></header>
             <div className="run-proof-grid">
               <article className="verified"><ListChecks /><span><strong>{t('detail.evidence.attempts', { count: run.attemptCount })}</strong><small>{t('detail.evidence.attemptsSub')}</small></span></article>
@@ -134,7 +135,7 @@ export function AiRunPage() {
                 <div><dt>Initiated By</dt><dd><code>{run.initiatedBy}</code></dd></div>
               </dl>
             </details>
-          </section>
+          </DetailPanel>
         </TabsContent>
       </Tabs>
     </div>
@@ -144,7 +145,7 @@ export function AiRunPage() {
 export function AdaptiveEvidence({ value, showReads = false }: { value: NonNullable<AiRunDetail['evidence']>; showReads?: boolean }) {
   const { t } = useTranslation('aiRuns')
   const b = value.budget
-  return <section className="run-detail-section adaptive-evidence" aria-label={t('adaptive.title')}>
+  return <DetailPanel className="run-detail-section adaptive-evidence" aria-label={t('adaptive.title')}>
     <header><div><h2>{t('adaptive.title')}</h2><p>{t(`adaptive.source.${value.limitsSource}`)} · {t(`adaptive.method.${b.tokenMethod}`)}</p></div><Badge variant="outline">{t(`adaptive.phase.${value.phase}`)}</Badge></header>
     <dl className="ai-result-grid">
       <div><dt>{t('adaptive.calls')}</dt><dd>{b.calls} / {b.maxCalls}</dd></div>
@@ -154,21 +155,21 @@ export function AdaptiveEvidence({ value, showReads = false }: { value: NonNulla
     </dl>
     <div className="adaptive-context"><span>{t('adaptive.context', { count: b.contextTokens })}</span><span>{t(value.validated ? 'adaptive.validated' : 'adaptive.unvalidated')}</span></div>
     {b.stopReason && <div className="ai-run-error"><TriangleAlert /><span><strong>{t('adaptive.stopped')}</strong><small>{t(`adaptive.errors.${b.stopReason}`, { defaultValue: b.stopReason })}</small></span></div>}
-    <div className="adaptive-table-wrap"><table className="adaptive-table">
+    {showReads && <div className="adaptive-table-wrap"><table className="adaptive-table">
       <thead><tr><th>{t('adaptive.page')}</th><th>{t('adaptive.indexed')}</th><th>{t('adaptive.read')}</th><th>{t('adaptive.chars')}</th></tr></thead>
       <tbody>{value.pages.map((page) => <tr key={page.pageId}><td><code>{page.pageId}</code></td><td>{page.indexedNodes}</td><td>{page.readNodes}</td><td>{page.readFragmentChars.toLocaleString()}</td></tr>)}</tbody>
-    </table></div>
+    </table></div>}
     {value.validation.length > 0 && <ul className="adaptive-validation">{value.validation.map((issue, index) => <li key={index}><span title={issue.code}>{t(`adaptive.validation.${issue.code}`, { defaultValue: issue.code ?? '' })}</span>{issue.field && <code>{issue.field}</code>}{issue.sample !== undefined && <span>{t('adaptive.sample', { count: issue.sample })}</span>}</li>)}</ul>}
     {showReads && <details className="adaptive-reads"><summary>{t('adaptive.readLog', { count: value.reads.length })}</summary><div className="adaptive-table-wrap"><table className="adaptive-table">
       <thead><tr><th>{t('adaptive.page')}</th><th>{t('adaptive.node')}</th><th>{t('adaptive.action')}</th><th>{t('adaptive.range')}</th><th>{t('adaptive.fragment')}</th></tr></thead>
       <tbody>{value.reads.map((read, index) => <tr key={index}><td title={read.digest}><code>{read.pageId}</code></td><td><code>{read.nodeId}</code></td><td>{t(`adaptive.actionType.${read.action}`)}</td><td>{read.start}–{read.end}</td><td>{t(read.complete ? 'adaptive.end' : 'adaptive.more')}</td></tr>)}</tbody>
     </table></div></details>}
-  </section>
+  </DetailPanel>
 }
 
 function AiRunSummary({ run, failed }: { run: AiRunDetail; failed: boolean }) {
   const { t } = useTranslation('aiRuns')
-  return <section aria-label={t('summaryAria')} className={`run-result-summary ${failed ? 'danger' : run.reviewStatus === 'ready_review' ? 'warning' : 'success'}`}>
+  return <DetailPanel aria-label={t('summaryAria')} className={`run-result-summary ${failed ? 'danger' : run.reviewStatus === 'ready_review' ? 'warning' : 'success'}`}>
     <div className="run-result-heading ai-run-summary">
       <div><h2>{failed ? t('summary.failed') : !run.collectorDeleted && run.reviewStatus === 'ready_review' ? t('summary.readyReview') : resultTitle(t, run)}</h2><p>{t('summary.phaseDuration', { phase: phaseLabel(t, run.phase), duration: durationLabel(t, run.durationMs) })}</p></div>
       <dl className="run-result-facts ai-run-facts">
@@ -180,7 +181,7 @@ function AiRunSummary({ run, failed }: { run: AiRunDetail; failed: boolean }) {
         <div><dt>{t('summary.facts.duration')}</dt><dd>{durationLabel(t, run.durationMs)}</dd></div>
       </dl>
     </div>
-  </section>
+  </DetailPanel>
 }
 
 function ModelInvocationRow({ invocation }: { invocation: ModelInvocation }) {

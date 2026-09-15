@@ -1,0 +1,78 @@
+.collection-detail-page {
+  gap: 20px;
+  padding-top: 28px;
+}
+
+.collection-detail-page .collection-detail-header { gap: 24px; }
+.collection-detail-page .requirement-title-row { gap: 12px; }
+.collection-detail-page .requirement-title-row h1 { font-size: 22px; line-height: 30px; font-weight: 600; }
+.collection-detail-page .requirement-header-meta { margin-top: 6px; font-size: 12px; line-height: 18px; }
+.collection-detail-page .collection-detail-actions { padding-top: 2px; }
+
+.requirement-overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  align-items: start;
+  gap: 32px;
+  padding-bottom: 4px;
+}
+.collection-detail-page .requirement-goal-summary { display: grid; grid-template-columns: minmax(0, 1fr); gap: 7px; padding: 0; border: 0; }
+.collection-detail-page .requirement-goal-summary > span { font-size: 12px; line-height: 18px; }
+.collection-detail-page .requirement-goal-summary p { color: var(--foreground); line-height: 22px; }
+.requirement-overview-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 0; }
+.requirement-overview-facts dt { font-size: 12px; line-height: 18px; color: var(--muted-foreground); margin-bottom: 7px; }
+.requirement-overview-facts dd { font-size: 20px; line-height: 26px; font-weight: 600; margin: 0; }
+.requirement-overview-facts dd span { font-size: 13px; color: var(--muted-foreground); font-weight: 400; }
+
+.collection-detail-page .requirement-alignment-summary { border: 0; padding: 10px 14px; background: #edf6f2; color: #267263; gap: 12px; }
+.collection-detail-page .requirement-alignment-summary.needs-attention { background: #fbf5e9; color: #846013; }
+.collection-detail-page .requirement-alignment-summary strong { font-weight: 500; }
+.collection-detail-page .requirement-alignment-summary button { background: transparent; border-color: currentColor; box-shadow: none; }
+
+.collection-detail-page .requirement-detail-tabs { gap: 0; }
+.collection-detail-page .requirement-detail-tabs > [data-slot="tabs-list"] { gap: 26px; height: 46px; }
+.collection-detail-page .requirement-detail-tabs > [data-slot="tabs-list"] > button { padding-inline: 2px; }
+.collection-detail-page .requirement-fields { padding-top: 18px; gap: 14px; }
+.collection-detail-page .requirement-fields-toolbar { gap: 10px 20px; }
+.collection-detail-page .requirement-fields-heading > span:first-child { color: var(--foreground); font-weight: 500; }
+.collection-detail-page .requirement-field-state { border: 0; background: #e9edef; color: #59676f; padding: 3px 7px; }
+.collection-detail-page .requirement-field-state.is-published { background: #edf6f2; color: #267263; }
+.collection-detail-page .requirement-field-state.is-draft { background: #fbf5e9; color: #846013; }
+.collection-detail-page .requirement-fields-toolbar .requirement-field-actions { gap: 8px; }
+.collection-detail-page .requirement-fields-scroll,
+.collection-detail-page .collections-table-scroll { border: 1px solid var(--border); border-radius: 8px; background: var(--card); }
+.collection-detail-page .requirement-fields-table th { background: #f7f8fa; padding: 11px 16px; }
+.collection-detail-page .requirement-fields-table td { padding: 14px 16px; vertical-align: middle; }
+.collection-detail-page .requirement-fields-table tbody tr:last-child td,
+.collection-detail-page .collection-sources-table tbody tr:last-child td { border-bottom: 0; }
+.collection-detail-page .requirement-fields-table tbody tr:hover { background: #fafbfc; }
+.collection-detail-page .requirement-field-name { font-weight: 600; }
+.collection-detail-page .requirement-field-key { display: inline-block; font-size: 11px; margin-top: 4px; }
+.collection-detail-page .requirement-field-description { margin-top: 5px; }
+.collection-detail-page .requirement-col-type { width: 15%; }
+.collection-detail-page .requirement-col-rules { width: 25%; }
+.collection-detail-page .requirement-col-coverage { width: 17%; }
+.collection-detail-page .requirement-col-actions { width: 96px; }
+.collection-detail-page .requirement-fields-table td > .requirement-field-actions { flex-wrap: nowrap; gap: 4px; }
+
+.collection-detail-page [data-slot="tabs-content"][data-state="active"] > section > .collections-table-scroll { margin-top: 18px; }
+.collection-detail-page .collection-sources-table { min-width: 720px; }
+.collection-detail-page .collection-sources-table th { width: auto; white-space: nowrap; }
+.collection-detail-page .requirement-source-name-col { width: auto; }
+.collection-detail-page .requirement-source-status-col { width: 96px; }
+.collection-detail-page .requirement-source-alignment-col { width: 184px; }
+.collection-detail-page .requirement-source-fields-col { width: 88px; }
+.collection-detail-page .requirement-source-actions-col { width: 52px; }
+.collection-detail-page .collection-sources-table td { vertical-align: middle; padding: 16px 12px; }
+.collection-detail-page .collection-sources-table th { padding: 11px 12px; }
+.collection-detail-page .collection-sources-table td:first-child,
+.collection-detail-page .collection-sources-table th:first-child { padding-left: 16px; }
+.collection-detail-page .collection-sources-table a strong { font-size: 13px; }
+.collection-detail-page .collection-source-url { display: block; font-size: 12px; line-height: 19px; margin-top: 6px; color: var(--muted-foreground); overflow-wrap: anywhere; }
+.collection-detail-page .collection-sources-table td:last-child { padding-inline: 8px; }
+.collection-detail-page .requirement-fields-toolbar.is-editing { padding-top: 12px; }
+
+@media (max-width: 1199px) {
+  .requirement-overview { grid-template-columns: minmax(0, 1fr) 220px; gap: 24px; }
+  .collection-detail-page .collection-detail-actions { gap: 6px; }
+}

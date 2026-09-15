@@ -1096,6 +1096,10 @@ export interface components {
             sources: components["schemas"]["CollectorDetail"][];
         } & components["schemas"]["Collection"];
         CollectionPage: {
+            pagination?: components["schemas"]["NumberedPagination"];
+            counts?: {
+                [key: string]: number;
+            };
             items: components["schemas"]["Collection"][];
             total: number;
         };
@@ -1645,6 +1649,17 @@ export interface components {
             schedule: components["schemas"]["CollectorSchedule"];
         };
         CollectorPage: {
+            pagination?: components["schemas"]["NumberedPagination"];
+            counts?: {
+                [key: string]: number;
+            };
+            total?: number;
+            collections?: {
+                id: string;
+                name: string;
+                version: string;
+            }[];
+            latestRuns?: components["schemas"]["Run"][];
             items: components["schemas"]["CollectorDetail"][];
             page: components["schemas"]["PageMeta"];
         };
@@ -1951,16 +1966,39 @@ export interface components {
             };
         };
         RunPage: {
+            pagination?: components["schemas"]["NumberedPagination"];
+            counts?: {
+                [key: string]: number;
+            };
+            total?: number;
             items: components["schemas"]["Run"][];
             page: components["schemas"]["PageMeta"];
         };
         AiRunPage: {
+            pagination?: components["schemas"]["NumberedPagination"];
+            counts?: {
+                [key: string]: number;
+            };
+            total?: number;
             items: components["schemas"]["AiRun"][];
             page: components["schemas"]["PageMeta"];
         };
+        NumberedPagination: {
+            page: number;
+            pageSize: number;
+            totalPages: number;
+            total: number;
+        };
         ItemPage: {
-            /** @description Total matching entities before cursor pagination; present for view=entities. */
+            /** @description Total matching rows before pagination; present for view=entities or numbered requests. */
             total?: number;
+            /** @description Present for numbered requests only. */
+            pagination?: {
+                page: number;
+                pageSize: number;
+                totalPages: number;
+                total: number;
+            };
             /** @description Available filters across all latest entities, not just the current page; present for view=entities. */
             facets?: {
                 sourceHosts: string[];
@@ -2629,6 +2667,10 @@ export interface components {
         };
     };
     parameters: {
+        /** @description Opt into numbered pagination and full-dataset filtering. Out-of-range pages clamp to the last page; empty results use page 1 of 1. Counts describe the lifecycle or collector scope before search/status filtering. Omit page for legacy reads. */
+        NumberedPage: number;
+        /** @description Literal case-insensitive text search for numbered lists. */
+        ListSearch: string;
         /** @description Observations retain history. Entities select the latest observation per collectorId and entityKey before applying all filters. */
         ItemView: "observations" | "entities";
         /** @description Trimmed, case-insensitive literal substring search across title, content, collectorName and entityKey. Percent and underscore are literal characters. */
@@ -2679,7 +2721,15 @@ export interface operations {
     };
     listCollections: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Opt into numbered pagination and full-dataset filtering. Out-of-range pages clamp to the last page; empty results use page 1 of 1. Counts describe the lifecycle or collector scope before search/status filtering. Omit page for legacy reads. */
+                page?: components["parameters"]["NumberedPage"];
+                /** @description Literal case-insensitive text search for numbered lists. */
+                q?: components["parameters"]["ListSearch"];
+                limit?: components["parameters"]["Limit"];
+                status?: "active" | "archived" | "all";
+                sort?: "updated_asc" | "updated_desc";
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3447,6 +3497,12 @@ export interface operations {
     listCollectors: {
         parameters: {
             query?: {
+                /** @description Opt into numbered pagination and full-dataset filtering. Out-of-range pages clamp to the last page; empty results use page 1 of 1. Counts describe the lifecycle or collector scope before search/status filtering. Omit page for legacy reads. */
+                page?: components["parameters"]["NumberedPage"];
+                /** @description Literal case-insensitive text search for numbered lists. */
+                q?: components["parameters"]["ListSearch"];
+                view?: "all" | "attention" | "published";
+                collectionId?: string;
                 lifecycle?: "active" | "archived" | "all";
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
@@ -4007,6 +4063,11 @@ export interface operations {
     listAiRuns: {
         parameters: {
             query?: {
+                /** @description Opt into numbered pagination and full-dataset filtering. Out-of-range pages clamp to the last page; empty results use page 1 of 1. Counts describe the lifecycle or collector scope before search/status filtering. Omit page for legacy reads. */
+                page?: components["parameters"]["NumberedPage"];
+                /** @description Literal case-insensitive text search for numbered lists. */
+                q?: components["parameters"]["ListSearch"];
+                status?: "all" | "running" | "attention" | "review";
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
                 /** @description Restrict history to one collector. */
@@ -4082,6 +4143,11 @@ export interface operations {
     listRuns: {
         parameters: {
             query?: {
+                /** @description Opt into numbered pagination and full-dataset filtering. Out-of-range pages clamp to the last page; empty results use page 1 of 1. Counts describe the lifecycle or collector scope before search/status filtering. Omit page for legacy reads. */
+                page?: components["parameters"]["NumberedPage"];
+                /** @description Literal case-insensitive text search for numbered lists. */
+                q?: components["parameters"]["ListSearch"];
+                status?: "all" | "attention" | "succeeded";
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
             };
@@ -4156,6 +4222,8 @@ export interface operations {
             query?: {
                 cursor?: components["parameters"]["Cursor"];
                 limit?: components["parameters"]["Limit"];
+                /** @description One-based page number, mutually exclusive with cursor. Out-of-range pages clamp to the last page. Numbered requests include pagination metadata; empty results use page 1 of 1. Separate requests do not share a snapshot. */
+                page?: number;
                 /** @description Observations retain history. Entities select the latest observation per collectorId and entityKey before applying all filters. */
                 view?: components["parameters"]["ItemView"];
                 /** @description Trimmed, case-insensitive literal substring search across title, content, collectorName and entityKey. Percent and underscore are literal characters. */

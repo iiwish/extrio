@@ -64,6 +64,7 @@ describe('ItemPage information architecture', () => {
       '来源与谱系',
     ])
     expect(screen.getByLabelText('数据内容摘要')).toHaveTextContent('规范化数据可用')
+    expect(screen.getByLabelText('数据内容摘要')).toHaveClass('detail-panel')
     expect(screen.getByRole('heading', { name: '公告内容' })).toBeInTheDocument()
   })
 
