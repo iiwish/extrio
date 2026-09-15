@@ -24,7 +24,7 @@ x-backend: &backend
       target: /var/lib/extrio
       bind:
         create_host_path: false
-  networks: [default, shared-data]
+  networks: [default, 1panel-network]
   restart: unless-stopped
   cpus: 2
   mem_limit: 2g
@@ -41,7 +41,6 @@ services:
       - /opt/maco-ops/secrets/extrio/test/postgres-migration.env
     command: [python, -c, "from extrio.config import get_settings; from extrio.store import Store; s=get_settings(); Store(s.database_path).initialize(migrate=True)"]
     restart: "no"
-    profiles: [migration]
 
   api:
     <<: *backend
@@ -86,6 +85,6 @@ services:
 
 networks:
   default: {}
-  shared-data:
+  1panel-network:
     external: true
     name: 1panel-network

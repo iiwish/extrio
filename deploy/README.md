@@ -26,10 +26,10 @@ incompatible schemas. The explicit migration job owns schema changes.
 1. Require a fresh successful maco platform inspection, including verified COS
    backup, capacity, and allocation checks. Do not bypass a failed gate.
 2. Prepare declared bind paths and release inputs. Render Compose with
-   `--profile migration config --format json` into a mode-600 temporary file.
+   `config --format json` into a mode-600 temporary file.
    Run the registered preflight with `--check-host-paths`. Never print resolved
    Compose JSON because it contains credentials.
-3. Pull the verified digests. Run `docker compose --profile migration run
+3. Pull the verified digests. Run `docker compose run
    --rm --no-deps migrate` using the exact gated inputs.
 4. Start `api worker web` with `up -d --wait`, verify readiness and runtime
    database privileges, then initialize the administrator through the private
