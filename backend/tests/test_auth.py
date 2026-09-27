@@ -5,7 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import extrio.app as app_module
-from extrio.auth import reset_login_limits, validate_password
+from extrio.auth import validate_password
 from extrio.store import Store
 
 
@@ -22,20 +22,26 @@ def auth_client(tmp_path: Path):
             "seed_demo": False,
         }
     )
-    reset_login_limits()
+    app_module.store.reset_login_limits()
     return original_store, original_settings
 
 
 def restore_auth(original_store: Store, original_settings) -> None:
     app_module.store = original_store
     app_module.settings = original_settings
-    reset_login_limits()
 
 
 def test_password_length_boundary() -> None:
     assert validate_password("12345678") == "12345678"
     with pytest.raises(ValueError, match="8 至 256"):
         validate_password("1234567")
+
+
+def test_api_entrypoint_keeps_proxy_identity_under_explicit_configuration(monkeypatch) -> None:
+    options = {}
+    monkeypatch.setattr(app_module.uvicorn, "run", lambda *args, **kwargs: options.update(kwargs))
+    app_module.run()
+    assert options.get("proxy_headers") is False
 
 
 def test_first_run_setup_protects_control_plane_and_logout_revokes_session(tmp_path: Path) -> None:
@@ -134,6 +140,32 @@ def test_auth_rejects_cross_origin_mutations(tmp_path: Path) -> None:
             assert response.json()["code"] == "FORBIDDEN"
     finally:
         restore_auth(original_store, original_settings)
+
+
+def test_auth_rejects_cross_site_fetch_metadata(tmp_path: Path) -> None:
+    original_store, original_settings = auth_client(tmp_path)
+    try:
+        with TestClient(app_module.app) as client:
+            response = client.post(
+                "/api/v1/auth/setup",
+                headers={"Sec-Fetch-Site": "cross-site"},
+                json={"username": "admin", "password": "correct-horse-battery-staple"},
+            )
+            assert response.status_code == 403
+            assert response.json()["code"] == "FORBIDDEN"
+    finally:
+        restore_auth(original_store, original_settings)
+
+
+def test_login_rate_limit_is_shared_by_store_connections(tmp_path: Path) -> None:
+    database = tmp_path / "rate-limit.db"
+    first = Store(database)
+    first.initialize()
+    second = Store(database)
+    assert all(first.allow_login("client:user", "3/minute") for _ in range(3))
+    assert second.allow_login("client:user", "3/minute") is False
+    second.reset_login_limits()
+    assert first.allow_login("client:user", "3/minute") is True
 
 
 def test_auth_can_require_secure_session_cookie(tmp_path: Path) -> None:

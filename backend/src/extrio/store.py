@@ -11,9 +11,11 @@ from contextlib import AbstractContextManager, contextmanager, nullcontext
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 from zoneinfo import ZoneInfo
 
 from croniter import croniter
+from limits import parse
 
 from extrio.config import get_settings
 from extrio.credentials import CredentialCipher, validate_stored_credentials
@@ -199,6 +201,22 @@ class Store:
     def transaction(self) -> AbstractContextManager[DialectConnection]:
         return self.dialect.transaction(self.database_url, self.path)
 
+    def describe_target(self) -> str:
+        """Credential-free description of the connected store, for logs.
+
+        ``EXTRIO_DATABASE_PATH`` always names the SQLite fallback, so reporting
+        that path misstates a PostgreSQL deployment. Report the resolved dialect
+        instead, and never the URL userinfo or query (INV-005).
+        """
+
+        if self.dialect.name != "postgresql":
+            return f"sqlite:{self.path}"
+        parsed = urlparse(self.database_url or "")
+        host = parsed.hostname or "unknown-host"
+        port = f":{parsed.port}" if parsed.port else ""
+        database = (parsed.path or "").lstrip("/") or "unknown-database"
+        return f"postgresql:{host}{port}/{database}"
+
     def initialize(self, *, migrate: bool | None = None) -> None:
         should_migrate = get_settings().database_auto_migrate if migrate is None else migrate
         with self._init_lock:
@@ -209,19 +227,9 @@ class Store:
                     self._run_migrations(connection)
                 else:
                     self._check_migrations(connection)
-                self._backfill_collections()
-                if self.dialect.name == "sqlite":
-                    self._backfill_ai_runs(connection)
-                from extrio.collection_workflows import lock_collector
-                from extrio.collector_history import freeze_history, history_snapshot
+                from extrio.store_backfills import run_backfills
 
-                with self.transaction() as history_connection:
-                    for row in history_connection.execute(
-                        "SELECT id FROM collectors WHERE id NOT IN (SELECT id FROM deleted_collectors) ORDER BY id"
-                    ).fetchall():
-                        lock_collector(self, history_connection, row["id"])
-                        source = self.get_collector(row["id"], history_connection)
-                        freeze_history(self, history_connection, source, history_snapshot(self, history_connection, source))
+                run_backfills(self, connection, migrate=should_migrate)
 
     @contextmanager
     def _initialization_connection(self) -> Iterator[DialectConnection]:
@@ -273,7 +281,7 @@ class Store:
             except Exception as exc:
                 raise RuntimeError(f"database migration {migration_id!r} failed: {exc}") from exc
 
-    def _backfill_ai_runs(self, connection: DialectConnection) -> None:
+    def _backfill_ai_runs(self, connection: DialectConnection, *, after_id: str = "", limit: int = 200) -> str | None:
         rows = connection.execute(
             """
             SELECT operations.id AS operation_id, operations.collector_id, operations.data AS operation_data,
@@ -283,11 +291,10 @@ class Store:
             JOIN collectors ON collectors.id = operations.collector_id
             LEFT JOIN ai_runs ON ai_runs.operation_id = operations.id
             LEFT JOIN jobs ON jobs.operation_id = operations.id
-            WHERE ai_runs.id IS NULL AND collectors.id NOT IN (SELECT id FROM deleted_collectors)
-            ORDER BY operations.created_at DESC
-            """
+            WHERE ai_runs.id IS NULL AND collectors.id NOT IN (SELECT id FROM deleted_collectors) AND operations.id>?
+            ORDER BY operations.id LIMIT ?
+            """, (after_id, limit),
         ).fetchall()
-        seen_collectors: set[str] = set()
         for row in rows:
             operation = self.dialect.decode_json(row["operation_data"])
             if operation.get("kind") != "explore":
@@ -295,8 +302,12 @@ class Store:
             collector = self.dialect.decode_json(row["collector_data"])
             status = operation.get("status", "queued")
             terminal = status in TERMINAL_OPERATION_STATUSES
-            is_latest = str(row["collector_id"]) not in seen_collectors
-            seen_collectors.add(str(row["collector_id"]))
+            latest = connection.execute(
+                "SELECT id FROM operations WHERE collector_id=? AND "
+                f"{self.dialect.json_extract_text('data', 'kind')}='explore' ORDER BY created_at DESC, id DESC LIMIT 1",
+                (row["collector_id"],),
+            ).fetchone()
+            is_latest = latest["id"] == row["operation_id"]
             has_candidate = bool(collector.get("candidate"))
             if status == "succeeded":
                 result_status = "candidate_ready" if has_candidate or not is_latest else "no_candidate"
@@ -369,6 +380,7 @@ class Store:
                         "UPDATE jobs SET payload=? WHERE operation_id=?",
                         (self.dialect.json_param(payload), row["operation_id"]),
                     )
+        return rows[-1]["operation_id"] if rows else None
 
     @staticmethod
     def _auth_user(row: Any) -> dict[str, Any] | None:
@@ -467,6 +479,34 @@ class Store:
     def delete_auth_session(self, token_hash: str) -> None:
         with self.transaction() as connection:
             connection.execute("DELETE FROM auth_sessions WHERE token_hash=?", (token_hash,))
+
+    def allow_login(self, key: str, limit: str) -> bool:
+        """Durably enforce one moving-window login limit across API workers."""
+
+        rate = parse(limit)
+        window_seconds = int(rate.get_expiry())
+        now = datetime.now(UTC)
+        cutoff = (now - timedelta(seconds=window_seconds)).isoformat().replace("+00:00", "Z")
+        with self.transaction() as connection:
+            if self.dialect.name == "postgresql":
+                lock_id = int.from_bytes(hashlib.sha256(f"login:{key}".encode()).digest()[:8], signed=True)
+                connection.execute("SELECT pg_advisory_xact_lock(?)", (lock_id,))
+            connection.execute("DELETE FROM auth_login_attempts WHERE attempted_at<?", (cutoff,))
+            row = connection.execute(
+                "SELECT COUNT(*) AS count FROM auth_login_attempts WHERE scope_key=? AND attempted_at>=?",
+                (key, cutoff),
+            ).fetchone()
+            if int(row["count"]) >= rate.amount:
+                return False
+            connection.execute(
+                "INSERT INTO auth_login_attempts(scope_key, attempted_at) VALUES(?, ?)",
+                (key, now.isoformat().replace("+00:00", "Z")),
+            )
+        return True
+
+    def reset_login_limits(self) -> None:
+        with self.transaction() as connection:
+            connection.execute("DELETE FROM auth_login_attempts")
 
     def create_user(
         self,
@@ -612,24 +652,28 @@ class Store:
         return run
 
     def _backfill_collections(self) -> None:
+        from extrio.store_backfills import record_batches
+
         with self.transaction() as connection:
             groups: dict[str, dict[str, Any]] = {}
-            rows = connection.execute(
-                "SELECT data FROM collectors WHERE id NOT IN (SELECT id FROM deleted_collectors) ORDER BY created_at, id"
-            ).fetchall()
+            rows = (row for batch in record_batches(self, "collectors", active_sources=True) for row in batch)
             for row in rows:
                 source = self._decode(row)
                 collection_id = source.get("collectionId", DEFAULT_COLLECTION_ID)
-                group = groups.setdefault(collection_id, {"source": source, "intents": []})
-                if source.get("intent") and source["intent"] not in group["intents"]:
-                    group["intents"].append(source["intent"])
+                summary = {key: source[key] for key in ("collectionName", "collectionVersion") if key in source}
+                order = (row["created_at"], row["id"])
+                group = groups.setdefault(collection_id, {"source": summary, "intents": {}, "first": order})
+                if (row["created_at"], row["id"]) < group["first"]:
+                    group.update(source=summary, first=(row["created_at"], row["id"]))
+                if intent := source.get("intent"):
+                    group["intents"][intent] = min(order, group["intents"].get(intent, order))
             for collection_id, group in groups.items():
                 source = group["source"]
                 self._insert_collection(
                     connection,
                     collection_id,
                     source.get("collectionName", DEFAULT_COLLECTION_NAME),
-                    "\n\n".join(group["intents"]),
+                    "\n\n".join(sorted(group["intents"], key=lambda intent: group["intents"][intent])),
                     source.get("collectionVersion", "tender_notice_v4"),
                 )
 
@@ -1107,8 +1151,8 @@ class Store:
             elif requirement.get("activeVersionId"):
                 collector["collectionVersion"] = requirement["activeVersionId"]
             self.save_collector(collector, connection)
-        self.create_collection_policy(collector["id"], DEFAULT_COLLECTION_POLICY)
-        return self.ensure_schedule(collector["id"])
+            self.create_collection_policy(collector["id"], DEFAULT_COLLECTION_POLICY, connection)
+            return self.ensure_schedule(collector["id"], connection)
 
     @staticmethod
     def validate_collection_policy(values: dict[str, Any]) -> dict[str, Any]:
@@ -1128,9 +1172,11 @@ class Store:
                 raise ValueError(f"collection policy {key} is out of range")
         return dict(values)
 
-    def create_collection_policy(self, collector_id: str, values: dict[str, Any]) -> dict[str, Any]:
+    def create_collection_policy(
+        self, collector_id: str, values: dict[str, Any], connection: DialectConnection | None = None,
+    ) -> dict[str, Any]:
         normalized = self.validate_collection_policy(values)
-        with self.transaction() as connection:
+        with nullcontext(connection) if connection is not None else self.transaction() as connection:
             from extrio.collection_workflows import lock_collector
             from extrio.collector_lifecycle import require_active
 
@@ -1163,13 +1209,13 @@ class Store:
             self.save_collector(collector, connection)
             return collector
 
-    def ensure_collection_policy(self, collector_id: str) -> dict[str, Any]:
-        collector = self.get_collector(collector_id)
+    def ensure_collection_policy(self, collector_id: str, connection: DialectConnection | None = None) -> dict[str, Any]:
+        collector = self.get_collector(collector_id, connection)
         if collector is None:
             raise KeyError(collector_id)
         if collector.get("collectionPolicy") and collector.get("activeCollectionPolicyId"):
             return collector
-        return self.create_collection_policy(collector_id, DEFAULT_COLLECTION_POLICY)
+        return self.create_collection_policy(collector_id, DEFAULT_COLLECTION_POLICY, connection)
 
     def get_collection_policy(self, policy_id: str, connection: DialectConnection | None = None) -> dict[str, Any] | None:
         query = "SELECT data FROM collection_policies WHERE id=?"
@@ -1259,19 +1305,19 @@ class Store:
             self.save_collector(collector, connection)
             return collector
 
-    def ensure_schedule(self, collector_id: str) -> dict[str, Any]:
-        collector = self.get_collector(collector_id)
+    def ensure_schedule(self, collector_id: str, connection: DialectConnection | None = None) -> dict[str, Any]:
+        collector = self.get_collector(collector_id, connection)
         if collector is None:
             raise KeyError(collector_id)
-        with self.connect() as connection:
-            row = connection.execute("SELECT data FROM collector_schedules WHERE collector_id=?", (collector_id,)).fetchone()
+        with nullcontext(connection) if connection is not None else self.connect() as target:
+            row = target.execute("SELECT data FROM collector_schedules WHERE collector_id=?", (collector_id,)).fetchone()
         if row:
             schedule = self._decode(row)
             if collector.get("schedule") != schedule:
                 collector["schedule"] = schedule
-                self.save_collector(collector)
+                self.save_collector(collector, connection)
             return collector
-        return self.save_schedule(collector_id, DEFAULT_COLLECTOR_SCHEDULE)
+        return self.save_schedule(collector_id, DEFAULT_COLLECTOR_SCHEDULE, connection)
 
     def claim_due_schedules(self, now: datetime | None = None) -> list[dict[str, Any]]:
         instant = (now or datetime.now(UTC)).astimezone(UTC)
@@ -1354,8 +1400,18 @@ class Store:
                     claimed.append(occurrence)
         return claimed
 
-    def finish_schedule_occurrence(self, occurrence_key: str, *, status: str, run_id: str | None, reason: str | None) -> None:
-        with self.transaction() as connection:
+    def pending_schedule_occurrences(self, limit: int = 100) -> list[dict[str, Any]]:
+        with self.connect() as connection:
+            rows = connection.execute(
+                "SELECT data FROM schedule_occurrences WHERE status='claimed' ORDER BY updated_at, occurrence_key LIMIT ?", (limit,),
+            ).fetchall()
+        return [self._decode(row) for row in rows]
+
+    def finish_schedule_occurrence(
+        self, occurrence_key: str, *, status: str, run_id: str | None, reason: str | None,
+        connection: DialectConnection | None = None,
+    ) -> None:
+        with nullcontext(connection) if connection is not None else self.transaction() as connection:
             row = connection.execute("SELECT data FROM schedule_occurrences WHERE occurrence_key=?", (occurrence_key,)).fetchone()
             if not row:
                 raise KeyError(occurrence_key)
@@ -1769,6 +1825,7 @@ class Store:
         ai_run: dict[str, Any] | None = None,
         activate_collector: bool = True,
         expected_source_digest: str | None = None,
+        connection: DialectConnection | None = None,
     ) -> dict[str, Any]:
         operation_id = stable_id("op", uuid.uuid4().hex)
         queued_at = utc_now()
@@ -1798,7 +1855,7 @@ class Store:
                     "metrics": empty_operation_metrics(),
                 }
             ]
-        with self.transaction() as connection:
+        with nullcontext(connection) if connection is not None else self.transaction() as connection:
             from extrio.collection_workflows import lock_collector
             from extrio.collector_lifecycle import LifecycleError, active_blockers, require_active, source_execution_digest
 
@@ -2723,10 +2780,16 @@ class Store:
         sink_version_id: str | None = None,
         connection: DialectConnection | None = None,
     ) -> dict[str, Any]:
-        """Idempotently enqueue an item event for a sink; duplicates return the same delivery."""
+        """Idempotently enqueue one logical delivery per item event and sink version."""
 
         now = utc_now()
-        delivery_id = stable_id("delivery", uuid.uuid4().hex, 24)
+        if sink_version_id is None:
+            with nullcontext(connection) if connection is not None else self.connect() as target:
+                sink = target.execute("SELECT id, version FROM sinks WHERE id=?", (sink_id,)).fetchone()
+                if sink is None:
+                    raise KeyError(sink_id)
+                sink_version_id = f"{sink_id}#v{int(sink['version'])}"
+        delivery_id = f"sha256:{hashlib.sha256(f'{item_event_id}\n{sink_version_id}'.encode()).hexdigest()}"
         insert_sql = self.dialect.insert_or_ignore(
             """
             INSERT INTO deliveries(
@@ -2735,18 +2798,13 @@ class Store:
             """
         )
         with nullcontext(connection) if connection is not None else self.transaction() as connection:
-            if sink_version_id is None:
-                sink = connection.execute("SELECT id, version FROM sinks WHERE id=?", (sink_id,)).fetchone()
-                if sink is None:
-                    raise KeyError(sink_id)
-                sink_version_id = f"{sink_id}#v{int(sink['version'])}"
             connection.execute(
                 insert_sql,
                 (delivery_id, collector_id, sink_id, sink_version_id, item_event_id, now, now, now),
             )
             row = connection.execute(
-                "SELECT * FROM deliveries WHERE item_event_id=? AND sink_id=?",
-                (item_event_id, sink_id),
+                "SELECT * FROM deliveries WHERE item_event_id=? AND sink_version_id=?",
+                (item_event_id, sink_version_id),
             ).fetchone()
         if row is None:
             raise RuntimeError("enqueued delivery is unavailable")
@@ -2874,7 +2932,7 @@ class Store:
                 VALUES(?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
-                    stable_id("delivery_attempt", f"{delivery_id}_{attempt_no}", 64),
+                    f"sha256:{hashlib.sha256(f'{delivery_id}\n{attempt_no}'.encode()).hexdigest()}",
                     delivery_id,
                     attempt_no,
                     started_at or now,
@@ -3230,15 +3288,14 @@ class Store:
     def effective_allow_http_public(self) -> bool:
         """Resolve the effective anonymous-HTTP collection policy (v0.6).
 
-        The ``allowAnonymousHttp`` platform row — seeded ``'true'`` by migration
-        002 and managed from the Settings UI — wins when present; while it is
-        absent the config default ``settings.allow_http_public`` applies. Any
-        stored value other than ``'true'`` (case-insensitive) counts as
-        disallowing anonymous HTTP. The credential-HTTPS hard line is unrelated
-        and always enforced by ``normalize_source_url``.
+        The ``allowAnonymousHttp`` platform row is managed from the Settings UI.
+        Deployment configuration is a safety ceiling: anonymous HTTP remains
+        disabled when ``settings.allow_http_public`` is false, even if an
+        upgraded database contains a permissive historical row. The
+        credential-HTTPS hard line is unrelated and always enforced by
+        ``normalize_source_url``.
         """
 
         raw = self.get_platform_setting_value("allowAnonymousHttp")
-        if raw is not None:
-            return raw.strip().lower() == "true"
-        return get_settings().allow_http_public
+        configured = get_settings().allow_http_public
+        return configured and (raw is None or raw.strip().lower() == "true")

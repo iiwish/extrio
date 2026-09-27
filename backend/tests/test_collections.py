@@ -51,6 +51,7 @@ def test_legacy_backfill_is_idempotent_and_keeps_multiple_source_intents(tmp_pat
     store.create_collector("Two", "Goal B", "https://example.com/b", "example.com")
     with store.transaction() as conn:
         conn.execute("DELETE FROM collections")
+        conn.execute("DELETE FROM data_migrations")
     store.initialize()
     value = store.get_collection(first["collectionId"])
     assert "Goal A" in value["intent"] and "Goal B" in value["intent"]

@@ -8,6 +8,22 @@ class SourceUrlError(ValueError):
         self.code = code
 
 
+def trusted_client_identity(remote_host: str, forwarded_for: str, trusted_proxy_count: int) -> str:
+    """Resolve a login identity only through explicitly trusted proxy hops."""
+
+    if trusted_proxy_count <= 0:
+        return remote_host or "unknown"
+    candidates = [value.strip() for value in forwarded_for.split(",") if value.strip()]
+    if not candidates:
+        return remote_host or "unknown"
+    index = min(trusted_proxy_count, len(candidates)) - 1
+    candidate = candidates[-index - 1] if index >= 0 else candidates[0]
+    try:
+        return str(ipaddress.ip_address(candidate))
+    except ValueError:
+        return remote_host or "unknown"
+
+
 def normalize_source_url(
     value: str,
     *,
@@ -42,7 +58,7 @@ def normalize_source_url(
     if parsed.scheme == "http" and not http_is_allowed:
         raise SourceUrlError(
             "HTTPS_REQUIRED",
-            "匿名 HTTP 来源默认已被允许；如被关闭，请由管理员在 设置 → 采集策略 中开启，或改用 HTTPS",
+            "当前部署未允许匿名 HTTP 来源，请改用 HTTPS；仅在部署配置明确允许时可在 设置 → 采集策略 中启用",
         )
     if is_loopback and not allow_http_localhost:
         raise SourceUrlError("INVALID_URL", "来源网址不能指向私有、保留或 link-local 网络")

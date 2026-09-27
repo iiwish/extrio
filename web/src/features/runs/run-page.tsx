@@ -17,7 +17,7 @@ import { DetailPanel } from '@/components/detail-panel'
 import './run-detail.css'
 import { QueryError } from '@/components/query-error'
 import { useWorkspaceLink, useWorkspaceSection } from '@/lib/workspace-navigation'
-import { runTimestamp } from '@/lib/content-presentation'
+import { publishedTimeLabel, runTimestamp } from '@/lib/content-presentation'
 
 export function RunPage() {
   const { t, i18n } = useTranslation('runs')
@@ -153,7 +153,7 @@ export function RunPage() {
               <header><div><h2 ref={resultsRef} tabIndex={-1}>{t('detail.itemsHeading')}</h2><p>{t('detail.acceptedRejected', { accepted: run.acceptedCount, rejected: run.rejectedCount })}</p></div><div role="group" aria-label={t('detail.resultFilter')}><Button size="sm" variant={rejectedOnly ? 'ghost' : 'secondary'} aria-pressed={!rejectedOnly} onClick={() => showResults(false)}>{t('detail.allResults')}</Button><Button size="sm" variant={rejectedOnly ? 'secondary' : 'ghost'} aria-pressed={rejectedOnly} onClick={() => showResults(true)}>{t('detail.onlyRejected')}</Button></div></header>
               {rejectedOnly && rejected.length < run.rejectedCount && <p role="status">{t('detail.rejectedLoaded', { count: rejected.length, total: run.rejectedCount })}</p>}
               {visibleItems.length > 0
-                ? <div className="sample-list item-results">{visibleItems.map((item) => <Link key={item.id} to={workspaceLink(`/items/${item.id}`)}><StatusBadge status={item.decision} /><span><strong>{item.title}</strong><small>{item.changeType ? `${changeTypeLabel(t, item.changeType)} · ` : ''}{t('detail.itemMeta', { published: item.publishedAt, observed: item.observedAt })}{item.rejectionReason ? ` · ${item.rejectionReason}` : ''}</small></span><ArrowRight /></Link>)}</div>
+                ? <div className="sample-list item-results">{visibleItems.map((item) => <Link key={item.id} to={workspaceLink(`/items/${item.id}`)}><StatusBadge status={item.decision} /><span><strong>{item.title}</strong><small>{item.changeType ? `${changeTypeLabel(t, item.changeType)} · ` : ''}{t('detail.itemMeta', { published: publishedTimeLabel(item.publishedAt, t('common:dataValue.missing')), observed: item.observedAt })}{item.rejectionReason ? ` · ${item.rejectionReason}` : ''}</small></span><ArrowRight /></Link>)}</div>
                 : <div className="card-empty">{t(rejectedOnly ? run.rejectedCount > 0 ? 'detail.rejectedUnavailable' : 'detail.noRejected' : 'detail.noItems')}</div>}
             </DetailPanel>
           </TabsContent>

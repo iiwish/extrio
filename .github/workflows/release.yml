@@ -11,10 +11,12 @@ on:
         type: string
 
 permissions:
-  contents: write
-  packages: write
-  id-token: write
-  attestations: write
+  contents: read
+  actions: read
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
 
 env:
   REGISTRY: ghcr.io
@@ -23,13 +25,39 @@ env:
   WEB_IMAGE: ghcr.io/${{ github.repository_owner }}/extrio-web
 
 jobs:
-  publish:
+  verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 5
+    outputs:
+      sha: ${{ steps.gate.outputs.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+      - name: Verify release commit and required checks
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/verify-release.py
+
+  publish:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    permissions:
+      contents: write
+      actions: read
+      packages: write
+      id-token: write
+      attestations: write
+    env:
+      VERIFIED_SHA: ${{ needs.verify.outputs.sha }}
+      CANDIDATE_TAG: candidate-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.verify.outputs.sha }}
+          fetch-depth: 0
       - uses: docker/setup-qemu-action@1f40c72289eff860ee54a304f1438e3cff362e0a # v4.3.0
       - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
       - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
@@ -48,9 +76,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-          tags: |
-            ${{ env.BACKEND_IMAGE }}:${{ env.RELEASE_TAG }}
-            ${{ env.BACKEND_IMAGE }}:sha-${{ github.sha }}
+          tags: ${{ env.BACKEND_IMAGE }}:${{ env.CANDIDATE_TAG }}
           provenance: mode=max
           sbom: true
           cache-from: type=gha,scope=backend-release
@@ -61,12 +87,11 @@ jobs:
         with:
           context: .
           file: docker/web.Dockerfile
+          no-cache-filters: runtime
           platforms: linux/amd64,linux/arm64
           push: true
           labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-          tags: |
-            ${{ env.WEB_IMAGE }}:${{ env.RELEASE_TAG }}
-            ${{ env.WEB_IMAGE }}:sha-${{ github.sha }}
+          tags: ${{ env.WEB_IMAGE }}:${{ env.CANDIDATE_TAG }}
           provenance: mode=max
           sbom: true
           cache-from: type=gha,scope=web-release
@@ -127,6 +152,16 @@ jobs:
           subject-name: ${{ env.WEB_IMAGE }}
           subject-digest: ${{ steps.web.outputs.digest }}
           push-to-registry: true
+      - name: Recheck release gate before promotion
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch origin --tags --force
+          python3 scripts/verify-release.py
+      - name: Promote verified image manifests
+        run: |
+          docker buildx imagetools create --tag "${BACKEND_IMAGE}:${RELEASE_TAG}" --tag "${BACKEND_IMAGE}:sha-${VERIFIED_SHA}" "${BACKEND_IMAGE}@${{ steps.backend.outputs.digest }}"
+          docker buildx imagetools create --tag "${WEB_IMAGE}:${RELEASE_TAG}" --tag "${WEB_IMAGE}:sha-${VERIFIED_SHA}" "${WEB_IMAGE}@${{ steps.web.outputs.digest }}"
       - name: Create GitHub release
         if: startsWith(env.RELEASE_TAG, 'v')
         env:

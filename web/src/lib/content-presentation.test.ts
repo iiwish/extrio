@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { readableContent, runTimestamp } from './content-presentation'
+import { publishedTimeLabel, readableContent, runTimestamp } from './content-presentation'
 
 describe('safe content presentation', () => {
+  it('localizes only the missing publication-time sentinel, not source text or dates', () => {
+    expect(publishedTimeLabel('字段缺失', 'Not provided')).toBe('Not provided')
+    expect(publishedTimeLabel('2026年9月26日', 'Not provided')).toBe('2026年9月26日')
+    expect(publishedTimeLabel('字段缺失说明', 'Not provided')).toBe('字段缺失说明')
+  })
   it('preserves plain text including comparison symbols', () => {
     expect(readableContent('Budget < 200\nA & B')).toEqual({ text: 'Budget < 200\nA & B', isHtml: false })
   })

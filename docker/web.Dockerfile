@@ -11,7 +11,7 @@ COPY web/ ./
 COPY docs/contracts/openapi.yaml /contracts/openapi.yaml
 RUN pnpm build
 
-FROM nginx:1.29-alpine
+FROM nginx:1.29-alpine AS runtime
 RUN apk upgrade --no-cache
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html

@@ -101,7 +101,7 @@ def final_run_status(*, accepted: int, rejected: int, stop_reason: str) -> str:
 class Worker:
     def __init__(self) -> None:
         self.settings = get_settings()
-        self.store = Store(self.settings.database_path)
+        self.store = Store(self.settings.database_path, database_url=self.settings.database_url or "")
         self.contracts = ContractBundle(self.settings.contracts_path)
         self.cipher = CredentialCipher(self.settings.credential_encryption_key_path)
         compiler = ModelRuleCompiler(self.store, self.cipher)
@@ -608,7 +608,7 @@ class Worker:
                 self.stop_event.set()
 
     async def _serve_jobs(self) -> None:
-        logger.info("Worker started; database=%s", self.settings.database_path)
+        logger.info("Worker started; database=%s", self.store.describe_target())
         while not self.stop_event.is_set():
             job = self.store.claim_job(self.settings.worker_lease_seconds)
             if job is None:

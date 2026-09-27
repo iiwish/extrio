@@ -94,7 +94,7 @@ Run 仍是领域聚合，并固化 `collectionMode` 与 `operationId`；Operatio
 
 批量 Source 导入以一次逻辑命令处理。`POST /collectors/batch` 的 `sources` 每项包含必填 `entryUrl`，可选 `mode`、`name` 与 `scopeHint`；`mode` 省略时默认为 `exact`，当前拒绝其他模式。`exact` 入口必须是具体列表页或单页，站点根目录以 `EXACT_ENTRY_REQUIRED` 逐项拒绝。合法项独立提交，非法项进入逐项 `error`；业务部分失败仍返回 `200`，不使用 WebDAV `207 Multi-Status`。传输或命令级失败才返回非 2xx PlatformError。
 
-Source URL 只接受 `http` 与 `https`。匿名公共 HTTP 默认允许，TenantAdmin 可以通过服务端风险策略关闭；携带 AccessProfile 或凭据的 Source 必须使用 HTTPS。`HTTPS_REQUIRED` 同时表示凭据传输不安全或当前租户不允许匿名 HTTP，`INVALID_URL` 表示协议或 URL 结构不受支持。
+Source URL 只接受 `http` 与 `https`。匿名公共 HTTP 生产默认关闭；仅当部署配置明确允许且 TenantAdmin 保持采集策略开启时可用。携带 AccessProfile 或凭据的 Source 必须使用 HTTPS。`HTTPS_REQUIRED` 同时表示凭据传输不安全或当前部署/租户不允许匿名 HTTP，`INVALID_URL` 表示协议或 URL 结构不受支持。
 
 ## 5. 分页与缓存
 

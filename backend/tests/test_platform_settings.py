@@ -12,7 +12,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import extrio.app as app_module
-from extrio.auth import hash_password, reset_login_limits
+from extrio.auth import hash_password
 from extrio.config import get_settings
 from extrio.store import Store
 
@@ -46,7 +46,7 @@ def test_platform_setting_value_roundtrip(tmp_path: Path) -> None:
     assert reread == saved
 
 
-def test_effective_flag_defaults_true_and_follows_the_row(tmp_path: Path) -> None:
+def test_effective_flag_follows_row_in_local_profile(tmp_path: Path) -> None:
     store = make_store(tmp_path)
     assert store.effective_allow_http_public() is True
 
@@ -59,7 +59,7 @@ def test_effective_flag_defaults_true_and_follows_the_row(tmp_path: Path) -> Non
     assert store.effective_allow_http_public() is True
 
 
-def test_effective_flag_falls_back_to_config_only_while_row_is_absent(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_deployment_config_caps_permissive_platform_row(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     store = make_store(tmp_path)
     with store.transaction() as connection:
         connection.execute("DELETE FROM platform_setting_values WHERE key='allowAnonymousHttp'")
@@ -68,7 +68,7 @@ def test_effective_flag_falls_back_to_config_only_while_row_is_absent(tmp_path: 
     assert store.effective_allow_http_public() is False
 
     store.set_platform_setting_value("allowAnonymousHttp", "true", updated_by="user_root")
-    assert store.effective_allow_http_public() is True
+    assert store.effective_allow_http_public() is False
 
 
 def test_reinitialization_does_not_reset_the_seeded_flag(tmp_path: Path) -> None:
@@ -102,6 +102,9 @@ def test_migration_002_applies_to_v05_database_without_the_row(tmp_path: Path) -
         "008_item_entity_index",
         "009_empty_source_policy",
         "010_source_history_ownership",
+        "011_delivery_sink_version_identity",
+        "012_auth_login_attempts",
+        "013_runtime_backfills",
     ]
     assert store.get_platform_setting_value("allowAnonymousHttp") == "true"
 
@@ -142,7 +145,9 @@ def test_api_anonymous_http_allowed_by_default_then_disallowed_via_settings(tmp_
             )
             assert rejected.status_code == 422
             assert rejected.json()["code"] == "HTTPS_REQUIRED"
-            assert rejected.json()["message"] == ("匿名 HTTP 来源默认已被允许；如被关闭，请由管理员在 设置 → 采集策略 中开启，或改用 HTTPS")
+            assert rejected.json()["message"] == (
+                "当前部署未允许匿名 HTTP 来源，请改用 HTTPS；仅在部署配置明确允许时可在 设置 → 采集策略 中启用"
+            )
 
             https_created = client.post(
                 "/api/v1/collectors",
@@ -259,6 +264,6 @@ def test_api_platform_setting_put_requires_administrator(tmp_path: Path) -> None
         anonymous = TestClient(app_module.app)
         assert anonymous.get("/api/v1/settings/platform").status_code == 401
     finally:
+        store.reset_login_limits()
         app_module.store = original_store
         app_module.settings = original_settings
-        reset_login_limits()

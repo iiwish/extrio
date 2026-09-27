@@ -145,6 +145,17 @@ describe('RunPage information architecture', () => {
     expect(await screen.findByText(/SOURCE_NETWORK_REJECTED/)).toHaveTextContent('dns_resolution_failed')
   })
 
+  it('localizes missing publication time while preserving the source title', async () => {
+    const language = initI18n(createInstance())
+    await language.changeLanguage('en')
+    const run = { ...seedRuns[0], items: [{ ...seedRuns[0].items[0], publishedAt: '字段缺失', title: '原始公告标题' }] }
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => json(String(input).includes('/collectors/') ? collectorWithPath : run)))
+    renderPage('', language)
+    expect(await screen.findByText('原始公告标题')).toBeInTheDocument()
+    expect(screen.getByText(/Published Not provided/)).toBeInTheDocument()
+    expect(screen.queryByText(/字段缺失/)).not.toBeInTheDocument()
+  })
+
   it('renders English recovery groups without translating source content', async () => {
     const language = initI18n(createInstance())
     await language.changeLanguage('en')

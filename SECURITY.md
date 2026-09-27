@@ -13,10 +13,19 @@ but does not yet provide password recovery, MFA, external OIDC, or tenant isolat
 the API or worker directly to the public internet; route browser traffic through the bundled web
 proxy.
 
-Public deployments require HTTPS, `EXTRIO_AUTH_COOKIE_SECURE=true`, a restricted listening
-interface, outbound network controls, protected persistent volumes, and backups. Authentication
-can be disabled only for isolated development and automated test environments with
-`EXTRIO_AUTH_ENABLED=false`.
+Safe production defaults disable automatic migration, anonymous HTTP sources, demo data, and
+Prometheus metrics; enable each only through explicit deployment policy. Public deployments
+require HTTPS, `EXTRIO_AUTH_COOKIE_SECURE=true`, a restricted listening interface, outbound
+network controls, protected persistent volumes, and backups. Authentication can be disabled only
+for isolated development and automated test environments with `EXTRIO_AUTH_ENABLED=false`.
+
+Login throttling is stored in the application database so API workers share one limit. Reverse
+proxy client identities are ignored unless `EXTRIO_TRUSTED_PROXY_COUNT` explicitly declares the
+number of trusted forwarding hops. Browser mutations reject cross-site Fetch Metadata and
+untrusted `Origin` values; session cookies remain `SameSite=Strict`.
+
+Prometheus metrics are disabled by default. When explicitly enabled, `/metrics` remains
+unauthenticated and must be restricted to a trusted monitoring network or authenticated proxy.
 
 Runtime state under `backend/data`, including generated signing and encryption
 keys, is development-only and must never be committed or reused in production.

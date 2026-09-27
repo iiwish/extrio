@@ -45,3 +45,6 @@ site/
 
 # Playwright MCP session artifacts
 .playwright-mcp/
+
+# WorkBuddy agent workspace
+.workbuddy/

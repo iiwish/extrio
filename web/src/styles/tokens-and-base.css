@@ -1,0 +1,168 @@
+/* Design tokens and the base layer.
+ *
+ * Defines the CSS custom properties, the Tailwind @theme mapping, the dark
+ * variant, and the @layer base resets. The leading rules are earlier runtime
+ * and settings display styles kept in place because their cascade position is
+ * significant.
+ *
+ * Split out of the former single-file index.css with rule order preserved.
+ * index.css imports the partials in a fixed sequence that reproduces the
+ * original cascade; reordering rules here or moving them between partials
+ * changes which equal-specificity rule wins.
+ */
+
+
+.run-header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.run-evidence-availability { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 16px 0; font-size: 13px; }
+.run-evidence-availability small { display: block; margin-top: 4px; color: var(--muted-foreground); }
+.settings-runtime { padding: 20px 0; border-bottom: 1px solid var(--border); }
+.settings-runtime > header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+.settings-runtime h2 { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
+.settings-runtime h2 svg, .runtime-state svg { width: 16px; height: 16px; flex-shrink: 0; }
+.runtime-state { display: flex; gap: 8px; align-items: center; font-size: 13px; }
+.runtime-state.success { color: #087f73; }
+.runtime-state.warning { color: #a65b09; }
+.runtime-recovery { margin-top: 6px; font-size: 12px; line-height: 1.6; color: var(--muted-foreground); }
+.runtime-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 16px 0; }
+.runtime-facts dt { font-size: 12px; color: var(--muted-foreground); }
+.runtime-facts dd { margin-top: 4px; font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.runtime-worker { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(130px, 1fr) auto; gap: 16px; align-items: center; padding: 8px 0; border-top: 1px solid var(--border); font-size: 12px; }
+.runtime-worker code { overflow-wrap: anywhere; }
+.runtime-worker time { color: var(--muted-foreground); }
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --app-min-width: 1024px;
+  --background: #f5f7f8;
+  --foreground: #172126;
+  --card: #ffffff;
+  --card-foreground: #172126;
+  --popover: #ffffff;
+  --popover-foreground: #172126;
+  --primary: #2557d6;
+  --primary-foreground: #ffffff;
+  --secondary: #eef2f3;
+  --secondary-foreground: #26343b;
+  --muted: #eef2f3;
+  --muted-foreground: #65737b;
+  --accent: #eaf0ff;
+  --accent-foreground: #1d49bd;
+  --destructive: #c23b3b;
+  --border: #d9e0e3;
+  --input: #cbd5da;
+  --ring: #2557d6;
+  --radius: 0.5rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #26343b;
+  --sidebar-primary: #2557d6;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eef2f3;
+  --sidebar-accent-foreground: #172126;
+  --sidebar-border: #d9e0e3;
+  --sidebar-ring: #2557d6;
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  letter-spacing: 0;
+}
+
+@theme inline {
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 8px;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    box-sizing: border-box;
+  }
+
+  html {
+    @apply font-sans;
+    min-width: var(--app-min-width);
+    background: var(--background);
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    margin: 0;
+    min-width: var(--app-min-width);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  h1,
+  h2,
+  h3,
+  p {
+    margin: 0;
+  }
+
+  h1 {
+    font-size: 22px;
+    line-height: 1.35;
+    font-weight: 680;
+    letter-spacing: 0;
+  }
+
+  h2 {
+    font-size: 16px;
+    line-height: 1.45;
+    font-weight: 650;
+    letter-spacing: 0;
+  }
+
+  code,
+  pre,
+  kbd {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    letter-spacing: 0;
+  }
+
+  code {
+    font-size: 12px;
+  }
+}

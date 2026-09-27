@@ -15,7 +15,8 @@ from extrio.store import Store
 settings = get_settings()
 store = Store(settings.database_path, database_url=settings.database_url)
 store.initialize()
-if sys.argv[1] == "seed":
+alpha = sys.argv[1].endswith("-alpha")
+if sys.argv[1] in {"seed", "seed-alpha"}:
     collector = store.create_collector("Release history", "Collect public notices", "https://example.test/notices", "example.test")
     signer = LocalEd25519Signer(settings.signing_private_key_path, settings.signing_key_id)
     store.ensure_signing_key(signer.trust_record(tenant_id=settings.tenant_id, revision=1))
@@ -57,14 +58,26 @@ if sys.argv[1] == "seed":
     )
     settings.artifact_path.mkdir(parents=True, exist_ok=True)
     (settings.artifact_path / "historical.html").write_text("<h1>Historical notice</h1>")
+    if alpha:
+        collection = store.get_collection(collector["collectionId"])
+        changed = store.change_collection(collection["id"], collection["revision"], {"fieldDraft": {"fields": [{
+            "key": "title", "label": "Title", "description": "", "type": "string",
+            "required": True, "identity": True, "fingerprint": True,
+        }]}})
+        store.publish_collection_version(collection["id"], changed["revision"], user["id"])
+        store.create_collector("Frozen source", "Fixed contract", "https://example.test/frozen", "example.test",
+                               collection_id=collection["id"], require_existing_collection=True)
+        sink = store.list_sinks_for_collector(collector["id"])[0]
+        store.enqueue_delivery(collector_id=collector["id"], sink_id=sink["id"], item_event_id="event_release")
 
 with store.connect() as connection:
     migrations = sorted(row["id"] for row in connection.execute("SELECT id FROM schema_migrations").fetchall())
     attestations = [
         store.dialect.decode_json(row["data"]) for row in connection.execute("SELECT data FROM rule_attestations ORDER BY id").fetchall()
     ]
+collector = next(row for row in store.list_collectors() if row["sourceUrl"] == "https://example.test/notices")
 snapshot = {
-    "collector": store.list_collectors()[0],
+    "collector": collector,
     "rules": [store.get_rule_version(f"rule_release_{n}") for n in (1, 2)],
     "run": store.get_run("run_release"),
     "items": store.list_items(),
@@ -73,4 +86,10 @@ snapshot = {
     "user": store.get_auth_credentials("release-admin"),
     "session": store.get_auth_session("release-fixture-session"),
 }
+if alpha:
+    snapshot.update(
+        versions=store.list_collection_versions(collector["collectionId"]),
+        boundCollector=next(row for row in store.list_collectors() if row["sourceUrl"] == "https://example.test/frozen"),
+        deliveries=store.list_deliveries_for_collector(collector["id"]),
+    )
 Path(sys.argv[2]).write_text(json.dumps(snapshot, sort_keys=True, indent=2))

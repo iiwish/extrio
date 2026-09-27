@@ -18,7 +18,7 @@ import '@/features/runs/run-detail.css'
 import './item-detail.css'
 import { QueryError } from '@/components/query-error'
 import { useWorkspaceLink, useWorkspaceSection } from '@/lib/workspace-navigation'
-import { readableContent } from '@/lib/content-presentation'
+import { publishedTimeLabel, readableContent } from '@/lib/content-presentation'
 
 export function ItemPage() {
   const { t } = useTranslation('items')
@@ -50,7 +50,7 @@ export function ItemPage() {
             <div className="title-line"><h1>{item.title}</h1><StatusBadge status={item.decision} /></div>
             <div className="run-header-subtitle">
               <span className="item-source-context">{collectorSourceLabel(item.collectorName, item.sourceHost)}</span>{item.collectorDeleted && <DeletedSourceBadge />}
-              <span className="run-header-meta">{t('detail.publishedLine', { publishedAt: item.publishedAt, revision: revisionLabel })}</span>
+              <span className="run-header-meta">{t('detail.publishedLine', { publishedAt: publishedTimeLabel(item.publishedAt, t('common:dataValue.missing')), revision: revisionLabel })}</span>
             </div>
           </div>
           <Button asChild variant="outline"><a href={item.sourceUrl} target="_blank" rel="noreferrer">{t('detail.openSource')} <ExternalLink /></a></Button>
@@ -71,7 +71,7 @@ export function ItemPage() {
               <div className="item-summary-heading">
                 <div><h2>{item.decision === 'accepted' ? t('detail.normalizedAvailable') : t('detail.rejectedByGate')}</h2><p>{item.changeType ? changeTypeLabel(item.changeType, t) : t('detail.notVersioned')}</p></div>
                 <dl className="item-summary-facts">
-                  <div><dt>{t('detail.publishedAt')}</dt><dd>{item.publishedAt}</dd></div>
+                  <div><dt>{t('detail.publishedAt')}</dt><dd>{publishedTimeLabel(item.publishedAt, t('common:dataValue.missing'))}</dd></div>
                   <div><dt>{t('detail.observedAt')}</dt><dd>{item.observedAt}</dd></div>
                   <div><dt>{t('detail.currentVersion')}</dt><dd>{revisionLabel}</dd></div>
                   <div><dt>{t('detail.observationCount')}</dt><dd>{t('detail.observationCountValue', { count: item.observationHistory.length })}</dd></div>

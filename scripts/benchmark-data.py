@@ -39,7 +39,7 @@ def isolated_store(root: Path, postgres: bool):
     else:
         store = Store(root / "scale.db", database_url="")
     try:
-        store.initialize()
+        store.initialize(migrate=True)
         yield store
     finally:
         if admin_url:

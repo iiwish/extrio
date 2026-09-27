@@ -328,7 +328,7 @@ def setup_collectors(collector_count: int, entrypoint: str, host: str) -> list[s
     from extrio.app import persist_published_rule, store
     from extrio.contracts import sha256_digest
 
-    store.initialize()
+    store.initialize(migrate=True)
     collector_ids: list[str] = []
     for index in range(1, collector_count + 1):
         parsed = urlsplit(entrypoint)

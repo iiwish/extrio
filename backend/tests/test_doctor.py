@@ -36,3 +36,14 @@ def test_doctor_does_not_initialize_a_missing_database(tmp_path, monkeypatch):
     report = diagnose(settings.model_copy(update={"database_path": missing}))
     assert report["reason"] == "database_unavailable"
     assert not missing.exists()
+
+
+def test_doctor_reports_incomplete_data_migration_without_running_it(tmp_path, monkeypatch):
+    from extrio.doctor import diagnose
+
+    settings, store, _source = setup_instance(tmp_path / "instance", monkeypatch)
+    with store.connect() as connection:
+        connection.execute("DELETE FROM data_migrations")
+    assert diagnose(settings)["reason"] == "data_migrations_pending"
+    with store.connect() as connection:
+        assert connection.execute("SELECT * FROM data_migrations").fetchall() == []
