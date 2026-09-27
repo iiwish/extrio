@@ -1,0 +1,39 @@
+{
+  "date": "2026-09-27T13:03:56.964871+00:00",
+  "environment": "macOS-26.5.2-arm64-arm-64bit",
+  "python": "3.12.13",
+  "database": "postgresql",
+  "observations": 100000,
+  "bodyBytes": 1000,
+  "seedMilliseconds": 9688.7,
+  "observationsFirstPageMs": {
+    "median": 30.66,
+    "max": 37.35,
+    "samples": [
+      37.35,
+      31.89,
+      30.66,
+      17.77,
+      16.58
+    ]
+  },
+  "entitiesFirstPageMs": {
+    "median": 1048.34,
+    "max": 2414.21,
+    "samples": [
+      2414.21,
+      1321.94,
+      1048.34,
+      907.86,
+      990.3
+    ]
+  },
+  "entityCursorWalk": {
+    "count": 20000,
+    "milliseconds": 24130.19
+  },
+  "observationExport": {
+    "count": 100000,
+    "milliseconds": 2854.17
+  }
+}

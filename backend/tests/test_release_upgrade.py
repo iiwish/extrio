@@ -22,6 +22,7 @@ from extrio.store import Store
 
 BASELINE = "86ebcc4b570f8b5b5acf3f1c6ba0f70ac7ed42f7"
 ALPHA_RELEASE = "1e02dbbddd273bda7a7023b8824d0bb58f3db5d6"
+RC_RELEASE = "c2fc06f420c31aaf5bbbea53332ef4af2b48804e"
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURE = Path(__file__).parent / "fixtures" / "release_baseline.py"
 
@@ -39,6 +40,15 @@ def baseline(tmp_path):
 def alpha_release(tmp_path):
     result = subprocess.run(["git", "archive", ALPHA_RELEASE, "backend", "docs/contracts"], cwd=ROOT, capture_output=True, check=True)
     target = tmp_path / "alpha-release"
+    with tarfile.open(fileobj=io.BytesIO(result.stdout)) as archive:
+        archive.extractall(target, filter="data")
+    return target
+
+
+@pytest.fixture
+def rc_release(tmp_path):
+    result = subprocess.run(["git", "archive", RC_RELEASE, "backend", "docs/contracts"], cwd=ROOT, capture_output=True, check=True)
+    target = tmp_path / "rc-release"
     with tarfile.open(fileobj=io.BytesIO(result.stdout)) as archive:
         archive.extractall(target, filter="data")
     return target
@@ -279,3 +289,61 @@ def test_published_alpha_upgrade_and_full_backup_rollback(alpha_release, databas
     for name, digest in checksums.items():
         assert hashlib.sha256((backup / name).read_bytes()).hexdigest() == digest
     assert (target / "artifacts/historical.html").read_bytes() == (source / "artifacts/historical.html").read_bytes()
+
+
+def test_published_rc_upgrade_and_matching_rc_full_backup_rollback(rc_release, databases, tmp_path):
+    source_url, target_url = databases
+    source, target = tmp_path / "rc-source", tmp_path / "rc-rollback"
+    source.mkdir()
+    env = environment(rc_release, source, source_url)
+    before_file = tmp_path / "rc-before.json"
+    old_process(rc_release, env, [str(FIXTURE), "seed-rc", str(before_file)])
+    before = json.loads(before_file.read_text())
+    assert before["migrations"][-1] == "013_runtime_backfills"
+    assert before["boundCollector"]["collectionVersion"] == before["versions"][0]["id"]
+    assert before["deliveries"][0]["id"].startswith("sha256:")
+    assert before["deliveryAttempts"][0]["statusCode"] == 503
+    assert before["checkpoint"]["lastSuccessfulRunId"] == "run_release"
+
+    backup = tmp_path / "rc-full-backup"
+    old_process(rc_release, env, ["-c", "from extrio.cli import run_backup; run_backup()", str(backup), "--offline"])
+    manifest = json.loads((backup / "backup_manifest.json").read_text())
+    assert manifest["scope"] == "full"
+    assert manifest["consistency"] == "offline-instance-lock"
+    assert manifest["dialect"] == ("postgresql" if source_url else "sqlite")
+    checksums = {str(p.relative_to(backup)): hashlib.sha256(p.read_bytes()).hexdigest() for p in backup.rglob("*") if p.is_file()}
+
+    current_env = environment(ROOT, source, source_url)
+    for _ in range(2):
+        old_process(ROOT, current_env, ["-c", "from extrio.cli import run_migrate; run_migrate()"])
+    current_env["EXTRIO_DATABASE_AUTO_MIGRATE"] = "false"
+    after_file = tmp_path / "rc-upgraded.json"
+    old_process(ROOT, current_env, [str(FIXTURE), "inspect-rc", str(after_file)])
+    # RC and the stable candidate share schema 013; migration timestamps and all seeded history stay unchanged.
+    assert json.loads(after_file.read_text()) == before
+    upgraded = Store(source / "database.db", database_url=source_url)
+    assert verify_password("Release-fixture-123!", upgraded.get_auth_credentials("release-admin")["passwordHash"])
+    for attestation in before["attestations"]:
+        verify_attestation_signature(attestation, upgraded.get_signing_key(attestation["keyId"])["publicKeyPem"])
+    sink = before["sinks"][0]
+    assert upgraded.get_sink(sink["id"], cipher=CredentialCipher(source / "keys/credential.key"))["secret"] == "release-fixture-secret"
+    assert upgraded.verify_audit_chain(before["rules"][0]["tenantId"])
+
+    upgraded.create_collector("Post-upgrade source", "Not in the backup", "https://example.test/new", "example.test")
+    (source / "artifacts/historical.html").write_text("<h1>Post-upgrade artifact</h1>")
+    target_env = environment(rc_release, target, target_url)
+    old_process(rc_release, target_env, ["-c", "from extrio.cli import run_restore; run_restore()", str(backup), "--offline"])
+    target_env["EXTRIO_DATABASE_AUTO_MIGRATE"] = "false"
+    restored_file = tmp_path / "rc-restored.json"
+    old_process(rc_release, target_env, [str(FIXTURE), "inspect-rc", str(restored_file)])
+    assert json.loads(restored_file.read_text()) == before
+    restored = Store(target / "database.db", database_url=target_url)
+    assert len(restored.list_collectors()) == 2
+    assert restored.get_sink(sink["id"], cipher=CredentialCipher(target / "keys/credential.key"))["secret"] == "release-fixture-secret"
+    for name, digest in checksums.items():
+        assert hashlib.sha256((backup / name).read_bytes()).hexdigest() == digest
+    for directory in ("artifacts", "keys"):
+        for path in (backup / directory).rglob("*"):
+            if path.is_file():
+                assert (target / path.relative_to(backup)).read_bytes() == path.read_bytes()
+    assert (target / "artifacts/historical.html").read_bytes() != (source / "artifacts/historical.html").read_bytes()

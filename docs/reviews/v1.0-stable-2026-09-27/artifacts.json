@@ -1,0 +1,60 @@
+{
+  "status": "Needs_Review",
+  "version": "1.0.0",
+  "published": false,
+  "baselineCommit": "c2fc06f420c31aaf5bbbea53332ef4af2b48804e",
+  "candidateBranch": "codex/v1-stable-closeout-20260927",
+  "candidateInputs": {
+    "path": "candidate-inputs.sha256",
+    "files": 365,
+    "sha256": "78e6847dc3d9157c9aab3ff85828328077608af461339f5306a8c5561aa3b125"
+  },
+  "localPackages": [
+    {
+      "name": "extrio_backend-1.0.0-py3-none-any.whl",
+      "sha256": "12301a436adf8a0e302162753e832f8012191cac87a10f2782e89c91f87e07bc"
+    },
+    {
+      "name": "extrio_backend-1.0.0.tar.gz",
+      "sha256": "987746cbdfb065d7dc7af44cfedba3feaca5f04e7296bff006d87c6a01255967"
+    }
+  ],
+  "localImages": [
+    {
+      "name": "extrio/backend:stable-20260927",
+      "platform": "linux/arm64",
+      "indexDigest": "sha256:df9700606ea73cb4511ffa85b70518dae66f0c3d29da685de3217dd69d636152",
+      "scannedConfigDigest": "sha256:9b9acd27618353cf3f2e9f294992bfa8c125e6f35775f6929723e02ee448e2a7",
+      "fixableHighCritical": 0
+    },
+    {
+      "name": "extrio/web:stable-20260927",
+      "platform": "linux/arm64",
+      "indexDigest": "sha256:908e9eb08ea82188bf618f79a5a65f85fbc7def2258bfa6d4daf2ecc1150722d",
+      "scannedConfigDigest": "sha256:b200218725ad9ed95818c738f4b6d990e60abb7c431eea73e24fdb5d4ae60a8b",
+      "fixableHighCritical": 0
+    }
+  ],
+  "scanner": {
+    "name": "Trivy",
+    "version": "0.69.3",
+    "imagePolicy": "vuln; HIGH,CRITICAL; ignore-unfixed; exit-code=1",
+    "unfixedAdvisory": "GHSA-8mgp-746c-j5xp",
+    "unfixedAdvisoryStatus": "open; stable risk decision pending"
+  },
+  "publishedRcInstall": {
+    "release": "https://github.com/iiwish/extrio/releases/tag/v1.0.0-rc.1",
+    "backend": "ghcr.io/iiwish/extrio-backend@sha256:0f841772c0dc5c45f7575203fb0fc599162fd16a40d64e5686869ce083bcb6af",
+    "web": "ghcr.io/iiwish/extrio-web@sha256:c693d8f48f491655820bfbbf6fc583ef8b9ca425a7814d7531521c024bca2981",
+    "mode": "--image-only; --no-build --pull always",
+    "sqlite": "passed",
+    "postgresql16": "passed"
+  },
+  "authorization": {
+    "commitPushPullRequest": true,
+    "merge": false,
+    "stableTagOrRelease": false,
+    "imagePublication": false,
+    "productionDeployment": false
+  }
+}
