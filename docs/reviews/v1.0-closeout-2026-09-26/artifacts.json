@@ -62,7 +62,18 @@
       "CRITICAL"
     ],
     "ignoreUnfixed": true,
-    "sourceSecretFindings": 0
+    "sourceSecretFindings": 0,
+    "openUnfixedDependencyAdvisories": [
+      {
+        "id": "GHSA-8mgp-746c-j5xp",
+        "package": "nltk",
+        "version": "3.10.3",
+        "severity": "HIGH",
+        "firstPatchedVersion": null,
+        "reviewedAt": "2026-09-27",
+        "status": "open_static_reachability_review_only"
+      }
+    ]
   },
   "images": [
     {

@@ -32,6 +32,24 @@ Delivery 的事件/版本身份、登录共享限流和代理边界，以及 exa
 已发现的阻断问题均有修复或独立待执行的发布门槛。工程测试不构成无漏洞保证；
 没有对月度 SLA、多来源模型效果、PG18、完整无障碍认证或未经测试的平台容量作出承诺。
 
+## 未修复依赖告警
+
+2026-09-27 Git 交接核查发现 [Dependabot #1](https://github.com/iiwish/extrio/security/dependabot/1)
+仍为 open：`GHSA-8mgp-746c-j5xp`，HIGH，影响锁文件中的间接依赖
+`crawl4ai 0.9.2 -> nltk 3.10.3`。GitHub 返回受影响范围 `<= 3.10.3`，
+`first_patched_version` 为 null，没有可直接升级的修复版本。
+
+告警涉及应用依赖 NLTK pathsec 隔离、同时允许不可信流程指定模型导入/导出路径时，
+模型持久化 API 绕过文件访问边界。静态检索应用源码和已安装的 Crawl4AI Python 源码，
+未发现 `TransitionParser`、`AveragedPerceptron`、`PerceptronTagger`、
+`save_maxent_params` 或 pathsec 的调用；现有浏览器配置未暴露 NLTK 模型文件路径。
+Crawl4AI 中的 NLTK 引用用于分词和 punkt 资源加载，不作为文件隔离边界。
+这些结果是静态初审，不构成完整动态可达性证明，也不将告警判定为已修复。
+
+告警保持 open，不加入忽略列表、不关闭扫描、不擅自修改依赖图。
+发布门槛中的“可修复 HIGH/CRITICAL 为零”不代表全部漏洞为零；正式发布签收须
+单独审阅这一残余风险，有上游修复后升级并回归验证。
+
 ## 发布前待办
 
 Git 提交、推送、PR 与 CI 已获 2026-09-27 用户授权。合并与发布仍需确认；
