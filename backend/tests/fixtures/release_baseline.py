@@ -15,8 +15,9 @@ from extrio.store import Store
 settings = get_settings()
 store = Store(settings.database_path, database_url=settings.database_url)
 store.initialize()
-alpha = sys.argv[1].endswith("-alpha")
-if sys.argv[1] in {"seed", "seed-alpha"}:
+versioned_collections = sys.argv[1].endswith(("-alpha", "-rc"))
+rc = sys.argv[1].endswith("-rc")
+if sys.argv[1] in {"seed", "seed-alpha", "seed-rc"}:
     collector = store.create_collector("Release history", "Collect public notices", "https://example.test/notices", "example.test")
     signer = LocalEd25519Signer(settings.signing_private_key_path, settings.signing_key_id)
     store.ensure_signing_key(signer.trust_record(tenant_id=settings.tenant_id, revision=1))
@@ -58,7 +59,7 @@ if sys.argv[1] in {"seed", "seed-alpha"}:
     )
     settings.artifact_path.mkdir(parents=True, exist_ok=True)
     (settings.artifact_path / "historical.html").write_text("<h1>Historical notice</h1>")
-    if alpha:
+    if versioned_collections:
         collection = store.get_collection(collector["collectionId"])
         changed = store.change_collection(collection["id"], collection["revision"], {"fieldDraft": {"fields": [{
             "key": "title", "label": "Title", "description": "", "type": "string",
@@ -68,7 +69,14 @@ if sys.argv[1] in {"seed", "seed-alpha"}:
         store.create_collector("Frozen source", "Fixed contract", "https://example.test/frozen", "example.test",
                                collection_id=collection["id"], require_existing_collection=True)
         sink = store.list_sinks_for_collector(collector["id"])[0]
-        store.enqueue_delivery(collector_id=collector["id"], sink_id=sink["id"], item_event_id="event_release")
+        delivery = store.enqueue_delivery(collector_id=collector["id"], sink_id=sink["id"], item_event_id="event_release")
+        if rc:
+            store.record_delivery_attempt(delivery["id"], status_code=503, error="release-fixture-retry")
+            store.save_checkpoint({
+                "collectorId": collector["id"], "policyVersionId": collector["collectionPolicy"]["id"],
+                "lastSuccessfulRunId": "run_release", "watermark": "2026-09-01T00:00:00Z",
+                "advancedAt": "2026-09-01T01:00:00Z",
+            })
 
 with store.connect() as connection:
     migrations = sorted(row["id"] for row in connection.execute("SELECT id FROM schema_migrations").fetchall())
@@ -86,10 +94,21 @@ snapshot = {
     "user": store.get_auth_credentials("release-admin"),
     "session": store.get_auth_session("release-fixture-session"),
 }
-if alpha:
+if versioned_collections:
     snapshot.update(
         versions=store.list_collection_versions(collector["collectionId"]),
         boundCollector=next(row for row in store.list_collectors() if row["sourceUrl"] == "https://example.test/frozen"),
         deliveries=store.list_deliveries_for_collector(collector["id"]),
+    )
+if rc:
+    with store.connect() as connection:
+        migration_records = [dict(row) for row in connection.execute("SELECT * FROM schema_migrations ORDER BY id").fetchall()]
+    snapshot.update(
+        migrationRecords=migration_records,
+        sinks=store.list_sinks_for_collector(collector["id"]),
+        signingKey=store.get_signing_key(settings.signing_key_id),
+        auditEvents=store.list_audit_events(),
+        checkpoint=store.get_checkpoint(collector["id"]),
+        deliveryAttempts=store.list_delivery_attempts(snapshot["deliveries"][0]["id"]),
     )
 Path(sys.argv[2]).write_text(json.dumps(snapshot, sort_keys=True, indent=2))

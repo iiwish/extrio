@@ -1,9 +1,9 @@
 {
   "schemaVersion": "extrio.docset-manifest.v1",
   "docsetVersion": "v0.46.0",
-  "productVersion": "v1.0.0-rc.1",
+  "productVersion": "v1.0.0",
   "status": "Ready_For_User_Review",
-  "generatedAt": "2026-09-27T11:12:42.113Z",
+  "generatedAt": "2026-09-27T13:21:56.681Z",
   "repositoryState": {
     "kind": "git_repository",
     "defaultBranch": "main"
@@ -12,12 +12,12 @@
     {
       "path": "docs/SSOT.md",
       "version": "v0.46.0",
-      "sha256": "0aacb2468f0bee977c9062b4cf17e090b229a57d4d881abc6a2d3ddfd12cd800"
+      "sha256": "30810274dbfbbb77850bf2df5b6debe4fc7e7e583c396fa79737d7e9d5abd721"
     },
     {
       "path": "docs/product-contract.md",
       "version": "v0.46.0",
-      "sha256": "fab131912e354171793b7af0ff49061f5dbfb3a75e6290e8391299b35a1671f3"
+      "sha256": "17bf6865572a3d66bbc363b3c94d4f031de08a9e790157881b2d6a9010d645f4"
     },
     {
       "path": "docs/domain-model.md",
@@ -132,7 +132,7 @@
     {
       "path": "docs/frontend-prototype.md",
       "version": "v1.38.1",
-      "sha256": "69050be6cae2505dfe3bb0a80c05e50e557e2a1e0bac2665954d1c8c101f901c"
+      "sha256": "37d439633fa0ff2d9c8316c4970a634f28483ee5bd2b1793667cce31dcbe3a4c"
     },
     {
       "path": "docs/backend-vertical-slice.md",
@@ -152,22 +152,27 @@
     {
       "path": "docs/releases/v0.2-acceptance.md",
       "version": "v0.46.0",
-      "sha256": "63c091425cf265859f8f3e5361bde6e9e4b32667d7b176bd6702ec5dacc8af1c"
+      "sha256": "1b35a51c2ad3ceb32176942b7d928d37a860da4e9a6a444ae435db4bb21b3ffc"
     },
     {
       "path": "docs/planning/v1.0-scope-matrix.md",
       "version": "v1.0.0",
-      "sha256": "14841417946f7bf4daf6310fba0e60cb45290cab98d9a2f37593f36f1293c065"
+      "sha256": "2acab6caf8b5ebe9f2c56bf1f78374c2d1eefa0cb37db3705ba38183589f3fab"
     },
     {
       "path": "docs/releases/v0.7-upgrade.md",
       "version": "v1.0.0",
-      "sha256": "b2a7a8288cec0f67688d4504781157e8f883c3fe0132a0484d421684b57abc34"
+      "sha256": "6d20eaa26b20557d8a953652ea9210ea0febad4cd569022bd131171bed262c7b"
     },
     {
       "path": "docs/releases/v1.0-rc.1.md",
       "version": "v1.0.0",
-      "sha256": "695ff0d740a9778cfb085ade23bc6e2ebb2aead5bb3b70b8552f12a89ca498fc"
+      "sha256": "f5a56450e7fc714ecff7e201c4190f3455efdd1f02dabbd472ab9e39e7c3671a"
+    },
+    {
+      "path": "docs/releases/v1.0.0.md",
+      "version": "v1.0.0",
+      "sha256": "6225df7af18603aa5796ee0d1891d9ba6fd51971dc97eab0375d8ef2db2b654e"
     },
     {
       "path": "docs/benchmarks.md",

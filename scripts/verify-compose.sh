@@ -4,6 +4,27 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PROJECT="${EXTRIO_E2E_PROJECT:-extrio-e2e-$(date +%Y%m%d%H%M%S)-$$}"
 COMPOSE_FILE="${EXTRIO_E2E_COMPOSE_FILE:-$ROOT/compose.yaml}"
+UP_OPTIONS=(--build)
+if (( $# > 0 )); then
+  if (( $# != 1 )) || [[ "$1" != "--image-only" ]]; then
+    printf 'Usage: %s [--image-only]\n' "$0" >&2
+    exit 1
+  fi
+  for variable in EXTRIO_BACKEND_IMAGE EXTRIO_WEB_IMAGE; do
+    if [[ ! "${!variable:-}" =~ ^[a-z0-9][a-z0-9._:/-]*@sha256:[a-f0-9]{64}$ ]]; then
+      printf '%s must be an explicit digest-pinned image (repository@sha256:<64 lowercase hex digits>)\n' "$variable" >&2
+      exit 1
+    fi
+  done
+  # Only these profiles guarantee all application services use the validated image variables.
+  COMPOSE_FILE="$(cd "$(dirname "$COMPOSE_FILE")" && pwd)/$(basename "$COMPOSE_FILE")"
+  if [[ "$COMPOSE_FILE" != "$ROOT/compose.yaml" && "$COMPOSE_FILE" != "$ROOT/compose.postgres.yaml" ]]; then
+    printf 'Image-only verification requires the repository compose.yaml or compose.postgres.yaml\n' >&2
+    exit 1
+  fi
+  UP_OPTIONS=(--no-build --pull always)
+  printf 'Image-only verification: backend=%s web=%s\n' "$EXTRIO_BACKEND_IMAGE" "$EXTRIO_WEB_IMAGE"
+fi
 if [[ ! "$PROJECT" =~ ^extrio-e2e- ]]; then
   printf 'Use a unique disposable EXTRIO_E2E_PROJECT beginning extrio-e2e-\n' >&2
   exit 1
@@ -30,7 +51,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-docker compose -p "$PROJECT" -f "$COMPOSE_FILE" up --build --wait --wait-timeout 180 --detach
+docker compose -p "$PROJECT" -f "$COMPOSE_FILE" up "${UP_OPTIONS[@]}" --wait --wait-timeout 180 --detach
 
 api="http://127.0.0.1:${EXTRIO_API_PORT}/api/v1"
 web="http://127.0.0.1:${EXTRIO_WEB_PORT}"

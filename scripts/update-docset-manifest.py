@@ -25,6 +25,7 @@ VERSION_OVERRIDES = {
     "docs/releases/v0.2-acceptance.md": "v0.46.0",
     "docs/releases/v0.7-upgrade.md": "v1.0.0",
     "docs/releases/v1.0-rc.1.md": "v1.0.0",
+    "docs/releases/v1.0.0.md": "v1.0.0",
     "docs/planning/v1.0-scope-matrix.md": "v1.0.0",
 }
 DOCSET_VERSION = "v0.46.0"
@@ -37,7 +38,7 @@ def digest(path: Path) -> str:
 def expected_manifest(source: dict) -> dict:
     data = deepcopy(source)
     data["docsetVersion"] = DOCSET_VERSION
-    data["productVersion"] = "v1.0.0-rc.1"
+    data["productVersion"] = "v1.0.0"
     entries = data["authoritativeFiles"]
     known = {entry["path"] for entry in entries}
     if "docs/backend-vertical-slice.md" not in known:
@@ -47,6 +48,7 @@ def expected_manifest(source: dict) -> dict:
         "docs/releases/v0.2-public-readiness.md",
         "docs/releases/v0.7-upgrade.md",
         "docs/releases/v1.0-rc.1.md",
+        "docs/releases/v1.0.0.md",
         "docs/planning/v1.0-scope-matrix.md",
     ):
         if path not in known:

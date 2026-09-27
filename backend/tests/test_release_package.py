@@ -1,11 +1,25 @@
+import json
 import os
 import shutil
 import subprocess
 import sys
+import tomllib
 import zipfile
+from email.parser import BytesParser
 from pathlib import Path
 
 import pytest
+
+from extrio import __version__
+
+
+def test_release_version_metadata_is_consistent():
+    root = Path(__file__).resolve().parents[2]
+    project = tomllib.loads((root / "backend/pyproject.toml").read_text())
+    lock = tomllib.loads((root / "backend/uv.lock").read_text())
+    locked_project = next(package for package in lock["package"] if package["name"] == "extrio-backend")
+    web = json.loads((root / "web/package.json").read_text())
+    assert project["project"]["version"] == locked_project["version"] == web["version"] == __version__ == "1.0.0"
 
 
 def test_source_distribution_builds_a_self_contained_wheel(tmp_path):
@@ -24,8 +38,13 @@ def test_source_distribution_builds_a_self_contained_wheel(tmp_path):
             "extrio/contracts_data/gather-spec.schema.json",
             "extrio/migrations/008_item_entity_index.pg.sql",
             "extrio/migrations/008_item_entity_index.sqlite.sql",
+            "extrio/migrations/013_runtime_backfills.pg.sql",
+            "extrio/migrations/013_runtime_backfills.sqlite.sql",
         ):
             assert name in archive.namelist()
+        metadata_path = next(name for name in archive.namelist() if name.endswith(".dist-info/METADATA"))
+        metadata = BytesParser().parsebytes(archive.read(metadata_path))
+        assert metadata["Version"] == __version__
         assert not any("/data/" in name or name.endswith("/.env") for name in archive.namelist())
         archive.extractall(installed)
     env = {key: value for key, value in os.environ.items() if not key.startswith("EXTRIO_")}

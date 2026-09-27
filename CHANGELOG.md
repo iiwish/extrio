@@ -6,9 +6,28 @@ All notable changes to Extrio are documented in this file. The project follows
 
 ## Unreleased
 
-### 1.0.0-rc.1 Candidate
+### 1.0.0 Stable Candidate
 
-- Prepare matching Python and Web candidate versions; no stable release is published.
+- Prepare matching Python and Web `1.0.0` source metadata; the stable candidate is
+  unpublished and remains `Needs_Review`, without final product or technical acceptance.
+- Add the published RC commit to the SQLite/PostgreSQL upgrade and full-backup
+  restore/rollback matrix, and support verification of published images by immutable
+  digest without rebuilding them. Current execution evidence is tracked in the
+  [stable handoff](docs/releases/v1.0.0.md).
+- Add dynamic NLTK boundary regression evidence and retain the open no-fix dependency
+  advisory. RC risk acceptance does not authorize stable release; neither scans nor
+  untested paths are marked safe by this closeout.
+- Keep the approved 72-hour observation waiver separate from a passing test result.
+  Merge, tag, release, image publication and production deployment require separate approval.
+
+## 1.0.0-rc.1 - 2026-09-27
+
+Published prerelease: [v1.0.0-rc.1](https://github.com/iiwish/extrio/releases/tag/v1.0.0-rc.1),
+commit `c2fc06f420c31aaf5bbbea53332ef4af2b48804e`. Exact-commit main CI and
+dual-architecture scans, signatures and provenance passed; see the
+[release record](docs/releases/v1.0-rc.1.md). This is not a stable release.
+
+- Prepare matching Python `1.0.0rc1` and Web `1.0.0-rc.1` candidate versions.
 - Verify the published `v0.7.0-alpha.1` upgrade and full-backup rollback on SQLite
   and PostgreSQL 16, including frozen field bindings, signatures and historical Deliveries.
 - Serialize PostgreSQL login-limit checks across API connections and disable implicit
