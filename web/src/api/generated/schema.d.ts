@@ -353,7 +353,7 @@ export interface paths {
         };
         /** @description Returns platform collection policy settings. Available to any authenticated role. */
         get: operations["getPlatformSettings"];
-        /** @description Updates platform collection policy settings. Administrators only; other roles receive FORBIDDEN. When allowAnonymousHttp is true (default), collector creation accepts anonymous http:// entry URLs; when false, http:// sources are rejected with HTTPS_REQUIRED unless localhost. Credential-bearing sources always require HTTPS regardless of this setting. Existing collectors are unaffected. */
+        /** @description Updates platform collection policy settings. Administrators only; other roles receive FORBIDDEN. When allowAnonymousHttp is true and the deployment safety policy permits it, collector creation accepts anonymous http:// entry URLs. Production defaults to false and remains capped by deployment policy; local development profiles enable it explicitly. Credential-bearing sources always require HTTPS regardless of this setting. Existing collectors are unaffected. */
         put: operations["updatePlatformSettings"];
         post?: never;
         delete?: never;
@@ -1252,7 +1252,7 @@ export interface components {
             updatedAt: string | null;
         };
         PlatformSettingsInput: {
-            /** @description When true (default), collector creation accepts anonymous http:// entry URLs. When false, http:// sources are rejected with HTTPS_REQUIRED unless localhost. Credential-bearing sources always require HTTPS. */
+            /** @description When true and the deployment safety policy permits it, collector creation accepts anonymous http:// entry URLs. Production defaults to false; local development profiles enable it explicitly. Credential-bearing sources always require HTTPS. */
             allowAnonymousHttp: boolean;
         };
         PlatformSettings: {

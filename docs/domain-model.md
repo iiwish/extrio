@@ -4,11 +4,11 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| 文档版本 | `v0.8.0` |
-| 对应产品版本 | `v0.6` |
+| 文档版本 | `v0.8.1` |
+| 对应产品版本 | `v0.7 public alpha` |
 | 状态 | `Confirmed` |
 | 权威来源 | [`SSOT.md`](./SSOT.md) |
-| 最后更新 | `2026-08-31` |
+| 最后更新 | `2026-09-22` |
 | 审批责任 | 技术负责人、产品负责人 |
 
 ## 2. 建模原则
@@ -129,7 +129,7 @@ RunAttempt 不代表单个 HTTP 请求。请求级重试属于 Attempt 内部；
 
 HarvestItem 不保存“最新网页即真相”的假设。每个 Revision 记录 `outputContractDigest`、规范化 payload 和 payloadFingerprint；每个 Observation 记录 runId、ruleVersionId、collectionVersionId、sourceRevisionId、observedAt 与同一 Run 的重复出现次数。内容未变化时不创建新 Revision 或 ItemEvent，但仍创建 Observation，保证 Run 到 Item 的可查询谱系。
 
-v0.6 只有 Source 明确提供删除、撤销或失效信号时才产生 tombstone。列表中缺失一个历史实体不得自动解释为删除。
+v0.7 只有 Source 明确提供删除、撤销或失效信号时才产生 tombstone。列表中缺失一个历史实体不得自动解释为删除。
 
 ## 4. 关系模型
 
@@ -254,7 +254,7 @@ revisionKey = sha256(
 )
 ```
 
-`eventTypes` 由 CollectionVersion 事件合同决定，按 UTF-8 字节序排序；v0.6 无 tombstonePolicy 时为 `["upsert"]`，存在时为 `["tombstone","upsert"]`。`tombstonePolicy` 不存在时取 JSON `null`。Sink 绑定和交付策略不属于 outputContractDigest；同一 `revisionKey` 的观察不会创建新 Revision，但必须创建 HarvestObservation。CollectionVersion 的质量门、描述或调度变化不改变 outputContractDigest；输出 Schema、身份、指纹字段或上述事件语义变化必须改变 outputContractDigest。
+`eventTypes` 由 CollectionVersion 事件合同决定，按 UTF-8 字节序排序；v0.7 无 tombstonePolicy 时为 `["upsert"]`，存在时为 `["tombstone","upsert"]`。`tombstonePolicy` 不存在时取 JSON `null`。Sink 绑定和交付策略不属于 outputContractDigest；同一 `revisionKey` 的观察不会创建新 Revision，但必须创建 HarvestObservation。CollectionVersion 的质量门、描述或调度变化不改变 outputContractDigest；输出 Schema、身份、指纹字段或上述事件语义变化必须改变 outputContractDigest。
 
 ### 6.3 事件转换与交付键
 
@@ -266,7 +266,7 @@ eventId = sha256(
   eventType
 )
 
-deliveryId = sha256(eventId + "\n" + sinkVersionId)
+deliveryId = "sha256:" + sha256(eventId + "\n" + sinkVersionId)
 ```
 
 事件创建必须在锁定 HarvestItem 的事务中执行：目标 `(revisionKey, eventType)` 与 currentEvent 相同时复用当前事件；不同时递增 eventSequence、引用 previousEventId 并创建新 ItemEvent。因此 A→B→A 与 `upsert→tombstone→upsert` 都产生新的状态转换事件，即使历史 Revision 被复用。
@@ -280,7 +280,7 @@ deliveryId = sha256(eventId + "\n" + sinkVersionId)
 - 所有持久时间使用 UTC、RFC 3339 纳秒精度；用户界面可以按租户时区显示。
 - 更新稳定对象必须使用乐观并发版本 `rowVersion`；冲突返回明确错误，不得最后写入覆盖。
 - Schedule 触发与 RuleVersion 发布并发时，Run 创建事务读取并固定当时的 `activeRuleVersionId`。
-- v0.6 的 Collector 固定 `overlapPolicy=forbid`。GatherSpec 固定分页与提取行为，CollectionPolicyVersion 固定运行窗口和预算；Run 从第一页开始，使用日期 watermark 与回看窗口，并在成功终结时推进 CollectorCheckpoint。通用 cursor、无限滚动和任意增量表达式不在当前范围。
+- v0.7 的 Collector 固定 `overlapPolicy=forbid`。GatherSpec 固定分页与提取行为，CollectionPolicyVersion 固定运行窗口和预算；Run 从第一页开始，使用日期 watermark 与回看窗口，并在成功终结时推进 CollectorCheckpoint。通用 cursor、无限滚动和任意增量表达式不在当前范围。
 
 ## 8. 删除、保留与谱系
 

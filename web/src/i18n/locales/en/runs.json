@@ -165,7 +165,9 @@
       "cancelled": "Run cancelled; results did not enter the delivery set",
       "detailIncomplete": "{{accepted}} accepted, {{missing}} detail pages not fetched",
       "partial": "{{accepted}} accepted, {{rejected}} rejected, awaiting handling",
-      "succeeded": "{{count}} items completed quality finalization"
+      "succeeded": "{{count}} items completed quality finalization",
+      "succeeded_one": "{{count}} item completed quality finalization",
+      "succeeded_other": "{{count}} items completed quality finalization"
     },
     "runningTitle": "Run in progress",
     "runningDesc": "The same task keeps progressing after you refresh the page.",

@@ -157,11 +157,22 @@ class SQLiteDialect(Dialect):
             connection.close()
 
     def run_script(self, connection: DialectConnection, script: str) -> None:
+        # SQLite cannot disable foreign keys inside a transaction. Migrations
+        # may rebuild referenced tables, so briefly disable enforcement and
+        # verify the resulting graph before returning the connection to runtime
+        # use.
+        connection.raw.execute("PRAGMA foreign_keys=OFF")
         try:
-            connection.raw.executescript(f"BEGIN;\n{script}\nCOMMIT;")
+            connection.raw.executescript(f"BEGIN;\n{script}\n")
+            violations = connection.raw.execute("PRAGMA foreign_key_check").fetchall()
+            if violations:
+                raise RuntimeError(f"migration left foreign key violations: {violations}")
+            connection.raw.commit()
         except Exception:
             connection.raw.rollback()
             raise
+        finally:
+            connection.raw.execute("PRAGMA foreign_keys=ON")
 
     def json_param(self, value: Any) -> Any:
         return json.dumps(value, ensure_ascii=False)

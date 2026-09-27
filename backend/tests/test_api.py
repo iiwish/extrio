@@ -554,6 +554,7 @@ def test_openapi_external_gather_schema_is_served() -> None:
     with TestClient(app_module.app) as client:
         openapi = client.get("/openapi.json")
         schema = client.get("/gather-spec.schema.json")
+        assert app_module.app.version == openapi.json()["info"]["version"] == "1.15.0"
         assert openapi.json()["x-contract-id"] == "extrio.control-plane.v1"
         assert schema.json()["$id"] == "https://schemas.extrio.dev/gather-spec.v1.schema.json"
 
@@ -605,7 +606,7 @@ def test_startup_backfills_integrity_for_legacy_published_collector(tmp_path: Pa
         app_module.store = original
 
 
-def test_startup_backfills_nullable_policy_context_for_legacy_runs(tmp_path: Path) -> None:
+def test_explicit_migration_backfills_nullable_policy_context_for_legacy_runs(tmp_path: Path) -> None:
     original = app_module.store
     app_module.store = Store(tmp_path / "api.db")
     app_module.store.initialize()
@@ -631,6 +632,9 @@ def test_startup_backfills_nullable_policy_context_for_legacy_runs(tmp_path: Pat
             collector["id"],
         )
 
+        with app_module.store.connect() as connection:
+            connection.execute("DELETE FROM data_migrations")
+        app_module.store.initialize(migrate=True)
         with TestClient(app_module.app):
             run = app_module.store.get_run("run_legacy")
             assert run["policyContextStatus"] == "legacy_unavailable"

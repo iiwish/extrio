@@ -158,10 +158,10 @@ The endpoint is `http://127.0.0.1:8818/mcp` and requires `Authorization: Bearer 
 ## Self-Hosting Safely
 
 - Keep the API and worker off the public internet; route console traffic through the bundled web proxy and a controlled TLS reverse proxy.
-- Set `EXTRIO_AUTH_COOKIE_SECURE=true` behind HTTPS. The local HTTP evaluation profile intentionally defaults to `false`.
+- Safe production defaults enable secure cookies and disable anonymous HTTP, demo seeding, automatic migration, and metrics. The local HTTP Compose profile enables its development exceptions explicitly.
 - Protect credentials, signing keys, persistent volumes, and outbound network access. Never reuse development keys in production.
 - Back up the database, artifacts, and keys together, and test restoration before upgrading.
-- Restrict `/metrics` to trusted monitoring access: it is unauthenticated by design. `/healthz` proves API liveness; `/readyz` also checks the worker and deployment/key consistency.
+- `/metrics` is disabled by default. If explicitly enabled, restrict it to trusted monitoring access because it remains unauthenticated. `/healthz` proves API liveness; `/readyz` also checks the worker and deployment/key consistency.
 
 Read [SECURITY.md](SECURITY.md) and the [operations guide](docs/self-hosted-operations.md) before handling sensitive data or exposing an instance beyond localhost.
 

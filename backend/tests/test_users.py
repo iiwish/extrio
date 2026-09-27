@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import extrio.app as app_module
-from extrio.auth import hash_password, reset_login_limits
+from extrio.auth import hash_password
 from extrio.harvest import build_candidate
 from extrio.store import Store, UsernameTaken
 
@@ -37,7 +37,7 @@ def user_store(tmp_path: Path) -> Store:
     yield store
     app_module.store = original_store
     app_module.settings = original_settings
-    reset_login_limits()
+    store.reset_login_limits()
 
 
 def make_user(store: Store, username: str, role: str) -> dict:

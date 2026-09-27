@@ -1,6 +1,7 @@
 name: Container verification
 
 on:
+  workflow_dispatch:
   # Required by main branch protection, including documentation and CI-only PRs.
   pull_request:
   push:

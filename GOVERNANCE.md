@@ -26,7 +26,10 @@ and non-sensitive follow-up are published after users have a reasonable upgrade 
 
 Version tags are created from `main` after source, contract, container, vulnerability, and release
 readiness checks pass. GitHub Actions publishes signed multi-architecture images with provenance
-and SBOM attestations. Release notes identify breaking changes, migrations, and known limitations.
+and SBOM attestations. The release gate verifies the tag's exact commit and all required jobs;
+candidate image digests are scanned and signed before version tags are promoted. Release notes
+identify breaking changes, migrations, and known limitations. See the
+[release gates](docs/self-hosted-operations.md#发布制品门禁) for verification and retry behavior.
 
 ## Conduct and security
 

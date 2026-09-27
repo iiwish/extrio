@@ -12,6 +12,19 @@ for variable, relative in {
 }.items():
     os.environ[variable] = str(_root / relative)
 
+# Tests exercise the explicit local-development profile. Production defaults
+# are asserted separately with these overrides removed.
+os.environ.update(
+    {
+        "EXTRIO_DATABASE_AUTO_MIGRATE": "true",
+        "EXTRIO_ALLOW_HTTP_PUBLIC": "true",
+        "EXTRIO_ALLOW_HTTP_LOCALHOST": "true",
+        "EXTRIO_AUTH_COOKIE_SECURE": "false",
+        "EXTRIO_METRICS_ENABLED": "true",
+        "EXTRIO_SEED_DEMO": "true",
+    }
+)
+
 
 def pytest_unconfigure(config):
     _instance.cleanup()

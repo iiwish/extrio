@@ -7,6 +7,7 @@ import type { ExportFormat, HarvestItem } from '@/api/types'
 import { StatusBadge } from '@/components/status-badge'
 import { ListWorkspace } from '@/components/list-workspace'
 import { useListQuery } from '@/lib/use-list-query'
+import { publishedTimeLabel } from '@/lib/content-presentation'
 import { collectorDisplayName, collectorSourceLabel } from '@/features/collectors/collector-presentation'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -132,7 +133,7 @@ function ItemRow({ item }: { item: HarvestItem }) {
       <span className="object-primary"><span className="source-icon"><FileText /></span><span><strong>{item.title}</strong><small>{item.collectorDeleted && <>{t('collectors:management.deleted')} · </>}{collectorSourceLabel(item.collectorName, item.sourceHost)}</small></span></span>
       <StatusBadge status={item.decision} />
       <span className="item-change-cell"><strong>{item.changeType ? changeTypeLabel(item.changeType, t) : t('list.noChange')}</strong><small>{item.revision === null ? t('list.noRevision') : t('list.revision', { count: item.revision })} · {t('list.observations', { count: item.observationHistory.length })}</small></span>
-      <span className="item-time-cell"><strong>{item.publishedAt}</strong></span>
+      <span className="item-time-cell"><strong>{publishedTimeLabel(item.publishedAt, t('common:dataValue.missing'))}</strong></span>
       <span className="item-time-cell"><strong>{item.observedAt}</strong></span>
       <code className="item-key-cell">{item.entityKey}</code>
       <ArrowRight className="row-arrow" />

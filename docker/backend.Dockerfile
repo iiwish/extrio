@@ -2,7 +2,7 @@ FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    UV_HTTP_TIMEOUT=120 \
+    UV_HTTP_TIMEOUT=600 \
     UV_LINK_MODE=copy \
     UV_PROJECT_ENVIRONMENT=/opt/extrio \
     PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \

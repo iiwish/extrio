@@ -21,6 +21,7 @@ from extrio.integrity import verify_attestation_signature
 from extrio.store import Store
 
 BASELINE = "86ebcc4b570f8b5b5acf3f1c6ba0f70ac7ed42f7"
+ALPHA_RELEASE = "1e02dbbddd273bda7a7023b8824d0bb58f3db5d6"
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURE = Path(__file__).parent / "fixtures" / "release_baseline.py"
 
@@ -29,6 +30,15 @@ FIXTURE = Path(__file__).parent / "fixtures" / "release_baseline.py"
 def baseline(tmp_path):
     result = subprocess.run(["git", "archive", BASELINE, "backend", "docs/contracts"], cwd=ROOT, capture_output=True, check=True)
     target = tmp_path / "baseline"
+    with tarfile.open(fileobj=io.BytesIO(result.stdout)) as archive:
+        archive.extractall(target, filter="data")
+    return target
+
+
+@pytest.fixture
+def alpha_release(tmp_path):
+    result = subprocess.run(["git", "archive", ALPHA_RELEASE, "backend", "docs/contracts"], cwd=ROOT, capture_output=True, check=True)
+    target = tmp_path / "alpha-release"
     with tarfile.open(fileobj=io.BytesIO(result.stdout)) as archive:
         archive.extractall(target, filter="data")
     return target
@@ -65,6 +75,7 @@ def environment(code, root, database_url):
         "EXTRIO_ARTIFACT_PATH": str(root / "artifacts"),
         "EXTRIO_CONTRACTS_PATH": str(code / "docs/contracts"),
         "EXTRIO_SEED_DEMO": "false",
+        "EXTRIO_DATABASE_AUTO_MIGRATE": "true",
         "EXTRIO_SIGNING_PRIVATE_KEY_PATH": str(root / "keys/signing.pem"),
         "EXTRIO_CREDENTIAL_ENCRYPTION_KEY_PATH": str(root / "keys/credential.key"),
     }
@@ -152,11 +163,20 @@ def test_baseline_upgrade_preserves_history_and_matching_release_rollback(baseli
     collector = upgraded.get_collector(before["collector"]["id"])
     assert collector["collectionVersion"] == before["collector"]["collectionVersion"] == "tender_notice_v4"
     assert collector["activeRuleVersion"] == "rule_release_2"
-    assert [{k: v for k, v in item.items() if k != "collectionAttribution"} for item in upgraded.list_items()] == before["items"]
-    assert {k: v for k, v in upgraded.get_run("run_release").items() if k != "collectionAttribution"} == before["run"]
+    expected_items = [{"changeType": None, **item} for item in before["items"]]
+    expected_run = {
+        "recordsOutsideWindow": 0, "duplicateDetailUrls": 0, "newItems": 0, "updatedItems": 0, "unchangedItems": 0,
+        "policyContextStatus": "fixed" if before["run"].get("policyVersion") else "legacy_unavailable",
+        "policyVersion": None, "policyDigest": None, "executionMode": None, "windowStart": None,
+        "checkpointBefore": None, "checkpointAfter": None, **before["run"],
+    }
+    if "items" in expected_run:
+        expected_run["items"] = [{"changeType": None, **item} for item in expected_run["items"]]
+    assert [{k: v for k, v in item.items() if k != "collectionAttribution"} for item in upgraded.list_items()] == expected_items
+    assert {k: v for k, v in upgraded.get_run("run_release").items() if k != "collectionAttribution"} == expected_run
     assert upgraded.get_run("run_release")["collectionAttribution"]["collectionId"] == collector["collectionId"]
     with upgraded.connect() as connection:
-        assert [upgraded._decode(row) for row in connection.execute("SELECT data FROM items").fetchall()] == before["items"]
+        assert [upgraded._decode(row) for row in connection.execute("SELECT data FROM items").fetchall()] == expected_items
     for original in before["rules"]:
         assert upgraded.get_rule_version(original["id"]) == original
     for attestation in before["attestations"]:
@@ -167,7 +187,8 @@ def test_baseline_upgrade_preserves_history_and_matching_release_rollback(baseli
     assert upgraded.get_sink(sink["id"], cipher=CredentialCipher(source / "keys/credential.key"))["secret"] == "release-fixture-secret"
     assert upgraded.verify_audit_chain(before["rules"][0]["tenantId"])
     with upgraded.connect() as connection:
-        assert any(row["id"].startswith("008") for row in connection.execute("SELECT id FROM schema_migrations").fetchall())
+        applied = {str(row["id"]) for row in connection.execute("SELECT id FROM schema_migrations").fetchall()}
+    assert {"008_item_entity_index", "011_delivery_sink_version_identity", "012_auth_login_attempts"}.issubset(applied)
 
     collection = upgraded.get_collection(collector["collectionId"])
     changed = upgraded.change_collection(
@@ -206,3 +227,55 @@ def test_baseline_upgrade_preserves_history_and_matching_release_rollback(baseli
         for path in (backup / directory).rglob("*"):
             if path.is_file():
                 assert (target / path.relative_to(backup)).read_bytes() == path.read_bytes()
+
+
+def test_published_alpha_upgrade_and_full_backup_rollback(alpha_release, databases, tmp_path):
+    source_url, target_url = databases
+    source, target = tmp_path / "alpha-source", tmp_path / "alpha-rollback"
+    source.mkdir()
+    env = environment(alpha_release, source, source_url)
+    before_file = tmp_path / "alpha-before.json"
+    old_process(alpha_release, env, [str(FIXTURE), "seed-alpha", str(before_file)])
+    before = json.loads(before_file.read_text())
+    assert before["migrations"][-1] == "010_source_history_ownership"
+    assert before["boundCollector"]["collectionVersion"] == before["versions"][0]["id"]
+    assert before["deliveries"] and not before["deliveries"][0]["id"].startswith("sha256:")
+
+    backup = tmp_path / "alpha-full-backup"
+    old_process(alpha_release, env, ["-c", "from extrio.cli import run_backup; run_backup()", str(backup), "--offline"])
+    manifest = json.loads((backup / "backup_manifest.json").read_text())
+    assert manifest["scope"] == "full"
+    checksums = {str(p.relative_to(backup)): hashlib.sha256(p.read_bytes()).hexdigest() for p in backup.rglob("*") if p.is_file()}
+
+    current_env = environment(ROOT, source, source_url)
+    old_process(ROOT, current_env, ["-c", "from extrio.cli import run_migrate; run_migrate()"])
+    current_env["EXTRIO_DATABASE_AUTO_MIGRATE"] = "false"
+    after_file = tmp_path / "alpha-upgraded.json"
+    old_process(ROOT, current_env, [str(FIXTURE), "inspect-alpha", str(after_file)])
+    after = json.loads(after_file.read_text())
+    for key in ("rules", "attestations", "versions", "boundCollector", "deliveries", "user", "session"):
+        assert after[key] == before[key], key
+    assert after["collector"]["activeRuleVersion"] == before["collector"]["activeRuleVersion"]
+    assert after["migrations"][-3:] == [
+        "011_delivery_sink_version_identity", "012_auth_login_attempts", "013_runtime_backfills",
+    ]
+    upgraded = Store(source / "database.db", database_url=source_url)
+    for original in before["rules"]:
+        assert upgraded.get_rule_version(original["id"]) == original
+    for original in before["items"]:
+        actual = next(item for item in after["items"] if item["id"] == original["id"])
+        assert all(actual.get(key) == value for key, value in original.items())
+    for attestation in before["attestations"]:
+        verify_attestation_signature(attestation, upgraded.get_signing_key(attestation["keyId"])["publicKeyPem"])
+    sink = upgraded.list_sinks_for_collector(before["collector"]["id"])[0]
+    assert upgraded.get_sink(sink["id"], cipher=CredentialCipher(source / "keys/credential.key"))["secret"] == "release-fixture-secret"
+    assert upgraded.verify_audit_chain(before["rules"][0]["tenantId"])
+
+    target_env = environment(alpha_release, target, target_url)
+    old_process(alpha_release, target_env, ["-c", "from extrio.cli import run_restore; run_restore()", str(backup), "--offline"])
+    restored_file = tmp_path / "alpha-restored.json"
+    old_process(alpha_release, target_env, [str(FIXTURE), "inspect-alpha", str(restored_file)])
+    assert json.loads(restored_file.read_text()) == before
+    for name, digest in checksums.items():
+        assert hashlib.sha256((backup / name).read_bytes()).hexdigest() == digest
+    assert (target / "artifacts/historical.html").read_bytes() == (source / "artifacts/historical.html").read_bytes()

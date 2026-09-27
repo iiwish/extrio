@@ -8,6 +8,7 @@ from extrio.config import get_settings
 from extrio.instance_guard import restore_marker
 from extrio.runtime_health import deployment_digest, runtime_status
 from extrio.store import Store
+from extrio.store_backfills import MIGRATION_ID
 
 
 def diagnose(settings):
@@ -23,6 +24,9 @@ def diagnose(settings):
         report["pendingMigrations"] = sorted(expected - applied)
         if expected - applied:
             return {**report, "reason": "migrations_pending"}
+        with store.connect() as connection:
+            if not connection.execute("SELECT 1 FROM data_migrations WHERE id=?", (MIGRATION_ID,)).fetchone():
+                return {**report, "reason": "data_migrations_pending"}
         report.update(runtime_status(store, deployment_digest(settings), settings))
     except Exception:
         return {**report, "ready": False, "reason": "database_unavailable"}

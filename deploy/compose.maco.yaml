@@ -39,7 +39,7 @@ services:
     <<: *backend
     env_file:
       - /opt/maco-ops/secrets/extrio/test/postgres-migration.env
-    command: [python, -c, "from extrio.config import get_settings; from extrio.store import Store; s=get_settings(); Store(s.database_path).initialize(migrate=True)"]
+    command: ["extrio-migrate"]
     restart: "no"
 
   api:

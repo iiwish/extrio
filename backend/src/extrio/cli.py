@@ -354,3 +354,13 @@ def run_restore() -> None:
     except Exception as exc:
         print(f"restore failed: {exc}", file=sys.stderr)
         raise SystemExit(1) from None
+
+
+def run_migrate() -> None:
+    settings = get_settings()
+    store = Store(settings.database_path, database_url=settings.database_url)
+    with instance_lock(settings.artifact_path, exclusive=True):
+        if store.dialect.name != "sqlite" or store.path.exists():
+            _assert_stopped(store)
+        store.initialize(migrate=True)
+    print(f"migration complete: {store.describe_target()}")

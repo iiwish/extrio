@@ -141,6 +141,7 @@ def main():
         os.environ,
         EXTRIO_DATABASE_URL="",
         EXTRIO_DATABASE_PATH=str(root / "extrio.db"),
+        EXTRIO_DATABASE_AUTO_MIGRATE="true",
         EXTRIO_ARTIFACT_PATH=str(root / "artifacts"),
         EXTRIO_SIGNING_PRIVATE_KEY_PATH=str(root / "keys/signing.pem"),
         EXTRIO_CREDENTIAL_ENCRYPTION_KEY_PATH=str(root / "keys/credentials.key"),

@@ -19,10 +19,13 @@ Extrio provides a first-run administrator setup and local username/password logi
   password primitive.
 - Browser sessions use 256-bit opaque random tokens. Only SHA-256 token digests are stored in
   SQLite, so logout and server-side revocation take effect immediately.
-- The session cookie is `HttpOnly`, `SameSite=Strict`, path-scoped to `/`, and `Secure` when
-  `EXTRIO_AUTH_COOKIE_SECURE=true`.
-- Login attempts are rate-limited through `limits`. Failed authentication uses one generic
-  response and performs password verification even when the username does not exist.
+- The session cookie is `HttpOnly`, `SameSite=Strict`, path-scoped to `/`, and `Secure` by
+  default. Local HTTP evaluation must explicitly set `EXTRIO_AUTH_COOKIE_SECURE=false`.
+- Login attempts are rate-limited through a database-backed moving window shared by all API
+  workers. Forwarded client addresses are ignored unless a trusted proxy hop count is explicit.
+  Unsafe browser requests reject cross-site Fetch Metadata and untrusted `Origin` values.
+  Failed authentication uses one generic response and performs password verification even when
+  the username does not exist.
 - Setup closes atomically after the first administrator is created. Extrio exposes no public
   registration route.
 - `/healthz`, the first-run authentication endpoints, and optional demo source pages are public.

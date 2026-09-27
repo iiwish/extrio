@@ -13,8 +13,10 @@ import os
 import shutil
 import time
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from threading import Barrier
 
 import psycopg
 import pytest
@@ -98,6 +100,9 @@ def test_initialize_applies_baseline_migrations_idempotently(pg_store: Store) ->
         "008_item_entity_index",
         "009_empty_source_policy",
         "010_source_history_ownership",
+        "011_delivery_sink_version_identity",
+        "012_auth_login_attempts",
+        "013_runtime_backfills",
     ]
     assert {
         "sinks",
@@ -161,6 +166,9 @@ def test_migration_002_applies_to_v05_database_without_the_row(pg_store: Store) 
         "008_item_entity_index",
         "009_empty_source_policy",
         "010_source_history_ownership",
+        "011_delivery_sink_version_identity",
+        "012_auth_login_attempts",
+        "013_runtime_backfills",
     ]
     assert pg_store.get_platform_setting_value("allowAnonymousHttp") == "true"
 
@@ -187,6 +195,30 @@ def test_auth_usernames_match_case_insensitively(pg_store: Store) -> None:
                 "INSERT INTO auth_users(id, username, password_hash, role, display_name, created_at, updated_at)"
                 " VALUES('user_x', 'ADMIN', 'h', 'administrator', 'Dup', '2026-01-01', '2026-01-01')"
             )
+
+
+def test_login_limit_is_atomic_across_postgres_connections(pg_store: Store) -> None:
+    # Hold inserts briefly so overlapping requests expose a count/insert race.
+    with pg_store.connect() as connection:
+        connection.execute("""
+            CREATE FUNCTION slow_login_insert() RETURNS trigger LANGUAGE plpgsql AS $$
+            BEGIN PERFORM pg_sleep(0.15); RETURN NEW; END $$
+        """)
+        connection.execute("""
+            CREATE TRIGGER slow_login_insert BEFORE INSERT ON auth_login_attempts
+            FOR EACH ROW EXECUTE FUNCTION slow_login_insert()
+        """)
+    barrier = Barrier(8)
+
+    def attempt(_):
+        barrier.wait(timeout=10)
+        store = Store(pg_store.path, database_url=pg_store.database_url)
+        return store.allow_login("concurrent:user", "1/minute")
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        results = list(pool.map(attempt, range(8)))
+    assert sum(results) == 1
+    assert pg_store.allow_login("another:user", "1/minute") is True
 
 
 def test_user_crud_and_enabled_flag_roundtrip(pg_store: Store) -> None:
@@ -446,6 +478,24 @@ def test_delivery_state_machine_claims_retries_and_redelivers(pg_store: Store, t
     assert {row["id"] for row in listed} == {delivery["id"], stale["id"]}
     with pytest.raises(KeyError):
         pg_store.record_delivery_attempt("delivery_missing", status_code=200)
+
+
+def test_delivery_identity_is_stable_per_sink_version(pg_store: Store, tmp_path: Path) -> None:
+    collector = pg_store.create_collector("Demo", "Collect notices", "https://example.com/list", "example.com")
+    cipher = CredentialCipher(tmp_path / "keys" / "cipher.key")
+    sink = pg_store.create_sink(collector["id"], cipher=cipher, url="https://hooks.example.com/extrio", secret="s3cret")
+
+    first = pg_store.enqueue_delivery(collector_id=collector["id"], sink_id=sink["id"], item_event_id="obs_1")
+    duplicate = pg_store.enqueue_delivery(collector_id=collector["id"], sink_id=sink["id"], item_event_id="obs_1")
+    assert duplicate["id"] == first["id"]
+
+    updated_sink = pg_store.update_sink(sink["id"], url="https://hooks.example.com/extrio-v2")
+    second = pg_store.enqueue_delivery(collector_id=collector["id"], sink_id=sink["id"], item_event_id="obs_1")
+    repeated = pg_store.enqueue_delivery(collector_id=collector["id"], sink_id=sink["id"], item_event_id="obs_1")
+    assert second["id"] != first["id"]
+    assert second["id"] == repeated["id"]
+    assert second["id"].startswith("sha256:")
+    assert second["sinkVersionId"] == f"{sink['id']}#v{updated_sink['version']}"
 
 
 def test_metrics_count_methods_aggregate_seeded_rows_on_postgres(pg_store: Store, tmp_path: Path) -> None:

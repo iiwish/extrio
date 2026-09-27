@@ -6,9 +6,38 @@ All notable changes to Extrio are documented in this file. The project follows
 
 ## Unreleased
 
+### 1.0.0-rc.1 Candidate
+
+- Prepare matching Python and Web candidate versions; no stable release is published.
+- Verify the published `v0.7.0-alpha.1` upgrade and full-backup rollback on SQLite
+  and PostgreSQL 16, including frozen field bindings, signatures and historical Deliveries.
+- Serialize PostgreSQL login-limit checks across API connections and disable implicit
+  server proxy rewriting so trusted-hop configuration is the sole client-identity policy.
+- Refresh the Web runtime security packages for release builds rather than reusing a
+  stale upgrade layer.
+- Add isolated stdin-only real-model verification and current desktop acceptance flows,
+  with bounded DeepSeek evidence and no automatic publication of real-source candidates.
+- Localize the system's missing publication-time placeholder in source, run and data
+  views without changing original content or exported data.
+
 - Unify operational lists with a shared scroll region, totals, page size and numbered pagination.
 - Refine requirement, source, run, AI task and item details, plus creation and settings workflows.
 - Pin the repository-root pytest configuration and refresh public-alpha demonstration materials.
+- Report the resolved database target in the worker startup log instead of the SQLite
+  fallback path, which misreported PostgreSQL deployments.
+- Split the global stylesheet into ordered partials so `web/src/index.css` is a
+  documented manifest; emitted CSS is byte-for-byte unchanged.
+- Give every ItemEvent and SinkVersion one deterministic logical Delivery, including
+  a versioned uniqueness migration and schema-compatible `sha256:` delivery IDs.
+- Align the FastAPI service metadata with the frozen OpenAPI contract version and add
+  contract-drift checks.
+- Consolidate SSOT and product-contract ownership so scope, product policy, and UX rules
+  have one canonical home.
+- Add explicit v0.7 backup, migration, verification, and restore-based rollback guidance.
+- Make production defaults fail closed for automatic migration, anonymous HTTP, demo data,
+  secure cookies, and Prometheus metrics while keeping local development profiles explicit.
+- Persist login throttling in the shared database, add trusted-proxy controls, and reject
+  cross-site Fetch Metadata and untrusted mutation origins.
 
 - Add live, refresh-safe structured activity for AI rule generation and repair, with stages,
   timings, non-sensitive metrics, and a direct link from the active Collector workflow.

@@ -10,10 +10,15 @@ WEB_PORT="${EXTRIO_WEB_PORT:-5173}"
 export EXTRIO_PORT="$API_PORT"
 export EXTRIO_HOST=127.0.0.1
 export EXTRIO_DATABASE_PATH="${EXTRIO_DATABASE_PATH:-$INSTANCE_DIR/extrio.db}"
+export EXTRIO_DATABASE_AUTO_MIGRATE="${EXTRIO_DATABASE_AUTO_MIGRATE:-true}"
 export EXTRIO_ARTIFACT_PATH="${EXTRIO_ARTIFACT_PATH:-$INSTANCE_DIR/artifacts}"
 export EXTRIO_SIGNING_PRIVATE_KEY_PATH="${EXTRIO_SIGNING_PRIVATE_KEY_PATH:-$INSTANCE_DIR/keys/dev-rule-signing-key.pem}"
 export EXTRIO_CREDENTIAL_ENCRYPTION_KEY_PATH="${EXTRIO_CREDENTIAL_ENCRYPTION_KEY_PATH:-$INSTANCE_DIR/keys/dev-credential-encryption.key}"
 export EXTRIO_CORS_ORIGINS="${EXTRIO_CORS_ORIGINS:-http://127.0.0.1:$WEB_PORT,http://localhost:$WEB_PORT}"
+export EXTRIO_ALLOW_HTTP_PUBLIC="${EXTRIO_ALLOW_HTTP_PUBLIC:-true}"
+export EXTRIO_AUTH_COOKIE_SECURE="${EXTRIO_AUTH_COOKIE_SECURE:-false}"
+export EXTRIO_METRICS_ENABLED="${EXTRIO_METRICS_ENABLED:-true}"
+export EXTRIO_SEED_DEMO="${EXTRIO_SEED_DEMO:-true}"
 export EXTRIO_API_PROXY_TARGET="http://127.0.0.1:$API_PORT"
 mkdir -p "$LOG_DIR" "$PID_DIR"
 
@@ -96,7 +101,8 @@ start_process web pnpm --dir "$ROOT/web" dev --host 127.0.0.1 --port "$WEB_PORT"
 
 ready=false
 for _ in {1..60}; do
-  if curl --fail --silent "http://127.0.0.1:$API_PORT/readyz" >/dev/null; then ready=true; break; fi
+  if curl --fail --silent --max-time 2 "http://127.0.0.1:$API_PORT/readyz" >/dev/null &&
+     curl --fail --silent --max-time 2 "http://127.0.0.1:$WEB_PORT/" >/dev/null; then ready=true; break; fi
   if ! managed_process api || ! managed_process worker || ! managed_process web; then break; fi
   sleep 1
 done

@@ -61,3 +61,25 @@ def test_dev_port_preflight_allows_restarting_only_a_missing_worker():
     )
     result = subprocess.run(["/bin/bash", "-c", command], capture_output=True, text=True, timeout=15)
     assert result.returncode == 0, result.stderr
+
+
+def test_dev_launcher_waits_for_web_after_api_is_ready():
+    script = (Path(__file__).resolve().parents[2] / "scripts/dev.sh").read_text()
+    readiness = script[script.index("ready=false"):script.index('if [[ "$ready" != true ]]')]
+    command = """
+set -euo pipefail
+API_PORT=8000
+WEB_PORT=5173
+web_attempts=0
+curl() {
+  case "$*" in
+    *:5173/*) web_attempts=$((web_attempts + 1)); (( web_attempts >= 3 ));;
+    *) return 0;;
+  esac
+}
+managed_process() { return 0; }
+sleep() { :; }
+""" + readiness + '\nprintf "%s %s" "$ready" "$web_attempts"'
+    result = subprocess.run(["/bin/bash", "-c", command], capture_output=True, text=True, timeout=10)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == "true 3"

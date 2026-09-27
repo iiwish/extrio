@@ -3,7 +3,7 @@ from functools import lru_cache
 from pathlib import Path
 from urllib.parse import quote
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     database_path: Path = Path("data/extrio.db")
     database_url: str | None = None
     database_from_pg_env: bool = False
-    database_auto_migrate: bool = True
+    database_auto_migrate: bool = False
     artifact_path: Path = Path("data/artifacts")
     signing_private_key_path: Path = Path("data/keys/dev-rule-signing-key.pem")
     credential_encryption_key_path: Path = Path("data/keys/dev-credential-encryption.key")
@@ -28,17 +28,18 @@ class Settings(BaseSettings):
     # supplies the fallback default for the 'allowAnonymousHttp' platform
     # setting (migration 002); the database value managed from the Settings UI
     # wins whenever that row is present.
-    allow_http_public: bool = True
-    seed_demo: bool = True
+    allow_http_public: bool = False
+    seed_demo: bool = False
     worker_poll_seconds: float = 0.25
     worker_lease_seconds: int = 120
     schedule_poll_seconds: float = 30.0
     auth_enabled: bool = True
     auth_cookie_name: str = "extrio_session"
-    auth_cookie_secure: bool = False
+    auth_cookie_secure: bool = True
     auth_session_hours: int = 12
     auth_login_limit: str = "5/minute"
-    metrics_enabled: bool = True
+    metrics_enabled: bool = False
+    trusted_proxy_count: int = Field(0, ge=0)
     model_provider: str = "openai"
     model_base_url: str = "https://api.openai.com/v1"
     model_name: str = ""

@@ -6,25 +6,48 @@ import asyncio
 import json
 import os
 import sqlite3
+import sys
 import tempfile
 import uuid
 from pathlib import Path
 from urllib.parse import urlsplit
 
 
-def main():
+def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--configuration-db", type=Path, required=True)
-    parser.add_argument("--credential-key", type=Path, required=True)
+    credentials = parser.add_mutually_exclusive_group(required=True)
+    credentials.add_argument("--configuration-db", type=Path)
+    credentials.add_argument("--api-key-stdin", action="store_true", help="read one secret line from stdin, never a CLI argument")
+    parser.add_argument("--credential-key", type=Path)
+    parser.add_argument("--base-url")
+    parser.add_argument("--model")
+    parser.add_argument("--provider", choices=("openai", "deepseek", "custom"), default="openai")
     parser.add_argument("--source-url", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--authorize-model-call", action="store_true", required=True)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     source = urlsplit(args.source_url)
     if source.scheme not in {"http", "https"} or not source.hostname or source.username or source.password:
         parser.error("use a public HTTP(S) source without embedded credentials")
     if args.output.exists():
         parser.error("output already exists; preserve the previous attempt")
+    if args.configuration_db:
+        if not args.credential_key or args.base_url or args.model:
+            parser.error("configuration-db requires credential-key and cannot be mixed with direct model settings")
+    else:
+        endpoint = urlsplit(args.base_url or "")
+        if (not args.model or endpoint.scheme != "https" or not endpoint.hostname
+                or endpoint.username or endpoint.password or endpoint.query or endpoint.fragment or args.credential_key):
+            parser.error("stdin credentials require model and a clean HTTPS base-url without embedded credentials")
+    return args
+
+
+def read_model_configuration(args):
+    if args.api_key_stdin:
+        secret = sys.stdin.readline().strip()
+        if not secret:
+            raise ValueError("API key input is empty")
+        return {"provider": args.provider, "baseUrl": args.base_url.rstrip("/")}, {"modelId": args.model}, secret
 
     # Read configuration only, never initialize or migrate the user's database.
     with sqlite3.connect(f"{args.configuration_db.resolve().as_uri()}?mode=ro", uri=True) as connection:
@@ -40,17 +63,33 @@ def main():
 
     encrypted = saved["model-provider-credentials"]["credentials"][provider["id"]]
     secret = CredentialCipher(args.credential_key.resolve()).decrypt(encrypted)
+    return provider, selected, secret
+
+
+def isolated_environment(root):
+    return {
+        "EXTRIO_DATABASE_FROM_PG_ENV": "false",
+        "EXTRIO_DATABASE_URL": f"sqlite:///{root / 'state.db'}",
+        "EXTRIO_DATABASE_PATH": str(root / "state.db"),
+        "EXTRIO_DATABASE_AUTO_MIGRATE": "true",
+        "EXTRIO_ARTIFACT_PATH": str(root / "artifacts"),
+        "EXTRIO_SIGNING_PRIVATE_KEY_PATH": str(root / "signing.pem"),
+        "EXTRIO_CREDENTIAL_ENCRYPTION_KEY_PATH": str(root / "credentials.key"),
+        "EXTRIO_AUTH_ENABLED": "true",
+        "EXTRIO_AUTH_COOKIE_SECURE": "false",
+        "EXTRIO_ALLOW_HTTP_PUBLIC": "true",
+        "EXTRIO_ALLOW_HTTP_LOCALHOST": "false",
+        "EXTRIO_MODEL_API_KEY": "",
+        "EXTRIO_SEED_DEMO": "false",
+    }
+
+
+def main():
+    args = parse_args()
+    provider, selected, secret = read_model_configuration(args)
     with tempfile.TemporaryDirectory(prefix="extrio-real-model-") as temporary:
         root = Path(temporary)
-        os.environ.update({
-            "EXTRIO_DATABASE_URL": f"sqlite:///{root / 'state.db'}",
-            "EXTRIO_DATABASE_PATH": str(root / "state.db"),
-            "EXTRIO_ARTIFACT_PATH": str(root / "artifacts"),
-            "EXTRIO_SIGNING_PRIVATE_KEY_PATH": str(root / "signing.pem"),
-            "EXTRIO_CREDENTIAL_ENCRYPTION_KEY_PATH": str(root / "credentials.key"),
-            "EXTRIO_AUTH_ENABLED": "true",
-            "EXTRIO_SEED_DEMO": "false",
-        })
+        os.environ.update(isolated_environment(root))
         import extrio.app as app_module
         from extrio.worker import Worker
         from fastapi.testclient import TestClient
@@ -112,7 +151,10 @@ def main():
                 "scope": "One isolated real-model exploration; no automatic publication or retries",
             }
             args.output.parent.mkdir(parents=True, exist_ok=True)
-            args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n")
+            descriptor = os.open(args.output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(descriptor, "w", encoding="utf-8") as output:
+                json.dump(result, output, ensure_ascii=False, indent=2)
+                output.write("\n")
             print(json.dumps({"status": detail["status"], "model": selected["modelId"],
                               "published": result["published"], "output": str(args.output)}))
             if detail["status"] != "ready_review" or result["published"]:

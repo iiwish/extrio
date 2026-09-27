@@ -45,6 +45,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { DetailPanel } from '@/components/detail-panel'
+import { publishedTimeLabel } from '@/lib/content-presentation'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { Link, useNavigate, useOutletContext, useParams, useSearchParams } from 'react-router-dom'
@@ -1806,13 +1807,13 @@ function isSingleStageSource(sourceUrl: string) {
 
 function SampleList({ items, onSelect }: { items: HarvestItem[]; onSelect: (item: HarvestItem) => void }) {
   const { t } = useTranslation('collectorDetail')
-  return <div className="sample-list">{items.map((item) => <button type="button" key={item.id} onClick={() => onSelect(item)}><StatusBadge status={item.decision} /><span><strong>{item.title}</strong><small>{t('sample.publishedObserved', { publishedAt: item.publishedAt, observedAt: item.observedAt })}</small></span><ChevronRight /></button>)}</div>
+  return <div className="sample-list">{items.map((item) => <button type="button" key={item.id} onClick={() => onSelect(item)}><StatusBadge status={item.decision} /><span><strong>{item.title}</strong><small>{t('sample.publishedObserved', { publishedAt: publishedTimeLabel(item.publishedAt, t('common:dataValue.missing')), observedAt: item.observedAt })}</small></span><ChevronRight /></button>)}</div>
 }
 
 function PublishedView({ items, runId, onSelectItem, onOpenRun }: { items: HarvestItem[]; runId: string | null; onSelectItem: (item: HarvestItem) => void; onOpenRun: (id: string) => void }) {
   const workspaceLink = useWorkspaceLink()
   const { t } = useTranslation('collectorDetail')
-  return <div className="workbench-content">{runId ? <section className="content-section recent-results"><div className="section-heading"><div><h2>{t('published.resultsTitle')}</h2><p>{t('published.resultsDescription')}</p></div><Button variant="outline" onClick={() => onOpenRun(runId)}>{t('published.viewFullRun')} <ArrowRight /></Button></div><div className="sample-list item-results">{items.slice(0, 5).map((item) => <div className="sample-result-row" key={item.id}><button type="button" onClick={() => onSelectItem(item)}><StatusBadge status={item.decision} /><span><strong>{item.title}</strong><small>{item.changeType ? `${item.changeType === 'new' ? t('published.changeNew') : item.changeType === 'updated' ? t('published.changeUpdated') : t('published.changeUnchanged')} · ` : ''}{t('sample.publishedObserved', { publishedAt: item.publishedAt, observedAt: item.observedAt })}</small></span><span className="review-count">{t('review.viewEvidence')}</span></button><Button asChild variant="ghost" size="icon-sm" aria-label={t('published.openItemAria', { title: item.title })}><Link to={workspaceLink(`/items/${item.id}`)}><ArrowRight /></Link></Button></div>)}</div></section> : <Alert><Play /><AlertTitle>{t('published.readyTitle')}</AlertTitle><AlertDescription>{t('published.readyDescription')}</AlertDescription></Alert>}</div>
+  return <div className="workbench-content">{runId ? <section className="content-section recent-results"><div className="section-heading"><div><h2>{t('published.resultsTitle')}</h2><p>{t('published.resultsDescription')}</p></div><Button variant="outline" onClick={() => onOpenRun(runId)}>{t('published.viewFullRun')} <ArrowRight /></Button></div><div className="sample-list item-results">{items.slice(0, 5).map((item) => <div className="sample-result-row" key={item.id}><button type="button" onClick={() => onSelectItem(item)}><StatusBadge status={item.decision} /><span><strong>{item.title}</strong><small>{item.changeType ? `${item.changeType === 'new' ? t('published.changeNew') : item.changeType === 'updated' ? t('published.changeUpdated') : t('published.changeUnchanged')} · ` : ''}{t('sample.publishedObserved', { publishedAt: publishedTimeLabel(item.publishedAt, t('common:dataValue.missing')), observedAt: item.observedAt })}</small></span><span className="review-count">{t('review.viewEvidence')}</span></button><Button asChild variant="ghost" size="icon-sm" aria-label={t('published.openItemAria', { title: item.title })}><Link to={workspaceLink(`/items/${item.id}`)}><ArrowRight /></Link></Button></div>)}</div></section> : <Alert><Play /><AlertTitle>{t('published.readyTitle')}</AlertTitle><AlertDescription>{t('published.readyDescription')}</AlertDescription></Alert>}</div>
 }
 
 function PublishDialog({ candidate, decisions, pending, disabled, lockReason, onPublish }: { candidate: CandidateRule; decisions: Record<string, FieldReviewDecision>; pending: boolean; disabled: boolean; lockReason?: string | null; onPublish: () => void }) {

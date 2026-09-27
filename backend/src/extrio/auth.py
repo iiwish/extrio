@@ -3,9 +3,6 @@ import re
 import secrets
 from datetime import UTC, datetime, timedelta
 
-from limits import parse
-from limits.storage import MemoryStorage
-from limits.strategies import MovingWindowRateLimiter
 from pwdlib import PasswordHash
 
 USERNAME_PATTERN = re.compile(r"^[A-Za-z0-9_.-]{3,64}$")
@@ -20,8 +17,6 @@ ROLES = (ROLE_ADMINISTRATOR, ROLE_ENGINEER, ROLE_REVIEWER, ROLE_VIEWER)
 
 password_hash = PasswordHash.recommended()
 _dummy_password_hash = password_hash.hash(secrets.token_urlsafe(24))
-_login_storage = MemoryStorage()
-_login_limiter = MovingWindowRateLimiter(_login_storage)
 
 
 def validate_username(value: object) -> str:
@@ -73,11 +68,3 @@ def new_session(hours: int) -> tuple[str, str, str]:
 
 def session_token_hash(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
-
-
-def allow_login(key: str, limit: str) -> bool:
-    return _login_limiter.hit(parse(limit), key)
-
-
-def reset_login_limits() -> None:
-    _login_storage.reset()

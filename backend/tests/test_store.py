@@ -16,7 +16,7 @@ from extrio.store import (
     InvalidCursor,
     Store,
 )
-from extrio.store_dialect import PostgresDialect, SQLiteDialect, resolve_database
+from extrio.store_dialect import DialectConnection, PostgresDialect, SQLiteDialect, resolve_database
 
 
 def make_store(tmp_path: Path) -> Store:
@@ -74,7 +74,9 @@ def test_initialize_backfills_ai_history_and_repairs_queued_exploration_payload(
         collector_changes={"status": "exploring"},
     )
 
-    store.initialize()
+    with store.connect() as connection:
+        connection.execute("DELETE FROM data_migrations")
+    store.initialize(migrate=True)
 
     ai_run = store.list_ai_runs()[0]
     assert ai_run["operationId"] == operation["id"]
@@ -398,6 +400,9 @@ def test_initialize_records_baseline_migration_and_replays_idempotently(tmp_path
         "008_item_entity_index",
         "009_empty_source_policy",
         "010_source_history_ownership",
+        "011_delivery_sink_version_identity",
+        "012_auth_login_attempts",
+        "013_runtime_backfills",
     ]
 
 
@@ -413,6 +418,80 @@ def test_initialize_applies_baseline_to_legacy_pre_migration_database(tmp_path: 
     with store.connect() as connection:
         tables = {str(row["name"]) for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
     assert {"deliveries", "delivery_attempts", "sinks", "schema_migrations"}.issubset(tables)
+
+
+def test_delivery_identity_migration_preserves_rows_attempts_and_foreign_keys(tmp_path: Path) -> None:
+    database = tmp_path / "delivery-migration.db"
+    connection = sqlite3.connect(database, isolation_level=None)
+    connection.execute("PRAGMA foreign_keys=ON")
+    connection.executescript(
+        """
+        CREATE TABLE collectors (id TEXT PRIMARY KEY);
+        CREATE TABLE sinks (id TEXT PRIMARY KEY);
+        CREATE TABLE deliveries (
+            id TEXT PRIMARY KEY,
+            collector_id TEXT NOT NULL,
+            sink_id TEXT NOT NULL,
+            sink_version_id TEXT,
+            item_event_id TEXT NOT NULL,
+            status TEXT NOT NULL,
+            attempt_count INTEGER NOT NULL DEFAULT 0,
+            next_attempt_at TEXT,
+            lease_until TEXT,
+            last_status_code INTEGER,
+            last_error TEXT,
+            redelivery_count INTEGER NOT NULL DEFAULT 0,
+            lease_token TEXT,
+            cycle_attempts INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            UNIQUE (item_event_id, sink_id)
+        );
+        CREATE TABLE delivery_attempts (
+            id TEXT PRIMARY KEY,
+            delivery_id TEXT NOT NULL,
+            attempt_no INTEGER NOT NULL,
+            started_at TEXT,
+            finished_at TEXT,
+            status_code INTEGER,
+            error TEXT,
+            UNIQUE (delivery_id, attempt_no),
+            FOREIGN KEY (delivery_id) REFERENCES deliveries(id)
+        );
+        INSERT INTO collectors VALUES ('collector_1');
+        INSERT INTO sinks VALUES ('sink_1');
+        INSERT INTO deliveries VALUES (
+            'delivery_legacy', 'collector_1', 'sink_1', NULL, 'event_1', 'delivered',
+            1, NULL, NULL, 200, NULL, 0, NULL, 0, '2026-01-01T00:00:00Z', '2026-01-01T00:00:01Z'
+        );
+        INSERT INTO delivery_attempts VALUES (
+            'attempt_legacy', 'delivery_legacy', 1, '2026-01-01T00:00:00Z',
+            '2026-01-01T00:00:01Z', 200, NULL
+        );
+        """
+    )
+
+    migration = Path(__file__).resolve().parents[1] / "migrations/011_delivery_sink_version_identity.sqlite.sql"
+    dialect = SQLiteDialect()
+    dialect.run_script(DialectConnection(connection, dialect), migration.read_text())
+
+    delivery = connection.execute("SELECT * FROM deliveries").fetchone()
+    assert delivery[0] == "delivery_legacy"
+    assert delivery[3] == "sink_1#legacy-delivery_legacy"
+    assert connection.execute("SELECT delivery_id FROM delivery_attempts").fetchone()[0] == "delivery_legacy"
+    assert [row[2] for row in connection.execute("PRAGMA foreign_key_list(delivery_attempts)")] == ["deliveries"]
+    assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
+
+    connection.execute(
+        "INSERT INTO deliveries VALUES ('delivery_v2', 'collector_1', 'sink_1', 'sink_1#v2', 'event_1', "
+        "'pending', 0, '2026-01-01T00:00:02Z', NULL, NULL, NULL, 0, NULL, 0, '2026-01-01T00:00:02Z', '2026-01-01T00:00:02Z')"
+    )
+    with pytest.raises(sqlite3.IntegrityError):
+        connection.execute(
+            "INSERT INTO deliveries VALUES ('delivery_duplicate', 'collector_1', 'sink_1', 'sink_1#v2', 'event_1', "
+            "'pending', 0, '2026-01-01T00:00:03Z', NULL, NULL, NULL, 0, NULL, 0, '2026-01-01T00:00:03Z', '2026-01-01T00:00:03Z')"
+        )
+    connection.close()
 
 
 def test_resolve_database_selects_dialect_from_url(tmp_path: Path) -> None:
@@ -431,6 +510,23 @@ def test_resolve_database_selects_dialect_from_url(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="unsupported EXTRIO_DATABASE_URL scheme"):
         resolve_database("mysql://u:p@h/db", fallback)
+
+
+def test_describe_target_reports_dialect_without_credentials(tmp_path: Path) -> None:
+    fallback = tmp_path / "extrio.db"
+    assert Store(fallback, database_url="").describe_target() == f"sqlite:{fallback}"
+
+    hosted = Store(fallback, database_url="postgresql://extrio:s3cret@db.internal:5433/extrio?sslmode=require")
+    assert hosted.describe_target() == "postgresql:db.internal:5433/extrio"
+
+    implicit_port = Store(fallback, database_url="postgresql://u:p@h/extrio")
+    assert implicit_port.describe_target() == "postgresql:h/extrio"
+
+    for store in (hosted, implicit_port):
+        target = store.describe_target()
+        assert "@" not in target
+        assert "s3cret" not in target
+        assert str(fallback) not in target
 
 
 def test_items_cursor_pagination_walks_deterministic_order(tmp_path: Path) -> None:
@@ -609,6 +705,25 @@ def test_delivery_state_machine_claims_retries_and_redelivers(tmp_path: Path) ->
         store.record_delivery_attempt("delivery_missing", status_code=200)
     with pytest.raises(ValueError, match="actively being delivered"):
         store.redeliver_delivery(stale["id"])
+
+
+def test_delivery_identity_is_stable_per_sink_version(tmp_path: Path) -> None:
+    store = make_store(tmp_path)
+    collector = store.create_collector("Demo", "Collect notices", "https://example.com/list", "example.com")
+    cipher = CredentialCipher(tmp_path / "keys" / "cipher.key")
+    sink = store.create_sink(collector["id"], cipher=cipher, url="https://hooks.example.com/extrio", secret="s3cret")
+
+    first = store.enqueue_delivery(collector_id=collector["id"], sink_id=sink["id"], item_event_id="obs_1")
+    duplicate = store.enqueue_delivery(collector_id=collector["id"], sink_id=sink["id"], item_event_id="obs_1")
+    assert duplicate["id"] == first["id"]
+
+    updated_sink = store.update_sink(sink["id"], url="https://hooks.example.com/extrio-v2")
+    second = store.enqueue_delivery(collector_id=collector["id"], sink_id=sink["id"], item_event_id="obs_1")
+    repeated = store.enqueue_delivery(collector_id=collector["id"], sink_id=sink["id"], item_event_id="obs_1")
+    assert second["id"] != first["id"]
+    assert second["id"] == repeated["id"]
+    assert second["id"].startswith("sha256:")
+    assert second["sinkVersionId"] == f"{sink['id']}#v{updated_sink['version']}"
 
 
 def test_backup_and_restore_roundtrip_sqlite(tmp_path: Path) -> None:

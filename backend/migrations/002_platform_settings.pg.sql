@@ -7,14 +7,11 @@
 -- (key, value, updated_by, updated_at) shape here. TEXT columns on both
 -- dialects (no jsonb needed).
 --
--- Seed allowAnonymousHttp='true' matches the v0.6 default: anonymous HTTP
--- sources are allowed unless an administrator disables the flag. Deployments
--- upgrading from v0.5 keep their current behavior: the deprecated
--- EXTRIO_ALLOW_HTTP_PUBLIC env var no longer acts as a runtime override — it
--- only supplies the config fallback used while this row is absent — and the
--- seeded 'true' preserves the risk-accepting posture such deployments had
--- already opted into via the env var. ON CONFLICT DO NOTHING keeps re-runs
--- from clobbering a value an administrator has since changed in the UI.
+-- Preserve the historical permissive candidate value for upgraded instances,
+-- but the deployment configuration is now a safety ceiling: production
+-- EXTRIO_ALLOW_HTTP_PUBLIC=false keeps anonymous HTTP disabled even when this
+-- row is true. Local development explicitly enables the deployment exception.
+-- ON CONFLICT DO NOTHING keeps re-runs from clobbering an administrator's choice.
 CREATE TABLE IF NOT EXISTS platform_setting_values (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,

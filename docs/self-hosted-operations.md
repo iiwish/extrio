@@ -26,22 +26,34 @@ export EXTRIO_WEB_PORT=5173
 
 Docker 本地评估使用 `docker compose up --build --wait`；独立 PostgreSQL 评估使用 `docker compose -f compose.postgres.yaml up --build --wait`。两种配置是替代关系，不是覆盖叠加。API 默认仅绑定回环，Web 通过代理访问 API。共享持久卷包含数据库（SQLite）、Artifact 和 key；PostgreSQL 数据使用独立卷。普通停止使用 `down`，禁止把 `down -v` 当作停止或升级命令。
 
-这份独立 PostgreSQL Compose 不适用于 maco；maco 必须执行其专用运维约束并使用已注册的共享 PostgreSQL、项目数据库和专用账号。生产部署需要 TLS、`EXTRIO_AUTH_COOKIE_SECURE=true`、非默认数据库口令、受控反向代理与受限 `/metrics` 访问。首次安装下载 Chromium 和系统依赖可能耗时，不能跳过浏览器依赖后宣称安装成功。
+这份独立 PostgreSQL Compose 不适用于 maco；maco 必须执行其专用运维约束并使用已注册的共享 PostgreSQL、项目数据库和专用账号。生产部署需要 TLS、`EXTRIO_AUTH_COOKIE_SECURE=true`、非默认数据库口令和受控反向代理；`/metrics` 默认关闭，显式启用后必须限制在可信监控网络。首次安装下载 Chromium 和系统依赖可能耗时，不能跳过浏览器依赖后宣称安装成功。
 
 ## Readiness 与升级
 
 API 与 Worker 可以同时启动。数据库初始化使用独立串行门：SQLite 在首次连接/WAL 设置前取得同机文件锁，PostgreSQL 取得当前数据库的会话级 advisory lock，均覆盖迁移与补齐。锁随连接/文件描述符释放；不要删除正在使用的 `.migration.lock` 文件。
+
+普通启动只核对 Schema 版本和 `data_migrations` 完成标记，不遍历历史 Run、Operation 或 Item。`extrio-migrate` 在离线独占锁下执行迁移；历史兼容字段、AI 记录和归属信息按最多 200 行一批补齐，全部完成后写入版本标记。中断后可重新执行同一命令；未完成回填时运行服务拒绝启动，`extrio-doctor` 返回 `data_migrations_pending`。SQLite 的外键检查在提交前完成，校验失败会回滚当前迁移的数据、DDL 和版本记录。
 
 - `/healthz` 只证明 API 存活，不证明可以采集。
 - `/readyz` 返回公开的 `ready` 布尔值；需要同库新鲜 Worker、所有新鲜 Worker 的代码/合同/共享配置摘要一致，以及已使用的密钥可用且可信。
 - 登录后的 `/api/v1/runtime` 和设置的系统页展示原因、最多 50 个 Worker 标识、最后心跳、部署一致性、排队/执行数量和最老到期等待；不返回主机路径或 key 内容。心跳间隔 5 秒，20 秒失联阈值。
 - `uv run --project backend extrio-doctor` 额外检查迁移、Artifact 目录权限、磁盘可用空间、未完成恢复标记及 PG 备份工具。只读、不初始化缺失数据库、不生成密钥；非就绪退出 1。
 
-升级顺序：暂停计划并记录当前规则/任务状态，停止 API、Worker 和 MCP，完成全量备份；在隔离空实例演练恢复与升级；用同一版本启动 API 和 Worker，等待 readiness，再核对登录、历史字段/规则版本、Item 谱系、未终态 Operation 和 Delivery。启动执行带 ID 的数据库迁移。运行中的进程不会通过下一次心跳偷偷采用磁盘上新代码，因此修改代码/合同后应统一重启。不要只重启 API 并掩盖不匹配的旧 Worker。
+升级顺序：暂停计划并记录当前规则/任务状态，停止 API、Worker 和 MCP，完成全量备份；在隔离空实例演练恢复与升级；使用 `uv run --project backend extrio-migrate` 或部署清单中的独立迁移任务执行带 ID 的数据库迁移；再用同一版本启动 API 和 Worker，等待 readiness，并核对登录、历史字段/规则版本、Item 谱系、未终态 Operation 和 Delivery。运行中的进程不会通过下一次心跳偷偷采用磁盘上新代码，因此修改代码/合同后应统一重启。不要只重启 API 并掩盖不匹配的旧 Worker。
 
-迁移不提供原地向下撤销。回退采用相匹配的旧制品和升级前完整备份，恢复到空目标；不能把旧程序指向已升级业务库试运行。G4 单独记录发布候选、真实升级矩阵和回滚结论。
+迁移不提供原地向下撤销。回退采用相匹配的旧制品和升级前完整备份，恢复到空目标；不能把旧程序指向已升级业务库试运行。具体版本步骤见 [`releases/v0.7-upgrade.md`](releases/v0.7-upgrade.md)。
+
+定时调度将到期记录持久化为 `claimed`，派发时在同一事务中创建 Run、Operation、Job 并记录 `dispatched`。未提交的派发在重启后重试；并发派发者通过数据库锁和终态记录去重。已暂停、已修改版本或被业务规则阻断的计划记录为 `skipped`，不会因恢复而重新启用。升级前遗留的 `claimed` 记录缺少原子派发保证，需结合既有 Run 核对，不能由空 `run_id` 推断旧版本从未执行。
 
 升级来源版本的备份能力必须先确认。仅支持数据库备份的版本（如 `86ebcc4`）需在全部进程停止后，使用该版本 CLI 备份数据库，并单独归档 Artifact、签名私钥、完整凭据密钥和必要配置；为整个集合生成并验证校验和，保留匹配的代码/镜像摘要。只保存数据库快照不满足回退条件。恢复时仅向空目标还原该集合，并用匹配来源版本验证登录、凭据、签名和历史结果；不得启动候选版本来生成“升级前”备份。
+
+## 发布制品门禁
+
+发布只接受存在于 `main` 历史中的版本标签。`scripts/verify-release.py` 核验标签对应的实际提交，要求该提交最新的 CI 和 Container verification 工作流全部成功，且 `repository-security`、`backend`、`web`、`compose-e2e` 均实际通过；缺失、跳过、运行中或失败状态都会阻止发布。手动发布的镜像 `sha-*` 标签使用目标提交，不使用发起工作流的分支 SHA。
+
+镜像先以独立的 `candidate-*` 标签构建，两个架构的扫描、签名和 provenance 均通过后，再将已验证的摘要提升为版本标签和 `sha-*` 标签。候选标签不代表正式发布；失败的候选不提升。提升前再次核验标签提交和 CI。镜像仓库不提供前后端两个标签的联合事务，部署应使用同一成功发布的摘要组合，不自动追随候选标签。
+
+缺少目标提交的容器检查时，可在该版本标签上手动运行 CI 和 Container verification，等待完成后重新发起 Release containers。此流程不绕过失败检查。签名、SBOM 和摘要供消费者验证，不构成生产 SLA 证明。
 
 ## 故障处理
 

@@ -158,10 +158,10 @@ uv run --project backend extrio-mcp --transport http --host 127.0.0.1 --port 881
 ## 安全自托管
 
 - 不将 API 和 Worker 直接暴露到公网；控制台流量经内置 Web 代理和受控 TLS 反向代理访问。
-- HTTPS 部署设置 `EXTRIO_AUTH_COOKIE_SECURE=true`；本地 HTTP 评估默认使用 `false`。
+- 生产安全默认值启用 Secure Cookie，并关闭匿名 HTTP、演示数据、自动迁移和指标；本地 HTTP Compose 明确启用所需开发例外。
 - 保护凭据、签名密钥、持久卷和出站网络访问；生产环境不得复用开发密钥。
 - 数据库、证据文件和密钥一起备份，升级前验证恢复流程。
-- 将 `/metrics` 限制为可信监控访问：该端点按设计不要求认证。`/healthz` 只证明 API 存活，`/readyz` 还检查 Worker、部署及密钥一致性。
+- `/metrics` 默认关闭。若明确启用，应限制在可信监控网络或认证代理之后，因为该端点仍不要求认证。`/healthz` 只证明 API 存活，`/readyz` 还检查 Worker、部署及密钥一致性。
 
 处理敏感数据或将实例开放到本机之外前，请阅读[安全政策](SECURITY.md)和[运维指南](docs/self-hosted-operations.md)。
 

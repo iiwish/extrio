@@ -28,7 +28,6 @@ from extrio.auth import (
     ROLE_ADMINISTRATOR,
     ROLE_ENGINEER,
     ROLE_REVIEWER,
-    allow_login,
     hash_password,
     new_session,
     session_token_hash,
@@ -68,21 +67,21 @@ from extrio.integrity import (
 from extrio.local_evidence import evidence_status
 from extrio.metrics import METRICS_CONTENT_TYPE, render_metrics
 from extrio.runtime_health import deployment_digest, runtime_status
-from extrio.security import SourceUrlError, normalize_source_url
+from extrio.security import SourceUrlError, normalize_source_url, trusted_client_identity
 from extrio.store import (
-    DEFAULT_COLLECTION_ID,
-    DEFAULT_COLLECTION_NAME,
     EXPORT_ITEMS_CAP,
     AuthSetupComplete,
     IdempotencyConflict,
     InvalidCursor,
     Store,
     UsernameTaken,
+    payload_hash,
     stable_id,
 )
+from extrio.store_dialect import DialectConnection
 
 settings = get_settings()
-store = Store(settings.database_path)
+store = Store(settings.database_path, database_url=settings.database_url or "")
 contracts = ContractBundle(settings.contracts_path)
 rule_signer = LocalEd25519Signer(settings.signing_private_key_path, settings.signing_key_id)
 credential_cipher = CredentialCipher(settings.credential_encryption_key_path)
@@ -92,101 +91,61 @@ ALLOWED_MODEL_PROVIDERS = {"openai", "deepseek", "qwen", "custom"}
 MODEL_PROVIDER_NAMES = {"openai": "OpenAI", "deepseek": "DeepSeek", "qwen": "阿里云百炼", "custom": "OpenAI 兼容服务"}
 mutation_lock = threading.RLock()
 logger = logging.getLogger(__name__)
-RUNTIME_METRIC_DEFAULTS = {
-    "listPagesFetched": 0,
-    "detailUrlsDiscovered": 0,
-    "detailPagesFetched": 0,
-    "recordsOutsideWindow": 0,
-    "duplicateDetailUrls": 0,
-    "newItems": 0,
-    "updatedItems": 0,
-    "unchangedItems": 0,
-    "warningCount": 0,
-}
-
-
-def backfill_v02_response_contract() -> None:
-    for collector in store.list_collectors():
-        changed = False
-        if "collectionId" not in collector:
-            collector["collectionId"] = DEFAULT_COLLECTION_ID
-            changed = True
-        if "collectionName" not in collector:
-            collector["collectionName"] = DEFAULT_COLLECTION_NAME
-            changed = True
-        if changed:
-            store.save_collector(collector)
-
-    for operation in store.list_operations():
-        metrics = {**RUNTIME_METRIC_DEFAULTS, **operation.get("metrics", {})}
-        if metrics != operation.get("metrics"):
-            store.update_operation(operation["id"], metrics=metrics)
-
-    for run in store.list_runs():
-        changed = False
-        defaults = {
-            "recordsOutsideWindow": 0,
-            "duplicateDetailUrls": 0,
-            "newItems": 0,
-            "updatedItems": 0,
-            "unchangedItems": 0,
-            "policyContextStatus": "fixed" if run.get("policyVersion") else "legacy_unavailable",
-            "policyVersion": None,
-            "policyDigest": None,
-            "executionMode": None,
-            "windowStart": None,
-            "checkpointBefore": None,
-            "checkpointAfter": None,
-        }
-        for key, value in defaults.items():
-            if key not in run:
-                run[key] = value
-                changed = True
-        for item in run.get("items", []):
-            if "changeType" not in item:
-                item["changeType"] = None
-                changed = True
-        if changed:
-            store.save_run(run)
-
-    items_by_run: dict[str, list[dict[str, Any]]] = {}
-    changed_item_runs: set[str] = set()
-    for item in store.list_items():
-        run_id = item["lineage"]["runId"]
-        if "changeType" not in item:
-            item["changeType"] = None
-            changed_item_runs.add(run_id)
-        items_by_run.setdefault(run_id, []).append(item)
-    for run_id, items in items_by_run.items():
-        if run_id in changed_item_runs:
-            store.save_items(run_id, items)
 
 
 async def schedule_dispatch_loop() -> None:
     while True:
         try:
             with mutation_lock:
-                occurrences = store.claim_due_schedules()
-            for occurrence in occurrences:
+                store.claim_due_schedules()
+            for occurrence in store.pending_schedule_occurrences():
                 try:
-                    with mutation_lock:
-                        operation = create_run_operation(occurrence["collectorId"])
-                    store.finish_schedule_occurrence(
-                        occurrence["occurrenceKey"],
-                        status="dispatched",
-                        run_id=operation["resourceId"],
-                        reason=None,
-                    )
-                except (RunStartError, LifecycleError) as exc:
-                    store.finish_schedule_occurrence(
-                        occurrence["occurrenceKey"],
-                        status="skipped",
-                        run_id=None,
-                        reason=exc.code,
-                    )
+                    dispatch_schedule_occurrence(occurrence)
+                except Exception:
+                    logger.exception("Schedule occurrence dispatch failed: %s", occurrence["occurrenceKey"])
         except Exception:  # noqa: BLE001
             logger.exception("Schedule dispatch failed")
         await asyncio.sleep(settings.schedule_poll_seconds)
+
+
+def dispatch_schedule_occurrence(occurrence: dict[str, Any]) -> None:
+    from extrio.collection_workflows import lock_collector
+
+    with store.transaction() as connection:
+        blocker = None
+        try:
+            lock_collector(store, connection, occurrence["collectorId"])
+        except LifecycleError as exc:
+            blocker = exc
+        row = connection.execute(
+            "SELECT status FROM schedule_occurrences WHERE occurrence_key=?"
+            + (" FOR UPDATE" if store.dialect.name == "postgresql" else ""),
+            (occurrence["occurrenceKey"],),
+        ).fetchone()
+        if not row or row["status"] != "claimed":
+            return
+        try:
+            if blocker:
+                raise blocker
+            schedule = store._decode(connection.execute(
+                "SELECT data FROM collector_schedules WHERE id=? AND collector_id=?",
+                (occurrence["scheduleId"], occurrence["collectorId"]),
+            ).fetchone())
+            if not schedule or not schedule["enabled"]:
+                raise RunStartError("SCHEDULE_DISABLED", "Schedule is disabled")
+            seed = f"{schedule['id']}\n{schedule['revision']}\n{occurrence['scheduledAt']}"
+            if occurrence["occurrenceKey"] != f"occurrence_{payload_hash(seed)[:32]}":
+                raise RunStartError("SCHEDULE_CHANGED", "Schedule revision changed")
+            operation = create_run_operation(occurrence["collectorId"], connection)
+        except (RunStartError, LifecycleError) as exc:
+            store.finish_schedule_occurrence(
+                occurrence["occurrenceKey"], status="skipped", run_id=None, reason=exc.code, connection=connection,
+            )
+        else:
+            # The job and its receipt commit together; an interrupted dispatch remains pending.
+            store.finish_schedule_occurrence(
+                occurrence["occurrenceKey"], status="dispatched", run_id=operation["resourceId"], reason=None, connection=connection,
+            )
 
 
 def persist_published_rule(
@@ -242,11 +201,11 @@ def persist_published_rule(
     )
 
 
-def verified_run_integrity(collector: dict[str, Any]) -> dict[str, Any]:
+def verified_run_integrity(collector: dict[str, Any], connection: DialectConnection | None = None) -> dict[str, Any]:
     rule_version_id = collector.get("activeRuleVersion")
-    rule_version = store.get_rule_version(rule_version_id) if rule_version_id else None
-    attestation = store.latest_rule_attestation(rule_version_id) if rule_version_id else None
-    signing_key = store.get_signing_key(attestation["keyId"]) if attestation else None
+    rule_version = store.get_rule_version(rule_version_id, connection) if rule_version_id else None
+    attestation = store.latest_rule_attestation(rule_version_id, connection) if rule_version_id else None
+    signing_key = store.get_signing_key(attestation["keyId"], connection) if attestation else None
     if not rule_version or not attestation or not signing_key:
         raise IntegrityError("published rule does not have a complete integrity bundle")
     verified = verify_rule_attestation(
@@ -581,10 +540,8 @@ async def active_lifespan(_app: FastAPI):
                 f"http://{settings.host}:{settings.port}/demo/tenders",
                 settings.host,
             )
-    for collector in store.list_collectors():
-        collector = store.ensure_collection_policy(collector["id"])
-        collector = store.ensure_schedule(collector["id"])
-        if settings.seed_demo:
+    if settings.seed_demo:
+        for collector in store.list_collectors():
             if (
                 collector.get("status") == "published"
                 and collector.get("activeRuleVersion")
@@ -599,7 +556,6 @@ async def active_lifespan(_app: FastAPI):
                     actor_id="system_startup",
                     action="rule.integrity_bootstrapped",
                 )
-    backfill_v02_response_contract()
     schedule_task = asyncio.create_task(schedule_dispatch_loop())
     try:
         yield
@@ -616,7 +572,11 @@ async def lifespan(_app: FastAPI):
             yield
 
 
-app = FastAPI(title="Extrio Control Plane API", version="1.14.0", lifespan=lifespan)
+app = FastAPI(
+    title="Extrio Control Plane API",
+    version=str(contracts.openapi["info"]["version"]),
+    lifespan=lifespan,
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
@@ -667,6 +627,9 @@ async def request_id_middleware(request: Request, call_next):
             return platform_error(request, "AUTH_REQUIRED", "请先登录", 401)
 
         if request.method in {"POST", "PUT", "PATCH", "DELETE"}:
+            fetch_site = request.headers.get("Sec-Fetch-Site")
+            if fetch_site not in {None, "same-origin", "none"}:
+                return platform_error(request, "FORBIDDEN", "请求来源不受信任", 403)
             origin = request.headers.get("Origin")
             if origin and origin not in settings.cors_origin_list:
                 return platform_error(request, "FORBIDDEN", "请求来源不受信任", 403)
@@ -764,7 +727,7 @@ def runtime_diagnostics():
 
 @app.get("/metrics", include_in_schema=False)
 def metrics() -> Response:
-    """Prometheus scrape endpoint; public by design, computed at scrape time."""
+    """Prometheus scrape endpoint; public only when explicitly enabled."""
 
     if not settings.metrics_enabled:
         return Response(status_code=404)
@@ -842,8 +805,12 @@ async def login(request: Request):
     if body_error:
         return body_error
     username = str(body.get("username", "")).strip()
-    client_host = request.client.host if request.client else "unknown"
-    if not allow_login(f"{client_host}:{username.casefold()}", settings.auth_login_limit):
+    client_host = trusted_client_identity(
+        request.client.host if request.client else "unknown",
+        request.headers.get("X-Forwarded-For", ""),
+        settings.trusted_proxy_count,
+    )
+    if not store.allow_login(f"{client_host}:{username.casefold()}", settings.auth_login_limit):
         response = platform_error(request, "RATE_LIMITED", "登录尝试过于频繁，请稍后再试", 429, retryable=True)
         response.headers["Retry-After"] = "60"
         return response
@@ -2338,8 +2305,8 @@ class RunStartError(Exception):
         self.status_code = status_code
 
 
-def create_run_operation(collector_id: str) -> dict[str, Any]:
-    collector = store.get_collector(collector_id)
+def create_run_operation(collector_id: str, connection: DialectConnection | None = None) -> dict[str, Any]:
+    collector = store.get_collector(collector_id, connection)
     if not collector:
         raise RunStartError("COLLECTOR_NOT_FOUND", "Collector 不存在", 404)
     if collector.get("lifecycle", "active") == "archived":
@@ -2349,14 +2316,14 @@ def create_run_operation(collector_id: str) -> dict[str, Any]:
     if collector["status"] != "published" or not collector["activeRuleVersion"]:
         raise RunStartError("RULE_NOT_PUBLISHED", "Collector 没有可执行的已发布规则")
     try:
-        integrity = verified_run_integrity(collector)
+        integrity = verified_run_integrity(collector, connection)
     except IntegrityError as exc:
         raise RunStartError(exc.code, str(exc)) from exc
-    if store.has_active_run(collector_id):
+    if store.has_active_run(collector_id, connection):
         raise RunStartError("RUN_ALREADY_ACTIVE", "Collector 已有进行中的 Run")
-    collector = store.ensure_collection_policy(collector_id)
+    collector = store.ensure_collection_policy(collector_id, connection)
     policy = collector["collectionPolicy"]
-    checkpoint = store.get_checkpoint(collector_id)
+    checkpoint = store.get_checkpoint(collector_id, connection)
     if checkpoint and checkpoint.get("policyVersionId") == policy["id"]:
         execution_mode = "incremental"
         checkpoint_before = copy.deepcopy(checkpoint)
@@ -2421,6 +2388,7 @@ def create_run_operation(collector_id: str) -> dict[str, Any]:
             "checkpointBefore": checkpoint_before,
         },
         run=run,
+        connection=connection,
     )
     return operation
 
@@ -2877,7 +2845,8 @@ app.openapi = custom_openapi
 
 
 def run() -> None:
-    uvicorn.run("extrio.app:app", host=settings.host, port=settings.port, reload=False)
+    # Resolve forwarding once, using the application's explicit trusted hop count.
+    uvicorn.run("extrio.app:app", host=settings.host, port=settings.port, reload=False, proxy_headers=False)
 
 
 if __name__ == "__main__":

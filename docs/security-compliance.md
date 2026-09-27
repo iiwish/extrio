@@ -10,11 +10,11 @@
 
 | 字段 | 内容 |
 | --- | --- |
-| 文档版本 | `v0.7.0` |
-| 对应产品版本 | `v0.2` |
-| 状态 | `Ready_For_User_Review` |
+| 文档版本 | `v0.7.1` |
+| 对应产品版本 | `v0.7 public alpha` |
+| 状态 | `Confirmed` |
 | 权威来源 | [`SSOT.md`](./SSOT.md) 中的 `INV-004`、`INV-005`、`INV-007`、`INV-008` |
-| 最后更新 | `2026-09-02` |
+| 最后更新 | `2026-09-22` |
 | 审批责任 | 技术负责人、安全负责人或承担安全职责的指定人员 |
 
 ## 2. 安全目标
@@ -46,6 +46,8 @@ Extrio 必须保护：
 ## 4. 身份与授权
 
 公开 Alpha 的认证和会话以 [`architecture/ADR-005-local-authentication.md`](./architecture/ADR-005-local-authentication.md) 为准，使用单实例管理员、Argon2 密码哈希和服务端可撤销会话。多用户 OIDC、API token、独立服务身份与 Tenant 授权的生产目标以 [`architecture/ADR-004-identity-access.md`](./architecture/ADR-004-identity-access.md) 为准。
+
+生产安全默认值关闭自动迁移、匿名 HTTP、演示数据和 Prometheus 指标；本地评估必须显式启用所需例外。匿名 HTTP 的界面设置受部署配置上限约束，部署配置未允许时不得通过界面放宽。登录限流状态持久化在应用数据库中，由所有 API Worker 共享；反向代理来源仅在 `EXTRIO_TRUSTED_PROXY_COUNT` 明确声明可信跳数后参与登录限流身份。浏览器写请求拒绝跨站 Fetch Metadata 和不受信 `Origin`，会话 Cookie 使用 `HttpOnly`、`SameSite=Strict`，生产默认 `Secure`。
 
 ### 4.1 租户角色
 

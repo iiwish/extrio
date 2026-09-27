@@ -44,7 +44,7 @@ settings = get_settings()
 assert 'installed/extrio/contracts_data' in str(settings.contracts_path)
 ContractBundle(settings.contracts_path)
 store = Store(settings.database_path, database_url='')
-store.initialize()
+store.initialize(migrate=True)
 assert store.list_collectors() == []
 """,
         ],

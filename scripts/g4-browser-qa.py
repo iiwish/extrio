@@ -6,6 +6,7 @@ import csv
 import json
 import uuid
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from playwright.sync_api import expect, sync_playwright
 
@@ -35,7 +36,7 @@ def main():
         page.get_by_role("link", name="新建需求", exact=True).click()
         page.get_by_label("需求名称", exact=True).fill("G4 browser acceptance")
         page.get_by_label("采集目标", exact=True).fill("Collect the title of the fictional local public notice.")
-        page.get_by_role("button", name="保存需求", exact=True).click()
+        page.get_by_role("dialog").get_by_role("button", name="创建需求", exact=True).click()
         expect(page.get_by_role("heading", name="G4 browser acceptance", exact=True)).to_be_visible()
         page.get_by_role("button", name="添加字段", exact=True).click()
         dialog = page.get_by_role("dialog")
@@ -50,15 +51,25 @@ def main():
         expect(page.get_by_role("dialog")).not_to_be_visible()
         journey = {"collectionUrl": page.url}
         page.reload()
-        expect(page.get_by_text("v1 (当前生效)", exact=True).first).to_be_visible()
+        expect(page.locator(".requirement-overview-facts").get_by_text("v1", exact=True)).to_be_visible()
+        collection_id = urlsplit(journey["collectionUrl"]).path.rsplit("/", 1)[-1]
+        requirement = page.request.get(args.web + "/api/v1/collections/" + collection_id).json()
+        assert requirement["activeVersion"]["versionNumber"] == 1
         expect(page.get_by_text("已发布字段", exact=True)).to_be_visible()
         expect(page.get_by_text("草稿尚未应用，已有来源按原规则采集。", exact=True)).not_to_be_visible()
-        page.get_by_role("link", name="添加来源", exact=True).click()
+        page.get_by_role("button", name="添加来源", exact=True).click()
         state = json.loads((root / "state.json").read_text())
         page.get_by_label("手动添加，每行一个具体列表页", exact=True).fill(state["sourceUrl"] + "?case=" + uuid.uuid4().hex[:8])
-        page.get_by_role("button", name="创建 1 个采集来源", exact=True).click()
+        with page.expect_response(lambda response: response.request.method == "POST" and response.url.endswith("/collectors/batch")) as imported:
+            page.get_by_role("dialog").get_by_role("button", name="添加来源", exact=True).click()
+        result = imported.value.json()
+        assert result["createdCount"] == 1 and result["rejectedCount"] == 0
+        collector_id = result["results"][0]["collector"]["id"]
+        expect(page.get_by_role("dialog")).not_to_be_visible()
+        page.locator(f'a[href^="/collectors/{collector_id}"]').click()
         page.get_by_role("button", name="生成候选规则", exact=True).click()
         page.get_by_role("dialog").get_by_role("button", name="开始生成", exact=True).click()
+        page.get_by_role("dialog").get_by_role("button", name="收起", exact=True).click()
         publish = page.get_by_role("button", name="审核并发布", exact=True)
         expect(publish).to_be_enabled(timeout=90000)
         journey["collectorUrl"] = page.url
@@ -73,25 +84,30 @@ def main():
         page.get_by_role("dialog").get_by_role("button", name="确认发布", exact=True).click()
         if state.get("hookUrl"):
             page.get_by_role("tab", name="采集配置", exact=True).click()
+            page.locator(".source-output-details > summary").click()
             page.get_by_role("button", name="添加 Webhook", exact=True).click()
             dialog = page.get_by_role("dialog")
             dialog.get_by_label("Webhook 地址", exact=True).fill(state["hookUrl"])
             dialog.get_by_label("签名密钥", exact=True).fill("g4-fixture-webhook")
             dialog.get_by_role("button", name="保存", exact=True).click()
             expect(dialog).not_to_be_visible()
-            page.get_by_role("tab", name="概览", exact=True).click()
+            page.get_by_role("tab", name="运行与结果", exact=True).click()
+        receiver = root / "receiver.jsonl"
+        previous_deliveries = len(receiver.read_text().splitlines()) if receiver.exists() else 0
         with page.expect_response(lambda response: response.request.method == "POST" and response.url.endswith("/runs")) as started:
             page.get_by_role("button", name="立即运行", exact=True).click()
         assert started.value.status == 202
         run_id = started.value.json()["resourceId"]
+        page.get_by_role("dialog").get_by_role("button", name="收起", exact=True).click()
         expect(page.get_by_role("button", name="查看完整 Run", exact=True)).to_be_visible(timeout=60000)
         if state.get("hookUrl"):
             page.get_by_role("tab", name="采集配置", exact=True).click()
+            page.locator(".source-output-details > summary").click()
             expect(page.get_by_text("已送达", exact=True)).to_be_visible(timeout=60000)
-            received = [json.loads(line) for line in (root / "receiver.jsonl").read_text().splitlines()]
+            received = [json.loads(line) for line in receiver.read_text().splitlines()[previous_deliveries:]]
             assert received and all(record["valid"] for record in received)
             journey["signedDeliveries"] = len(received)
-            page.get_by_role("tab", name="概览", exact=True).click()
+            page.get_by_role("tab", name="运行与结果", exact=True).click()
         page.get_by_role("button", name="查看完整 Run", exact=True).click()
         expect(page.get_by_text("1 条数据已完成质量终结", exact=True)).to_be_visible(timeout=60000)
         journey["runUrl"] = page.url
@@ -101,6 +117,10 @@ def main():
         assert run["items"][0]["lineage"]["collectionVersion"].startswith("colver_")
         journey["runId"] = run_id
         journey["collectionVersion"] = run["items"][0]["lineage"]["collectionVersion"]
+        journey["itemUrl"] = args.web + "/items/" + run["items"][0]["id"]
+        ai_runs = page.request.get(args.web + "/api/v1/ai-runs?collectorId=" + collector_id).json()["items"]
+        assert len(ai_runs) == 1 and ai_runs[0]["status"] == "succeeded"
+        journey["aiRunUrl"] = args.web + "/ai-runs/" + ai_runs[0]["id"]
         page.get_by_role("link", name="数据", exact=True).click()
         expect(page.get_by_role("heading", name="数据", exact=True)).to_be_visible()
         for format in ("CSV", "JSONL"):
@@ -114,7 +134,6 @@ def main():
             assert any("G4 public fixture notice" in row.values() for row in csv.DictReader(handle))
 
         # Read failures remain errors, and retry returns to the same persisted requirement.
-        collection_id = journey["collectionUrl"].split("/")[-1]
         route = "**/api/v1/collections/" + collection_id
         page.route(
             route,
@@ -139,15 +158,29 @@ def main():
             for width, height in ((1440, 900), (1280, 800), (1132, 1028), (1024, 800)):
                 page.set_viewport_size({"width": width, "height": height})
                 for surface, url in {
+                    "home": args.web,
+                    "collections": args.web + "/collections",
+                    "new-collection": args.web + "/collections/new",
                     "collection": journey["collectionUrl"],
+                    "collection-sources": journey["collectionUrl"] + "?section=sources",
+                    "collectors": args.web + "/collectors",
+                    "new-collector": args.web + "/collectors/new",
                     "collector": journey["collectorUrl"],
+                    "collector-results": journey["collectorUrl"] + "&section=overview",
+                    "collector-rule": journey["collectorUrl"] + "&section=rule",
+                    "runs": args.web + "/runs",
                     "run": journey["runUrl"],
+                    "ai-run": journey["aiRunUrl"],
                     "items": args.web + "/items",
+                    "item": journey["itemUrl"],
                     "settings": args.web + "/settings",
+                    "models": args.web + "/settings?tab=models",
                 }.items():
                     page.goto(url)
                     expect(page.locator("main")).to_be_visible()
                     page.wait_for_load_state("networkidle")
+                    if language == "en" and surface in {"collector-results", "run", "items", "item"}:
+                        expect(page.locator("main")).not_to_contain_text("字段缺失")
                     size = page.evaluate(
                         "({width: innerWidth, scroll: document.documentElement.scrollWidth, lang: document.documentElement.lang})"
                     )

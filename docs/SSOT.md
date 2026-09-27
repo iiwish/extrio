@@ -2,6 +2,8 @@
 
 ## 1.0 交付范围
 
+当前候选为 `v1.0.0-rc.1`，状态为 `Needs_Review`，不是已发布稳定版。[本地收尾证据](reviews/v1.0-closeout-2026-09-26/verification.md)与[发布交接](releases/v1.0-rc.1.md)分别记录工程验证和剩余门槛。正式发布要求精确提交的远程 CI、双架构制品扫描与签名，以及产品和技术签收；本地通过不替代这些门槛。
+
 1.0 的交付范围为单组织自托管稳定版，面向一个组织内的数据运营团队，保留本地账号角色、SQLite 评估和 PostgreSQL 部署路径。多租户、SSO/MFA、分布式高可用和移动端不属于本次交付范围。全站页面的内容组织、桌面布局、操作流程和状态反馈属于 1.0 的体验验收范围，不以功能测试通过或单纯调整样式代替。具体页面方案需以真实界面走查和用户复核为依据，沿用唯一正式前端。
 
 1.0 的功能、AC/NFR、部署依赖和退出条件以[单组织自托管验收范围](planning/v1.0-scope-matrix.md)为版本适用合同。功能实现、工程验证、页面设计签收和生产目标达成分别记录，不将范围确认视为已实现或已验收。
@@ -123,10 +125,10 @@ Extrio 只有一套正式前端：`web/index.html` → `src/main.tsx` → `app/r
 | 字段 | 内容 |
 | --- | --- |
 | 文档名称 | Extrio 单一事实来源（SSOT） |
-| 文档版本 | `v0.44.0` |
-| 对应产品版本 | `v0.6` |
+| 文档版本 | `v0.46.0` |
+| 对应产品版本 | `v1.0.0-rc.1`（未发布） |
 | 状态 | `Confirmed` |
-| 最后更新 | `2026-09-06` |
+| 最后更新 | `2026-09-22` |
 | 维护责任 | 产品负责人 |
 | 审批责任 | 产品负责人、技术负责人 |
 | 文档职责 | 定义 Extrio 的权威事实体系、产品边界、不可违反原则与文档优先级 |
@@ -143,9 +145,9 @@ Extrio 只有一套正式前端：`web/index.html` → `src/main.tsx` → `app/r
 
 | 事实领域 | 权威文档 | 版本 | 状态 | 负责内容 |
 | --- | --- | --- | --- | --- |
-| 权威入口与产品原则 | [`SSOT.md`](./SSOT.md) | `v0.44.0` | `Confirmed` | 产品定位、范围、不变量、版本与治理 |
-| 产品需求 | [`product-contract.md`](./product-contract.md) | `v0.44.0` | `Confirmed` | 用户、旅程、功能需求、非功能需求、成功指标 |
-| 领域语义 | [`domain-model.md`](./domain-model.md) | `v0.8.0` | `Confirmed` | 聚合、关系、状态机、唯一约束、AI 任务、CollectionPolicyVersion 与 Checkpoint 语义 |
+| 权威入口与产品原则 | [`SSOT.md`](./SSOT.md) | `v0.46.0` | `Confirmed` | 产品定位、范围、不变量、版本与治理 |
+| 产品需求 | [`product-contract.md`](./product-contract.md) | `v0.46.0` | `Confirmed` | 用户、旅程、功能需求、非功能需求、成功指标 |
+| 领域语义 | [`domain-model.md`](./domain-model.md) | `v0.8.1` | `Confirmed` | 聚合、关系、状态机、唯一约束、AI 任务、CollectionPolicyVersion 与 Checkpoint 语义 |
 | RulePlan 语义与语法 | [`contracts/rule-plan.md`](./contracts/rule-plan.md)、[`contracts/rule-plan.schema.json`](./contracts/rule-plan.schema.json) | `v1.0.0` / `extrio.rule-plan.v1` | `Confirmed` | LLM 编译中间表示、字段位置、绑定、分页与支持边界 |
 | GatherSpec 语义 | [`contracts/gather-spec.md`](./contracts/gather-spec.md) | `v1.6.0` | `Confirmed` | 规则字段语义、编译边界、完整性、兼容性、安全约束及与运行策略的边界 |
 | GatherSpec 语法 | [`contracts/gather-spec.schema.json`](./contracts/gather-spec.schema.json) | `extrio.gather.v1` | `Ready_For_User_Review` | 可执行 JSON Schema |
@@ -159,15 +161,15 @@ Extrio 只有一套正式前端：`web/index.html` → `src/main.tsx` → `app/r
 | 控制面 API 语义 | [`contracts/api-contract.md`](./contracts/api-contract.md) | `v1.16.0` | `Confirmed` | 浏览器 API 边界、管理员认证、异步命令、AI 任务审计、幂等、多供应商与多模型设置、Collector 需求归属、Collector 定义与两阶段候选规则编辑、Source 传输策略、公告 Item 语义、增量策略与 Checkpoint、规则完整性证据、错误和兼容规则 |
 | 控制面 API 语法 | [`contracts/openapi.yaml`](./contracts/openapi.yaml) | `extrio.control-plane.v1` | `Confirmed` | `/api/v1` OpenAPI 3.1 机器合同与生成类型来源 |
 | 运行时行为 | [`runtime-contract.md`](./runtime-contract.md) | `v0.6.0` | `Confirmed` | 调度、终结、幂等、重试、时间窗口、Checkpoint、交付、漂移和回放 |
-| 安全与合规 | [`security-compliance.md`](./security-compliance.md) | `v0.7.0` | `Ready_For_User_Review` | Alpha 管理员认证、租户演进边界、凭据、网络、内容、隐私和审计 |
+| 安全与合规 | [`security-compliance.md`](./security-compliance.md) | `v0.7.1` | `Confirmed` | Alpha 管理员认证、租户演进边界、凭据、网络、内容、隐私和审计 |
 | 平台边界 | [`architecture/ADR-001-platform-boundaries.md`](./architecture/ADR-001-platform-boundaries.md) | `v2.0.0` | `Ready_For_User_Review` | Web、FastAPI、编译与执行单元的职责、通信边界和数据所有权 |
 | 调度与存储 | [`architecture/ADR-002-orchestration-storage.md`](./architecture/ADR-002-orchestration-storage.md) | `v1.2.0` | `Confirmed` | PostgreSQL、Redis、对象存储、增量 Checkpoint 和 Temporal 阈值 |
 | 规则完整性 | [`architecture/ADR-003-rule-integrity.md`](./architecture/ADR-003-rule-integrity.md) | `v1.3.0` | `Ready_For_User_Review` | 不可变规则、摘要、证明和运行时固定 |
 | 身份与访问 | [`architecture/ADR-004-identity-access.md`](./architecture/ADR-004-identity-access.md) | `v1.1.0` | `Proposed_Production_Target` | OIDC、会话、服务身份和 Tenant 授权 |
-| Alpha 管理员认证 | [`architecture/ADR-005-local-authentication.md`](./architecture/ADR-005-local-authentication.md) | `v1.0.0` | `Accepted` | 首次设置、Argon2、本地可撤销会话与登录限流 |
-| 前端原型 | [`frontend-prototype.md`](./frontend-prototype.md) | `v1.38.0` | `Confirmed` | 第一版前端闭环、管理员登录、多供应商与多模型设置、Collector 需求归属与运营列表、采集 Run、AI 任务与 Item 运营列表、Collector 任务工作区、按需证据、设计合同、技术栈和验收 |
+| Alpha 管理员认证 | [`architecture/ADR-005-local-authentication.md`](./architecture/ADR-005-local-authentication.md) | `v1.1.0` | `Accepted` | 首次设置、Argon2、本地可撤销会话、持久化登录限流与请求来源防护 |
+| 前端原型 | [`frontend-prototype.md`](./frontend-prototype.md) | `v1.38.1` | `Confirmed` | 第一版前端闭环、管理员登录、多供应商与多模型设置、Collector 需求归属与运营列表、采集 Run、AI 任务与 Item 运营列表、Collector 任务工作区、按需证据、设计合同、技术栈和验收 |
 | 真实纵向闭环 | [`backend-vertical-slice.md`](./backend-vertical-slice.md) | `v1.15.0` | `Confirmed` | FastAPI、管理员会话、Crawl4AI、可审计 LLM RulePlan 编译、同域嵌入入口解析、确定性运行、本地持久化、可信发布与受控增量运行 |
-| 发布验收 | [`releases/v0.2-acceptance.md`](./releases/v0.2-acceptance.md) | `v0.44.0` | `Confirmed` | v0.6 范围、退出标准与验收证据 |
+| 发布验收 | [`releases/v0.2-acceptance.md`](./releases/v0.2-acceptance.md) | `v0.46.0` | `Confirmed` | 当前范围、退出标准与验收证据 |
 
 ### 2.1 冲突处理
 
@@ -214,12 +216,12 @@ Extrio 的产品边界是“AI 辅助接入、人工审核发布、确定性持�
 | `INV-015` | AI 规则任务必须提供可实时轮询的结构化阶段记录；记录只包含阶段、状态、时间、耗时、指标与归一化错误，不暴露原始提示词、模型思维过程、Source 正文、模型响应正文或凭据。 |
 | `INV-016` | AI 交互采用绑定单次 AiRun 的可选操作指引，不提供脱离 Collector、候选规则和验证证据的通用 Chat；操作指引不得放宽网络、安全、输出合同、确定性校验或人工发布门。 |
 
-## 5. v0.6 产品范围
+## 5. 当前产品范围
 
 ### 5.1 当前范围
 
 1. CollectionTemplate、TemplateVersion、Collection 与 CollectionVersion 管理。
-2. Source 创建与精确入口批量导入、复用已有 Collection 需求身份与采集意图、合规边界和 AccessProfileVersion 引用。一个具体列表入口建立一个 Collector，同域名的不同业务列表保持独立运行边界；站点根目录不作为 `exact` 运行入口，分页由 GatherSpec 处理。CSV/TXT 导入使用 UTF-8、2 MiB 与 1000 行上限，`entryUrl` 必填，`mode` 省略时默认为 `exact`，当前拒绝其他模式，`name` 与 `scopeHint` 可选。重新选择文件替换当前文件条目并保留手动条目；同一 URL 同时来自文件和手动输入时，以文件内结构化元数据为准。文件级错误保留最近一次成功解析的预览；匿名公共 HTTP 传输风险由 TenantAdmin 在界面采集策略中管理（默认允许，可关闭），任何 AccessProfileVersion 或凭据访问必须使用 HTTPS。
+2. Source 创建与精确入口批量导入、复用已有 Collection 需求身份与采集意图、合规边界和 AccessProfileVersion 引用。一个具体列表入口建立一个 Collector，同域名的不同业务列表保持独立运行边界；站点根目录不作为 `exact` 运行入口，分页由 GatherSpec 处理。CSV/TXT 导入使用 UTF-8、2 MiB 与 1000 行上限，`entryUrl` 必填，`mode` 省略时默认为 `exact`，当前拒绝其他模式，`name` 与 `scopeHint` 可选。重新选择文件替换当前文件条目并保留手动条目；同一 URL 同时来自文件和手动输入时，以文件内结构化元数据为准。文件级错误保留最近一次成功解析的预览；匿名公共 HTTP 生产默认关闭，仅在部署配置明确允许时由 TenantAdmin 在界面采集策略中启用，任何 AccessProfileVersion 或凭据访问必须使用 HTTPS。
 3. Source 与 CollectionVersion 绑定为 Collector，支持受控 CollectorOverride。
 4. Collector 定义与候选规则工作区：名称可以独立编辑；意图或 Source 入口变化使当前候选失效并阻断新 Run，直到重新探索、审核和发布。探索阶段由默认模型根据受控 DOM/JSON 样本编译 `RulePlan`，平台将其校验并转换为 GatherSpec。生成或修复前可以提交一次性操作指引，指引作为不可信意图进入当前 AiRun，不改变安全边界与人工审核门。执行中通过 Source 获取、AI 结构分析、详情发现、样本获取、AI 规则编译、确定性验证和结果整理等结构化阶段实时展示进度，并保留阶段时间与结果指标；原始提示词、思维过程、网页正文和模型响应正文不进入该记录。规则编辑表单只呈现可修改的列表 Item selector、网页业务字段 selector 与分页参数，并以简洁阶段标题和 `detailUrl` 交接标识保持执行顺序；`source`、`crawlTime`、`observedAt` 等系统字段不进入编辑表单；请求配置、字段类型、错误策略、转换、安全边界和输出合同统一在只读 JSON 中查阅，不在表单重复展示。selector 与分页参数可以作为受控 CollectorOverride 直接编辑，经最近探索样本验证后形成新候选；字段语义服从 CollectionVersion，任何已发布 RuleVersion 均不可原地修改。
 5. 编译、Schema/语义校验、样本测试、人工审核、RuleAttestation、发布和回滚 RuleVersion。
@@ -259,7 +261,7 @@ Extrio 的产品边界是“AI 辅助接入、人工审核发布、确定性持�
 - 本地多用户与角色（administrator、engineer、reviewer、viewer）属于公开 Alpha 能力：首次设置创建 administrator，认证使用 Argon2 密码哈希和服务端可撤销会话；外部 OIDC/SSO、MFA、多租户隔离、审计导出、Tenant 授权和独立工作负载身份仍为生产演进边界。
 - 同一 Python 代码库可以承载控制面、编译与执行模块，但部署、数据写入、网络权限和运行生命周期必须保持逻辑隔离。
 - 探索和 Run 通过持久化 Operation 以 `202 Accepted` 启动；阶段、指标和终态由服务端事实驱动，页面刷新通过 `activeOperationId` 或 `operationId` 恢复，不得由客户端定时器伪造。
-- Source 入口只允许 HTTP(S)。匿名公共 HTTP 默认允许，TenantAdmin 可以在界面采集策略中关闭；任何携带凭据的访问必须使用 HTTPS。该策略不放宽 exact allowedHosts、私网/metadata 阻断、DNS 复检、重定向复检、速率或资源预算。
+- Source 入口只允许 HTTP(S)。匿名公共 HTTP 生产默认关闭；仅在部署配置明确允许时由 TenantAdmin 在界面采集策略中启用。任何携带凭据的访问必须使用 HTTPS。该策略不放宽 exact allowedHosts、私网/metadata 阻断、DNS 复检、重定向复检、速率或资源预算。
 - 所有服务边界、消息 envelope、失败语义与演进阈值由权威合同、OpenAPI 和版本化 JSON Schema 定义；实现不得以框架或采集库默认行为替代合同。
 
 ## 7. 版本与变更治理

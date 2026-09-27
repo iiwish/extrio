@@ -1,0 +1,115 @@
+{
+  "candidate": "v1.0.0-rc.1",
+  "published": false,
+  "postgresqlVersion": "16.15",
+  "backendTests": {
+    "passed": 764,
+    "skipped": 0
+  },
+  "webTests": {
+    "files": 42,
+    "passed": 264
+  },
+  "desktopQa": {
+    "surfaces": 17,
+    "languages": [
+      "zh",
+      "en"
+    ],
+    "viewports": [
+      [
+        1440,
+        900
+      ],
+      [
+        1280,
+        800
+      ],
+      [
+        1132,
+        1028
+      ],
+      [
+        1024,
+        800
+      ]
+    ],
+    "databases": [
+      "sqlite",
+      "postgresql"
+    ],
+    "measurements": 272,
+    "pageErrors": 0
+  },
+  "realModel": {
+    "providerHost": "api.deepseek.com",
+    "model": "deepseek-flash",
+    "tasks": 1,
+    "invocations": 7,
+    "truncatedInvocations": 2,
+    "status": "succeeded",
+    "durationMs": 94022,
+    "promptTokens": 43471,
+    "completionTokens": 15420,
+    "acceptedSamples": 3,
+    "rejectedSamples": 0,
+    "published": false
+  },
+  "scanner": {
+    "version": "0.69.3",
+    "severity": [
+      "HIGH",
+      "CRITICAL"
+    ],
+    "ignoreUnfixed": true,
+    "sourceSecretFindings": 0,
+    "openUnfixedDependencyAdvisories": [
+      {
+        "id": "GHSA-8mgp-746c-j5xp",
+        "package": "nltk",
+        "version": "3.10.3",
+        "severity": "HIGH",
+        "firstPatchedVersion": null,
+        "reviewedAt": "2026-09-27",
+        "status": "open_static_reachability_review_only"
+      }
+    ]
+  },
+  "images": [
+    {
+      "name": "backend",
+      "localTag": "extrio/backend:rc1-20260926",
+      "platform": "linux/arm64",
+      "localIndexDigest": "sha256:062808bea002bd6230534b76a8f1873996184d0eb5c9ca1c49261d8548711a5a",
+      "scannedConfigDigest": "sha256:3527a59f7c29502e53e09184c92bb2af9edaffca0037faa8054cdb893b2677d8",
+      "scannedLayersMatch": true,
+      "fixableHighCritical": 0
+    },
+    {
+      "name": "web",
+      "localTag": "extrio/web:rc1-20260926",
+      "platform": "linux/arm64",
+      "localIndexDigest": "sha256:b9a12eb93eaf40c107bcc14bfa5f24612dfbdc5f3cb15180e37446c9aa90f78e",
+      "scannedConfigDigest": "sha256:81256ed0e7a14517ab810656180c90e4c5bc35a3c2cbd25df5c18a36c9aaa862",
+      "scannedLayersMatch": true,
+      "fixableHighCritical": 0
+    }
+  ],
+  "packages": [
+    {
+      "file": "extrio_backend-1.0.0rc1-py3-none-any.whl",
+      "sha256": "8a5df31c2ea6aebe2d53ab2990472fb4abeefe7b92c6e59304a0fbcaf7440352"
+    },
+    {
+      "file": "extrio_backend-1.0.0rc1.tar.gz",
+      "sha256": "5fe8292d75f7079dea467be5ea9be26c274e7148026fcc55d68cc293ec1e8181"
+    }
+  ],
+  "remainingGates": [
+    "merge_and_release_approval",
+    "exact_commit_remote_ci",
+    "amd64_and_arm64_release_scan_signing_provenance",
+    "product_and_technical_acceptance",
+    "separate_production_deployment_approval"
+  ]
+}

@@ -1,3 +1,7 @@
+export function publishedTimeLabel(value: string, missingLabel: string) {
+  return value === '字段缺失' ? missingLabel : value
+}
+
 export function runTimestamp(run: { startedAtIso?: string; startedAt: string }, locale: string) {
   if (!run.startedAtIso) return run.startedAt
   const date = new Date(run.startedAtIso)
