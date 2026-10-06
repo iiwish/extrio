@@ -1,0 +1,7 @@
+{
+  "CreatedAt": "2026-10-06T09:48:11.226191811Z",
+  "ArtifactName": "extrio/qa-fixes-web:20261006",
+  "ImageID": "sha256:86781a050a9cf39c0a20a5a4db4dd655bb75071f27ff09a0615e1c358a4cf399",
+  "gate": "--ignore-unfixed --severity HIGH,CRITICAL --exit-code 1",
+  "vulnerabilities": 0
+}

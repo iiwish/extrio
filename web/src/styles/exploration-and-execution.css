@@ -201,7 +201,7 @@
   position: absolute;
   top: 7px;
   right: 10px;
-  color: #7a878d;
+  color: var(--muted-foreground);
   font-size: 10px;
 }
 
@@ -547,7 +547,7 @@
 
 .review-count,
 .result-count {
-  color: #6b7980;
+  color: var(--muted-foreground);
   font-size: 12px;
 }
 

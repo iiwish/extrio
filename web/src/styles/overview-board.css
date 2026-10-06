@@ -78,7 +78,7 @@
 }
 
 .run-proof-grid article small {
-  color: #718087;
+  color: var(--muted-foreground);
   font-size: 10px;
 }
 
@@ -113,7 +113,7 @@
 
 .run-technical-details summary > svg:last-child {
   width: 14px;
-  color: #7a878d;
+  color: var(--muted-foreground);
   transition: transform 160ms ease;
 }
 
@@ -131,7 +131,7 @@
 }
 
 .run-technical-details summary small {
-  color: #7a878d;
+  color: var(--muted-foreground);
   font-size: 9px;
 }
 
@@ -213,7 +213,7 @@
 }
 
 .overview-label {
-  color: #718087;
+  color: var(--muted-foreground);
   font-size: 9px;
   font-weight: 750;
 }
@@ -225,7 +225,7 @@
 }
 
 .overview-toolbar p {
-  color: #718087;
+  color: var(--muted-foreground);
   font-size: 11px;
 }
 
@@ -383,7 +383,7 @@
 
 .overview-panel-header p {
   margin-top: 2px;
-  color: #7a878d;
+  color: var(--muted-foreground);
   font-size: 9px;
 }
 
@@ -503,7 +503,7 @@
 .overview-row-action small,
 .overview-run-result small,
 .overview-item-time small {
-  color: #7a878d;
+  color: var(--muted-foreground);
   font-size: 9px;
 }
 
@@ -552,7 +552,7 @@
 }
 
 .overview-health-list dt {
-  color: #718087;
+  color: var(--muted-foreground);
   font-size: 9px;
   font-weight: 650;
 }
@@ -607,7 +607,7 @@
 }
 
 .overview-empty small {
-  color: #7a878d;
+  color: var(--muted-foreground);
   font-size: 9px;
 }
 
@@ -698,7 +698,7 @@
   border: 0;
   border-left: 1px solid #d8e0e3;
   background: transparent;
-  color: #66767d;
+  color: var(--muted-foreground);
   font-size: 11px;
   font-weight: 650;
   cursor: pointer;
@@ -968,7 +968,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-  color: #738188;
+  color: var(--muted-foreground);
   font-size: 8px;
 }
 
@@ -998,7 +998,7 @@
   justify-content: space-between;
   padding-top: 8px;
   border-top: 1px solid #edf0f1;
-  color: #6f7d84;
+  color: var(--muted-foreground);
   font-size: 9px;
 }
 
@@ -1050,7 +1050,7 @@
 }
 
 .overview-board-alert small {
-  color: #75838a;
+  color: var(--muted-foreground);
   font-size: 9px;
 }
 
@@ -1123,7 +1123,7 @@
 
 .item-summary-facts dt,
 .item-business-fields dt {
-  color: #7a878d;
+  color: var(--muted-foreground);
   font-size: 9px;
   font-weight: 700;
 }
@@ -1178,7 +1178,7 @@
 }
 
 .item-body-reading.is-empty p {
-  color: #7a878d;
+  color: var(--muted-foreground);
 }
 
 .item-revision-diff > div,
@@ -1242,7 +1242,7 @@
 }
 
 .item-lineage-links small {
-  color: #718087;
+  color: var(--muted-foreground);
   font-size: 9px;
   font-weight: 700;
 }

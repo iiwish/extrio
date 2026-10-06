@@ -101,7 +101,7 @@ export function AppShell() {
 
       <div className="app-column">
         <header className="topbar">
-          <div className="topbar-context" aria-label={t('aria.currentPage')}>
+          <div role="group" className="topbar-context" aria-label={t('aria.currentPage')}>
             {contextualBackTarget && <NavLink end className="topbar-back" to={contextualBackTarget} aria-label={contextualBackLabel} title={contextualBackLabel}><ArrowLeft /></NavLink>}
             {subpage && contextualBackTarget
               ? <nav className="topbar-trail" aria-label={t('aria.secondaryNavigation')}>

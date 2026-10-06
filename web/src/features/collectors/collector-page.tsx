@@ -1669,7 +1669,7 @@ function ReviewWorkspace({ candidate, collectionFields, previewItems, selectedFi
           </div>
         </section>
       )}
-      <div className="review-summary-strip" aria-label={t('review.summaryAria')}>
+      <div role="group" className="review-summary-strip" aria-label={t('review.summaryAria')}>
         <span><strong>{candidate.fields.length}</strong><small>{t('review.fieldsLabel')}</small></span>
         <span><strong>{decided}</strong><small>{t('review.decidedLabel')}</small></span>
         <span className={pending > 0 ? 'attention' : ''}><strong>{pending}</strong><small>{t('review.pendingLabel')}</small></span>

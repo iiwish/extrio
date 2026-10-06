@@ -1,0 +1,29 @@
+F.                                                                       [100%]
+=================================== FAILURES ===================================
+_____ test_internal_entity_mode_does_not_load_external_parameter_entities ______
+
+    def test_internal_entity_mode_does_not_load_external_parameter_entities():
+        requested = []
+
+        class ExternalEntityProbe(etree.Resolver):
+            def resolve(self, url, public_id, context):
+                requested.append(url)
+                return self.resolve_string('<!ENTITY canary "outside-source-canary">', context)
+
+        parser = etree.XMLParser(load_dtd=True, resolve_entities="internal", no_network=True)
+        parser.resolvers.add(ExternalEntityProbe())
+        payload = b'<!DOCTYPE root [<!ENTITY % ext SYSTEM "file:///extrio-qa-outside-source.dtd">%ext;]><root>&canary;</root>'
+        try:
+            root = etree.fromstring(payload, parser)
+        except etree.XMLSyntaxError:
+            root = None
+>       assert requested == []
+E       AssertionError: assert ['file:///ext...e-source.dtd'] == []
+E
+E         Left contains one more item: 'file:///extrio-qa-outside-source.dtd'
+E         Use -v to get more diff
+
+backend/tests/test_lxml_boundary.py:19: AssertionError
+=========================== short test summary info ============================
+FAILED backend/tests/test_lxml_boundary.py::test_internal_entity_mode_does_not_load_external_parameter_entities
+1 failed, 1 passed in 0.02s

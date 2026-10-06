@@ -1,0 +1,7 @@
+{
+  "CreatedAt": "2026-10-06T11:06:44.249134224Z",
+  "ArtifactName": "extrio/qa-closeout-backend:20261006",
+  "ImageID": "sha256:e5e2a4a710d1c9045f082182710044752ca8be29023304ccf743fc93916cc4c2",
+  "gate": "--ignore-unfixed --severity HIGH,CRITICAL --exit-code 1",
+  "vulnerabilities": 0
+}

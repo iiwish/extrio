@@ -1,0 +1,2084 @@
+{
+  "baselineImage": "sha256:4836277e2b0e4b1e305d2f6ba9e6169c798486c3ece92449ea679c20174c6ccd",
+  "source": "https://security-tracker.debian.org/tracker/data/json",
+  "retrievedAt": "2026-10-06T10:16:30.029Z",
+  "records": 95,
+  "uniqueCVEs": 42,
+  "rows": [
+    {
+      "id": "CVE-2023-25193",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2023-25193",
+          "PkgName": "libharfbuzz0b",
+          "InstalledVersion": "6.0.0+dfsg-3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "harfbuzz",
+          "description": "hb-ot-layout-gsubgpos.hh in HarfBuzz through 6.0.0 allows attackers to trigger O(n^2) growth via consecutive marks during the process of looking back for base glyphs when attaching marks.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "6.0.0+dfsg-3"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": ""
+          },
+          "trixie": {
+            "status": "resolved",
+            "repositories": {
+              "trixie": "10.2.0-1+deb13u1"
+            },
+            "fixed_version": "8.0.0-1",
+            "urgency": "not yet assigned"
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2023-2953",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2023-2953",
+          "PkgName": "libldap-2.5-0",
+          "InstalledVersion": "2.5.13+dfsg-5",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "openldap",
+          "description": "A vulnerability was found in openldap. This security flaw causes a null pointer dereference in ber_memalloc_x() function.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "2.5.13+dfsg-5"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": ""
+          },
+          "trixie": {
+            "status": "resolved",
+            "repositories": {
+              "trixie": "2.6.10+dfsg-1"
+            },
+            "fixed_version": "2.5.16+dfsg-1",
+            "urgency": "not yet assigned"
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2023-45853",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2023-45853",
+          "PkgName": "zlib1g",
+          "InstalledVersion": "1:1.2.13.dfsg-1",
+          "FixedVersion": null,
+          "Severity": "CRITICAL",
+          "Status": "will_not_fix"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "minizip",
+          "description": "MiniZip in zlib through 1.3 has an integer overflow and resultant heap-based buffer overflow in zipOpenNewFileInZip4_64 via a long filename, comment, or extra field. NOTE: MiniZip is not a supported part of the zlib product. NOTE: pyminizip through 0.2.6 is also vulnerable because it bundles an affected zlib version, and exposes the applicable MiniZip code through its compress API.",
+          "bookworm": {
+            "status": "resolved",
+            "repositories": {
+              "bookworm": "1.1-8+deb12u1"
+            },
+            "fixed_version": "1.1-8+deb12u1",
+            "urgency": "not yet assigned"
+          }
+        },
+        {
+          "sourcePackage": "zlib",
+          "description": "MiniZip in zlib through 1.3 has an integer overflow and resultant heap-based buffer overflow in zipOpenNewFileInZip4_64 via a long filename, comment, or extra field. NOTE: MiniZip is not a supported part of the zlib product. NOTE: pyminizip through 0.2.6 is also vulnerable because it bundles an affected zlib version, and exposes the applicable MiniZip code through its compress API.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "1:1.2.13.dfsg-1"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "contrib/minizip not built and src:zlib not producing binary packages",
+            "nodsa_reason": "ignored"
+          },
+          "trixie": {
+            "status": "resolved",
+            "repositories": {
+              "trixie": "1:1.3.dfsg+really1.3.1-1"
+            },
+            "fixed_version": "1:1.3.dfsg-2",
+            "urgency": "not yet assigned"
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2023-5574",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2023-5574",
+          "PkgName": "xserver-common",
+          "InstalledVersion": "2:21.1.7-3+deb12u13",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        },
+        {
+          "VulnerabilityID": "CVE-2023-5574",
+          "PkgName": "xvfb",
+          "InstalledVersion": "2:21.1.7-3+deb12u13",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "xorg-server",
+          "description": "A use-after-free flaw was found in xorg-x11-server-Xvfb. This issue occurs in Xvfb with a very specific and legacy configuration (a multi-screen setup with multiple protocol screens, also known as Zaphod mode). If the pointer is warped from a screen 1 to a screen 0, a use-after-free issue may be triggered during shutdown or reset of the Xvfb server, allowing for possible escalation of privileges or denial of service.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "2:21.1.7-3+deb12u12",
+              "bookworm-security": "2:21.1.7-3+deb12u13"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue, revisit when fixed upstream",
+            "nodsa_reason": "postponed"
+          },
+          "trixie": {
+            "status": "open",
+            "repositories": {
+              "trixie": "2:21.1.16-1.3+deb13u3",
+              "trixie-security": "2:21.1.16-1.3+deb13u4"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue, revisit when fixed upstream",
+            "nodsa_reason": "postponed"
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2025-69720",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2025-69720",
+          "PkgName": "libncursesw6",
+          "InstalledVersion": "6.4-4",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2025-69720",
+          "PkgName": "libtinfo6",
+          "InstalledVersion": "6.4-4",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2025-69720",
+          "PkgName": "ncurses-base",
+          "InstalledVersion": "6.4-4",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2025-69720",
+          "PkgName": "ncurses-bin",
+          "InstalledVersion": "6.4-4",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "ncurses",
+          "description": "The infocmp command-line tool in ncurses before 6.5-20251213 has a stack-based buffer overflow in analyze_string in progs/infocmp.c.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "6.4-4"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": ""
+          },
+          "trixie": {
+            "status": "open",
+            "repositories": {
+              "trixie": "6.5+20250216-2"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": ""
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2025-7458",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2025-7458",
+          "PkgName": "libsqlite3-0",
+          "InstalledVersion": "3.40.1-2+deb12u2",
+          "FixedVersion": null,
+          "Severity": "CRITICAL",
+          "Status": "affected"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "sqlite3",
+          "description": "An integer overflow in the sqlite3KeyInfoFromExprList function in SQLite versions 3.39.2 through 3.41.1 allows an attacker with the ability to execute arbitrary SQL statements to cause a denial of service or disclose sensitive information from process memory via a crafted SELECT statement with a large number of expressions in the ORDER BY clause.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "3.40.1-2+deb12u2"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": ""
+          },
+          "trixie": {
+            "status": "resolved",
+            "repositories": {
+              "trixie": "3.46.1-7+deb13u2"
+            },
+            "fixed_version": "3.42.0-1",
+            "urgency": "not yet assigned"
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-11822",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-11822",
+          "PkgName": "libsqlite3-0",
+          "InstalledVersion": "3.40.1-2+deb12u2",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "sqlite3",
+          "description": "SQLite before 3.53.2 contains memory corruption vulnerabilities in the FTS5 full-text search extension that allow attackers to cause process crashes, memory exhaustion, or arbitrary code execution by supplying a crafted database with malformed FTS5 page data. Attackers can trigger an out-of-bounds read in fts5LeafSeek() via an attacker-controlled loop bound and a heap buffer overflow write in fts5ChunkIterate() through a crafted continuation page causing an integer underflow, exploitable when an FTS5 MATCH query is executed against the malicious database.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "3.40.1-2+deb12u2"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": "postponed"
+          },
+          "trixie": {
+            "status": "resolved",
+            "repositories": {
+              "trixie": "3.46.1-7+deb13u2"
+            },
+            "fixed_version": "3.46.1-7+deb13u2",
+            "urgency": "not yet assigned"
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-11824",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-11824",
+          "PkgName": "libsqlite3-0",
+          "InstalledVersion": "3.40.1-2+deb12u2",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "sqlite3",
+          "description": "SQLite before 3.53.2 contains a heap-based buffer overflow vulnerability in the FTS5 full-text search extension that allows attackers to cause a crash or execute arbitrary code by supplying a crafted database with malicious continuation page metadata specifying a szLeaf value smaller than 4. Attackers can trigger an integer underflow in fts5ChunkIterate() causing an inflated remaining byte count during FTS5 MATCH query processing, leading to a heap buffer overflow of attacker-controlled data in applications compiled with SQLITE_ENABLE_FTS5.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "3.40.1-2+deb12u2"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": "postponed"
+          },
+          "trixie": {
+            "status": "resolved",
+            "repositories": {
+              "trixie": "3.46.1-7+deb13u2"
+            },
+            "fixed_version": "3.46.1-7+deb13u2",
+            "urgency": "not yet assigned"
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-12064",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-12064",
+          "PkgName": "curl",
+          "InstalledVersion": "7.88.1-10+deb12u15",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-12064",
+          "PkgName": "libcurl4",
+          "InstalledVersion": "7.88.1-10+deb12u15",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "curl",
+          "description": "When a user invokes curl using a schemeless URL combined with `--proto-default` sftp (or scp), a disconnect occurs between the tool layer and libcurl. The tool layer incorrectly infers the URL scheme, which erroneously bypasses the initialization of critical SSH security options like CURLOPT_SSH_HOST_PUBLIC_KEY_SHA256 and CURLOPT_SSH_KNOWNHOSTS. Conversely, the libcurl runtime successfully honors CURLOPT_DEFAULT_PROTOCOL and establishes the connection via SFTP/SCP as specified. Because the tool layer skipped the security configuration, these SSH host verification options are silently omitted, causing curl to connect to an unverified SSH remote host without throwing an error.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "7.88.1-10+deb12u15",
+              "bookworm-security": "7.88.1-10+deb12u5"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue; needs schemeless URL with --proto-default sftp/scp",
+            "nodsa_reason": "postponed"
+          },
+          "trixie": {
+            "status": "open",
+            "repositories": {
+              "trixie": "8.14.1-2+deb13u5"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": ""
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-16742",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-16742",
+          "PkgName": "libsystemd0",
+          "InstalledVersion": "252.39-1~deb12u2",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-16742",
+          "PkgName": "libudev1",
+          "InstalledVersion": "252.39-1~deb12u2",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "systemd",
+          "description": "systemd-homed contains a local privilege escalation bug via arbitrary system group addition to a local, logged in, homed-managed user",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "252.39-1~deb12u2",
+              "bookworm-security": "252.38-1~deb12u1"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": "postponed"
+          },
+          "trixie": {
+            "status": "open",
+            "repositories": {
+              "trixie": "257.13-1~deb13u1"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": ""
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-34980",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-34980",
+          "PkgName": "libcups2",
+          "InstalledVersion": "2.4.2-3+deb12u9",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "cups",
+          "description": "OpenPrinting CUPS is an open source printing system for Linux and other Unix-like operating systems. In versions 2.4.16 and prior, in a network-exposed cupsd with a shared target queue, an unauthorized client can send a Print-Job to that shared PostScript queue without authentication. The server accepts a page-border value supplied as textWithoutLanguage, preserves an embedded newline through option escaping and reparse, and then reparses the resulting second-line PPD: text as a trusted scheduler control record. A follow-up raw print job can therefore make the server execute an attacker-chosen existing binary such as /usr/bin/vim as lp. At time of publication, there are no publicly available patches.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "2.4.2-3+deb12u9",
+              "bookworm-security": "2.4.2-3+deb12u9"
+            },
+            "urgency": "not yet assigned"
+          },
+          "trixie": {
+            "status": "open",
+            "repositories": {
+              "trixie": "2.4.10-3+deb13u2",
+              "trixie-security": "2.4.10-3+deb13u1"
+            },
+            "urgency": "not yet assigned"
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-41992",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-41992",
+          "PkgName": "gzip",
+          "InstalledVersion": "1.12-1",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "gzip",
+          "description": "GNU gzip contains a global buffer overflow vulnerability in the LZH decompression logic caused by improper reuse of shared global state between different decompression formats within a single execution. GNU gzip maintains a global array that is shared across the LZ77, LZW, and LZH decompression routines and is not reinitialized between files processed in the same invocation. By decompressing a specially crafted LZW file followed by a specially crafted LZH file in a single gzip -d command, an attacker can poison the shared global state and subsequently trigger an out‑of‑bounds read in the LZH decoder. The LZH decompression logic follows stale values left in the shared array, causing reads past the end of the allocated global buffer.  This issue has been fixed in commits 63dbf6b3b9e6e781df1a6a64e609b10e23969681 and e7378c2d421be6a286922374425680bbe9ad8b7d.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "1.12-1"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": "postponed"
+          },
+          "trixie": {
+            "status": "resolved",
+            "repositories": {
+              "trixie": "1.13-1+deb13u1"
+            },
+            "fixed_version": "1.13-1+deb13u1",
+            "urgency": "not yet assigned"
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-53613",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-53613",
+          "PkgName": "bsdutils",
+          "InstalledVersion": "1:2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-53613",
+          "PkgName": "libblkid1",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-53613",
+          "PkgName": "libmount1",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-53613",
+          "PkgName": "libsmartcols1",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-53613",
+          "PkgName": "libuuid1",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-53613",
+          "PkgName": "mount",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-53613",
+          "PkgName": "util-linux",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-53613",
+          "PkgName": "util-linux-extra",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "util-linux",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "2.38.1-5+deb12u3",
+              "bookworm-security": "2.38.1-5+deb12u1"
+            },
+            "urgency": "not yet assigned"
+          },
+          "trixie": {
+            "status": "resolved",
+            "repositories": {
+              "trixie": "2.41.5-0+deb13u1",
+              "trixie-security": "2.41.5-0+deb13u1"
+            },
+            "fixed_version": "2.41.5-0+deb13u1",
+            "urgency": "not yet assigned"
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-54369",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-54369",
+          "PkgName": "libacl1",
+          "InstalledVersion": "2.3.1-3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "acl",
+          "description": "acl before version 2.4.0 contains a symlink traversal vulnerability in the libacl pathname-based functions acl_get_file(), acl_set_file(), acl_extended_file(), and acl_delete_def_file() that allows local attackers to escalate privileges by replacing any pathname component with a symbolic link. Attackers who control any component of a pathname processed by a privileged caller can redirect ACL read or write operations to arbitrary files or directories, enabling unauthorized manipulation of access control lists and local privilege escalation.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "2.3.1-3"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue; libacl acl_*_file() follow symlinks; fix adds new acl_*_at() ABI, not individually backportable",
+            "nodsa_reason": "postponed"
+          },
+          "trixie": {
+            "status": "open",
+            "repositories": {
+              "trixie": "2.3.2-2"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Will be fixed first in unstable, then point release update; not to be backported by individual patches",
+            "nodsa_reason": ""
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-55999",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-55999",
+          "PkgName": "xserver-common",
+          "InstalledVersion": "2:21.1.7-3+deb12u13",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-55999",
+          "PkgName": "xvfb",
+          "InstalledVersion": "2:21.1.7-3+deb12u13",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "xorg-server",
+          "description": "Local attackers with a X connection able to provide PCX fonts to the X  server xorg-server before 21.2.24 and xwayland before 24.1.13 could  cause a heap buffer overflow via SetFont due to missing glyph boundary checks.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "2:21.1.7-3+deb12u12",
+              "bookworm-security": "2:21.1.7-3+deb12u13"
+            },
+            "urgency": "not yet assigned"
+          },
+          "trixie": {
+            "status": "resolved",
+            "repositories": {
+              "trixie": "2:21.1.16-1.3+deb13u3",
+              "trixie-security": "2:21.1.16-1.3+deb13u4"
+            },
+            "fixed_version": "2:21.1.16-1.3+deb13u4",
+            "urgency": "not yet assigned"
+          }
+        },
+        {
+          "sourcePackage": "xwayland",
+          "description": "Local attackers with a X connection able to provide PCX fonts to the X  server xorg-server before 21.2.24 and xwayland before 24.1.13 could  cause a heap buffer overflow via SetFont due to missing glyph boundary checks.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "2:22.1.9-1"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue; Xwayland shouldn't be running as root",
+            "nodsa_reason": "ignored"
+          },
+          "trixie": {
+            "status": "open",
+            "repositories": {
+              "trixie": "2:24.1.6-1"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue; Xwayland shouldn't be running as root",
+            "nodsa_reason": "ignored"
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-56000",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-56000",
+          "PkgName": "xserver-common",
+          "InstalledVersion": "2:21.1.7-3+deb12u13",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-56000",
+          "PkgName": "xvfb",
+          "InstalledVersion": "2:21.1.7-3+deb12u13",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "xorg-server",
+          "description": "Local attackers with a X connection able to provide GLX commit to the X server xorg-server before 21.2.24 and xwayland before 24.1.13 could cause a Heap Use After Free, due to CommonMakeCurrent() pointing into potentially reallocated memory.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "2:21.1.7-3+deb12u12",
+              "bookworm-security": "2:21.1.7-3+deb12u13"
+            },
+            "urgency": "not yet assigned"
+          },
+          "trixie": {
+            "status": "resolved",
+            "repositories": {
+              "trixie": "2:21.1.16-1.3+deb13u3",
+              "trixie-security": "2:21.1.16-1.3+deb13u4"
+            },
+            "fixed_version": "2:21.1.16-1.3+deb13u4",
+            "urgency": "not yet assigned"
+          }
+        },
+        {
+          "sourcePackage": "xwayland",
+          "description": "Local attackers with a X connection able to provide GLX commit to the X server xorg-server before 21.2.24 and xwayland before 24.1.13 could cause a Heap Use After Free, due to CommonMakeCurrent() pointing into potentially reallocated memory.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "2:22.1.9-1"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue; Xwayland shouldn't be running as root",
+            "nodsa_reason": "ignored"
+          },
+          "trixie": {
+            "status": "open",
+            "repositories": {
+              "trixie": "2:24.1.6-1"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue; Xwayland shouldn't be running as root",
+            "nodsa_reason": "ignored"
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-58010",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-58010",
+          "PkgName": "libglib2.0-0",
+          "InstalledVersion": "2.74.6-2+deb12u9",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "glib2.0",
+          "description": "A flaw was found in GLib. An off-by-one error can occur in the gvs_tuple_is_normal function in the glib/gvariant-serialiser.c file when doing an alignment padding check because the bounds check uses > instead of >=, causing an out-of-bounds read of only 1 byte. This issue can cause a minor information disclosure of 1 byte and a denial of service when the out-of-bounds read crosses a page boundary.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "2.74.6-2+deb12u9",
+              "bookworm-security": "2.74.6-2+deb12u2"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue; GVariant deserialiser 1-byte over-read, reachability-gated",
+            "nodsa_reason": "postponed"
+          },
+          "trixie": {
+            "status": "resolved",
+            "repositories": {
+              "trixie": "2.84.4-3~deb13u5"
+            },
+            "fixed_version": "2.84.4-3~deb13u4",
+            "urgency": "not yet assigned"
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-58011",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-58011",
+          "PkgName": "libglib2.0-0",
+          "InstalledVersion": "2.74.6-2+deb12u9",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "glib2.0",
+          "description": "A flaw was found in GLib. An out-of-bounds read of only 2 bytes can occur in the g_date_time_get_ymd function in the glib/gdatetime.c file when an invalid GDateTime object produced by the g_date_time_add_full function is processed. This flaw can corrupt the date output and potentially cause logic errors that may lead to a denial of service.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "2.74.6-2+deb12u9",
+              "bookworm-security": "2.74.6-2+deb12u2"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue; GDateTime 2-byte over-read, reachability-gated",
+            "nodsa_reason": "postponed"
+          },
+          "trixie": {
+            "status": "resolved",
+            "repositories": {
+              "trixie": "2.84.4-3~deb13u5"
+            },
+            "fixed_version": "2.84.4-3~deb13u4",
+            "urgency": "not yet assigned"
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-58012",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-58012",
+          "PkgName": "libglib2.0-0",
+          "InstalledVersion": "2.74.6-2+deb12u9",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "glib2.0",
+          "description": "A flaw was found in GLib. A buffer over-read can occur in the g_regex_replace function when used with the `G_REGEX_RAW` compile flag and case-change replacement escapes because the string_append function processes matched substrings using UTF-8 functions that assume valid UTF-8 input, even when the string is treated as raw bytes. This vulnerability can cause a minor information disclosure of 1-5 bytes and a denial of service when the buffer over-read crosses a page boundary.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "2.74.6-2+deb12u9",
+              "bookworm-security": "2.74.6-2+deb12u2"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue; g_regex_replace raw-mode over-read, needs G_REGEX_RAW",
+            "nodsa_reason": "postponed"
+          },
+          "trixie": {
+            "status": "resolved",
+            "repositories": {
+              "trixie": "2.84.4-3~deb13u5"
+            },
+            "fixed_version": "2.84.4-3~deb13u4",
+            "urgency": "not yet assigned"
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-58013",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-58013",
+          "PkgName": "libglib2.0-0",
+          "InstalledVersion": "2.74.6-2+deb12u9",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "glib2.0",
+          "description": "A flaw was found in GLib. A buffer over-read can occur in g_io_channel_read_line_backend() in the giochannel.c file when a custom line terminator with a length greater than one is set, causing memcmp to read past the GString buffer. This vulnerability can cause a minor information disclosure of 7 bytes or a denial of service when the buffer over-read crosses a page boundary.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "2.74.6-2+deb12u9",
+              "bookworm-security": "2.74.6-2+deb12u2"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue; GIOChannel custom-terminator over-read, reachability-gated",
+            "nodsa_reason": "postponed"
+          },
+          "trixie": {
+            "status": "resolved",
+            "repositories": {
+              "trixie": "2.84.4-3~deb13u5"
+            },
+            "fixed_version": "2.84.4-3~deb13u4",
+            "urgency": "not yet assigned"
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-58014",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-58014",
+          "PkgName": "libglib2.0-0",
+          "InstalledVersion": "2.74.6-2+deb12u9",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "glib2.0",
+          "description": "A flaw was found in GLib. An off-by-one error can occur in the g_key_file_get_locale_string_list function in the gkeyfile.c file when loading a key file with an empty value. This flaw can cause an out-of-bounds access of 1 byte or a denial of service when the out-of-bounds access crosses a page boundary.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "2.74.6-2+deb12u9",
+              "bookworm-security": "2.74.6-2+deb12u2"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue; GKeyFile off-by-one 1-byte OOB, reachability-gated",
+            "nodsa_reason": "postponed"
+          },
+          "trixie": {
+            "status": "resolved",
+            "repositories": {
+              "trixie": "2.84.4-3~deb13u5"
+            },
+            "fixed_version": "2.84.4-3~deb13u4",
+            "urgency": "not yet assigned"
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-58015",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-58015",
+          "PkgName": "libglib2.0-0",
+          "InstalledVersion": "2.74.6-2+deb12u9",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "glib2.0",
+          "description": "A flaw was found in GLib. The D-Bus client-side implementation of the DBUS_COOKIE_SHA1 SASL authentication mechanism does not validate the cookie_context parameter received from the server. A malicious D-Bus server can supply a cookie_context containing path traversal sequences, causing the client to read an arbitrary file and exfiltrate sensitive data by verifying guessed file contents against a generated hash.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "2.74.6-2+deb12u9",
+              "bookworm-security": "2.74.6-2+deb12u2"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue; DBUS_COOKIE_SHA1 client path traversal, needs malicious D-Bus server",
+            "nodsa_reason": "postponed"
+          },
+          "trixie": {
+            "status": "resolved",
+            "repositories": {
+              "trixie": "2.84.4-3~deb13u5"
+            },
+            "fixed_version": "2.84.4-3~deb13u4",
+            "urgency": "not yet assigned"
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-58016",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-58016",
+          "PkgName": "libglib2.0-0",
+          "InstalledVersion": "2.74.6-2+deb12u9",
+          "FixedVersion": null,
+          "Severity": "CRITICAL",
+          "Status": "fix_deferred"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "glib2.0",
+          "description": "A flaw was found in GLib. A state confusion issue exists in g_dbus_node_info_new_for_xml() in the gio/gdbusintrospection.c file when processing malformed D-Bus introspection XML, specifically with a `node` element nested within other elements like `method`, `signal`, `property` or `arg`. This issue can cause an unsigned integer overflow and lead to an out-of-bounds read, resulting in a denial of service.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "2.74.6-2+deb12u9",
+              "bookworm-security": "2.74.6-2+deb12u2"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue; GDBus introspection-XML OOB-read DoS; no upstream fix yet",
+            "nodsa_reason": "postponed"
+          },
+          "trixie": {
+            "status": "resolved",
+            "repositories": {
+              "trixie": "2.84.4-3~deb13u5"
+            },
+            "fixed_version": "2.84.4-3~deb13u4",
+            "urgency": "not yet assigned"
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-6276",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-6276",
+          "PkgName": "curl",
+          "InstalledVersion": "7.88.1-10+deb12u15",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-6276",
+          "PkgName": "libcurl4",
+          "InstalledVersion": "7.88.1-10+deb12u15",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "curl",
+          "description": "Using libcurl, when a custom `Host:` header is first set for an HTTP request and a second request is subsequently done using the same *easy handle* but without the custom `Host:` header set, the second request would use stale information and pass on cookies meant for the first host in the second request. Leak them.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "7.88.1-10+deb12u15",
+              "bookworm-security": "7.88.1-10+deb12u5"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": ""
+          },
+          "trixie": {
+            "status": "resolved",
+            "repositories": {
+              "trixie": "8.14.1-2+deb13u5"
+            },
+            "fixed_version": "8.14.1-2+deb13u4",
+            "urgency": "not yet assigned"
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-6653",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-6653",
+          "PkgName": "libxml2",
+          "InstalledVersion": "2.9.14+dfsg-1.3~deb12u6",
+          "FixedVersion": null,
+          "Severity": "CRITICAL",
+          "Status": "fix_deferred"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "libxml2",
+          "description": "Use After Free in libxml2's xmlParseInternalSubset from GNOME libxml2 version 2.9.11 to 2.11.0 allows a remote attacker to cause a denial-of-service via maliciously crafted XML input with improper entity resolution handling.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "2.9.14+dfsg-1.3~deb12u6",
+              "bookworm-security": "2.9.14+dfsg-1.3~deb12u4"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue; UAF present via CVE-2021-3541 backport, fix only in 2.11.0",
+            "nodsa_reason": "postponed"
+          },
+          "trixie": {
+            "status": "open",
+            "repositories": {
+              "trixie": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+              "trixie-security": "2.12.7+dfsg+really2.9.14-2.1+deb13u1"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": ""
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-74860",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-74860",
+          "PkgName": "libxml2",
+          "InstalledVersion": "2.9.14+dfsg-1.3~deb12u6",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "libxml2",
+          "description": "A flaw was found in libxml2 with Python bindings enabled. A remote attacker could exploit this vulnerability by providing a specially crafted XML document containing a Document Type Definition (DTD) with enumerated attribute values. This triggers a double-free error in the SAX attributeDecl callback handler, where a string is freed twice. This flaw can lead to a denial of service (DoS) due to a reproducible crash in Python applications using the libxml2 SAX bindings.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "2.9.14+dfsg-1.3~deb12u6",
+              "bookworm-security": "2.9.14+dfsg-1.3~deb12u4"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": "postponed"
+          },
+          "trixie": {
+            "status": "open",
+            "repositories": {
+              "trixie": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+              "trixie-security": "2.12.7+dfsg+really2.9.14-2.1+deb13u1"
+            },
+            "urgency": "not yet assigned"
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-76642",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-76642",
+          "PkgName": "bsdutils",
+          "InstalledVersion": "1:2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-76642",
+          "PkgName": "libblkid1",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-76642",
+          "PkgName": "libmount1",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-76642",
+          "PkgName": "libsmartcols1",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-76642",
+          "PkgName": "libuuid1",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-76642",
+          "PkgName": "mount",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-76642",
+          "PkgName": "util-linux",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-76642",
+          "PkgName": "util-linux-extra",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "util-linux",
+          "description": "util-linux versions through 2.41.5 and 2.42.2 fail to check mount helper exit status before running post-mount hooks, allowing unprivileged users to execute privileged operations on pre-existing filesystems. Attackers can exploit X-mount.idmap or X-mount.owner hooks to clone filesystems with inherited suid bits or modify target inode permissions after a helper fails, achieving privilege escalation.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "2.38.1-5+deb12u3",
+              "bookworm-security": "2.38.1-5+deb12u1"
+            },
+            "urgency": "not yet assigned"
+          },
+          "trixie": {
+            "status": "open",
+            "repositories": {
+              "trixie": "2.41.5-0+deb13u1",
+              "trixie-security": "2.41.5-0+deb13u1"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": ""
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-78408",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-78408",
+          "PkgName": "bsdutils",
+          "InstalledVersion": "1:2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-78408",
+          "PkgName": "libblkid1",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-78408",
+          "PkgName": "libmount1",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-78408",
+          "PkgName": "libsmartcols1",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-78408",
+          "PkgName": "libuuid1",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-78408",
+          "PkgName": "mount",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-78408",
+          "PkgName": "util-linux",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-78408",
+          "PkgName": "util-linux-extra",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "util-linux",
+          "description": "The nsenter --join-cgroup option opens the target cgroup.procs file as root and leaves that file descriptor open across later namespace and credential changes and across execve(). Because the kernel checks later cgroup migrations using the credentials from the original open, a program run in an attacker-controlled target can inherit root's ability to move host processes between cgroups. After a privileged operator uses --join-cgroup against that target, an unprivileged user can migrate and terminate unrelated root processes.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "2.38.1-5+deb12u3",
+              "bookworm-security": "2.38.1-5+deb12u1"
+            },
+            "urgency": "not yet assigned"
+          },
+          "trixie": {
+            "status": "open",
+            "repositories": {
+              "trixie": "2.41.5-0+deb13u1",
+              "trixie-security": "2.41.5-0+deb13u1"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": ""
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-78409",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-78409",
+          "PkgName": "bsdutils",
+          "InstalledVersion": "1:2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-78409",
+          "PkgName": "libblkid1",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-78409",
+          "PkgName": "libmount1",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-78409",
+          "PkgName": "libsmartcols1",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-78409",
+          "PkgName": "libuuid1",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-78409",
+          "PkgName": "mount",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-78409",
+          "PkgName": "util-linux",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-78409",
+          "PkgName": "util-linux-extra",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "util-linux",
+          "description": "The X-mount.subdir option uses a detached-tree fast path on Linux 6.15 and later and passes the configured subdirectory to open_tree() with AT_SYMLINK_NOFOLLOW. That flag does not stop intermediate symlink traversal or keep resolution inside the newly mounted filesystem. A local unprivileged user with an fstab-authorized X-mount.subdir entry can attach a host path at the intended mountpoint.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "2.38.1-5+deb12u3",
+              "bookworm-security": "2.38.1-5+deb12u1"
+            },
+            "urgency": "not yet assigned"
+          },
+          "trixie": {
+            "status": "open",
+            "repositories": {
+              "trixie": "2.41.5-0+deb13u1",
+              "trixie-security": "2.41.5-0+deb13u1"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": ""
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-78410",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-78410",
+          "PkgName": "bsdutils",
+          "InstalledVersion": "1:2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-78410",
+          "PkgName": "libblkid1",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-78410",
+          "PkgName": "libmount1",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-78410",
+          "PkgName": "libsmartcols1",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-78410",
+          "PkgName": "libuuid1",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-78410",
+          "PkgName": "mount",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-78410",
+          "PkgName": "util-linux",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-78410",
+          "PkgName": "util-linux-extra",
+          "InstalledVersion": "2.38.1-5+deb12u3",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "util-linux",
+          "description": "A flaw was found in util-linux. Restricted bind mounts take the source path from fstab but do not pin that source before the privileged mount. A local unprivileged user who can replace the authorized source or a writable ancestor can redirect SUID mount(8) to bind another host directory. If the fstab entry also sets X-mount.owner, X-mount.group, or X-mount.mode, root then changes ownership or mode on that redirected inode.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "2.38.1-5+deb12u3",
+              "bookworm-security": "2.38.1-5+deb12u1"
+            },
+            "urgency": "not yet assigned"
+          },
+          "trixie": {
+            "status": "open",
+            "repositories": {
+              "trixie": "2.41.5-0+deb13u1",
+              "trixie-security": "2.41.5-0+deb13u1"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": ""
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-8286",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-8286",
+          "PkgName": "curl",
+          "InstalledVersion": "7.88.1-10+deb12u15",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-8286",
+          "PkgName": "libcurl4",
+          "InstalledVersion": "7.88.1-10+deb12u15",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "curl",
+          "description": "A vulnerability exists where a new transfer that uses STARTTLS to upgrade the connection might reuse an existing live connection even though the TLS configuration mismatches so it should not.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "7.88.1-10+deb12u15",
+              "bookworm-security": "7.88.1-10+deb12u5"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue; STARTTLS connection reuse config mismatch",
+            "nodsa_reason": "postponed"
+          },
+          "trixie": {
+            "status": "open",
+            "repositories": {
+              "trixie": "8.14.1-2+deb13u5"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": "",
+            "next_point_update": true
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-8458",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-8458",
+          "PkgName": "curl",
+          "InstalledVersion": "7.88.1-10+deb12u15",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-8458",
+          "PkgName": "libcurl4",
+          "InstalledVersion": "7.88.1-10+deb12u15",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "curl",
+          "description": "libcurl might in some circumstances reuse the wrong connection when asked to do Negotiate-authenticated ones, even when they are set to use different \"services\".  libcurl features a pool of recent connections so that subsequent requests can reuse an existing connection to avoid overhead.  When reusing a connection a range of criteria must be met. Due to a logical error in the code, a request that was issued by an application could wrongfully reuse an existing connection to the same server that was authenticated using different services.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "7.88.1-10+deb12u15",
+              "bookworm-security": "7.88.1-10+deb12u5"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue; needs HTTP Negotiate auth with differing service names",
+            "nodsa_reason": "postponed"
+          },
+          "trixie": {
+            "status": "open",
+            "repositories": {
+              "trixie": "8.14.1-2+deb13u5"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": ""
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-84782",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-84782",
+          "PkgName": "libssl3",
+          "InstalledVersion": "3.0.22-1~deb12u1",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-84782",
+          "PkgName": "openssl",
+          "InstalledVersion": "3.0.22-1~deb12u1",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "affected"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "openssl",
+          "description": "Issue summary: The DTLS retransmission logic does not correctly handle a handshake message write that is suspended part-way through. The retransmitted message can be read past the message buffer and the retransmission overwrites the internal state the suspended write needs to resume correctly.  Impact summary: The retransmitted message can disclose a heap memory to the peer as plaintext handshake data or cause a crash and a Denial of Service when the read reaches an unmapped memory region.  CWE: CWE-125: Out-of-bounds Read  Description: DTLS handshake messages can be written out in multiple fragments, and a write can suspend mid-message (returning WANT_WRITE) if the underlying transport temporarily cannot accept more data. While such a write is suspended, the DTLS retransmission timer may independently fire and ask the retransmission logic to resend an earlier, already-acknowledged-as-sent message from its retransmit queue.  The retransmission logic reused the same internal buffer and position tracking as the message that was still being written, without resetting the position back to the start of the message being retransmitted. As a result the retransmission was read starting from wherever the suspended write had left off, producing a mislabelled message whose body was leftover bytes from the other, larger message still in flight - content that was never meant to be sent at that point, and which could run past the end of the allocated buffer.  Separately, even when the retransmission is positioned correctly, allowing it to run to completion while another write is suspended overwrites the same shared bookkeeping that the suspended write depends on to resume. When the application later resumes the suspended write (via a subsequent SSL_read(), SSL_write(), SSL_accept(), or SSL_connect() call), it finds that bookkeeping in a state inconsistent with the message and aborts the process in a debugging build.  The fix resets the retransmission's read position to the start of the message before resending, and skips retransmission entirely whenever a handshake write is still suspended, deferring to the next call that resumes it instead.  FIPS impact: no The affected code is outside the FIPS module boundary.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "3.0.20-1~deb12u2",
+              "bookworm-security": "3.0.22-1~deb12u1"
+            },
+            "urgency": "not yet assigned"
+          },
+          "trixie": {
+            "status": "resolved",
+            "repositories": {
+              "trixie": "3.5.7-1~deb13u2",
+              "trixie-security": "3.5.7-1~deb13u3"
+            },
+            "fixed_version": "3.5.7-1~deb13u3",
+            "urgency": "not yet assigned"
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-86138",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-86138",
+          "PkgName": "libxml2",
+          "InstalledVersion": "2.9.14+dfsg-1.3~deb12u6",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "libxml2",
+          "description": "In libxml2 before 2.15.4, xmlDictAddQString in dict.c has an integer overflow and resultant heap-based buffer overflow.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "2.9.14+dfsg-1.3~deb12u6",
+              "bookworm-security": "2.9.14+dfsg-1.3~deb12u4"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": "postponed"
+          },
+          "trixie": {
+            "status": "open",
+            "repositories": {
+              "trixie": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+              "trixie-security": "2.12.7+dfsg+really2.9.14-2.1+deb13u1"
+            },
+            "urgency": "not yet assigned"
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-86140",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-86140",
+          "PkgName": "libxml2",
+          "InstalledVersion": "2.9.14+dfsg-1.3~deb12u6",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "libxml2",
+          "description": "In libxml2 before 2.15.4, xmlSnprintfElements in valid.c has a strcat stack-based buffer overflow.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "2.9.14+dfsg-1.3~deb12u6",
+              "bookworm-security": "2.9.14+dfsg-1.3~deb12u4"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": "postponed"
+          },
+          "trixie": {
+            "status": "open",
+            "repositories": {
+              "trixie": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+              "trixie-security": "2.12.7+dfsg+really2.9.14-2.1+deb13u1"
+            },
+            "urgency": "not yet assigned"
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-86142",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-86142",
+          "PkgName": "libxml2",
+          "InstalledVersion": "2.9.14+dfsg-1.3~deb12u6",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "libxml2",
+          "description": "In libxml2 before 2.15.4, there is a heap-based buffer overflow in xmlXPtrEvalXPtrPart because of xmlXPtrEval xpointer length saturation.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "2.9.14+dfsg-1.3~deb12u6",
+              "bookworm-security": "2.9.14+dfsg-1.3~deb12u4"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": "postponed"
+          },
+          "trixie": {
+            "status": "open",
+            "repositories": {
+              "trixie": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+              "trixie-security": "2.12.7+dfsg+really2.9.14-2.1+deb13u1"
+            },
+            "urgency": "not yet assigned"
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-86143",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-86143",
+          "PkgName": "libxml2",
+          "InstalledVersion": "2.9.14+dfsg-1.3~deb12u6",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "libxml2",
+          "description": "In xmlIO in libxml2 before 2.15.4, an inconsistency in xmlOutputWriteCallback and xmlBufUse causes negative lengths to reach write callbacks, aka a lack of a check for integer overflow before calling writecallback. This has security relevance for many types of uses of that length value within a callback.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "2.9.14+dfsg-1.3~deb12u6",
+              "bookworm-security": "2.9.14+dfsg-1.3~deb12u4"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": "postponed"
+          },
+          "trixie": {
+            "status": "open",
+            "repositories": {
+              "trixie": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+              "trixie-security": "2.12.7+dfsg+really2.9.14-2.1+deb13u1"
+            },
+            "urgency": "not yet assigned"
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-86144",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-86144",
+          "PkgName": "libxml2",
+          "InstalledVersion": "2.9.14+dfsg-1.3~deb12u6",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "libxml2",
+          "description": "In xinclude in libxml2 before 2.15.4, xmlXIncludeProcess and xmlXIncludeProcessTree do not propagate parseFlags. This has security relevance for, for example, the XML_PARSE_NONET flag, if (without it) a custom resource loader accesses the internet and triggers XML external entity injection, SSRF, or a denial of service (e.g., for an attacker-controlled internet resource that is intentionally slow).",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "2.9.14+dfsg-1.3~deb12u6",
+              "bookworm-security": "2.9.14+dfsg-1.3~deb12u4"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": "postponed"
+          },
+          "trixie": {
+            "status": "open",
+            "repositories": {
+              "trixie": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+              "trixie-security": "2.12.7+dfsg+really2.9.14-2.1+deb13u1"
+            },
+            "urgency": "not yet assigned"
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-88806",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-88806",
+          "PkgName": "libx11-6",
+          "InstalledVersion": "2:1.8.4-2+deb12u2",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-88806",
+          "PkgName": "libx11-data",
+          "InstalledVersion": "2:1.8.4-2+deb12u2",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-88806",
+          "PkgName": "libx11-xcb1",
+          "InstalledVersion": "2:1.8.4-2+deb12u2",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "libx11",
+          "description": "A malicious X server could exploit a buffer overflow in libX11 before 1.8.14 during handling of XkbGetMap overflowing the key_sym_map.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "2:1.8.4-2+deb12u2",
+              "bookworm-security": "2:1.8.4-2+deb12u2"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": "postponed"
+          },
+          "trixie": {
+            "status": "open",
+            "repositories": {
+              "trixie": "2:1.8.12-1"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": ""
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-88807",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-88807",
+          "PkgName": "libxrender1",
+          "InstalledVersion": "1:0.9.10-1.1",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "libxrender",
+          "description": "A heap overflow in libXrender before 0.9.13 in RenderQueryPictFormats could be used by malicious X servers to inject code into attached X clients.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "1:0.9.10-1.1"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": "postponed"
+          },
+          "trixie": {
+            "status": "open",
+            "repositories": {
+              "trixie": "1:0.9.12-1"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": ""
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-8927",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-8927",
+          "PkgName": "curl",
+          "InstalledVersion": "7.88.1-10+deb12u15",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-8927",
+          "PkgName": "libcurl4",
+          "InstalledVersion": "7.88.1-10+deb12u15",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "curl",
+          "description": "When reusing a libcurl handle for sequential transfers driven by environment-variable proxy configuration, libcurl fails to clear the proxy authentication state between requests. Specifically, if the initial transfer authenticates against `proxyA` using Digest auth, a subsequent transfer routed through `proxyB` erroneously leaks the `Proxy-Authorization:` header intended solely for `proxyA`.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "7.88.1-10+deb12u15",
+              "bookworm-security": "7.88.1-10+deb12u5"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue; libcurl env-proxy Digest auth handle reuse",
+            "nodsa_reason": "postponed"
+          },
+          "trixie": {
+            "status": "open",
+            "repositories": {
+              "trixie": "8.14.1-2+deb13u5"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue",
+            "nodsa_reason": "",
+            "next_point_update": true
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    },
+    {
+      "id": "CVE-2026-9538",
+      "packages": [
+        {
+          "VulnerabilityID": "CVE-2026-9538",
+          "PkgName": "libperl5.36",
+          "InstalledVersion": "5.36.0-7+deb12u4",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-9538",
+          "PkgName": "perl",
+          "InstalledVersion": "5.36.0-7+deb12u4",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-9538",
+          "PkgName": "perl-base",
+          "InstalledVersion": "5.36.0-7+deb12u4",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        },
+        {
+          "VulnerabilityID": "CVE-2026-9538",
+          "PkgName": "perl-modules-5.36",
+          "InstalledVersion": "5.36.0-7+deb12u4",
+          "FixedVersion": null,
+          "Severity": "HIGH",
+          "Status": "fix_deferred"
+        }
+      ],
+      "vendor": [
+        {
+          "sourcePackage": "perl",
+          "description": "Archive::Tar versions before 3.10 for Perl allow memory exhaustion via attacker controlled entry size field in tar header.  _read_tar() reads each entry's payload with $handle->read($$data, $block), where $block is derived from the entry's 12-byte size field in the tar header with no upper bound on that value.  A crafted header declaring a multi-gigabyte size causes Perl to allocate a scalar of that size.",
+          "bookworm": {
+            "status": "open",
+            "repositories": {
+              "bookworm": "5.36.0-7+deb12u3",
+              "bookworm-security": "5.36.0-7+deb12u4"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue; wait for regressions upstream sorted out",
+            "nodsa_reason": "postponed"
+          },
+          "trixie": {
+            "status": "open",
+            "repositories": {
+              "trixie": "5.40.1-6+deb13u1"
+            },
+            "urgency": "not yet assigned",
+            "nodsa": "Minor issue; wait for regressions upstream sorted out",
+            "nodsa_reason": "postponed"
+          }
+        }
+      ],
+      "decision": "Requires evidence; not accepted"
+    }
+  ]
+}

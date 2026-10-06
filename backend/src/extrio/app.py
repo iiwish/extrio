@@ -1882,8 +1882,9 @@ async def create_collector(request: Request, response: Response, idempotency_key
         return platform_error(request, exc.code, str(exc), 422, pointer="/sourceUrl")
     if store.source_exists(source_url):
         return platform_error(request, "SOURCE_ALREADY_EXISTS", "该 Source URL 已存在", 409, pointer="/sourceUrl")
-    if not str(body.get("name", "")).strip() or not str(body.get("intent", "")).strip():
-        return platform_error(request, "VALIDATION_FAILED", "name 与 intent 不能为空", 422)
+    for field in ("name", "intent"):
+        if not isinstance(body[field], str) or not body[field].strip():
+            return platform_error(request, "VALIDATION_FAILED", f"{field} 必须是非空字符串", 422, pointer=f"/{field}")
     collection_name = body["name"].strip()
     collector = store.create_collector(
         collection_name,

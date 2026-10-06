@@ -1,0 +1,23 @@
+{
+  "CreatedAt": "2026-10-06T11:25:56.22757082Z",
+  "Results": [
+    {
+      "Target": "backend/uv.lock",
+      "vulnerabilities": [
+        {
+          "VulnerabilityID": "CVE-2026-81726",
+          "PkgName": "nltk",
+          "InstalledVersion": "3.10.3",
+          "FixedVersion": null,
+          "Severity": "HIGH"
+        }
+      ],
+      "secrets": 0
+    },
+    {
+      "Target": "web/pnpm-lock.yaml",
+      "vulnerabilities": [],
+      "secrets": 0
+    }
+  ]
+}

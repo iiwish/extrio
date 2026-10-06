@@ -233,7 +233,7 @@ export function ModelSettingsPage() {
 
   return <div className="settings-page model-settings-page" ref={containerRef} onClickCapture={onClickCapture}>
     {readOnly && <p className="text-muted-foreground text-sm">{t('tabs.modelReadOnly')}</p>}
-    <div className="settings-ai-toolbar" aria-label={t('toolbar.overviewAria')}>
+    <div role="group" className="settings-ai-toolbar" aria-label={t('toolbar.overviewAria')}>
       <div className="settings-default-model">
         <span><Star />{t('toolbar.defaultModel')}</span>
         <Select value={configuration.defaultModelId ?? ''} onValueChange={(value) => persist(configurationInput(providers, models, value))} disabled={availableModels.length === 0 || editingDisabled}>
@@ -250,10 +250,10 @@ export function ModelSettingsPage() {
     </div>
 
     {query.isError && <Alert variant="destructive"><AlertDescription>{query.error.message}<Button variant="outline" size="sm" onClick={() => query.refetch()}><RefreshCw />{t('common:action.retry')}</Button></AlertDescription></Alert>}
-    {query.isPending && <Skeleton className="h-32 w-full" aria-label={t('common:state.loading')} />}
+    {query.isPending && <Skeleton role="status" className="h-32 w-full" aria-label={t('common:state.loading')} />}
     {mutation.error && <Alert variant="destructive"><AlertDescription>{mutation.error.message}</AlertDescription></Alert>}
 
-    <div className="settings-provider-list" aria-label={t('toolbar.providerListAria')}>
+    <div role="group" className="settings-provider-list" aria-label={t('toolbar.providerListAria')}>
       {configuration.providers.map((provider) => {
         const providerModels = configuration.models.filter((model) => model.providerId === provider.id)
         const collapsed = collapsedProviderIds.has(provider.id)

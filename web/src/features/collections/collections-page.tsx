@@ -49,7 +49,7 @@ export function CollectionsPage() {
   return <ListWorkspace className="page-frame collections-page" label={t('nav.collections')}
     count={query.data?.total} loading={query.isPending} refreshing={query.isFetching} failed={query.isError} resetKey={list.resetKey} pagination={list.pagination}
     toolbar={<TooltipProvider delayDuration={300}>
-      <div className="collections-toolbar" aria-label={t('collections.toolbar')}>
+      <div role="group" className="collections-toolbar" aria-label={t('collections.toolbar')}>
         <div className="collection-status-filter" role="group" aria-label={t('collections.statusFilter')}>
           {statuses.map(value => <Button key={value} variant="ghost" size="sm" aria-pressed={status === value}
             onClick={() => updateParam('status', value)}>
@@ -75,7 +75,7 @@ export function CollectionsPage() {
       <Button variant="outline" size="sm" disabled={query.isFetching} onClick={() => query.refetch()}><RefreshCw />{t('action.retry')}</Button>
     </Alert>}>
     <h1 className="sr-only">{t('nav.collections')}</h1>
-    {query.isPending ? <div className="collection-list-loading" aria-label={t('state.loading')}>
+    {query.isPending ? <div className="collection-list-loading" aria-hidden="true">
       {[0, 1, 2].map(key => <div key={key}><Skeleton className="h-5 w-52" /><Skeleton className="mt-3 h-3 w-3/5" /></div>)}
     </div> : query.data && <div className="collections-table-scroll">
       <table className="collections-table">

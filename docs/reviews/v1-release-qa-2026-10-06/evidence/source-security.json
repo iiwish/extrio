@@ -1,0 +1,398 @@
+{
+  "scanner": "Trivy 0.75.0",
+  "createdAt": "2026-10-06T08:40:23.140840921Z",
+  "results": [
+    {
+      "Target": "backend/uv.lock",
+      "Type": "uv",
+      "secrets": 0,
+      "vulnerabilities": [
+        {
+          "PkgName": "multidict",
+          "InstalledVersion": "6.7.1",
+          "VulnerabilityID": "CVE-2026-104874",
+          "Severity": "MEDIUM",
+          "FixedVersion": "6.9.1",
+          "Title": "multidict: multidict: Denial of Service via memory leak in items-view operations",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-104874"
+        },
+        {
+          "PkgName": "nltk",
+          "InstalledVersion": "3.10.3",
+          "VulnerabilityID": "CVE-2026-81726",
+          "Severity": "HIGH",
+          "FixedVersion": null,
+          "Title": "nltk: NLTK: Unauthorized file access via path traversal in model-artifact APIs",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-81726"
+        },
+        {
+          "PkgName": "pyjwt",
+          "InstalledVersion": "2.13.0",
+          "VulnerabilityID": "CVE-2026-102268",
+          "Severity": "CRITICAL",
+          "FixedVersion": "2.14.0",
+          "Title": "PyJWT is a Python implementation of JSON Web Token standards. Prior to ...",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-102268"
+        },
+        {
+          "PkgName": "pyjwt",
+          "InstalledVersion": "2.13.0",
+          "VulnerabilityID": "CVE-2026-102266",
+          "Severity": "HIGH",
+          "FixedVersion": "2.14.0",
+          "Title": "pyjwt: pyjwt: Authentication bypass via empty HMAC key acceptance",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-102266"
+        },
+        {
+          "PkgName": "pyjwt",
+          "InstalledVersion": "2.13.0",
+          "VulnerabilityID": "CVE-2026-102267",
+          "Severity": "HIGH",
+          "FixedVersion": "2.14.0",
+          "Title": "pyjwt: pyjwt: Verification key substitution via unvalidated JWKS redirects",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-102267"
+        },
+        {
+          "PkgName": "pyjwt",
+          "InstalledVersion": "2.13.0",
+          "VulnerabilityID": "CVE-2026-102271",
+          "Severity": "HIGH",
+          "FixedVersion": "2.14.0",
+          "Title": "pyjwt: PyJWT: Authentication bypass via acceptance of DER public keys as HMAC secrets",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-102271"
+        },
+        {
+          "PkgName": "pyjwt",
+          "InstalledVersion": "2.13.0",
+          "VulnerabilityID": "CVE-2026-102272",
+          "Severity": "HIGH",
+          "FixedVersion": "2.14.0",
+          "Title": "pyjwt: pyjwt: Token forgery via improper Unicode byte-order mark handling",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-102272"
+        },
+        {
+          "PkgName": "pyjwt",
+          "InstalledVersion": "2.13.0",
+          "VulnerabilityID": "CVE-2026-102273",
+          "Severity": "HIGH",
+          "FixedVersion": "2.14.0",
+          "Title": "pyjwt: pyjwt: Token forgery via acceptance of public JWK containers as HMAC secrets",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-102273"
+        },
+        {
+          "PkgName": "pyjwt",
+          "InstalledVersion": "2.13.0",
+          "VulnerabilityID": "CVE-2026-101917",
+          "Severity": "MEDIUM",
+          "FixedVersion": "2.14.0",
+          "Title": "pyjwt: PyJWT: Denial of Service via outbound request amplification on unknown key identifiers",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-101917"
+        },
+        {
+          "PkgName": "pyjwt",
+          "InstalledVersion": "2.13.0",
+          "VulnerabilityID": "CVE-2026-101918",
+          "Severity": "MEDIUM",
+          "FixedVersion": "2.15.0",
+          "Title": "pyjwt: PyJWT: Denial of Service via deeply nested JSON token payload",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-101918"
+        },
+        {
+          "PkgName": "pyjwt",
+          "InstalledVersion": "2.13.0",
+          "VulnerabilityID": "CVE-2026-102265",
+          "Severity": "MEDIUM",
+          "FixedVersion": "2.14.0",
+          "Title": "pyjwt: pyjwt: Denial of Service via deeply nested token headers",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-102265"
+        },
+        {
+          "PkgName": "pyjwt",
+          "InstalledVersion": "2.13.0",
+          "VulnerabilityID": "CVE-2026-102269",
+          "Severity": "MEDIUM",
+          "FixedVersion": "2.14.0",
+          "Title": "pyjwt: PyJWT: Token revocation bypass via non-canonical signature decoding",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-102269"
+        },
+        {
+          "PkgName": "pyjwt",
+          "InstalledVersion": "2.13.0",
+          "VulnerabilityID": "CVE-2026-102270",
+          "Severity": "MEDIUM",
+          "FixedVersion": "2.14.0",
+          "Title": "pyjwt: pyjwt: Denial of Service via regular expression backtracking in is_pem_format",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-102270"
+        },
+        {
+          "PkgName": "pyjwt",
+          "InstalledVersion": "2.13.0",
+          "VulnerabilityID": "CVE-2026-102274",
+          "Severity": "MEDIUM",
+          "FixedVersion": "2.14.0",
+          "Title": "pyjwt: pyjwt: Denial of Service via malformed RSA key in JWK set",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-102274"
+        },
+        {
+          "PkgName": "pyjwt",
+          "InstalledVersion": "2.13.0",
+          "VulnerabilityID": "CVE-2026-102275",
+          "Severity": "MEDIUM",
+          "FixedVersion": "2.15.0",
+          "Title": "pyjwt: PyJWT: Token verification bypass via mismatched OKP key components",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-102275"
+        },
+        {
+          "PkgName": "pyjwt",
+          "InstalledVersion": "2.13.0",
+          "VulnerabilityID": "CVE-2026-103001",
+          "Severity": "MEDIUM",
+          "FixedVersion": null,
+          "Title": "pyjwt: pyjwt: Token validation bypass via options dictionary mutation",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-103001"
+        },
+        {
+          "PkgName": "urllib3",
+          "InstalledVersion": "2.7.0",
+          "VulnerabilityID": "CVE-2026-97687",
+          "Severity": "HIGH",
+          "FixedVersion": "2.8.0",
+          "Title": "urllib3: urllib3: Traffic interception via HTTPS proxy TLS configuration override",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-97687"
+        },
+        {
+          "PkgName": "urllib3",
+          "InstalledVersion": "2.7.0",
+          "VulnerabilityID": "CVE-2026-97689",
+          "Severity": "HIGH",
+          "FixedVersion": "2.8.0",
+          "Title": "urllib3: urllib3: Denial of Service via unbounded memory allocation in chunk parser",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-97689"
+        },
+        {
+          "PkgName": "urllib3",
+          "InstalledVersion": "2.7.0",
+          "VulnerabilityID": "CVE-2026-97688",
+          "Severity": "MEDIUM",
+          "FixedVersion": "2.8.0",
+          "Title": "urllib3: urllib3: Denial of Service via infinite loop during chunked Deflate decoding",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-97688"
+        }
+      ]
+    },
+    {
+      "Target": "web/pnpm-lock.yaml",
+      "Type": "pnpm",
+      "secrets": 0,
+      "vulnerabilities": [
+        {
+          "PkgName": "brace-expansion",
+          "InstalledVersion": "5.0.9",
+          "VulnerabilityID": "CVE-2026-102276",
+          "Severity": "HIGH",
+          "FixedVersion": "5.0.10, 3.0.7, 2.1.5, 1.1.19",
+          "Title": "brace-expansion: brace-expansion: Denial of Service via stack exhaustion from crafted brace patterns",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-102276"
+        },
+        {
+          "PkgName": "brace-expansion",
+          "InstalledVersion": "5.0.9",
+          "VulnerabilityID": "CVE-2026-102278",
+          "Severity": "HIGH",
+          "FixedVersion": "5.0.11, 3.0.8, 2.1.6, 1.1.20",
+          "Title": "brace-expansion: brace-expansion: Denial of Service via uncontrolled recursion in nested brace patterns",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-102278"
+        },
+        {
+          "PkgName": "brace-expansion",
+          "InstalledVersion": "5.0.9",
+          "VulnerabilityID": "CVE-2026-102277",
+          "Severity": "MEDIUM",
+          "FixedVersion": "5.0.12, 3.0.9, 2.1.7, 1.1.21",
+          "Title": "brace-expansion: brace-expansion: Denial of Service via crafted brace patterns",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-102277"
+        },
+        {
+          "PkgName": "braces",
+          "InstalledVersion": "3.0.3",
+          "VulnerabilityID": "CVE-2026-93687",
+          "Severity": "HIGH",
+          "FixedVersion": null,
+          "Title": "braces: braces: Denial of Service via Stack Overflow from Deeply Nested Patterns",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-93687"
+        },
+        {
+          "PkgName": "fast-uri",
+          "InstalledVersion": "3.1.6",
+          "VulnerabilityID": "CVE-2026-84292",
+          "Severity": "HIGH",
+          "FixedVersion": "2.4.6, 3.1.7, 4.1.4",
+          "Title": "fast-uri: fast-uri: Authority Injection via Unvalidated Port Serialization",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-84292"
+        },
+        {
+          "PkgName": "fast-uri",
+          "InstalledVersion": "3.1.6",
+          "VulnerabilityID": "CVE-2026-84394",
+          "Severity": "HIGH",
+          "FixedVersion": "2.4.6, 3.1.7, 4.1.4",
+          "Title": "fast-uri: fast-uri: Host confusion via unbalanced URI brackets can bypass security policies",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-84394"
+        },
+        {
+          "PkgName": "fast-uri",
+          "InstalledVersion": "3.1.6",
+          "VulnerabilityID": "CVE-2026-86472",
+          "Severity": "MEDIUM",
+          "FixedVersion": "2.4.7, 3.1.8, 4.1.5",
+          "Title": "fast-uri: fast-uri: Security bypass due to inconsistent host case normalization",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-86472"
+        },
+        {
+          "PkgName": "hono",
+          "InstalledVersion": "4.13.5",
+          "VulnerabilityID": "CVE-2026-93981",
+          "Severity": "MEDIUM",
+          "FixedVersion": "4.13.7",
+          "Title": "hono: hono/jsx: Cross-Site Scripting via Unescaped Strings",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-93981"
+        },
+        {
+          "PkgName": "ip-address",
+          "InstalledVersion": "10.7.0",
+          "VulnerabilityID": "CVE-2026-101911",
+          "Severity": "MEDIUM",
+          "FixedVersion": "10.7.1",
+          "Title": "ip-address: ip-address: Denial of Service via unbounded IPv6 address parsing",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-101911"
+        },
+        {
+          "PkgName": "ip-address",
+          "InstalledVersion": "10.7.0",
+          "VulnerabilityID": "CVE-2026-101912",
+          "Severity": "MEDIUM",
+          "FixedVersion": "10.7.1",
+          "Title": "ip-address: ip-address: Access control bypass via cross-family subnet comparison",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-101912"
+        },
+        {
+          "PkgName": "postcss-selector-parser",
+          "InstalledVersion": "7.1.5",
+          "VulnerabilityID": "CVE-2026-104844",
+          "Severity": "MEDIUM",
+          "FixedVersion": "7.1.6",
+          "Title": "postcss-selector-parser: postcss-selector-parser: Denial of Service via crafted CSS selectors",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-104844"
+        },
+        {
+          "PkgName": "proxy-addr",
+          "InstalledVersion": "2.0.7",
+          "VulnerabilityID": "CVE-2026-90711",
+          "Severity": "CRITICAL",
+          "FixedVersion": "2.0.8",
+          "Title": "proxy-addr is a Node.js module that determines a request's client addr ...",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-90711"
+        },
+        {
+          "PkgName": "source-map-js",
+          "InstalledVersion": "1.2.1",
+          "VulnerabilityID": "CVE-2026-93749",
+          "Severity": "HIGH",
+          "FixedVersion": "1.2.2",
+          "Title": "source-map-js: source-map-js: Denial of Service via malformed indexed source maps",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-93749"
+        },
+        {
+          "PkgName": "undici",
+          "InstalledVersion": "7.29.0",
+          "VulnerabilityID": "CVE-2026-19534",
+          "Severity": "HIGH",
+          "FixedVersion": "6.28.1, 7.29.1, 8.10.2",
+          "Title": "undici: undici: Denial of Service via unrequested WebSocket subprotocol",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-19534"
+        },
+        {
+          "PkgName": "undici",
+          "InstalledVersion": "7.29.0",
+          "VulnerabilityID": "CVE-2026-84961",
+          "Severity": "HIGH",
+          "FixedVersion": "7.29.1, 8.10.2",
+          "Title": "undici: undici: TLS certificate validation bypass in BalancedPool via dropped connect options",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-84961"
+        },
+        {
+          "PkgName": "undici",
+          "InstalledVersion": "7.29.0",
+          "VulnerabilityID": "CVE-2026-18149",
+          "Severity": "MEDIUM",
+          "FixedVersion": "7.29.1, 8.10.2",
+          "Title": "undici: undici: Denial of Service due to orphaned response body in retry handler",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-18149"
+        },
+        {
+          "PkgName": "undici",
+          "InstalledVersion": "7.29.0",
+          "VulnerabilityID": "CVE-2026-84890",
+          "Severity": "MEDIUM",
+          "FixedVersion": "7.29.1, 8.10.2",
+          "Title": "undici: undici: Denial of Service via unbounded decompression of compressed responses",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-84890"
+        },
+        {
+          "PkgName": "undici",
+          "InstalledVersion": "7.29.0",
+          "VulnerabilityID": "CVE-2026-84933",
+          "Severity": "MEDIUM",
+          "FixedVersion": "7.29.1, 8.10.2",
+          "Title": "undici: undici: Cross-user cookie disclosure via Set-Cookie caching",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-84933"
+        },
+        {
+          "PkgName": "undici",
+          "InstalledVersion": "7.29.0",
+          "VulnerabilityID": "CVE-2026-85014",
+          "Severity": "MEDIUM",
+          "FixedVersion": "7.29.1, 8.10.2",
+          "Title": "undici: undici: Denial of Service via WebSocketStream unclean close",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-85014"
+        },
+        {
+          "PkgName": "undici",
+          "InstalledVersion": "7.29.0",
+          "VulnerabilityID": "CVE-2026-85024",
+          "Severity": "MEDIUM",
+          "FixedVersion": "6.28.1, 7.29.1, 8.10.2",
+          "Title": "undici: undici: Denial of Service via unhandled error in WebSocket permessage-deflate decompression",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-85024"
+        },
+        {
+          "PkgName": "undici",
+          "InstalledVersion": "7.29.0",
+          "VulnerabilityID": "CVE-2026-18540",
+          "Severity": "LOW",
+          "FixedVersion": "6.28.1, 7.29.1, 8.10.2",
+          "Title": "undici: undici: HTTP response splitting via retry interceptor",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-18540"
+        },
+        {
+          "PkgName": "undici",
+          "InstalledVersion": "7.29.0",
+          "VulnerabilityID": "CVE-2026-84947",
+          "Severity": "LOW",
+          "FixedVersion": "7.29.1, 8.10.2",
+          "Title": "undici: Undici: Response truncation and connection termination",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-84947"
+        },
+        {
+          "PkgName": "undici",
+          "InstalledVersion": "7.29.0",
+          "VulnerabilityID": "CVE-2026-85008",
+          "Severity": "LOW",
+          "FixedVersion": "7.29.1, 8.10.2",
+          "Title": "undici: undici: Integrity failure due to caching of unsafe HTTP method responses",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-85008"
+        }
+      ]
+    }
+  ]
+}

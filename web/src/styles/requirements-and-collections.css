@@ -73,7 +73,7 @@
 }
 
 .validation-metrics small {
-  color: #7b888e;
+  color: var(--muted-foreground);
   font-size: 9px;
 }
 
@@ -92,7 +92,7 @@
 }
 
 .validation-release-facts small {
-  color: #7b888e;
+  color: var(--muted-foreground);
   font-size: 9px;
 }
 

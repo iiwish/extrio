@@ -1,0 +1,1644 @@
+{
+  "cases": [
+    {
+      "case": "field-dialog-activation-trap-escape-return",
+      "language": "zh",
+      "width": 1440
+    },
+    {
+      "case": "settings-tabs-keyboard-selection",
+      "language": "zh",
+      "width": 1440
+    },
+    {
+      "case": "provider-dialog-activation-trap-escape-return",
+      "language": "zh",
+      "width": 1440
+    },
+    {
+      "case": "export-menu-keyboard-escape-return",
+      "language": "zh",
+      "width": 1440
+    },
+    {
+      "case": "field-dialog-activation-trap-escape-return",
+      "language": "zh",
+      "width": 1280
+    },
+    {
+      "case": "settings-tabs-keyboard-selection",
+      "language": "zh",
+      "width": 1280
+    },
+    {
+      "case": "provider-dialog-activation-trap-escape-return",
+      "language": "zh",
+      "width": 1280
+    },
+    {
+      "case": "export-menu-keyboard-escape-return",
+      "language": "zh",
+      "width": 1280
+    },
+    {
+      "case": "field-dialog-activation-trap-escape-return",
+      "language": "zh",
+      "width": 1132
+    },
+    {
+      "case": "settings-tabs-keyboard-selection",
+      "language": "zh",
+      "width": 1132
+    },
+    {
+      "case": "provider-dialog-activation-trap-escape-return",
+      "language": "zh",
+      "width": 1132
+    },
+    {
+      "case": "export-menu-keyboard-escape-return",
+      "language": "zh",
+      "width": 1132
+    },
+    {
+      "case": "field-dialog-activation-trap-escape-return",
+      "language": "zh",
+      "width": 1024
+    },
+    {
+      "case": "settings-tabs-keyboard-selection",
+      "language": "zh",
+      "width": 1024
+    },
+    {
+      "case": "provider-dialog-activation-trap-escape-return",
+      "language": "zh",
+      "width": 1024
+    },
+    {
+      "case": "export-menu-keyboard-escape-return",
+      "language": "zh",
+      "width": 1024
+    },
+    {
+      "case": "field-dialog-activation-trap-escape-return",
+      "language": "en",
+      "width": 1440
+    },
+    {
+      "case": "settings-tabs-keyboard-selection",
+      "language": "en",
+      "width": 1440
+    },
+    {
+      "case": "provider-dialog-activation-trap-escape-return",
+      "language": "en",
+      "width": 1440
+    },
+    {
+      "case": "export-menu-keyboard-escape-return",
+      "language": "en",
+      "width": 1440
+    },
+    {
+      "case": "field-dialog-activation-trap-escape-return",
+      "language": "en",
+      "width": 1280
+    },
+    {
+      "case": "settings-tabs-keyboard-selection",
+      "language": "en",
+      "width": 1280
+    },
+    {
+      "case": "provider-dialog-activation-trap-escape-return",
+      "language": "en",
+      "width": 1280
+    },
+    {
+      "case": "export-menu-keyboard-escape-return",
+      "language": "en",
+      "width": 1280
+    },
+    {
+      "case": "field-dialog-activation-trap-escape-return",
+      "language": "en",
+      "width": 1132
+    },
+    {
+      "case": "settings-tabs-keyboard-selection",
+      "language": "en",
+      "width": 1132
+    },
+    {
+      "case": "provider-dialog-activation-trap-escape-return",
+      "language": "en",
+      "width": 1132
+    },
+    {
+      "case": "export-menu-keyboard-escape-return",
+      "language": "en",
+      "width": 1132
+    },
+    {
+      "case": "field-dialog-activation-trap-escape-return",
+      "language": "en",
+      "width": 1024
+    },
+    {
+      "case": "settings-tabs-keyboard-selection",
+      "language": "en",
+      "width": 1024
+    },
+    {
+      "case": "provider-dialog-activation-trap-escape-return",
+      "language": "en",
+      "width": 1024
+    },
+    {
+      "case": "export-menu-keyboard-escape-return",
+      "language": "en",
+      "width": 1024
+    }
+  ],
+  "audits": [
+    {
+      "surface": "field-dialog",
+      "language": "zh",
+      "width": 1440,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": [
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(1)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "#root"
+              ],
+              "html": "<div id=\"root\" data-aria-hidden=\"true\" aria-hidden=\"true\">",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(5)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "nodes": [
+            {
+              "target": [
+                "#radix-_r_0_-trigger-fields > .requirement-unsaved"
+              ],
+              "html": "<span class=\"requirement-unsaved\">\u672a\u4fdd\u5b58</span>",
+              "summary": "Fix any of the following:\n  Element's background color could not be determined due to a pseudo element",
+              "checks": [
+                {
+                  "id": "color-contrast",
+                  "message": "Element's background color could not be determined due to a pseudo element",
+                  "data": {
+                    "fontSize": "8.3pt (11px)",
+                    "fontWeight": "normal",
+                    "messageKey": "pseudoContent",
+                    "expectedContrastRatio": "4.5:1"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "surface": "provider-dialog",
+      "language": "zh",
+      "width": 1440,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": [
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(1)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "#root"
+              ],
+              "html": "<div id=\"root\" data-aria-hidden=\"true\" aria-hidden=\"true\">",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(5)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "surface": "items",
+      "language": "zh",
+      "width": 1440,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "surface": "home",
+      "language": "zh",
+      "width": 1440,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "surface": "collector",
+      "language": "zh",
+      "width": 1440,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": [
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(1)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "#root"
+              ],
+              "html": "<div id=\"root\" data-aria-hidden=\"true\" aria-hidden=\"true\">",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(5)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "surface": "field-dialog",
+      "language": "zh",
+      "width": 1280,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": [
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(1)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "#root"
+              ],
+              "html": "<div id=\"root\" data-aria-hidden=\"true\" aria-hidden=\"true\">",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(5)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "nodes": [
+            {
+              "target": [
+                "#radix-_r_0_-trigger-fields > .requirement-unsaved"
+              ],
+              "html": "<span class=\"requirement-unsaved\">\u672a\u4fdd\u5b58</span>",
+              "summary": "Fix any of the following:\n  Element's background color could not be determined due to a pseudo element",
+              "checks": [
+                {
+                  "id": "color-contrast",
+                  "message": "Element's background color could not be determined due to a pseudo element",
+                  "data": {
+                    "fontSize": "8.3pt (11px)",
+                    "fontWeight": "normal",
+                    "messageKey": "pseudoContent",
+                    "expectedContrastRatio": "4.5:1"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "surface": "provider-dialog",
+      "language": "zh",
+      "width": 1280,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": [
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(1)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "#root"
+              ],
+              "html": "<div id=\"root\" data-aria-hidden=\"true\" aria-hidden=\"true\">",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(5)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "surface": "items",
+      "language": "zh",
+      "width": 1280,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "surface": "home",
+      "language": "zh",
+      "width": 1280,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "surface": "collector",
+      "language": "zh",
+      "width": 1280,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "surface": "field-dialog",
+      "language": "zh",
+      "width": 1132,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": [
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(1)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "#root"
+              ],
+              "html": "<div id=\"root\" data-aria-hidden=\"true\" aria-hidden=\"true\">",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(5)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "nodes": [
+            {
+              "target": [
+                "#radix-_r_0_-trigger-fields > .requirement-unsaved"
+              ],
+              "html": "<span class=\"requirement-unsaved\">\u672a\u4fdd\u5b58</span>",
+              "summary": "Fix any of the following:\n  Element's background color could not be determined due to a pseudo element",
+              "checks": [
+                {
+                  "id": "color-contrast",
+                  "message": "Element's background color could not be determined due to a pseudo element",
+                  "data": {
+                    "fontSize": "8.3pt (11px)",
+                    "fontWeight": "normal",
+                    "messageKey": "pseudoContent",
+                    "expectedContrastRatio": "4.5:1"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "surface": "provider-dialog",
+      "language": "zh",
+      "width": 1132,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": [
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(1)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "#root"
+              ],
+              "html": "<div id=\"root\" data-aria-hidden=\"true\" aria-hidden=\"true\">",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(5)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "surface": "items",
+      "language": "zh",
+      "width": 1132,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "surface": "home",
+      "language": "zh",
+      "width": 1132,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "surface": "collector",
+      "language": "zh",
+      "width": 1132,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "surface": "field-dialog",
+      "language": "zh",
+      "width": 1024,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": [
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(1)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "#root"
+              ],
+              "html": "<div id=\"root\" data-aria-hidden=\"true\" aria-hidden=\"true\">",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(5)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "nodes": [
+            {
+              "target": [
+                "#radix-_r_0_-trigger-fields > .requirement-unsaved"
+              ],
+              "html": "<span class=\"requirement-unsaved\">\u672a\u4fdd\u5b58</span>",
+              "summary": "Fix any of the following:\n  Element's background color could not be determined due to a pseudo element",
+              "checks": [
+                {
+                  "id": "color-contrast",
+                  "message": "Element's background color could not be determined due to a pseudo element",
+                  "data": {
+                    "fontSize": "8.3pt (11px)",
+                    "fontWeight": "normal",
+                    "messageKey": "pseudoContent",
+                    "expectedContrastRatio": "4.5:1"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "surface": "provider-dialog",
+      "language": "zh",
+      "width": 1024,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": [
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(1)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "#root"
+              ],
+              "html": "<div id=\"root\" data-aria-hidden=\"true\" aria-hidden=\"true\">",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(5)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "surface": "items",
+      "language": "zh",
+      "width": 1024,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "surface": "home",
+      "language": "zh",
+      "width": 1024,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "surface": "collector",
+      "language": "zh",
+      "width": 1024,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "surface": "field-dialog",
+      "language": "en",
+      "width": 1440,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": [
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(1)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "#root"
+              ],
+              "html": "<div id=\"root\" data-aria-hidden=\"true\" aria-hidden=\"true\">",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(5)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "nodes": [
+            {
+              "target": [
+                "#radix-_r_0_-trigger-fields > .requirement-unsaved"
+              ],
+              "html": "<span class=\"requirement-unsaved\">Unsaved</span>",
+              "summary": "Fix any of the following:\n  Element's background color could not be determined due to a pseudo element",
+              "checks": [
+                {
+                  "id": "color-contrast",
+                  "message": "Element's background color could not be determined due to a pseudo element",
+                  "data": {
+                    "fontSize": "8.3pt (11px)",
+                    "fontWeight": "normal",
+                    "messageKey": "pseudoContent",
+                    "expectedContrastRatio": "4.5:1"
+                  }
+                }
+              ]
+            },
+            {
+              "target": [
+                "#radix-_r_d_"
+              ],
+              "html": "<p id=\"radix-_r_d_\" data-slot=\"dialog-description\" class=\"text-sm text-muted-foreground *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-foreground\">Field definitions are saved to the requirement draft. Extraction selectors and rules are managed in the source workspace.</p>",
+              "summary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements",
+              "checks": [
+                {
+                  "id": "color-contrast",
+                  "message": "Element's background color could not be determined because it partially overlaps other elements",
+                  "data": {
+                    "fgColor": null,
+                    "bgColor": null,
+                    "contrastRatio": 0,
+                    "fontSize": "10.5pt (14px)",
+                    "fontWeight": "normal",
+                    "messageKey": "elmPartiallyObscuring",
+                    "expectedContrastRatio": "4.5:1",
+                    "shadowColor": null,
+                    "colorParse": null
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "surface": "provider-dialog",
+      "language": "en",
+      "width": 1440,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": [
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(1)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "#root"
+              ],
+              "html": "<div id=\"root\" data-aria-hidden=\"true\" aria-hidden=\"true\">",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(5)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "nodes": [
+            {
+              "target": [
+                "#radix-_r_i_"
+              ],
+              "html": "<p id=\"radix-_r_i_\" data-slot=\"dialog-description\" class=\"text-sm text-muted-foreground *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-foreground\">Configure provider credentials directly. Keys are stored encrypted and never shown again.</p>",
+              "summary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements",
+              "checks": [
+                {
+                  "id": "color-contrast",
+                  "message": "Element's background color could not be determined because it partially overlaps other elements",
+                  "data": {
+                    "fgColor": null,
+                    "bgColor": null,
+                    "contrastRatio": 0,
+                    "fontSize": "10.5pt (14px)",
+                    "fontWeight": "normal",
+                    "messageKey": "elmPartiallyObscuring",
+                    "expectedContrastRatio": "4.5:1",
+                    "shadowColor": null,
+                    "colorParse": null
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "surface": "items",
+      "language": "en",
+      "width": 1440,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "surface": "home",
+      "language": "en",
+      "width": 1440,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "surface": "collector",
+      "language": "en",
+      "width": 1440,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "surface": "field-dialog",
+      "language": "en",
+      "width": 1280,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": [
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(1)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "#root"
+              ],
+              "html": "<div id=\"root\" data-aria-hidden=\"true\" aria-hidden=\"true\">",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(5)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "nodes": [
+            {
+              "target": [
+                "#radix-_r_0_-trigger-fields > .requirement-unsaved"
+              ],
+              "html": "<span class=\"requirement-unsaved\">Unsaved</span>",
+              "summary": "Fix any of the following:\n  Element's background color could not be determined due to a pseudo element",
+              "checks": [
+                {
+                  "id": "color-contrast",
+                  "message": "Element's background color could not be determined due to a pseudo element",
+                  "data": {
+                    "fontSize": "8.3pt (11px)",
+                    "fontWeight": "normal",
+                    "messageKey": "pseudoContent",
+                    "expectedContrastRatio": "4.5:1"
+                  }
+                }
+              ]
+            },
+            {
+              "target": [
+                "#radix-_r_d_"
+              ],
+              "html": "<p id=\"radix-_r_d_\" data-slot=\"dialog-description\" class=\"text-sm text-muted-foreground *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-foreground\">Field definitions are saved to the requirement draft. Extraction selectors and rules are managed in the source workspace.</p>",
+              "summary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements",
+              "checks": [
+                {
+                  "id": "color-contrast",
+                  "message": "Element's background color could not be determined because it partially overlaps other elements",
+                  "data": {
+                    "fgColor": null,
+                    "bgColor": null,
+                    "contrastRatio": 0,
+                    "fontSize": "10.5pt (14px)",
+                    "fontWeight": "normal",
+                    "messageKey": "elmPartiallyObscuring",
+                    "expectedContrastRatio": "4.5:1",
+                    "shadowColor": null,
+                    "colorParse": null
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "surface": "provider-dialog",
+      "language": "en",
+      "width": 1280,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": [
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(1)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "#root"
+              ],
+              "html": "<div id=\"root\" data-aria-hidden=\"true\" aria-hidden=\"true\">",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(5)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "nodes": [
+            {
+              "target": [
+                "#radix-_r_i_"
+              ],
+              "html": "<p id=\"radix-_r_i_\" data-slot=\"dialog-description\" class=\"text-sm text-muted-foreground *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-foreground\">Configure provider credentials directly. Keys are stored encrypted and never shown again.</p>",
+              "summary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements",
+              "checks": [
+                {
+                  "id": "color-contrast",
+                  "message": "Element's background color could not be determined because it partially overlaps other elements",
+                  "data": {
+                    "fgColor": null,
+                    "bgColor": null,
+                    "contrastRatio": 0,
+                    "fontSize": "10.5pt (14px)",
+                    "fontWeight": "normal",
+                    "messageKey": "elmPartiallyObscuring",
+                    "expectedContrastRatio": "4.5:1",
+                    "shadowColor": null,
+                    "colorParse": null
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "surface": "items",
+      "language": "en",
+      "width": 1280,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "surface": "home",
+      "language": "en",
+      "width": 1280,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "surface": "collector",
+      "language": "en",
+      "width": 1280,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "surface": "field-dialog",
+      "language": "en",
+      "width": 1132,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": [
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(1)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "#root"
+              ],
+              "html": "<div id=\"root\" data-aria-hidden=\"true\" aria-hidden=\"true\">",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(5)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "nodes": [
+            {
+              "target": [
+                "#radix-_r_0_-trigger-fields > .requirement-unsaved"
+              ],
+              "html": "<span class=\"requirement-unsaved\">Unsaved</span>",
+              "summary": "Fix any of the following:\n  Element's background color could not be determined due to a pseudo element",
+              "checks": [
+                {
+                  "id": "color-contrast",
+                  "message": "Element's background color could not be determined due to a pseudo element",
+                  "data": {
+                    "fontSize": "8.3pt (11px)",
+                    "fontWeight": "normal",
+                    "messageKey": "pseudoContent",
+                    "expectedContrastRatio": "4.5:1"
+                  }
+                }
+              ]
+            },
+            {
+              "target": [
+                "#radix-_r_d_"
+              ],
+              "html": "<p id=\"radix-_r_d_\" data-slot=\"dialog-description\" class=\"text-sm text-muted-foreground *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-foreground\">Field definitions are saved to the requirement draft. Extraction selectors and rules are managed in the source workspace.</p>",
+              "summary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements",
+              "checks": [
+                {
+                  "id": "color-contrast",
+                  "message": "Element's background color could not be determined because it partially overlaps other elements",
+                  "data": {
+                    "fgColor": null,
+                    "bgColor": null,
+                    "contrastRatio": 0,
+                    "fontSize": "10.5pt (14px)",
+                    "fontWeight": "normal",
+                    "messageKey": "elmPartiallyObscuring",
+                    "expectedContrastRatio": "4.5:1",
+                    "shadowColor": null,
+                    "colorParse": null
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "surface": "provider-dialog",
+      "language": "en",
+      "width": 1132,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": [
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(1)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "#root"
+              ],
+              "html": "<div id=\"root\" data-aria-hidden=\"true\" aria-hidden=\"true\">",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(5)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "nodes": [
+            {
+              "target": [
+                "#radix-_r_i_"
+              ],
+              "html": "<p id=\"radix-_r_i_\" data-slot=\"dialog-description\" class=\"text-sm text-muted-foreground *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-foreground\">Configure provider credentials directly. Keys are stored encrypted and never shown again.</p>",
+              "summary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements",
+              "checks": [
+                {
+                  "id": "color-contrast",
+                  "message": "Element's background color could not be determined because it partially overlaps other elements",
+                  "data": {
+                    "fgColor": null,
+                    "bgColor": null,
+                    "contrastRatio": 0,
+                    "fontSize": "10.5pt (14px)",
+                    "fontWeight": "normal",
+                    "messageKey": "elmPartiallyObscuring",
+                    "expectedContrastRatio": "4.5:1",
+                    "shadowColor": null,
+                    "colorParse": null
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "surface": "items",
+      "language": "en",
+      "width": 1132,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "surface": "home",
+      "language": "en",
+      "width": 1132,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "surface": "collector",
+      "language": "en",
+      "width": 1132,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "surface": "field-dialog",
+      "language": "en",
+      "width": 1024,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": [
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(1)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "#root"
+              ],
+              "html": "<div id=\"root\" data-aria-hidden=\"true\" aria-hidden=\"true\">",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(5)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "nodes": [
+            {
+              "target": [
+                "#radix-_r_0_-trigger-fields > .requirement-unsaved"
+              ],
+              "html": "<span class=\"requirement-unsaved\">Unsaved</span>",
+              "summary": "Fix any of the following:\n  Element's background color could not be determined due to a pseudo element",
+              "checks": [
+                {
+                  "id": "color-contrast",
+                  "message": "Element's background color could not be determined due to a pseudo element",
+                  "data": {
+                    "fontSize": "8.3pt (11px)",
+                    "fontWeight": "normal",
+                    "messageKey": "pseudoContent",
+                    "expectedContrastRatio": "4.5:1"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "surface": "provider-dialog",
+      "language": "en",
+      "width": 1024,
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "nodes": [
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(1)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "#root"
+              ],
+              "html": "<div id=\"root\" data-aria-hidden=\"true\" aria-hidden=\"true\">",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            },
+            {
+              "target": [
+                "span[data-radix-focus-guard=\"\"][data-aria-hidden=\"true\"]:nth-child(5)"
+              ],
+              "html": "<span data-radix-focus-guard=\"\" tabindex=\"0\" data-aria-hidden=\"true\" aria-hidden=\"true\" style=\"outline: none; opacity: 0; position: fixed; pointer-events: none;\"></span>",
+              "summary": "Fix all of the following:\n  Check that focusable elements are not tabbable in the current state",
+              "checks": [
+                {
+                  "id": "focusable-modal-open",
+                  "message": "Check that focusable elements are not tabbable in the current state",
+                  "data": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "nodes": [
+            {
+              "target": [
+                "#radix-_r_i_"
+              ],
+              "html": "<p id=\"radix-_r_i_\" data-slot=\"dialog-description\" class=\"text-sm text-muted-foreground *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-foreground\">Configure provider credentials directly. Keys are stored encrypted and never shown again.</p>",
+              "summary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements",
+              "checks": [
+                {
+                  "id": "color-contrast",
+                  "message": "Element's background color could not be determined because it partially overlaps other elements",
+                  "data": {
+                    "fgColor": null,
+                    "bgColor": null,
+                    "contrastRatio": 0,
+                    "fontSize": "10.5pt (14px)",
+                    "fontWeight": "normal",
+                    "messageKey": "elmPartiallyObscuring",
+                    "expectedContrastRatio": "4.5:1",
+                    "shadowColor": null,
+                    "colorParse": null
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "surface": "items",
+      "language": "en",
+      "width": 1024,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "surface": "home",
+      "language": "en",
+      "width": 1024,
+      "violations": [],
+      "incomplete": []
+    },
+    {
+      "surface": "collector",
+      "language": "en",
+      "width": 1024,
+      "violations": [],
+      "incomplete": []
+    }
+  ],
+  "pageErrors": [],
+  "scope": "Program-driven keyboard events; not screen-reader or full WCAG certification"
+}

@@ -1,0 +1,464 @@
+{
+  "database": "postgresql",
+  "cases": [
+    {
+      "case": "anonymous-denied:/collections",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 401,
+        "code": "AUTH_REQUIRED"
+      }
+    },
+    {
+      "case": "anonymous-denied:/collectors",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 401,
+        "code": "AUTH_REQUIRED"
+      }
+    },
+    {
+      "case": "anonymous-denied:/runs",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 401,
+        "code": "AUTH_REQUIRED"
+      }
+    },
+    {
+      "case": "anonymous-denied:/items",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 401,
+        "code": "AUTH_REQUIRED"
+      }
+    },
+    {
+      "case": "anonymous-denied:/items/export?format=csv",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 401,
+        "code": "AUTH_REQUIRED"
+      }
+    },
+    {
+      "case": "anonymous-denied:/settings/models",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 401,
+        "code": "AUTH_REQUIRED"
+      }
+    },
+    {
+      "case": "anonymous-denied:/users",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 401,
+        "code": "AUTH_REQUIRED"
+      }
+    },
+    {
+      "case": "first-admin-setup-closed",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 409,
+        "code": "SETUP_ALREADY_COMPLETED"
+      }
+    },
+    {
+      "case": "cross-origin-mutation-denied",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 403,
+        "code": "FORBIDDEN"
+      }
+    },
+    {
+      "case": "cross-site-mutation-denied",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 403,
+        "code": "FORBIDDEN"
+      }
+    },
+    {
+      "case": "missing-idempotency-rejected",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 400,
+        "code": "IDEMPOTENCY_KEY_REQUIRED"
+      }
+    },
+    {
+      "case": "collection-validation:empty-name",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 422,
+        "code": "VALIDATION_FAILED"
+      }
+    },
+    {
+      "case": "collection-validation:name-201",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 422,
+        "code": "VALIDATION_FAILED"
+      }
+    },
+    {
+      "case": "collection-validation:numeric-name",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 422,
+        "code": "VALIDATION_FAILED"
+      }
+    },
+    {
+      "case": "collection-validation:array-intent",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 422,
+        "code": "VALIDATION_FAILED"
+      }
+    },
+    {
+      "case": "collection-validation:unknown-property",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 422,
+        "code": "VALIDATION_FAILED"
+      }
+    },
+    {
+      "case": "malformed-json",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 422,
+        "code": "VALIDATION_FAILED"
+      }
+    },
+    {
+      "case": "pagination-boundary:limit=-1",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 422,
+        "code": "VALIDATION_FAILED"
+      }
+    },
+    {
+      "case": "pagination-boundary:limit=10001",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 422,
+        "code": "VALIDATION_FAILED"
+      }
+    },
+    {
+      "case": "pagination-boundary:page=0",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 422,
+        "code": "VALIDATION_FAILED"
+      }
+    },
+    {
+      "case": "source-validation:numeric-name",
+      "status": "failed",
+      "detail": "expected 422, got 500: {\"code\":\"INTERNAL_ERROR\",\"message\":\"\u670d\u52a1\u5185\u90e8\u9519\u8bef\",\"requestId\":\"req_1c233f1820d44100826d\",\"retryable\":true,\"pointer\":null,\"details\":{}}"
+    },
+    {
+      "case": "source-validation:array-name",
+      "status": "failed",
+      "detail": "expected 422, got 500: {\"code\":\"INTERNAL_ERROR\",\"message\":\"\u670d\u52a1\u5185\u90e8\u9519\u8bef\",\"requestId\":\"req_4a15faa7d9cb42a09108\",\"retryable\":true,\"pointer\":null,\"details\":{}}"
+    },
+    {
+      "case": "source-validation:numeric-intent",
+      "status": "failed",
+      "detail": "expected 422, got 500: {\"code\":\"INTERNAL_ERROR\",\"message\":\"\u670d\u52a1\u5185\u90e8\u9519\u8bef\",\"requestId\":\"req_30edfa5345a74ca19f06\",\"retryable\":true,\"pointer\":null,\"details\":{}}"
+    },
+    {
+      "case": "unsafe-source-rejected:file:///etc/passwd",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 422,
+        "code": "INVALID_URL"
+      }
+    },
+    {
+      "case": "unsafe-source-rejected:https://169.254.169.254/latest/meta-data/",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 422,
+        "code": "INVALID_URL"
+      }
+    },
+    {
+      "case": "unsafe-source-rejected:https://10.0.0.1/",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 422,
+        "code": "INVALID_URL"
+      }
+    },
+    {
+      "case": "unsafe-source-rejected:https://user:password@example.com/",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 422,
+        "code": "INVALID_URL"
+      }
+    },
+    {
+      "case": "unsafe-source-rejected:javascript:alert(1)",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 422,
+        "code": "INVALID_URL"
+      }
+    },
+    {
+      "case": "concurrent-duplicate-create",
+      "status": "passed",
+      "detail": {
+        "requests": 12,
+        "logicalResources": 1,
+        "replayed": 11
+      }
+    },
+    {
+      "case": "idempotency-body-conflict",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 409,
+        "code": "IDEMPOTENCY_KEY_REUSED"
+      }
+    },
+    {
+      "case": "optimistic-update",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 200,
+        "code": null
+      }
+    },
+    {
+      "case": "stale-revision-rejected",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 409,
+        "code": "COLLECTION_CONFLICT"
+      }
+    },
+    {
+      "case": "boolean-revision-rejected",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 422,
+        "code": "VALIDATION_FAILED"
+      }
+    },
+    {
+      "case": "viewer:read-items",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 200,
+        "code": null
+      }
+    },
+    {
+      "case": "viewer:admin-write-denied",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 403,
+        "code": "FORBIDDEN"
+      }
+    },
+    {
+      "case": "viewer:create-user-denied",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 403,
+        "code": "FORBIDDEN"
+      }
+    },
+    {
+      "case": "viewer:create-collection-denied",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 403,
+        "code": "FORBIDDEN"
+      }
+    },
+    {
+      "case": "viewer:publish-denied",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 403,
+        "code": "FORBIDDEN"
+      }
+    },
+    {
+      "case": "disable-viewer",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 200,
+        "code": null
+      }
+    },
+    {
+      "case": "disabled-session-rejected",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 401,
+        "code": "AUTH_REQUIRED"
+      }
+    },
+    {
+      "case": "disabled-cookie-replay-rejected",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 401,
+        "code": "AUTH_REQUIRED"
+      }
+    },
+    {
+      "case": "engineer:read-items",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 200,
+        "code": null
+      }
+    },
+    {
+      "case": "engineer:admin-write-denied",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 403,
+        "code": "FORBIDDEN"
+      }
+    },
+    {
+      "case": "engineer:create-user-denied",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 403,
+        "code": "FORBIDDEN"
+      }
+    },
+    {
+      "case": "engineer:create-collection-allowed",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 201,
+        "code": null
+      }
+    },
+    {
+      "case": "engineer:publish-denied",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 403,
+        "code": "FORBIDDEN"
+      }
+    },
+    {
+      "case": "administrator-resets-engineer-password",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 200,
+        "code": null
+      }
+    },
+    {
+      "case": "password-reset-revokes-session",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 401,
+        "code": "AUTH_REQUIRED"
+      }
+    },
+    {
+      "case": "reviewer:read-items",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 200,
+        "code": null
+      }
+    },
+    {
+      "case": "reviewer:admin-write-denied",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 403,
+        "code": "FORBIDDEN"
+      }
+    },
+    {
+      "case": "reviewer:create-user-denied",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 403,
+        "code": "FORBIDDEN"
+      }
+    },
+    {
+      "case": "reviewer:create-collection-denied",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 403,
+        "code": "FORBIDDEN"
+      }
+    },
+    {
+      "case": "last-administrator-demotion-rejected",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 409,
+        "code": "LAST_ADMINISTRATOR"
+      }
+    },
+    {
+      "case": "self-disable-rejected",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 409,
+        "code": "SELF_DISABLE"
+      }
+    },
+    {
+      "case": "run-request-idempotency",
+      "status": "passed",
+      "detail": {
+        "sameOperation": true
+      }
+    },
+    {
+      "case": "published-runtime-does-not-call-model",
+      "status": "passed",
+      "detail": {
+        "runStatus": "succeeded",
+        "acceptedCount": 1,
+        "additionalModelCalls": 0
+      }
+    },
+    {
+      "case": "logout",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 200,
+        "code": null
+      }
+    },
+    {
+      "case": "logout-cookie-replay-rejected",
+      "status": "passed",
+      "detail": {
+        "httpStatus": 401,
+        "code": "AUTH_REQUIRED"
+      }
+    }
+  ],
+  "passed": 55,
+  "failed": 3,
+  "notRun": 0
+}

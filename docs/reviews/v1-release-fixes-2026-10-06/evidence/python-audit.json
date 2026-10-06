@@ -1,0 +1,19 @@
+{
+  "vulnerabilityCount": 1,
+  "dependencies": [
+    {
+      "name": "nltk",
+      "version": "3.10.3",
+      "vulns": [
+        {
+          "id": "PYSEC-2026-3740",
+          "fix_versions": [],
+          "aliases": [
+            "CVE-2026-81726",
+            "GHSA-8mgp-746c-j5xp"
+          ]
+        }
+      ]
+    }
+  ]
+}

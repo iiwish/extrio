@@ -1,0 +1,1107 @@
+{
+  "collectionUrl": "http://127.0.0.1:5207/collections/collection_x_31c69468e89e40e880a0a150651e816f",
+  "collectorUrl": "http://127.0.0.1:5207/collectors/collector_x_127_0_0_1_72fc6e19?returnTo=%2Fcollections%2Fcollection_x_31c69468e89e40e880a0a150651e816f%3Fsection%3Dsources",
+  "signedDeliveries": 1,
+  "runUrl": "http://127.0.0.1:5207/runs/run_e121c7f49d4948d4?returnTo=%2Fcollectors%2Fcollector_x_127_0_0_1_72fc6e19%3FreturnTo%3D%252Fcollections%252Fcollection_x_31c69468e89e40e880a0a150651e816f%253Fsection%253Dsources%26section%3Doverview",
+  "runId": "run_e121c7f49d4948d4",
+  "collectionVersion": "colver_collection_x_31c69468e89e40e880a0a150651e816f_v1",
+  "itemUrl": "http://127.0.0.1:5207/items/item_e121c7f49d4948d4_6df45c12eb",
+  "aiRunUrl": "http://127.0.0.1:5207/ai-runs/ai_run_e49ff02485e547aa830501cf004ac9ef",
+  "runStatus": "succeeded",
+  "modelEvidence": "synthetic HTTPS protocol fixture; not P28",
+  "exports": [
+    "CSV",
+    "JSONL"
+  ],
+  "measurements": [
+    {
+      "surface": "home",
+      "language": "zh",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "collections",
+      "language": "zh",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "new-collection",
+      "language": "zh",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "collection",
+      "language": "zh",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "collection-sources",
+      "language": "zh",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "collectors",
+      "language": "zh",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "new-collector",
+      "language": "zh",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "collector",
+      "language": "zh",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "collector-results",
+      "language": "zh",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "collector-rule",
+      "language": "zh",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "runs",
+      "language": "zh",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "run",
+      "language": "zh",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "ai-run",
+      "language": "zh",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "items",
+      "language": "zh",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "item",
+      "language": "zh",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "settings",
+      "language": "zh",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "models",
+      "language": "zh",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "home",
+      "language": "zh",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "collections",
+      "language": "zh",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "new-collection",
+      "language": "zh",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "collection",
+      "language": "zh",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "collection-sources",
+      "language": "zh",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "collectors",
+      "language": "zh",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "new-collector",
+      "language": "zh",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "collector",
+      "language": "zh",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "collector-results",
+      "language": "zh",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "collector-rule",
+      "language": "zh",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "runs",
+      "language": "zh",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "run",
+      "language": "zh",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "ai-run",
+      "language": "zh",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "items",
+      "language": "zh",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "item",
+      "language": "zh",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "settings",
+      "language": "zh",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "models",
+      "language": "zh",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "home",
+      "language": "zh",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "collections",
+      "language": "zh",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "new-collection",
+      "language": "zh",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "collection",
+      "language": "zh",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "collection-sources",
+      "language": "zh",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "collectors",
+      "language": "zh",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "new-collector",
+      "language": "zh",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "collector",
+      "language": "zh",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "collector-results",
+      "language": "zh",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "collector-rule",
+      "language": "zh",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "runs",
+      "language": "zh",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "run",
+      "language": "zh",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "ai-run",
+      "language": "zh",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "items",
+      "language": "zh",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "item",
+      "language": "zh",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "settings",
+      "language": "zh",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "models",
+      "language": "zh",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "home",
+      "language": "zh",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "collections",
+      "language": "zh",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "new-collection",
+      "language": "zh",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "collection",
+      "language": "zh",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "collection-sources",
+      "language": "zh",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "collectors",
+      "language": "zh",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "new-collector",
+      "language": "zh",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "collector",
+      "language": "zh",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "collector-results",
+      "language": "zh",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "collector-rule",
+      "language": "zh",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "runs",
+      "language": "zh",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "run",
+      "language": "zh",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "ai-run",
+      "language": "zh",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "items",
+      "language": "zh",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "item",
+      "language": "zh",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "settings",
+      "language": "zh",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "models",
+      "language": "zh",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "zh-CN"
+    },
+    {
+      "surface": "home",
+      "language": "en",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "en"
+    },
+    {
+      "surface": "collections",
+      "language": "en",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "en"
+    },
+    {
+      "surface": "new-collection",
+      "language": "en",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "en"
+    },
+    {
+      "surface": "collection",
+      "language": "en",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "en"
+    },
+    {
+      "surface": "collection-sources",
+      "language": "en",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "en"
+    },
+    {
+      "surface": "collectors",
+      "language": "en",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "en"
+    },
+    {
+      "surface": "new-collector",
+      "language": "en",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "en"
+    },
+    {
+      "surface": "collector",
+      "language": "en",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "en"
+    },
+    {
+      "surface": "collector-results",
+      "language": "en",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "en"
+    },
+    {
+      "surface": "collector-rule",
+      "language": "en",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "en"
+    },
+    {
+      "surface": "runs",
+      "language": "en",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "en"
+    },
+    {
+      "surface": "run",
+      "language": "en",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "en"
+    },
+    {
+      "surface": "ai-run",
+      "language": "en",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "en"
+    },
+    {
+      "surface": "items",
+      "language": "en",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "en"
+    },
+    {
+      "surface": "item",
+      "language": "en",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "en"
+    },
+    {
+      "surface": "settings",
+      "language": "en",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "en"
+    },
+    {
+      "surface": "models",
+      "language": "en",
+      "width": 1440,
+      "height": 900,
+      "scroll": 1440,
+      "lang": "en"
+    },
+    {
+      "surface": "home",
+      "language": "en",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "en"
+    },
+    {
+      "surface": "collections",
+      "language": "en",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "en"
+    },
+    {
+      "surface": "new-collection",
+      "language": "en",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "en"
+    },
+    {
+      "surface": "collection",
+      "language": "en",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "en"
+    },
+    {
+      "surface": "collection-sources",
+      "language": "en",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "en"
+    },
+    {
+      "surface": "collectors",
+      "language": "en",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "en"
+    },
+    {
+      "surface": "new-collector",
+      "language": "en",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "en"
+    },
+    {
+      "surface": "collector",
+      "language": "en",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "en"
+    },
+    {
+      "surface": "collector-results",
+      "language": "en",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "en"
+    },
+    {
+      "surface": "collector-rule",
+      "language": "en",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "en"
+    },
+    {
+      "surface": "runs",
+      "language": "en",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "en"
+    },
+    {
+      "surface": "run",
+      "language": "en",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "en"
+    },
+    {
+      "surface": "ai-run",
+      "language": "en",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "en"
+    },
+    {
+      "surface": "items",
+      "language": "en",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "en"
+    },
+    {
+      "surface": "item",
+      "language": "en",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "en"
+    },
+    {
+      "surface": "settings",
+      "language": "en",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "en"
+    },
+    {
+      "surface": "models",
+      "language": "en",
+      "width": 1280,
+      "height": 800,
+      "scroll": 1280,
+      "lang": "en"
+    },
+    {
+      "surface": "home",
+      "language": "en",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "en"
+    },
+    {
+      "surface": "collections",
+      "language": "en",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "en"
+    },
+    {
+      "surface": "new-collection",
+      "language": "en",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "en"
+    },
+    {
+      "surface": "collection",
+      "language": "en",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "en"
+    },
+    {
+      "surface": "collection-sources",
+      "language": "en",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "en"
+    },
+    {
+      "surface": "collectors",
+      "language": "en",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "en"
+    },
+    {
+      "surface": "new-collector",
+      "language": "en",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "en"
+    },
+    {
+      "surface": "collector",
+      "language": "en",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "en"
+    },
+    {
+      "surface": "collector-results",
+      "language": "en",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "en"
+    },
+    {
+      "surface": "collector-rule",
+      "language": "en",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "en"
+    },
+    {
+      "surface": "runs",
+      "language": "en",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "en"
+    },
+    {
+      "surface": "run",
+      "language": "en",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "en"
+    },
+    {
+      "surface": "ai-run",
+      "language": "en",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "en"
+    },
+    {
+      "surface": "items",
+      "language": "en",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "en"
+    },
+    {
+      "surface": "item",
+      "language": "en",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "en"
+    },
+    {
+      "surface": "settings",
+      "language": "en",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "en"
+    },
+    {
+      "surface": "models",
+      "language": "en",
+      "width": 1132,
+      "height": 1028,
+      "scroll": 1132,
+      "lang": "en"
+    },
+    {
+      "surface": "home",
+      "language": "en",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "en"
+    },
+    {
+      "surface": "collections",
+      "language": "en",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "en"
+    },
+    {
+      "surface": "new-collection",
+      "language": "en",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "en"
+    },
+    {
+      "surface": "collection",
+      "language": "en",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "en"
+    },
+    {
+      "surface": "collection-sources",
+      "language": "en",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "en"
+    },
+    {
+      "surface": "collectors",
+      "language": "en",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "en"
+    },
+    {
+      "surface": "new-collector",
+      "language": "en",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "en"
+    },
+    {
+      "surface": "collector",
+      "language": "en",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "en"
+    },
+    {
+      "surface": "collector-results",
+      "language": "en",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "en"
+    },
+    {
+      "surface": "collector-rule",
+      "language": "en",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "en"
+    },
+    {
+      "surface": "runs",
+      "language": "en",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "en"
+    },
+    {
+      "surface": "run",
+      "language": "en",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "en"
+    },
+    {
+      "surface": "ai-run",
+      "language": "en",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "en"
+    },
+    {
+      "surface": "items",
+      "language": "en",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "en"
+    },
+    {
+      "surface": "item",
+      "language": "en",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "en"
+    },
+    {
+      "surface": "settings",
+      "language": "en",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "en"
+    },
+    {
+      "surface": "models",
+      "language": "en",
+      "width": 1024,
+      "height": 800,
+      "scroll": 1024,
+      "lang": "en"
+    }
+  ],
+  "pageErrors": []
+}

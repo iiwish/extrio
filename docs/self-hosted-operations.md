@@ -111,7 +111,7 @@ uv run --project backend extrio-keys set-signing-status --offline --key-id signi
 
 ## 全量备份恢复
 
-备份前暂停调度并停止全部 API、Worker、MCP；确认没有活动同主机锁或新鲜 Worker。崩溃 Worker 的心跳需要过期。全量包包含数据库快照、全部 Artifact 文件、当前签名私钥、完整凭据 keyring、配置身份及 SHA-256 清单。SQLite 使用一致快照，PostgreSQL 使用 `pg_dump` custom archive；容器附带 PostgreSQL 16 客户端。服务端版本不得高于备份客户端支持版本。
+备份前暂停调度并停止全部 API、Worker、MCP；确认没有活动同主机锁或新鲜 Worker。崩溃 Worker 的心跳需要过期。全量包包含数据库快照、全部 Artifact 文件、当前签名私钥、完整凭据 keyring、配置身份及 SHA-256 清单。SQLite 使用一致快照，PostgreSQL 使用 `pg_dump` custom archive；容器附带 PostgreSQL 16 客户端，备份与恢复均使用与受支持服务端一致的主版本。高主版本工具产生的归档不保证能恢复到 PG16，即使备份来源也是 PG16；升级前必须在空 PG16 实例完成恢复演练，才可将该备份作为回退依据。
 
 ```bash
 uv run --project backend extrio-backup /secure-backups/extrio-20260910 --offline

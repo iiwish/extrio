@@ -1,0 +1,96 @@
+{
+  "scanner": "Trivy 0.75.0",
+  "imageId": "sha256:b941974973de7ed19944b339c8c27344a6a8277502040e07555887dd1cbcc321",
+  "architecture": "linux/arm64",
+  "createdAt": "2026-10-06T08:44:43.513925256Z",
+  "results": [
+    {
+      "Target": "extrio/qa-backend:20261006 (debian 12.15)",
+      "Type": "debian",
+      "vulnerabilities": []
+    },
+    {
+      "Target": "Node.js",
+      "Type": "node-pkg",
+      "vulnerabilities": []
+    },
+    {
+      "Target": "Python",
+      "Type": "python-pkg",
+      "vulnerabilities": [
+        {
+          "PkgName": "PyJWT",
+          "InstalledVersion": "2.13.0",
+          "VulnerabilityID": "CVE-2026-102268",
+          "Severity": "CRITICAL",
+          "FixedVersion": "2.14.0",
+          "Title": "PyJWT is a Python implementation of JSON Web Token standards. Prior to ...",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-102268"
+        },
+        {
+          "PkgName": "PyJWT",
+          "InstalledVersion": "2.13.0",
+          "VulnerabilityID": "CVE-2026-102266",
+          "Severity": "HIGH",
+          "FixedVersion": "2.14.0",
+          "Title": "pyjwt: pyjwt: Authentication bypass via empty HMAC key acceptance",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-102266"
+        },
+        {
+          "PkgName": "PyJWT",
+          "InstalledVersion": "2.13.0",
+          "VulnerabilityID": "CVE-2026-102267",
+          "Severity": "HIGH",
+          "FixedVersion": "2.14.0",
+          "Title": "pyjwt: pyjwt: Verification key substitution via unvalidated JWKS redirects",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-102267"
+        },
+        {
+          "PkgName": "PyJWT",
+          "InstalledVersion": "2.13.0",
+          "VulnerabilityID": "CVE-2026-102271",
+          "Severity": "HIGH",
+          "FixedVersion": "2.14.0",
+          "Title": "pyjwt: PyJWT: Authentication bypass via acceptance of DER public keys as HMAC secrets",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-102271"
+        },
+        {
+          "PkgName": "PyJWT",
+          "InstalledVersion": "2.13.0",
+          "VulnerabilityID": "CVE-2026-102272",
+          "Severity": "HIGH",
+          "FixedVersion": "2.14.0",
+          "Title": "pyjwt: pyjwt: Token forgery via improper Unicode byte-order mark handling",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-102272"
+        },
+        {
+          "PkgName": "PyJWT",
+          "InstalledVersion": "2.13.0",
+          "VulnerabilityID": "CVE-2026-102273",
+          "Severity": "HIGH",
+          "FixedVersion": "2.14.0",
+          "Title": "pyjwt: pyjwt: Token forgery via acceptance of public JWK containers as HMAC secrets",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-102273"
+        },
+        {
+          "PkgName": "urllib3",
+          "InstalledVersion": "2.7.0",
+          "VulnerabilityID": "CVE-2026-97687",
+          "Severity": "HIGH",
+          "FixedVersion": "2.8.0",
+          "Title": "urllib3: urllib3: Traffic interception via HTTPS proxy TLS configuration override",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-97687"
+        },
+        {
+          "PkgName": "urllib3",
+          "InstalledVersion": "2.7.0",
+          "VulnerabilityID": "CVE-2026-97689",
+          "Severity": "HIGH",
+          "FixedVersion": "2.8.0",
+          "Title": "urllib3: urllib3: Denial of Service via unbounded memory allocation in chunk parser",
+          "PrimaryURL": "https://avd.aquasec.com/nvd/cve-2026-97689"
+        }
+      ]
+    }
+  ]
+}

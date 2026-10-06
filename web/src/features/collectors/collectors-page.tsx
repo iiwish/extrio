@@ -90,7 +90,7 @@ export function CollectorsPage() {
     <ListWorkspace className="page-frame entity-page collectors-page" label={t('list.aria')}
       count={query.data?.total} loading={query.isLoading} refreshing={query.isFetching} failed={query.isError} showSummary={false} resetKey={list.resetKey} pagination={list.pagination}
       notices={<QueryError error={query.error} onRetry={refresh} retrying={query.isFetching} />}
-      toolbar={<div className="filter-card collector-toolbar" aria-label={t('list.toolbarAria')}>
+      toolbar={<div role="group" className="filter-card collector-toolbar" aria-label={t('list.toolbarAria')}>
         <div className="segmented" role="group" aria-label={t('list.filterGroupAria')}>
           <Button aria-pressed={filter === 'all'} variant={filter === 'all' ? 'secondary' : 'ghost'} size="sm" onClick={() => setFilter('all')}>{t('list.filterAll')} <span>{count('all')}</span></Button>
           <Button aria-pressed={filter === 'attention'} variant={filter === 'attention' ? 'secondary' : 'ghost'} size="sm" onClick={() => setFilter('attention')}>{t('list.filterAttention')} <span>{count('attention')}</span></Button>

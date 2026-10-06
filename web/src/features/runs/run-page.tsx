@@ -163,7 +163,7 @@ export function RunPage() {
             {unsuccessful && <Alert variant="destructive"><AlertTriangle /><AlertTitle>{t('detail.unsuccessfulTitle', { status: terminalLabel })}</AlertTitle><AlertDescription><strong>{t(`detail.failure.${failureGroup}`)}</strong><span>{t(`detail.recovery.${failureGroup}`)}</span>{operation?.error?.code && <code>{operation.error.code}{typeof failureReason === 'string' ? ` · ${failureReason}` : ''}</code>}</AlertDescription></Alert>}
             <DetailPanel className="run-detail-section run-process-section">
               <header><div><h2>{t('detail.processHeading')}</h2><p>{terminal ? t('detail.progressDone', { status: terminalLabel }) : t('detail.progressCurrent', { phase: labels[currentPhaseIndex] })}</p></div></header>
-              <div className="run-timeline" aria-label={t('detail.timelineAria')}>
+              <div role="group" className="run-timeline" aria-label={t('detail.timelineAria')}>
                 {labels.map((label, index) => {
                   const last = index === labels.length - 1
                   const complete = !unsuccessful && (index < currentPhaseIndex || terminal)

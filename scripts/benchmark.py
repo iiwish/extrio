@@ -13,8 +13,8 @@ Isolation: the harness runs against a temporary SQLite database and temporary
 artifact/key directories (EXTRIO_DATABASE_URL and friends), and serves the demo
 source from an in-process uvicorn server bound to 127.0.0.1 on an ephemeral
 port. No external network access and no writes to a real deployment. Every run
-must finish in the succeeded terminal state, otherwise the harness exits
-non-zero.
+must extract every fixture detail and commit the expected new or unchanged
+observations, otherwise the harness exits non-zero.
 """
 
 import argparse
@@ -26,7 +26,7 @@ import tempfile
 import threading
 import time
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -54,10 +54,20 @@ def configure_environment(workdir: Path) -> None:
     os.environ["EXTRIO_ALLOW_HTTP_LOCALHOST"] = "true"
 
 
+def prepare_demo_fixture(now: datetime | None = None) -> int:
+    """Keep the process-local synthetic source inside the first-run window."""
+    from extrio import demo
+
+    now = now or datetime.now(UTC)
+    demo.NOTICES = [(*row[:4], (now - timedelta(minutes=index + 1)).isoformat(), row[5]) for index, row in enumerate(demo.NOTICES)]
+    return len(demo.NOTICES)
+
+
 def start_demo_server() -> tuple[uvicorn.Server, int]:
     """Serve only the bundled demo router on 127.0.0.1 with an ephemeral port."""
     from extrio.demo import router as demo_router
 
+    prepare_demo_fixture()
     app = FastAPI()
     app.include_router(demo_router)
     config = uvicorn.Config(app, host="127.0.0.1", port=0, log_level="error", access_log=False)
@@ -419,7 +429,8 @@ def render_markdown(args: argparse.Namespace, samples: list[RunSample], port: in
     lines = [
         "<!-- 以下数据块由 scripts/benchmark.py 实际运行生成，请勿手写数字。 -->",
         "",
-        f"- 运行参数：`--collectors {args.collectors} --pages {args.pages}`（{args.collectors} 个采集器 × {args.pages} 次运行 = {total_runs} 次）",
+        f"- 运行参数：`--collectors {args.collectors} --pages {args.pages}`"
+        f"（{args.collectors} 个采集器 × {args.pages} 次运行 = {total_runs} 次）",
         f"- 运行日期：{datetime.now(UTC).strftime('%Y-%m-%d')}",
         f"- 环境：Python {platform.python_version()} / {platform.platform()}",
         "- 存储：临时 SQLite（每次基准运行独立创建，结束后删除）",
@@ -488,11 +499,38 @@ async def run_benchmark(args: argparse.Namespace, port: int) -> int:
     print()
     print(render_markdown(args, samples, port, total_seconds))
 
-    failures = [sample for sample in samples if sample.status != "succeeded"]
+    from extrio.demo import NOTICES
+
+    expected_items = len(NOTICES)
+    expected_runs = {(collector, run) for collector in range(1, args.collectors + 1) for run in range(1, args.pages + 1)}
+    failures = []
+    if expected_items == 0 or len(samples) != len(expected_runs) or {(s.collector_index, s.run_index) for s in samples} != expected_runs:
+        failures.append("fixture or requested run coverage is incomplete")
+    for sample in samples:
+        expected_new = expected_items if sample.run_index == 1 else 0
+        expected_unchanged = 0 if sample.run_index == 1 else expected_items
+        if (
+            sample.status != "succeeded"
+            or sample.detail_pages != expected_items
+            or sample.accepted != expected_items
+            or sample.rejected != 0
+            or sample.new_items != expected_new
+            or sample.updated_items != 0
+            or sample.unchanged_items != expected_unchanged
+        ):
+            failures.append(
+                f"collector={sample.collector_index} run={sample.run_index} status={sample.status} stop={sample.stop_reason} "
+                f"detail={sample.detail_pages} accepted={sample.accepted} rejected={sample.rejected} "
+                f"new={sample.new_items} updated={sample.updated_items} unchanged={sample.unchanged_items}; "
+                f"expected detail/accepted={expected_items}, new={expected_new}, updated/rejected=0, unchanged={expected_unchanged}"
+            )
     if failures:
-        print(f"\nFAILED: {len(failures)} run(s) did not reach the succeeded terminal state", file=sys.stderr)
-        for sample in failures:
-            print(f"  collector={sample.collector_index} run={sample.run_index} status={sample.status} stop={sample.stop_reason}", file=sys.stderr)
+        print(
+            "\nFAILED: benchmark extraction or entity assertions did not pass",
+            file=sys.stderr,
+        )
+        for failure in failures:
+            print(f"  {failure}", file=sys.stderr)
         return 1
     return 0
 

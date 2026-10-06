@@ -1,0 +1,1 @@
+{"cve":"CVE-2026-81726","dependency":{"manifest_path":"backend/uv.lock","package":{"ecosystem":"pip","name":"nltk"},"relationship":"transitive","scope":"runtime"},"first_patched_version":null,"number":1,"state":"open","summary":"NLTK: Model-artifact APIs bypass pathsec and touch files outside allowed roots"}
