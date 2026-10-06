@@ -1,0 +1,18 @@
+backup complete: scope=full dialect=sqlite archive=/tmp/extrio-image-recovery-j7ocrapb/sqlite/archive
+restore complete: start the matching API and Worker, then verify /readyz and stored evidence
+backup complete: scope=full dialect=postgresql archive=/tmp/extrio-image-recovery-j7ocrapb/postgres/archive
+pg_restore: error: could not execute query: ERROR:  unrecognized configuration parameter "transaction_timeout"
+Command was: SET transaction_timeout = 0;
+
+Traceback (most recent call last):
+  File "/tmp/image-backup-smoke.py", line 89, in <module>
+    main()
+  File "/tmp/image-backup-smoke.py", line 79, in main
+    roundtrip(root / "postgres", *urls)
+  File "/tmp/image-backup-smoke.py", line 45, in roundtrip
+    cli.restore_backup(archive, offline=True)
+  File "/app/backend/src/extrio/cli.py", line 317, in restore_backup
+    _pg_tool("pg_restore", ["--single-transaction", "--exit-on-error", "--no-owner", str(snapshot)], effective_url)
+  File "/app/backend/src/extrio/cli.py", line 116, in _pg_tool
+    raise RuntimeError(f"{program} failed (exit {result.returncode}); check server access and client/server versions")
+RuntimeError: pg_restore failed (exit 1); check server access and client/server versions

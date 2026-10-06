@@ -7,7 +7,7 @@ import { LegacyExperienceRedirect } from './legacy-experience'
 
 function RouteFallback() {
   const { t } = useTranslation('common')
-  return <div className="page-frame" aria-label={t('aria.pageLoading')}><Skeleton className="h-8 w-56" /><Skeleton className="mt-5 h-36 w-full" /></div>
+  return <div role="status" className="page-frame" aria-label={t('aria.pageLoading')}><Skeleton className="h-8 w-56" /><Skeleton className="mt-5 h-36 w-full" /></div>
 }
 
 export const router = createBrowserRouter([

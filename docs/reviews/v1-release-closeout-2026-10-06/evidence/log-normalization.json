@@ -1,0 +1,48 @@
+{
+  "operation": "Trim only line-ending spaces/tabs and excess blank lines at EOF. Test output content, ANSI sequences, counts, assertions and exit results are unchanged.",
+  "raw_copy_root": "backend/data/v1-release-closeout-20261006/raw-evidence-logs",
+  "files": [
+    {
+      "file": "docs/reviews/v1-release-closeout-2026-10-06/evidence/frontend-test.log",
+      "raw_sha256": "3c4c53f34bc92d4dd1c48024da590898aad579c96f072dae90eb4e1de088f72d",
+      "normalized_sha256": "aba2ab75b15251303f92ebbe025099b71ee48a16905781e949a35fcf0b6672f2",
+      "raw_bytes": 338,
+      "normalized_bytes": 337
+    },
+    {
+      "file": "docs/reviews/v1-release-closeout-2026-10-06/evidence/image-browser.log",
+      "raw_sha256": "5e66ee3d290bf2ecd58bb7f86f6a0ceca8e49932a5b375fccba2553b0298ff2c",
+      "normalized_sha256": "553caa357fcc77e77db4171087d6382df149187f9ae975a71c3fafbf8604af40",
+      "raw_bytes": 480,
+      "normalized_bytes": 477
+    },
+    {
+      "file": "docs/reviews/v1-release-closeout-2026-10-06/evidence/lxml-red.log",
+      "raw_sha256": "cef7f04e3f39bb27171602aa66d3123fa1bd1bb0745f176bb4e4a4dc09625135",
+      "normalized_sha256": "8720388f2e9d079129191b635f11978023970f5e4b8074c45356d112e60da668",
+      "raw_bytes": 1495,
+      "normalized_bytes": 1478
+    },
+    {
+      "file": "docs/reviews/v1-release-closeout-2026-10-06/evidence/named-roles-red.log",
+      "raw_sha256": "e47fa082a3ca34ad6bd15d72bae00a27d60ad42a36a8ff4226b9a2d1d4ca3e5a",
+      "normalized_sha256": "e360bb230a4385a596b7b1492f30abeb14b59c41f5f422e78b32fcdc15e0bbca",
+      "raw_bytes": 60503,
+      "normalized_bytes": 60502
+    },
+    {
+      "file": "docs/reviews/v1-release-fixes-2026-10-06/evidence/frontend-test.log",
+      "raw_sha256": "57b9a96ab40afa365b54b0b6dab2cd73aa34a3206969e5d267b0b156d109c3fd",
+      "normalized_sha256": "b35ac791abbbc5519ea9cf74948a25bd19aa5a49d0e14e686c74ced395457f4e",
+      "raw_bytes": 337,
+      "normalized_bytes": 336
+    },
+    {
+      "file": "docs/reviews/v1-release-fixes-2026-10-06/evidence/image-browser.log",
+      "raw_sha256": "8fa2fd16fceea90d625000caca554b02a27edf90b6c5e73ff2f9805f69f6e8ba",
+      "normalized_sha256": "83b798d80b7a0f6d3d90d0a0eeae43736e64b5424441c6c81829e6074021d64d",
+      "raw_bytes": 480,
+      "normalized_bytes": 477
+    }
+  ]
+}

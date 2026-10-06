@@ -8,7 +8,7 @@
  */
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
+@import "./styles/component-variants.css";
 
 @import "./styles/tokens-and-base.css";
 @import "./styles/app-shell-and-auth.css";

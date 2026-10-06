@@ -186,7 +186,7 @@
 
 .run-header-meta {
   flex: none;
-  color: #67767d;
+  color: var(--muted-foreground);
   white-space: nowrap;
 }
 
@@ -349,7 +349,7 @@
 .ai-result-section > header p,
 .ai-model-section > header p {
   margin-top: 3px;
-  color: #718087;
+  color: var(--muted-foreground);
   font-size: 10px;
 }
 
@@ -386,7 +386,7 @@
 }
 
 .ai-result-grid dt {
-  color: #7a878d;
+  color: var(--muted-foreground);
   font-size: 9px;
   font-weight: 700;
 }
@@ -449,7 +449,7 @@
 .ai-attempt-index svg { width: 13px; height: 13px; }
 .ai-attempt-list article > div { display: flex; flex-direction: column; gap: 3px; }
 .ai-attempt-list article small,
-.ai-attempt-models { color: #718087; font-size: 10px; }
+.ai-attempt-models { color: var(--muted-foreground); font-size: 10px; }
 
 .ai-activity-section > header {
   min-height: 68px;
@@ -462,7 +462,7 @@
 }
 
 .ai-activity-section > header h2 { font-size: 14px; }
-.ai-activity-section > header p { margin-top: 3px; color: #718087; font-size: 10px; }
+.ai-activity-section > header p { margin-top: 3px; color: var(--muted-foreground); font-size: 10px; }
 
 .ai-run-guidance {
   display: grid;
@@ -476,7 +476,7 @@
 .ai-run-guidance > svg { width: 16px; height: 16px; margin-top: 2px; color: #137665; }
 .ai-run-guidance > span { min-width: 0; display: grid; gap: 2px; }
 .ai-run-guidance strong { color: #27373e; font-size: 11px; }
-.ai-run-guidance small { color: #718087; font-size: 9px; }
+.ai-run-guidance small { color: var(--muted-foreground); font-size: 9px; }
 .ai-run-guidance p { margin-top: 5px; color: #3c4c53; font-size: 11px; line-height: 1.55; overflow-wrap: anywhere; }
 
 .ai-activity-timeline {
@@ -516,7 +516,7 @@
 
 .ai-activity-copy { min-width: 0; display: grid; gap: 3px; }
 .ai-activity-copy strong { color: #27373e; font-size: 12px; }
-.ai-activity-copy small { color: #718087; font-size: 9px; }
+.ai-activity-copy small { color: var(--muted-foreground); font-size: 9px; }
 .ai-activity-copy em { color: #46575e; font-size: 10px; font-style: normal; }
 
 .ai-model-table {
@@ -559,7 +559,7 @@
   white-space: nowrap;
 }
 
-.ai-model-row small { color: #728087; font-size: 9px; }
+.ai-model-row small { color: var(--muted-foreground); font-size: 9px; }
 .ai-model-success { border-color: #b7ddcf; background: #ebf7f2; color: #117153; }
 .ai-model-failed { border-color: #efc1c1; background: #fff0f0; color: #aa3030; }
 
@@ -567,7 +567,7 @@
 .run-execution-metrics dt,
 .run-scope-grid dt,
 .run-technical-details dt {
-  color: #7a878d;
+  color: var(--muted-foreground);
   font-size: 9px;
   font-weight: 700;
 }
@@ -595,7 +595,7 @@
 
 .run-detail-section > header p {
   margin-top: 3px;
-  color: #718087;
+  color: var(--muted-foreground);
   font-size: 10px;
 }
 

@@ -1,0 +1,1236 @@
+
+ RUN  v4.1.11 /Users/iiwish/self/extrio/web
+
+ ❯ src/app/app-shell.test.tsx (5 tests | 1 failed) 131ms
+     × returns from a detail route to the workspace home through the brand 34ms
+ ❯ src/features/home/home-page.test.tsx (5 tests | 1 failed) 238ms
+     × uses an aggregated trend and a short exception list without exposing technical IDs 40ms
+Not implemented: navigation to another Document
+ ❯ src/features/items/items-page.ui.test.tsx (9 tests | 1 failed) 600ms
+     × uses a filter-first toolbar and renders fixed-column rows instead of cards 112ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/app/app-shell.test.tsx > AppShell navigation > returns from a detail route to the workspace home through the brand
+TestingLibraryElementError: Unable to find an accessible element with the role "group" and name "当前页面"
+
+Here are the accessible roles:
+
+  complementary:
+
+  Name "":
+  [36m<aside[39m
+    [33mclass[39m=[32m"sidebar"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  link:
+
+  Name "Extrio 首页":
+  [36m<a[39m
+    [33maria-label[39m=[32m"Extrio 首页"[39m
+    [33mclass[39m=[32m"brand"[39m
+    [33mdata-discover[39m=[32m"true"[39m
+    [33mhref[39m=[32m"/"[39m
+  [36m/>[39m
+
+  Name "概览":
+  [36m<a[39m
+    [33mclass[39m=[32m"nav-link"[39m
+    [33mdata-discover[39m=[32m"true"[39m
+    [33mhref[39m=[32m"/"[39m
+  [36m/>[39m
+
+  Name "采集需求":
+  [36m<a[39m
+    [33mclass[39m=[32m"nav-link"[39m
+    [33mdata-discover[39m=[32m"true"[39m
+    [33mhref[39m=[32m"/collections"[39m
+  [36m/>[39m
+
+  Name "采集来源":
+  [36m<a[39m
+    [33maria-current[39m=[32m"page"[39m
+    [33mclass[39m=[32m"nav-link is-active"[39m
+    [33mdata-discover[39m=[32m"true"[39m
+    [33mhref[39m=[32m"/collectors"[39m
+  [36m/>[39m
+
+  Name "运行":
+  [36m<a[39m
+    [33mclass[39m=[32m"nav-link"[39m
+    [33mdata-discover[39m=[32m"true"[39m
+    [33mhref[39m=[32m"/runs"[39m
+  [36m/>[39m
+
+  Name "数据":
+  [36m<a[39m
+    [33mclass[39m=[32m"nav-link"[39m
+    [33mdata-discover[39m=[32m"true"[39m
+    [33mhref[39m=[32m"/items"[39m
+  [36m/>[39m
+
+  Name "设置":
+  [36m<a[39m
+    [33mclass[39m=[32m"nav-link"[39m
+    [33mdata-discover[39m=[32m"true"[39m
+    [33mhref[39m=[32m"/settings"[39m
+  [36m/>[39m
+
+  Name "返回采集来源列表":
+  [36m<a[39m
+    [33maria-label[39m=[32m"返回采集来源列表"[39m
+    [33mclass[39m=[32m"topbar-back"[39m
+    [33mdata-discover[39m=[32m"true"[39m
+    [33mhref[39m=[32m"/collectors"[39m
+    [33mtitle[39m=[32m"返回采集来源列表"[39m
+  [36m/>[39m
+
+  Name "采集来源":
+  [36m<a[39m
+    [33mclass[39m=[32m""[39m
+    [33mdata-discover[39m=[32m"true"[39m
+    [33mhref[39m=[32m"/collectors"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  navigation:
+
+  Name "主导航":
+  [36m<nav[39m
+    [33maria-label[39m=[32m"主导航"[39m
+    [33mclass[39m=[32m"side-nav"[39m
+  [36m/>[39m
+
+  Name "当前页面层级":
+  [36m<nav[39m
+    [33maria-label[39m=[32m"当前页面层级"[39m
+    [33mclass[39m=[32m"topbar-trail"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  banner:
+
+  Name "":
+  [36m<header[39m
+    [33mclass[39m=[32m"topbar"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  strong:
+
+  Name "":
+  [36m<strong[39m
+    [33maria-current[39m=[32m"page"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  main:
+
+  Name "":
+  [36m<main[39m
+    [33mclass[39m=[32m"app-main"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"app-shell"[39m
+    [36m>[39m
+      [36m<aside[39m
+        [33mclass[39m=[32m"sidebar"[39m
+      [36m>[39m
+        [36m<a[39m
+          [33maria-label[39m=[32m"Extrio 首页"[39m
+          [33mclass[39m=[32m"brand"[39m
+          [33mdata-discover[39m=[32m"true"[39m
+          [33mhref[39m=[32m"/"[39m
+        [36m>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"brand-mark"[39m
+          [36m>[39m
+            [0mE[0m
+          [36m</span>[39m
+          [36m<span>[39m
+            [0mExtrio[0m
+          [36m</span>[39m
+        [36m</a>[39m
+        [36m<nav[39m
+          [33maria-label[39m=[32m"主导航"[39m
+          [33mclass[39m=[32m"side-nav"[39m
+        [36m>[39m
+          [36m<a[39m
+            [33mclass[39m=[32m"nav-link"[39m
+            [33mdata-discover[39m=[32m"true"[39m
+            [33mhref[39m=[32m"/"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"lucide lucide-layout-dashboard size-4"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"24"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"24"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<rect[39m
+                [33mheight[39m=[32m"9"[39m
+                [33mrx[39m=[32m"1"[39m
+                [33mwidth[39m=[32m"7"[39m
+                [33mx[39m=[32m"3"[39m
+                [33my[39m=[32m"3"[39m
+              [36m/>[39m
+              [36m<rect[39m
+                [33mheight[39m=[32m"5"[39m
+                [33mrx[39m=[32m"1"[39m
+                [33mwidth[39m=[32m"7"[39m
+                [33mx[39m=[32m"14"[39m
+                [33my[39m=[32m"3"[39m
+              [36m/>[39m
+              [36m<rect[39m
+                [33mheight[39m=[32m"9"[39m
+                [33mrx[39m=[32m"1"[39m
+                [33mwidth[39m=[32m"7"[39m
+                [33mx[39m=[32m"14"[39m
+                [33my[39m=[32m"12"[39m
+              [36m/>[39m
+              [36m<rect[39m
+                [33mheight[39m=[32m"5"[39m
+                [33mrx[39m=[32m"1"[39m
+                [33mwidth[39m=[32m"7"[39m
+                [33mx[39m=[32m"3"[39m
+                [33my[39m=[32m"16"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+            [36m<span>[39m
+              [0m概览[0m
+            [36m</span>[39m
+          [36m</a>[39m
+          [36m<a[39m
+            [33mclass[39m=[32m"nav-link"[39m
+            [33mdata-discover[39m=[32m"true"[39m
+            [33mhref[39m=[32m"/collections"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"lucide lucide-file-text size-4"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"24"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"24"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M14 2v5a1 1 0 0 0 1 1h5"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M10 9H8"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M16 13H8"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M16 17H8"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+            [36m<span>[39m
+              [0m采集需求[0m
+            [36m</span>[39m
+          [36m</a>[39m
+          [36m<a[39m
+            [33maria-current[39m=[32m"page"[39m
+            [33mclass[39m=[32m"nav-link is-active"[39m
+            [33mdata-discover[39m=[32m"true"[39m
+            [33mhref[39m=[32m"/collectors"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"lucide lucide-layers lucide-layers-3 size-4"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"24"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"24"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+            [36m<span>[39m
+              [0m采集来源[0m
+            [36m</span>[39m
+          [36m</a>[39m
+          [36m<a[39m
+            [33mclass[39m=[32m"nav-link"[39m
+            [33mdata-discover[39m=[32m"true"[39m
+            [33mhref[39m=[32m"/runs"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"lucide lucide-circle-play lucide-play-circle size-4"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"24"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"24"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M9 9.003a1 1 0 0 1 1.517-.859l4.997 2.997a1 1 0 0 1 0 1.718l-4.997 2.997A1 1 0 0 1 9 14.996z"[39m
+              [36m/>[39m
+              [36m<circle[39m
+                [33mcx[39m=[32m"12"[39m
+                [33mcy[39m=[32m"12"[39m
+                [33mr[39m=[32m"10"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+            [36m<span>[39m
+              [0m运行[0m
+            [36m</span>[39m
+          [36m</a>[39m
+          [36m<a[39m
+            [33mclass[39m=[32m"nav-link"[39m
+            [33mdata-discover[39m=[32m"true"[39m
+            [33mhref[39m=[32m"/items"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"lucide lucide-database size-4"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"24"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"24"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<ellipse[39m
+                [33mcx[39m=[32m"12"[39m
+                [33mcy[39m=[32m"5"[39m
+                [33mrx[39m=[32m"9"[39m
+                [33mry[39m=[32m"3"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M3 5V19A9 3 0 0 0 21 19V5"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M3 12A9 3 0 0 0 21 12"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+            [36m<span>[39m
+              [0m数据[0m
+            [36m</span>[39m
+          [36m</a>[39m
+        [36m</nav>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"sidebar-bottom"[39m
+        [36m>[39m
+          [36m<a[39m
+            [33mclass[39m=[32m"nav-link"[39m
+            [33mdata-discover[39m=[32m"true"[39m
+            [33mhref[39m=[32m"/settings"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"lucide lucide-settings-2 size-4"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"24"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"24"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M14 17H5"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M19 7h-9"[39m
+              [36m/>[39m
+              [36m<circle[39m
+                [33mcx[39m=[32m"17"[39m
+                [33mcy[39m=[32m"17"[39m
+                [33mr[39m=[32m"3"[39m
+              [36m/>[39m
+              [36m<circle[39m
+                [33mcx[39m=[32m"7"[39m
+                [33mcy[39m=[32m"7"[39m
+                [33mr[39m=[32m"3"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+            [36m<span>[39m
+              [0m设置[0m
+            [36m</span>[39m
+          [36m</a>[39m
+        [36m</div>[39m
+      [36m</aside>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"app-column"[39m
+      [36m>[39m
+        [36m<header[39m
+          [33mclass[39m=[32m"topbar"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-label[39m=[32m"当前页面"[39m
+            [33mclass[39m=[32m"topbar-context"[39m
+          [36m>[39m
+            [36m<a[39m
+              [33maria-label[39m=[32m"返回采集来源列表"[39m
+              [33mclass[39m=[32m"topbar-back"[39m
+              [33mdata-discover[39m=[32m"true"[39m
+              [33mhref[39m=[32m"/collectors"[39m
+              [33mtitle[39m=[32m"返回采集来源列表"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"lucide lucide-arrow-left"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mheight[39m=[32m"24"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"24"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"m12 19-7-7 7-7"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M19 12H5"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</a>[39m
+            [36m<nav[39m
+              [33maria-label[39m=[32m"当前页面层级"[39m
+              [33mclass[39m=[32m"topbar-trail"[39m
+            [36m>[39m
+              [36m<a[39m
+                [33mclass[39m=[32m""[39m
+                [33mdata-discover[39m=[32m"true"[39m
+                [33mhref[39m=[32m"/collectors"[39m
+              [36m>[39m
+                [0m采集来源[0m
+              [36m</a>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"lucide lucide-chevron-right"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mheight[39m=[32m"24"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"24"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"m9 18 6-6-6-6"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+              [36m<strong[39m
+                [33maria-current[39m=[32m"page"[39m
+              [36m>[39m
+                [0m采集来源详情[0m
+              [36m</strong>[39m
+            [36m</nav>[39m
+          [36m</div>[39m
+        [36m</header>[39m
+        [36m<main[39m
+          [33mclass[39m=[32m"app-main"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [0m采集来源详情[0m
+          [36m</div>[39m
+        [36m</main>[39m
+      [36m</div>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/app/app-shell.test.tsx:32:19
+     30|     expect(within(screen.getByRole('navigation', { name: '主导航' })).get…
+     31|     expect(screen.queryByText('本地验收工作区')).not.toBeInTheDocument()
+     32|     expect(screen.getByRole('group', { name: '当前页面' })).toHaveTextCont…
+       |                   ^
+     33|     expect(screen.queryByText('北辰数据')).not.toBeInTheDocument()
+     34|     expect(screen.getByRole('link', { name: '返回采集来源列表' })).toHaveAttri…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/features/home/home-page.test.tsx > HomePage operational dashboard > uses an aggregated trend and a short exception list without exposing technical IDs
+TestingLibraryElementError: Unable to find an accessible element with the role "img"
+
+There are no accessible roles. But there might be some inaccessible roles. If you wish to access them, then set the `hidden` option to `true`. Learn more about this here: https://testing-library.com/docs/dom-testing-library/api-queries#byrole
+
+Ignored nodes: comments, script, style
+[36m<div[39m
+  [33maria-label[39m=[32m"最近 14 天 1 次运行，2050 条接收，10 条拒绝"[39m
+  [33mclass[39m=[32m"overview-run-chart"[39m
+  [33mrole[39m=[32m"group"[39m
+[36m>[39m
+  [36m<div[39m
+    [33mclass[39m=[32m"overview-chart-bars day"[39m
+  [36m>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"9月6日：1 次运行，2050 接收，10 拒绝"[39m
+      [33mclass[39m=[32m"overview-chart-point partially_succeeded"[39m
+      [33mtabindex[39m=[32m"0"[39m
+      [33mtitle[39m=[32m"9月6日：1 次运行，2050 接收，10 拒绝"[39m
+    [36m>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"overview-chart-bar"[39m
+        [33mstyle[39m=[32m"height: 100%;"[39m
+      [36m>[39m
+        [36m<i[39m
+          [33mclass[39m=[32m"accepted"[39m
+          [33mstyle[39m=[32m"height: 100%;"[39m
+        [36m/>[39m
+        [36m<i[39m
+          [33mclass[39m=[32m"rejected"[39m
+          [33mstyle[39m=[32m"height: 0%;"[39m
+        [36m/>[39m
+      [36m</span>[39m
+      [36m<small>[39m
+        [0m9/6[0m
+      [36m</small>[39m
+    [36m</div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"9月6日：0 次运行，0 接收，0 拒绝"[39m
+      [33mclass[39m=[32m"overview-chart-point empty"[39m
+      [33mtabindex[39m=[32m"0"[39m
+      [33mtitle[39m=[32m"9月6日：0 次运行，0 接收，0 拒绝"[39m
+    [36m>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"overview-chart-bar"[39m
+        [33mstyle[39m=[32m"height: 0%;"[39m
+      [36m>[39m
+        [36m<i[39m
+          [33mclass[39m=[32m"accepted"[39m
+          [33mstyle[39m=[32m"height: 0%;"[39m
+        [36m/>[39m
+        [36m<i[39m
+          [33mclass[39m=[32m"rejected"[39m
+          [33mstyle[39m=[32m"height: 100%;"[39m
+        [36m/>[39m
+      [36m</span>[39m
+      [36m<small>[39m
+        [0m9/6[0m
+      [36m</small>[39m
+    [36m</div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"9月6日：0 次运行，0 接收，0 拒绝"[39m
+      [33mclass[39m=[32m"overview-chart-point empty"[39m
+      [33mtabindex[39m=[32m"0"[39m
+      [33mtitle[39m=[32m"9月6日：0 次运行，0 接收，0 拒绝"[39m
+    [36m>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"overview-chart-bar"[39m
+        [33mstyle[39m=[32m"height: 0%;"[39m
+      [36m>[39m
+        [36m<i[39m
+          [33mclass[39m=[32m"accepted"[39m
+          [33mstyle[39m=[32m"height: 0%;"[39m
+        [36m/>[39m
+        [36m<i[39m
+          [33mclass[39m=[32m"rejected"[39m
+          [33mstyle[39m=[32m"height: 100%;"[39m
+        [36m/>[39m
+      [36m</span>[39m
+      [36m<small>[39m
+        [0m9/6[0m
+      [36m</small>[39m
+    [36m</div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"9月6日：0 次运行，0 接收，0 拒绝"[39m
+      [33mclass[39m=[32m"overview-chart-point empty"[39m
+      [33mtabindex[39m=[32m"0"[39m
+      [33mtitle[39m=[32m"9月6日：0 次运行，0 接收，0 拒绝"[39m
+    [36m>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"overview-chart-bar"[39m
+        [33mstyle[39m=[32m"height: 0%;"[39m
+      [36m>[39m
+        [36m<i[39m
+          [33mclass[39m=[32m"accepted"[39m
+          [33mstyle[39m=[32m"height: 0%;"[39m
+        [36m/>[39m
+        [36m<i[39m
+          [33mclass[39m=[32m"rejected"[39m
+          [33mstyle[39m=[32m"height: 100%;"[39m
+        [36m/>[39m
+      [36m</span>[39m
+      [36m<small>[39m
+        [0m9/6[0m
+      [36m</small>[39m
+    [36m</div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"9月6日：0 次运行，0 接收，0 拒绝"[39m
+      [33mclass[39m=[32m"overview-chart-point empty"[39m
+      [33mtabindex[39m=[32m"0"[39m
+      [33mtitle[39m=[32m"9月6日：0 次运行，0 接收，0 拒绝"[39m
+    [36m>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"overview-chart-bar"[39m
+        [33mstyle[39m=[32m"height: 0%;"[39m
+      [36m>[39m
+        [36m<i[39m
+          [33mclass[39m=[32m"accepted"[39m
+          [33mstyle[39m=[32m"height: 0%;"[39m
+        [36m/>[39m
+        [36m<i[39m
+          [33mclass[39m=[32m"rejected"[39m
+          [33mstyle[39m=[32m"height: 100%;"[39m
+        [36m/>[39m
+      [36m</span>[39m
+      [36m<small>[39m
+        [0m9/6[0m
+      [36m</small>[39m
+    [36m</div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"9月6日：0 次运行，0 接收，0 拒绝"[39m
+      [33mclass[39m=[32m"overview-chart-point empty"[39m
+      [33mtabindex[39m=[32m"0"[39m
+      [33mtitle[39m=[32m"9月6日：0 次运行，0 接收，0 拒绝"[39m
+    [36m>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"overview-chart-bar"[39m
+        [33mstyle[39m=[32m"height: 0%;"[39m
+      [36m>[39m
+        [36m<i[39m
+          [33mclass[39m=[32m"accepted"[39m
+          [33mstyle[39m=[32m"height: 0%;"[39m
+        [36m/>[39m
+        [36m<i[39m
+          [33mclass[39m=[32m"rejected"[39m
+          [33mstyle[39m=[32m"height: 100%;"[39m
+        [36m/>[39m
+      [36m</span>[39m
+      [36m<small>[39m
+        [0m9/6[0m
+      [36m</small>[39m
+    [36m</div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"9月6日：0 次运行，0 接收，0 拒绝"[39m
+      [33mclass[39m=[32m"overview-chart-point empty"[39m
+      [33mtabindex[39m=[32m"0"[39m
+      [33mtitle[39m=[32m"9月6日：0 次运行，0 接收，0 拒绝"[39m
+    [36m>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"overview-chart-bar"[39m
+        [33mstyle[39m=[32m"height: 0%;"[39m
+      [36m>[39m
+        [36m<i[39m
+          [33mclass[39m=[32m"accepted"[39m
+          [33mstyle[39m=[32m"height: 0%;"[39m
+        [36m/>[39m
+        [36m<i[39m
+          [33mclass[39m=[32m"rejected"[39m
+          [33mstyle[39m=[32m"height: 100%;"[39m
+        [36m/>[39m
+      [36m</span>[39m
+      [36m<small>[39m
+        [0m9/6[0m
+      [36m</small>[39m
+    [36m</div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"9月6日：0 次运行，0 接收，0 拒绝"[39m
+      [33mclass[39m=[32m"overview-chart-point empty"[39m
+      [33mtabindex[39m=[32m"0"[39m
+      [33mtitle[39m=[32m"9月6日：0 次运行，0 接收，0 拒绝"[39m
+    [36m>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"overview-chart-bar"[39m
+        [33mstyle[39m=[32m"height: 0%;"[39m
+      [36m>[39m
+        [36m<i[39m
+          [33mclass[39m=[32m"accepted"[39m
+          [33mstyle[39m=[32m"height: 0%;"[39m
+        [36m/>[39m
+        [36m<i[39m
+          [33mclass[39m=[32m"rejected"[39m
+          [33mstyle[39m=[32m"height: 100%;"[39m
+        [36m/>[39m
+      [36m</span>[39m
+      [36m<small>[39m
+        [0m9/6[0m
+      [36m</small>[39m
+    [36m</div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"9月6日：0 次运行，0 接收，0 拒绝"[39m
+      [33mclass[39m=[32m"overview-chart-point empty"[39m
+      [33mtabindex[39m=[32m"0"[39m
+      [33mtitle[39m=[32m"9月6日：0 次运行，0 接收，0 拒绝"[39m
+    [36m>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"overview-chart-bar"[39m
+        [33mstyle[39m=[32m"height: 0%;"[39m
+      [36m>[39m
+        [36m<i[39m
+          [33mclass[39m=[32m"accepted"[39m
+          [33mstyle[39m=[32m"height: 0%;"[39m
+        [36m/>[39m
+        [36m<i[39m
+          [33mclass[39m=[32m"rejected"[39m
+          [33mstyle[39m=[32m"height: 100%;"[39m
+        [36m/>[39m
+      [36m</span>[39m
+      [36m<small>[39m
+        [0m9/6[0m
+      [36m</small>[39m
+    [36m</div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"9月6日：0 次运行，0 接收，0 拒绝"[39m
+      [33mclass[39m=[32m"overview-chart-point empty"[39m
+      [33mtabindex[39m=[32m"0"[39m
+      [33mtitle[39m=[32m"9月6日：0 次运行，0 接收，0 拒绝"[39m
+    [36m>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"overview-chart-bar"[39m
+        [33mstyle[39m=[32m"height: 0%;"[39m
+      [36m>[39m
+        [36m<i[39m
+          [33mclass[39m=[32m"accepted"[39m
+          [33mstyle[39m=[32m"height: 0%;"[39m
+        [36m/>[39m
+        [36m<i[39m
+          [33mclass[39m=[32m"rejected"[39m
+          [33mstyle[39m=[32m"height: 100%;"[39m
+        [36m/>[39m
+      [36m</span>[39m
+      [36m<small>[39m
+        [0m9/6[0m
+      [36m</small>[39m
+    [36m</div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"9月6日：0 次运行，0 接收，0 拒绝"[39m
+      [33mclass[39m=[32m"overview-chart-point empty"[39m
+      [33mtabindex[39m=[32m"0"[39m
+      [33mtitle[39m=[32m"9月6日：0 次运行，0 接收，0 拒绝"[39m
+    [36m>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"overview-chart-bar"[39m
+        [33mstyle[39m=[32m"height: 0%;"[39m
+      [36m>[39m
+        [36m<i[39m
+          [33mclass[39m=[32m"accepted"[39m
+          [33mstyle[39m=[32m"height: 0%;"[39m
+        [36m/>[39m
+        [36m<i[39m
+          [33mclass[39m=[32m"rejected"[39m
+          [33mstyle[39m=[32m"height: 100%;"[39m
+        [36m/>[39m
+      [36m</span>[39m
+      [36m<small>[39m
+        [0m9/6[0m
+      [36m</small>[39m
+    [36m</div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"9月6日：0 次运行，0 接收，0 拒绝"[39m
+      [33mclass[39m=[32m"overview-chart-point empty"[39m
+      [33mtabindex[39m=[32m"0"[39m
+      [33mtitle[39m=[32m"9月6日：0 次运行，0 接收，0 拒绝"[39m
+    [36m>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"overview-chart-bar"[39m
+        [33mstyle[39m=[32m"height: 0%;"[39m
+      [36m>[39m
+        [36m<i[39m
+          [33mclass[39m=[32m"accepted"[39m
+          [33mstyle[39m=[32m"height: 0%;"[39m
+        [36m/>[39m
+        [36m<i[39m
+          [33mclass[39m=[32m"rejected"[39m
+          [33mstyle[39m=[32m"height: 100%;"[39m
+        [36m/>[39m
+      [36m</span>[39m
+      [36m<small>[39m
+        [0m9/6[0m
+      [36m</small>[39m
+    [36m</div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"9月6日：0 次运行，0 接收，0 拒绝"[39m
+      [33mclass[39m=[32m"overview-chart-point empty"[39m
+      [33mtabindex[39m=[32m"0"[39m
+      [33mtitle[39m=[32m"9月6日：0 次运行，0 接收，0 拒绝"[39m
+    [36m>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"overview-chart-bar"[39m
+        [33mstyle[39m=[32m"height: 0%;"[39m
+      [36m>[39m
+        [36m<i[39m
+          [33mclass[39m=[32m"accepted"[39m
+          [33mstyle[39m=[32m"height: 0%;"[39m
+        [36m/>[39m
+        [36m<i[39m
+          [33mclass[39m=[32m"rejected"[39m
+          [33mstyle[39m=[32m"height: 100%;"[39m
+        [36m/>[39m
+      [36m</span>[39m
+      [36m<small>[39m
+        [0m9/6[0m
+      [36m</small>[39m
+    [36m</div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"9月6日：0 次运行，0 接收，0 拒绝"[39m
+      [33mclass[39m=[32m"overview-chart-point empty"[39m
+      [33mtabindex[39m=[32m"0"[39m
+      [33mtitle[39m=[32m"9月6日：0 次运行，0 接收，0 拒绝"[39m
+    [36m>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"overview-chart-bar"[39m
+        [33mstyle[39m=[32m"height: 0%;"[39m
+      [36m>[39m
+        [36m<i[39m
+          [33mclass[39m=[32m"accepted"[39m
+          [33mstyle[39m=[32m"height: 0%;"[39m
+        [36m/>[39m
+        [36m<i[39m
+          [33mclass[39m=[32m"rejected"[39m
+          [33mstyle[39m=[32m"height: 100%;"[39m
+        [36m/>[39m
+      [36m</span>[39m
+      [36m<small>[39m
+        [0m9/6[0m
+      [36m</small>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+  [36m<div[39m
+    [33mclass[39m=[32m"overview-chart-legend"[39m
+  [36m>[39m
+    [36m<span[39m
+      [33mclass[39m=[32m"success"[39m
+    [36m>[39m
+      [36m<i />[39m
+      [0m接收 2050[0m
+    [36m</span>[39m
+    [36m<span[39m
+      [33mclass[39m=[32m"danger"[39m
+    [36m>[39m
+      [36m<i />[39m
+      [0m拒绝 10[0m
+    [36m</span>[39m
+  [36m</div>[39m
+[36m</div>[39m
+ ❯ Object.getElementError node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:109:15
+ ❯ src/features/home/home-page.test.tsx:90:26
+     88|     const trend = await screen.findByRole('group', { name: /最近 14 天 1 …
+     89|     expect(trend.querySelectorAll('.overview-chart-point')).toHaveLeng…
+     90|     expect(within(trend).getAllByRole('img')).toHaveLength(14)
+       |                          ^
+     91|     const attention = screen.getByRole('region', { name: '需要关注' })
+     92|     expect(within(attention).getByRole('link', { name: /处理部分成功运行.*上海政府…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/features/items/items-page.ui.test.tsx > ItemsPage operational list > uses a filter-first toolbar and renders fixed-column rows instead of cards
+TestingLibraryElementError: Unable to find an accessible element with the role "group" and name "数据工具栏"
+
+Here are the accessible roles:
+
+  combobox:
+
+  Name "按站点域名筛选":
+  [36m<button[39m
+    [33maria-autocomplete[39m=[32m"none"[39m
+    [33maria-expanded[39m=[32m"false"[39m
+    [33maria-label[39m=[32m"按站点域名筛选"[39m
+    [33mclass[39m=[32m"flex w-fit items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground data-[size=default]:h-8 data-[size=sm]:h-7 data-[size=sm]:rounded-[min(var(--radius-md),10px)] *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"[39m
+    [33mdata-size[39m=[32m"sm"[39m
+    [33mdata-slot[39m=[32m"select-trigger"[39m
+    [33mdata-state[39m=[32m"closed"[39m
+    [33mdir[39m=[32m"ltr"[39m
+    [33mrole[39m=[32m"combobox"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "按采集来源筛选":
+  [36m<button[39m
+    [33maria-autocomplete[39m=[32m"none"[39m
+    [33maria-expanded[39m=[32m"false"[39m
+    [33maria-label[39m=[32m"按采集来源筛选"[39m
+    [33mclass[39m=[32m"flex w-fit items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground data-[size=default]:h-8 data-[size=sm]:h-7 data-[size=sm]:rounded-[min(var(--radius-md),10px)] *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"[39m
+    [33mdata-size[39m=[32m"sm"[39m
+    [33mdata-slot[39m=[32m"select-trigger"[39m
+    [33mdata-state[39m=[32m"closed"[39m
+    [33mdir[39m=[32m"ltr"[39m
+    [33mrole[39m=[32m"combobox"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "每页行数":
+  [36m<select[39m
+    [33maria-label[39m=[32m"每页行数"[39m
+    [33mdisabled[39m=[32m""[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  group:
+
+  Name "质量决定筛选":
+  [36m<div[39m
+    [33maria-label[39m=[32m"质量决定筛选"[39m
+    [33mclass[39m=[32m"segmented"[39m
+    [33mrole[39m=[32m"group"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  button:
+
+  Name "全部":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"true"[39m
+    [33mclass[39m=[32m"group/button inline-flex shrink-0 items-center justify-center border border-transparent bg-clip-padding font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5"[39m
+    [33mdata-size[39m=[32m"sm"[39m
+    [33mdata-slot[39m=[32m"button"[39m
+    [33mdata-variant[39m=[32m"secondary"[39m
+  [36m/>[39m
+
+  Name "已接收":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"group/button inline-flex shrink-0 items-center justify-center border border-transparent bg-clip-padding font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50 h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5"[39m
+    [33mdata-size[39m=[32m"sm"[39m
+    [33mdata-slot[39m=[32m"button"[39m
+    [33mdata-variant[39m=[32m"ghost"[39m
+  [36m/>[39m
+
+  Name "已拒绝":
+  [36m<button[39m
+    [33maria-pressed[39m=[32m"false"[39m
+    [33mclass[39m=[32m"group/button inline-flex shrink-0 items-center justify-center border border-transparent bg-clip-padding font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50 h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5"[39m
+    [33mdata-size[39m=[32m"sm"[39m
+    [33mdata-slot[39m=[32m"button"[39m
+    [33mdata-variant[39m=[32m"ghost"[39m
+  [36m/>[39m
+
+  Name "刷新":
+  [36m<button[39m
+    [33maria-label[39m=[32m"刷新"[39m
+    [33mclass[39m=[32m"group/button inline-flex shrink-0 items-center justify-center border bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50 size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg"[39m
+    [33mdata-size[39m=[32m"icon-sm"[39m
+    [33mdata-slot[39m=[32m"button"[39m
+    [33mdata-variant[39m=[32m"outline"[39m
+    [33mdisabled[39m=[32m""[39m
+    [33mtitle[39m=[32m"刷新"[39m
+  [36m/>[39m
+
+  Name "导出当前筛选的数据":
+  [36m<button[39m
+    [33maria-expanded[39m=[32m"false"[39m
+    [33maria-haspopup[39m=[32m"menu"[39m
+    [33maria-label[39m=[32m"导出当前筛选的数据"[39m
+    [33mclass[39m=[32m"group/button inline-flex shrink-0 items-center justify-center border bg-clip-padding font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50 h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5"[39m
+    [33mdata-size[39m=[32m"sm"[39m
+    [33mdata-slot[39m=[32m"dropdown-menu-trigger"[39m
+    [33mdata-state[39m=[32m"closed"[39m
+    [33mdata-variant[39m=[32m"outline"[39m
+    [33mid[39m=[32m"radix-_r_2_"[39m
+    [33mtype[39m=[32m"button"[39m
+  [36m/>[39m
+
+  Name "首页":
+  [36m<button[39m
+    [33maria-label[39m=[32m"首页"[39m
+    [33mclass[39m=[32m"group/button inline-flex shrink-0 items-center justify-center border bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50 size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg"[39m
+    [33mdata-size[39m=[32m"icon-sm"[39m
+    [33mdata-slot[39m=[32m"button"[39m
+    [33mdata-variant[39m=[32m"outline"[39m
+    [33mdisabled[39m=[32m""[39m
+    [33mtitle[39m=[32m"首页"[39m
+  [36m/>[39m
+
+  Name "上一页":
+  [36m<button[39m
+    [33maria-label[39m=[32m"上一页"[39m
+    [33mclass[39m=[32m"group/button inline-flex shrink-0 items-center justify-center border bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50 size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg"[39m
+    [33mdata-size[39m=[32m"icon-sm"[39m
+    [33mdata-slot[39m=[32m"button"[39m
+    [33mdata-variant[39m=[32m"outline"[39m
+    [33mdisabled[39m=[32m""[39m
+    [33mtitle[39m=[32m"上一页"[39m
+  [36m/>[39m
+
+  Name "下一页":
+  [36m<button[39m
+    [33maria-label[39m=[32m"下一页"[39m
+    [33mclass[39m=[32m"group/button inline-flex shrink-0 items-center justify-center border bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50 size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg"[39m
+    [33mdata-size[39m=[32m"icon-sm"[39m
+    [33mdata-slot[39m=[32m"button"[39m
+    [33mdata-variant[39m=[32m"outline"[39m
+    [33mdisabled[39m=[32m""[39m
+    [33mtitle[39m=[32m"下一页"[39m
+  [36m/>[39m
+
+  Name "末页":
+  [36m<button[39m
+    [33maria-label[39m=[32m"末页"[39m
+    [33mclass[39m=[32m"group/button inline-flex shrink-0 items-center justify-center border bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50 size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg"[39m
+    [33mdata-size[39m=[32m"icon-sm"[39m
+    [33mdata-slot[39m=[32m"button"[39m
+    [33mdata-variant[39m=[32m"outline"[39m
+    [33mdisabled[39m=[32m""[39m
+    [33mtitle[39m=[32m"末页"[39m
+  [36m/>[39m
+
+  Name "跳转到指定页":
+  [36m<button[39m
+    [33maria-label[39m=[32m"跳转到指定页"[39m
+    [33mclass[39m=[32m"group/button inline-flex shrink-0 items-center justify-center border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50 size-7 rounded-[min(var(--radius-md),12px)] in-data-[slot=button-group]:rounded-lg"[39m
+    [33mdata-size[39m=[32m"icon-sm"[39m
+    [33mdata-slot[39m=[32m"button"[39m
+    [33mdata-variant[39m=[32m"ghost"[39m
+    [33mdisabled[39m=[32m""[39m
+    [33mtitle[39m=[32m"跳转到指定页"[39m
+    [33mtype[39m=[32m"submit"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  textbox:
+
+  Name "搜索 Item":
+  [36m<input[39m
+    [33maria-label[39m=[32m"搜索 Item"[39m
+    [33mclass[39m=[32m"h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40"[39m
+    [33mdata-slot[39m=[32m"input"[39m
+    [33mmaxlength[39m=[32m"500"[39m
+    [33mplaceholder[39m=[32m"搜索标题、正文、采集来源或 entity key"[39m
+    [33mvalue[39m=[32m""[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  status:
+
+  Name "":
+  [36m<div[39m
+    [33maria-atomic[39m=[32m"true"[39m
+    [33maria-live[39m=[32m"polite"[39m
+    [33mclass[39m=[32m"list-workspace-summary"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  region:
+
+  Name "Item 列表":
+  [36m<div[39m
+    [33maria-label[39m=[32m"Item 列表"[39m
+    [33mclass[39m=[32m"list-workspace-scroll"[39m
+    [33mrole[39m=[32m"region"[39m
+    [33mtabindex[39m=[32m"0"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  heading:
+
+  Name "数据":
+  [36m<h1[39m
+    [33mclass[39m=[32m"sr-only"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  navigation:
+
+  Name "列表分页":
+  [36m<nav[39m
+    [33maria-busy[39m=[32m"true"[39m
+    [33maria-label[39m=[32m"列表分页"[39m
+    [33mclass[39m=[32m"list-pagination"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  option:
+
+  Name "20":
+  [36m<option[39m
+    [33mvalue[39m=[32m"20"[39m
+  [36m/>[39m
+
+  Name "50":
+  [36m<option[39m
+    [33mvalue[39m=[32m"50"[39m
+  [36m/>[39m
+
+  Name "100":
+  [36m<option[39m
+    [33mvalue[39m=[32m"100"[39m
+  [36m/>[39m
+
+  Name "200":
+  [36m<option[39m
+    [33mvalue[39m=[32m"200"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  spinbutton:
+
+  Name "当前页码":
+  [36m<input[39m
+    [33maria-label[39m=[32m"当前页码"[39m
+    [33mclass[39m=[32m"h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40"[39m
+    [33mdata-slot[39m=[32m"input"[39m
+    [33mdisabled[39m=[32m""[39m
+    [33mmin[39m=[32m"1"[39m
+    [33mname[39m=[32m"page"[39m
+    [33mrequired[39m=[32m""[39m
+    [33mstep[39m=[32m"1"[39m
+    [33mtype[39m=[32m"number"[39m
+    [33mvalue[39m=[32m"1"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"list-workspace page-frame entity-page items-page"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"list-workspace-toolbar"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33maria-label[39m=[32m"数据工具栏"[39m
+          [33mclass[39m=[32m"filter-card items-filter-card"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"filter-cluster"[39m
+          [36m>[39m
+            [36m<button[39m
+              [33maria-autocomplete[39m=[32m"none"[39m
+              [33maria-expanded[39m=[32m"false"[39m
+              [33maria-label[39m=[32m"按站点域名筛选"[39m
+              [33mclass[39m=[32m"flex w-fit items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground data-[size=default]:h-8 data-[size=sm]:h-7 data-[size=sm]:rounded-[min(var(--radius-md),10px)] *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"[39m
+              [33mdata-size[39m=[32m"sm"[39m
+              [33mdata-slot[39m=[32m"select-trigger"[39m
+              [33mdata-state[39m=[32m"closed"[39m
+              [33mdir[39m=[32m"ltr"[39m
+              [33mrole[39m=[32m"combobox"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mdata-slot[39m=[32m"select-value"[39m
+                [33mstyle[39m=[32m"pointer-events: none;"[39m
+              [36m>[39m
+                [0m全部站点域名[0m
+              [36m</span>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"lucide lucide-chevron-down pointer-events-none size-4 text-muted-foreground"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mheight[39m=[32m"24"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"24"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"m6 9 6 6 6-6"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</button>[39m
+            [36m<button[39m
+              [33maria-autocomplete[39m=[32m"none"[39m
+              [33maria-expanded[39m=[32m"false"[39m
+              [33maria-label[39m=[32m"按采集来源筛选"[39m
+              [33mclass[39m=[32m"flex w-fit items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent py-2 pr-2 pl-2.5 text-sm whitespace-nowrap transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground data-[size=default]:h-8 data-[size=sm]:h-7 data-[size=sm]:rounded-[min(var(--radius-md),10px)] *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"[39m
+              [33mdata-size[39m=[32m"sm"[39m
+              [33mdata-slot[39m=[32m"select-trigger"[39m
+              [33mdata-state[39m=[32m"closed"[39m
+              [33mdir[39m=[32m"ltr"[39m
+              [33mrole[39m=[32m"combobox"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [36m<span[39m
+                [33mdata-slot[39m=[32m"select-value"[39m
+                [33mstyle[39m=[32m"pointer-events: none;"[39m
+              [36m>[39m
+                [0m全部采集来源[0m
+              [36m</span>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"lucide lucide-chevron-down pointer-events-none size-4 text-muted-foreground"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mheight[39m=[32m"24"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"24"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"m6 9 6 6 6-6"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</button>[39m
+            [36m<div[39m
+              [33maria-label[39m=[32m"质量决定筛选"[39m
+              [33mclass[39m=[32m"segmented"[39m
+              [33mrole[39m=[32m"group"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-pressed[39m=[32m"true"[39m
+                [33mclass[39m=[32m"group/button inline-flex shrink-0 items-center justify-center border border-transparent bg-clip-padding font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5"[39m
+                [33mda...
+ ❯ Object.getElementError node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/.pnpm/@testing-library+dom@10.4.1/node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/features/items/items-page.ui.test.tsx:39:28
+     37|     renderPage()
+     38|
+     39|     const toolbar = screen.getByRole('group', { name: '数据工具栏' })
+       |                            ^
+     40|     const list = await screen.findByLabelText('Item 列表')
+     41|     const rows = await within(list).findAllByRole('link')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  3 failed (3)
+      Tests  3 failed | 16 passed (19)
+   Start at  18:43:52
+   Duration  1.62s (transform 331ms, setup 576ms, import 624ms, tests 969ms, environment 1.41s)

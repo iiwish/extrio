@@ -1,0 +1,85 @@
+brace-expansion@2.1.4
+└─┬ minimatch@5.1.9
+  └─┬ @redocly/openapi-core@1.34.19
+    └─┬ openapi-typescript@7.13.0
+      └── @extrio/web@1.0.0 (devDependencies)
+
+brace-expansion@5.0.9
+└─┬ minimatch@10.2.6
+  └─┬ @ts-morph/common@0.27.0
+    └─┬ ts-morph@26.0.0
+      └─┬ shadcn@4.19.0
+        └── @extrio/web@1.0.0 (dependencies)
+
+fast-uri@3.1.6
+└─┬ ajv@8.20.0
+  ├── @extrio/web@1.0.0 (devDependencies)
+  ├─┬ @modelcontextprotocol/sdk@1.30.0
+  │ └─┬ shadcn@4.19.0
+  │   └── @extrio/web@1.0.0 (dependencies)
+  ├─┬ ajv-formats@2.1.1
+  │ └─┬ conf@10.2.0
+  │   └─┬ @dotenvx/dotenvx@1.75.1
+  │     └── shadcn@4.19.0 [deduped]
+  ├─┬ ajv-formats@3.0.1
+  │ ├── @extrio/web@1.0.0 (devDependencies)
+  │ └── @modelcontextprotocol/sdk@1.30.0 [deduped]
+  └── conf@10.2.0 [deduped]
+
+proxy-addr@2.0.7
+└─┬ express@5.2.1
+  ├─┬ @modelcontextprotocol/sdk@1.30.0
+  │ └─┬ shadcn@4.19.0
+  │   └── @extrio/web@1.0.0 (dependencies)
+  └─┬ express-rate-limit@8.7.0
+    └── @modelcontextprotocol/sdk@1.30.0 [deduped]
+
+source-map-js@1.2.1
+├─┬ @tailwindcss/node@4.3.3
+│ └─┬ @tailwindcss/vite@4.3.3
+│   └── @extrio/web@1.0.0 (devDependencies)
+├─┬ css-tree@3.2.1
+│ ├─┬ @asamuzakjp/dom-selector@8.3.2
+│ │ └─┬ jsdom@30.0.1
+│ │   ├── @extrio/web@1.0.0 (devDependencies)
+│ │   └─┬ vitest@4.1.11
+│ │     ├── @extrio/web@1.0.0 (devDependencies)
+│ │     └─┬ @testing-library/jest-dom@7.0.1
+│ │       └── @extrio/web@1.0.0 (devDependencies)
+│ ├─┬ @bramus/specificity@2.4.2
+│ │ └── jsdom@30.0.1 [deduped]
+│ ├─┬ @csstools/css-syntax-patches-for-csstree@1.1.9
+│ │ └── jsdom@30.0.1 [deduped]
+│ └── jsdom@30.0.1 [deduped]
+├─┬ postcss@8.5.26
+│ └─┬ shadcn@4.19.0
+│   └── @extrio/web@1.0.0 (dependencies)
+└─┬ postcss@8.5.28
+  └─┬ vite@8.3.0
+    ├── @extrio/web@1.0.0 (devDependencies)
+    ├── @tailwindcss/vite@4.3.3 [deduped]
+    ├─┬ @vitejs/plugin-react@6.1.1
+    │ └── @extrio/web@1.0.0 (devDependencies)
+    ├─┬ @vitest/mocker@4.1.11
+    │ └── vitest@4.1.11 [deduped]
+    └── vitest@4.1.11 [deduped]
+
+undici@7.29.0
+├─┬ @dotenvx/dotenvx@1.75.1
+│ └─┬ shadcn@4.19.0
+│   └── @extrio/web@1.0.0 (dependencies)
+└── shadcn@4.19.0 [deduped]
+
+undici@8.10.0
+└─┬ jsdom@30.0.1
+  ├── @extrio/web@1.0.0 (devDependencies)
+  └─┬ vitest@4.1.11
+    ├── @extrio/web@1.0.0 (devDependencies)
+    └─┬ @testing-library/jest-dom@7.0.1
+      └── @extrio/web@1.0.0 (devDependencies)
+
+Found 2 versions of brace-expansion
+Found 1 version of fast-uri
+Found 1 version of proxy-addr
+Found 1 version of source-map-js
+Found 2 versions of undici

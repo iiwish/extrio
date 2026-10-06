@@ -1,4 +1,4 @@
-FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+FROM ghcr.io/astral-sh/uv:python3.12-trixie-slim@sha256:28d570c06d150303b39adfa731ada20956c63fc86b1277d7ff2ad63185974092
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -24,9 +24,10 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends curl ca-certificates \
     && mkdir -p /usr/share/postgresql-common/pgdg \
     && curl --fail --silent --show-error https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
-    && printf '%s\n' 'deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main' > /etc/apt/sources.list.d/pgdg.list \
+    && printf '%s\n' 'deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt trixie-pgdg main' > /etc/apt/sources.list.d/pgdg.list \
     && apt-get update \
-    && apt-get install -y --no-install-recommends postgresql-client-17 \
+    && apt-get install -y --no-install-recommends postgresql-client-16 \
+    && apt-get purge -y curl xvfb xserver-common \
     && rm -rf /var/lib/apt/lists/*
 
 COPY LICENSE NOTICE ./
@@ -39,7 +40,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 ENV PATH="/opt/extrio/bin:${PATH}"
 
-RUN useradd --create-home --uid 10001 extrio \
+# Browser setup is complete; runtime dependency management uses the frozen uv environment.
+RUN uv pip uninstall --system --python /usr/local/bin/python pip \
+    && useradd --create-home --uid 10001 extrio \
     && mkdir -p /var/lib/extrio \
     && chown -R extrio:extrio /var/lib/extrio
 

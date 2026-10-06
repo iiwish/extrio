@@ -1,0 +1,13 @@
+{
+  "scanner": "Trivy 0.75.0",
+  "imageId": "sha256:73610e9dd70255ed92bf8144d01bfb0ae3ef5cd3eed0bf8d65968199f0050aa9",
+  "architecture": "linux/arm64",
+  "createdAt": "2026-10-06T08:45:15.675124948Z",
+  "results": [
+    {
+      "Target": "extrio/qa-web:20261006 (alpine 3.23.4)",
+      "Type": "alpine",
+      "vulnerabilities": 0
+    }
+  ]
+}

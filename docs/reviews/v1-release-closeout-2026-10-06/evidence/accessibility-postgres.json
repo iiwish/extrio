@@ -1,0 +1,769 @@
+{
+  "axeVersion": "4.13.0",
+  "scans": [
+    {
+      "surface": "login",
+      "language": "zh",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-login-zh-1440.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 19,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "home",
+      "language": "zh",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-home-zh-1440.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 23,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "collections",
+      "language": "zh",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-collections-zh-1440.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 25,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "long-content",
+      "language": "zh",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-long-content-zh-1440.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "new-collector",
+      "language": "zh",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-new-collector-zh-1440.png",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "count": 7
+        },
+        {
+          "id": "color-contrast",
+          "count": 3
+        }
+      ],
+      "passes": 25,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "collector",
+      "language": "zh",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-collector-zh-1440.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 27,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "run",
+      "language": "zh",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-run-zh-1440.png",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "ai-run",
+      "language": "zh",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-ai-run-zh-1440.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "items",
+      "language": "zh",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-items-zh-1440.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 24,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "item",
+      "language": "zh",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-item-zh-1440.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "settings",
+      "language": "zh",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-settings-zh-1440.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "models",
+      "language": "zh",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-models-zh-1440.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 24,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "home",
+      "language": "zh",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-home-zh-1024.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 23,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "collections",
+      "language": "zh",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-collections-zh-1024.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 25,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "long-content",
+      "language": "zh",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-long-content-zh-1024.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "new-collector",
+      "language": "zh",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-new-collector-zh-1024.png",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "count": 7
+        },
+        {
+          "id": "color-contrast",
+          "count": 3
+        }
+      ],
+      "passes": 25,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "collector",
+      "language": "zh",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-collector-zh-1024.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 27,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "run",
+      "language": "zh",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-run-zh-1024.png",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "ai-run",
+      "language": "zh",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-ai-run-zh-1024.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "items",
+      "language": "zh",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-items-zh-1024.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 25,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "item",
+      "language": "zh",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-item-zh-1024.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "settings",
+      "language": "zh",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-settings-zh-1024.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "models",
+      "language": "zh",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-models-zh-1024.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 24,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "home",
+      "language": "en",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "en"
+      },
+      "screenshot": "audit-home-en-1440.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 23,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "collections",
+      "language": "en",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "en"
+      },
+      "screenshot": "audit-collections-en-1440.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 25,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "long-content",
+      "language": "en",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "en"
+      },
+      "screenshot": "audit-long-content-en-1440.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "new-collector",
+      "language": "en",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "en"
+      },
+      "screenshot": "audit-new-collector-en-1440.png",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "count": 7
+        },
+        {
+          "id": "color-contrast",
+          "count": 3
+        }
+      ],
+      "passes": 25,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "collector",
+      "language": "en",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "en"
+      },
+      "screenshot": "audit-collector-en-1440.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 27,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "run",
+      "language": "en",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "en"
+      },
+      "screenshot": "audit-run-en-1440.png",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "ai-run",
+      "language": "en",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "en"
+      },
+      "screenshot": "audit-ai-run-en-1440.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "items",
+      "language": "en",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "en"
+      },
+      "screenshot": "audit-items-en-1440.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 24,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "item",
+      "language": "en",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "en"
+      },
+      "screenshot": "audit-item-en-1440.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "settings",
+      "language": "en",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "en"
+      },
+      "screenshot": "audit-settings-en-1440.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "models",
+      "language": "en",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "en"
+      },
+      "screenshot": "audit-models-en-1440.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 24,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "home",
+      "language": "en",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "en"
+      },
+      "screenshot": "audit-home-en-1024.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 23,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "collections",
+      "language": "en",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "en"
+      },
+      "screenshot": "audit-collections-en-1024.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 25,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "long-content",
+      "language": "en",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "en"
+      },
+      "screenshot": "audit-long-content-en-1024.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "new-collector",
+      "language": "en",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "en"
+      },
+      "screenshot": "audit-new-collector-en-1024.png",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "count": 7
+        },
+        {
+          "id": "color-contrast",
+          "count": 3
+        }
+      ],
+      "passes": 25,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "collector",
+      "language": "en",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "en"
+      },
+      "screenshot": "audit-collector-en-1024.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 27,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "run",
+      "language": "en",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "en"
+      },
+      "screenshot": "audit-run-en-1024.png",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "ai-run",
+      "language": "en",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "en"
+      },
+      "screenshot": "audit-ai-run-en-1024.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "items",
+      "language": "en",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "en"
+      },
+      "screenshot": "audit-items-en-1024.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 25,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "item",
+      "language": "en",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "en"
+      },
+      "screenshot": "audit-item-en-1024.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "settings",
+      "language": "en",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "en"
+      },
+      "screenshot": "audit-settings-en-1024.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "models",
+      "language": "en",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "en"
+      },
+      "screenshot": "audit-models-en-1024.png",
+      "violations": [],
+      "incomplete": [],
+      "passes": 24,
+      "axeVersion": "4.13.0"
+    }
+  ],
+  "behaviors": [
+    {
+      "case": "wrong-password-visible-error",
+      "status": "passed"
+    },
+    {
+      "case": "html-content-inert",
+      "language": "zh",
+      "width": 1440,
+      "status": "passed"
+    },
+    {
+      "case": "html-content-inert",
+      "language": "zh",
+      "width": 1024,
+      "status": "passed"
+    },
+    {
+      "case": "html-content-inert",
+      "language": "en",
+      "width": 1440,
+      "status": "passed"
+    },
+    {
+      "case": "html-content-inert",
+      "language": "en",
+      "width": 1024,
+      "status": "passed"
+    }
+  ],
+  "pageErrors": [],
+  "overflow": [],
+  "violationInstances": 0
+}

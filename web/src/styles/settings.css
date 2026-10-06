@@ -9,7 +9,7 @@
  */
 
 .settings-form-grid small {
-  color: #7a878d;
+  color: var(--muted-foreground);
   font-size: 10px;
   line-height: 1.5;
 }
@@ -52,7 +52,7 @@
 }
 
 .credential-help {
-  color: #6f7d83;
+  color: var(--muted-foreground);
   font-size: 10px;
   line-height: 1.5;
 }
@@ -67,7 +67,7 @@
 }
 
 .settings-form-actions > span {
-  color: #7a878d;
+  color: var(--muted-foreground);
   font-size: 10px;
 }
 
@@ -275,7 +275,7 @@
 
 .settings-provider-identity small,
 .settings-model-identity small {
-  color: #7a878d;
+  color: var(--muted-foreground);
   font-size: 9px;
 }
 
@@ -316,10 +316,10 @@
 
 .settings-status.success { color: #087f73; }
 .settings-status.warning { color: #a35f08; }
-.settings-status.muted { color: #7c898f; }
+.settings-status.muted { color: var(--muted-foreground); }
 
 .settings-provider-count {
-  color: #718087;
+  color: var(--muted-foreground);
   font-size: 10px;
   white-space: nowrap;
 }
@@ -400,7 +400,7 @@
   gap: 12px;
   padding: 8px 12px 8px 74px;
   border-top: 1px solid #e3e8ea;
-  color: #7a878d;
+  color: var(--muted-foreground);
   font-size: 10px;
 }
 
@@ -505,7 +505,7 @@
 
 .settings-users-toolbar p {
   margin-top: 2px;
-  color: #7a878d;
+  color: var(--muted-foreground);
   font-size: 10px;
 }
 
@@ -522,7 +522,7 @@
 .settings-users-head {
   min-height: 34px;
   border-top: 1px solid #e3e8ea;
-  color: #7a878d;
+  color: var(--muted-foreground);
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -556,12 +556,12 @@
 }
 
 .settings-users-identity small {
-  color: #7a878d;
+  color: var(--muted-foreground);
   font-size: 9px;
 }
 
 .settings-users-updated {
-  color: #718087;
+  color: var(--muted-foreground);
   font-size: 10px;
   white-space: nowrap;
 }
@@ -615,7 +615,7 @@
 .settings-collection-policy-header p {
   max-width: 640px;
   margin-top: 2px;
-  color: #7a878d;
+  color: var(--muted-foreground);
   font-size: 10px;
 }
 
@@ -680,7 +680,7 @@
   margin-left: 6px;
   padding-left: 12px;
   border-left: 1px solid #d7dfe2;
-  color: #7a878d;
+  color: var(--muted-foreground);
   font-size: 10px;
 }
 
@@ -708,5 +708,5 @@
 
 .tab-count.neutral {
   background: #e8edf0;
-  color: #66767d;
+  color: var(--muted-foreground);
 }

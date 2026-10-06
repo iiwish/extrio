@@ -21,7 +21,7 @@
 }
 
 .sample-list small {
-  color: #728087;
+  color: var(--muted-foreground);
   font-size: 11px;
 }
 
@@ -728,7 +728,7 @@
 }
 
 .dashboard-empty small {
-  color: #7a878d;
+  color: var(--muted-foreground);
   font-size: 11px;
 }
 
@@ -788,7 +788,7 @@
 }
 
 .dashboard-health-score small {
-  color: #7a878d;
+  color: var(--muted-foreground);
   font-size: 10px;
 }
 
@@ -857,7 +857,7 @@
 
 .dashboard-resume-card p {
   margin-bottom: 16px;
-  color: #6b7980;
+  color: var(--muted-foreground);
   font-size: 11px;
 }
 
@@ -1126,7 +1126,7 @@
 
 .revision-empty > svg {
   width: 24px;
-  color: #75838a;
+  color: var(--muted-foreground);
 }
 
 .revision-empty p {
@@ -1183,7 +1183,7 @@
   display: grid;
   place-items: center;
   border-top: 1px solid #e4e9eb;
-  color: #718087;
+  color: var(--muted-foreground);
 }
 
 .empty-state {

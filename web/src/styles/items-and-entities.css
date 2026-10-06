@@ -426,7 +426,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
-  color: #75838a;
+  color: var(--muted-foreground);
   font-size: 10px;
 }
 
@@ -448,7 +448,7 @@
   border: 1px dashed #ced8dc;
   border-radius: 8px;
   background: #fff;
-  color: #718087;
+  color: var(--muted-foreground);
 }
 
 .items-page {
@@ -531,7 +531,7 @@
   min-height: 36px;
   border-bottom: 1px solid #e3e8ea;
   background: #f7f9f9;
-  color: #75838a;
+  color: var(--muted-foreground);
   text-transform: none;
 }
 
@@ -576,7 +576,7 @@
 
 .item-change-cell small {
   overflow: hidden;
-  color: #7b888e;
+  color: var(--muted-foreground);
   font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;

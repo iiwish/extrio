@@ -60,7 +60,7 @@
   align-items: center;
   gap: 8px;
   padding-top: 18px;
-  color: #718087;
+  color: var(--muted-foreground);
   font-size: 12px;
 }
 
@@ -159,7 +159,7 @@
 }
 
 .existing-collection-summary small {
-  color: #7a878d;
+  color: var(--muted-foreground);
   font-size: 9px;
 }
 
@@ -243,7 +243,7 @@
 }
 
 .field-group small {
-  color: #738087;
+  color: var(--muted-foreground);
   font-size: 11px;
 }
 
@@ -393,7 +393,7 @@
   z-index: 2;
   top: 0;
   min-height: 34px;
-  color: #7a878d;
+  color: var(--muted-foreground);
   font-size: 10px;
   font-weight: 650;
   background: #f8fafb;
@@ -506,7 +506,7 @@
 .collector-create-actions .form-readiness {
   min-width: 0;
   margin-right: auto;
-  color: #6b7980;
+  color: var(--muted-foreground);
   font-size: 12px;
 }
 
@@ -643,7 +643,7 @@
 }
 
 .import-result-row > span:nth-child(2) small {
-  color: #718087;
+  color: var(--muted-foreground);
   font-size: 11px;
 }
 

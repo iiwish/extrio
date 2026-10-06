@@ -74,7 +74,7 @@ export function ItemsPage() {
     <ListWorkspace className="page-frame entity-page items-page" label={t('list.aria')}
       count={firstPage?.total} loading={query.isLoading} refreshing={query.isFetching} failed={query.isError} resetKey={searchParams.toString()}
       pagination={list.pagination}
-      toolbar={<div className="filter-card items-filter-card" aria-label={t('toolbar.aria')}>
+      toolbar={<div role="group" className="filter-card items-filter-card" aria-label={t('toolbar.aria')}>
         <div className="filter-cluster">
           <Select value={source} onValueChange={(value) => updateParam('source', value)}><SelectTrigger size="sm" aria-label={t('toolbar.sourceAria')}><SelectValue placeholder={t('toolbar.allSources')} /></SelectTrigger><SelectContent><SelectItem value="all">{t('toolbar.allSources')}</SelectItem>{sources.map((host) => <SelectItem key={host} value={host}>{host}</SelectItem>)}</SelectContent></Select>
           <Select value={collector} onValueChange={(value) => updateParam('collector', value)}><SelectTrigger size="sm" aria-label={t('toolbar.collectorAria')}><SelectValue placeholder={t('toolbar.allCollectors')} /></SelectTrigger><SelectContent><SelectItem value="all">{t('toolbar.allCollectors')}</SelectItem>{collectors.map(({ id, name }) => <SelectItem key={id} value={id}>{collectorDisplayName(name)}</SelectItem>)}</SelectContent></Select>

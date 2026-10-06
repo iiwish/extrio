@@ -1,0 +1,26 @@
+multidict v6.7.1
+├── aiohttp v3.14.3
+│   ├── crawl4ai v0.9.2
+│   │   └── extrio-backend v1.0.0
+│   └── unclecode-litellm v1.81.13
+│       └── crawl4ai v0.9.2 (*)
+└── yarl v1.24.5
+    ├── aiohttp v3.14.3 (*)
+    └── crawlee v1.9.3
+        └── extrio-backend[parsel] v1.0.0
+nltk v3.10.3
+└── crawl4ai v0.9.2 (*)
+pyjwt v2.13.0
+└── mcp[crypto] v1.29.1
+    └── extrio-backend v1.0.0
+urllib3 v2.7.0
+└── requests v2.34.2
+    ├── crawl4ai v0.9.2 (*)
+    ├── requests-file v3.0.1
+    │   └── tldextract v5.3.2
+    │       └── crawlee v1.9.3 (*)
+    ├── tiktoken v0.14.0
+    │   ├── extrio-backend v1.0.0
+    │   └── unclecode-litellm v1.81.13 (*)
+    └── tldextract v5.3.2 (*)
+(*) Package tree already displayed

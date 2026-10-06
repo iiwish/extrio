@@ -70,7 +70,7 @@
 
 .summary-card small {
   display: block;
-  color: #6f7d84;
+  color: var(--muted-foreground);
   font-size: 11px;
   font-weight: 650;
 }
@@ -161,7 +161,7 @@
   min-height: 36px;
   border-bottom: 1px solid #e3e8ea;
   background: #f7f9f9;
-  color: #75838a;
+  color: var(--muted-foreground);
   text-transform: none;
 }
 
@@ -204,7 +204,7 @@
 .collector-list-fact small,
 .collector-action-cell small {
   overflow: hidden;
-  color: #7b888e;
+  color: var(--muted-foreground);
   font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -412,7 +412,7 @@
   min-height: 36px;
   border-bottom: 1px solid #e3e8ea;
   background: #f7f9f9;
-  color: #75838a;
+  color: var(--muted-foreground);
   text-transform: none;
 }
 
@@ -454,7 +454,7 @@
 .run-scope-cell small,
 .run-time-cell small {
   overflow: hidden;
-  color: #7b888e;
+  color: var(--muted-foreground);
   font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -553,7 +553,7 @@
   z-index: 1;
   width: 14px;
   height: 14px;
-  color: #7c898f;
+  color: var(--muted-foreground);
   transform: translateY(-50%);
   pointer-events: none;
 }
