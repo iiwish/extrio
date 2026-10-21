@@ -47,6 +47,14 @@ RC1 schema 013 升级到 schema 014 保留既有迁移时间、规则、签名�
 
 ## 替代基础镜像验证
 
+本节保留冻结的独立实验；当前默认构建及本轮安装升级复验见下方“默认 Ubuntu 镜像”。
+
 冻结参考 `2caaa414db6d30a83113db539d59818888974671` 的[完整主 CI](https://github.com/iiwish/extrio/actions/runs/39545727394)为后端 1100 / 前端 278 全部通过，[普通双库容器安装](https://github.com/iiwish/extrio/actions/runs/39545727380)和[原生精简对照](https://github.com/iiwish/extrio/actions/runs/39545727384)也通过。Ubuntu 两个 LTS 的实际镜像内采集/PDF/双库定向回归每组 246 项、零跳过；完整未过滤扫描与运行镜像身份、层和报告哈希逐项核对。
 
 [替代镜像矩阵](https://github.com/iiwish/extrio/actions/runs/39545727389)不是全部通过：Ubuntu 24.04 官方 Python 的两组为 0 CRITICAL / 1 HIGH，满足无新增/可修复高危门槛，但 NLTK 遗留 HIGH 未接受；Ubuntu 26.04 两组为 1 CRITICAL / 8 HIGH，因新高危保持失败，拒绝采用。方案、真实失败、版本差异及完整边界见 [alternative-base.md](alternative-base.md)，关键镜像与报告摘要见 [alternative-base-results.json](alternative-base-results.json)。没有切换默认 Dockerfile、改写业务数据或重试采购网；本轮不合并、不发布、不部署、不开调度。
+
+## 默认 Ubuntu 镜像
+
+默认构建采用用户已授权的 Ubuntu 24.04 官方 Python 3.12/headless-shell 方案；现有实例不切换。源码 `631cf6771bfa1548f3b7d84dd6e37b42480eb477` 的[完整 CI](https://github.com/iiwish/extrio/actions/runs/39554200962)通过后端 1104 / 前端 278，[双库默认容器安装与完整扫描](https://github.com/iiwish/extrio/actions/runs/39554201000)和[两架构默认镜像验证](https://github.com/iiwish/extrio/actions/runs/39554200976)通过。每架构实际镜像内 255 项、零跳过，包含原文/PDF/EPS、采集边界、完整备份恢复及固定历史/Alpha/RC1 的双库升级与匹配代码回滚，不把主机测试替代镜像测试。
+
+完整默认后端清单为 0 CRITICAL / 1 HIGH / 30 MEDIUM / 16 LOW，Web 为零；NLTK 3.10.3 HIGH 保持 open。用户选择保留稳定依赖，官方 RC 源码仅在隔离容器评估：每架构 15 次五 API 攻击拒绝、3 次负控制、2 项合法往返通过，训练路径仅源码检查，不是完整 RC 资格认证。详见 [default-ubuntu.md](default-ubuntu.md) 与[镜像/报告哈希](default-ubuntu-results.json)。没有修改业务源码、冻结依赖、原数据库或采集证据，不合并、不发布、不部署、不开调度。

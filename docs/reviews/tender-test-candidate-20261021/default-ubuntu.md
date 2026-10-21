@@ -21,3 +21,40 @@
 ## 证据与完成条件
 
 保存默认运行镜像与层身份、系统/Python/PG 版本、锁文件哈希、完整漏洞清单和 JUnit；新 CRITICAL/HIGH、可修复未处置高危、能力变化或任何跳过均阻止采用。NLTK 原 HIGH 未接受也不忽略。默认构建切换只是代码变更，不是替换现有容器、主机系统或上线。历史实验报告保留其冻结来源与失败结论，不冒充本轮默认镜像证据。
+
+## 验证结果
+
+冻结源码 `631cf6771bfa1548f3b7d84dd6e37b42480eb477` 的[完整主 CI](https://github.com/iiwish/extrio/actions/runs/39554200962)、[默认镜像双库冷安装与完整扫描](https://github.com/iiwish/extrio/actions/runs/39554201000)、[默认原生镜像/升级与隔离评估](https://github.com/iiwish/extrio/actions/runs/39554200976)、[历史 Debian 精简对照](https://github.com/iiwish/extrio/actions/runs/39554200960)均成功。下载后独立核对镜像身份/层、能力、JUnit 和完整清单，结果与原 CI 一致。
+
+| 项目 | 实测 |
+| --- | --- |
+| 默认构建 | Ubuntu 24.04 LTS / 官方 Python 3.12 安全回补 / noble-pgdg PG16；默认最终目标继承运行层，不含 verification 开发工具层 |
+| 两架构完整后端扫描 | 各 47 条：0 CRITICAL / 1 HIGH / 30 MEDIUM / 16 LOW；全部保留，无忽略。Web 完整扫描为零 |
+| 唯一 HIGH | `NLTK 3.10.3 / CVE-2026-81726`，仍 open，无稳定补丁，未接受风险 |
+| 原生镜像内回归 | amd64/arm64 默认镜像各 255 项，零失败/错误/跳过；历史 Debian 对照与 headless 精简也各 255 项 |
+| 安装与升级 | 实际默认镜像双库隔离冷安装、鉴权和 Worker readiness 通过；镜像内执行固定历史、Alpha、RC1 的 SQLite/PG16 升级与匹配源程序备份回滚，以及双库并发空库迁移，只处理合成实例 |
+| 采集/文档与恢复 | 浏览器列表/详情/翻页、异步 DOM、原文/PDF/EPS、网络边界、扫描件拒收、完整双库备份/空目标恢复、凭据/签名/Artifact 保留通过 |
+| 全量源码回归 | 后端 1104 项，前端 278 项；lint/build、生成类型、契约、打包与源包安装通过 |
+
+运行镜像仍保留 LLVM/GBM，CUPS 真正移除，仅安装 headless-shell。Canvas/截图和 WebGL 像素、正式 PDF 子进程提取和扫描件拒收与对照相同。锁文件、业务源码、迁移及 Web 依赖没有修改。精确镜像 ID、锁文件与报告哈希见 [default-ubuntu-results.json](default-ubuntu-results.json)；完整原报告留于对应 Actions artifacts 和受限本地目录。
+
+Ubuntu 26.04 保持拒绝采用；其失败证据和手动重现入口保留，不再作为 PR 的默认候选矩阵。PR 持续验证实际默认 Noble 配方，不是跳过 Noble 扫描或豁免旧镜像风险。默认镜像代码切换不表示已发布镜像或替换现有实例。
+
+## NLTK 隔离评估
+
+按用户明确选择，`backend/pyproject.toml` 与 `uv.lock` 保留稳定依赖，预发布源码不写入运行镜像。固定官方 tag `v3.10.4-rc1` 的提交 `ba6b259aa94a85168c031ad60e4072538c30b513`，下载归档 SHA256 为 `2d401f212e7d872d9349bd43dedcab08bda54a807ce99957569725b567714464`，执行前严格校验。
+
+两个原生架构都在非 root、只读根文件系统、无网络、无额外 capability 的容器内加载只读挂载的预发布源码；HOME 使用新建 tmpfs，不挂载宿主用户目录、数据库或密钥，也不安装包/模型。结果为：
+
+- 五个受影响 API 的绝对路径、`..`、符号链接逃逸共 15 次真实调用均由 PermissionError 拒绝；另有 3 次独立 pathsec 负控制，外部 canary 始终未变。
+- AveragedPerceptron 模型和 maxent 参数的两项合法读写往返通过，避免把所有读写失效当安全成功。
+- `TransitionParser.train` 仅核对源码的 `pathsec_open` 写入路径；未安装可选 scikit-learn，未执行真实训练，不声称该路径已经动态验证。
+- 上游源码自报版本是 `3.10.4`，但 tag 仍是 RC，没有对应稳定 PyPI 包。不能因为版本超出扫描器受影响范围就宣布漏洞关闭。
+
+这是有限安全反例评估，不是完整 NLTK 资格认证、预发布包全量兼容性验证或生产风险接受。稳定运行镜像中的 NLTK HIGH 持续保留，官方稳定包和公告状态仍须跟进；不加 VEX、忽略或第三方源码补丁。
+
+## 系统边界与保留
+
+业务规则不绑定 Ubuntu 品牌；容器用户态仍包含 Python 原生扩展、Chromium、LLVM/libxml2、证书和数据库工具，其包版本、ABI 和安全回补属于运行依赖。Docker 固定这些用户态依赖，宿主或 Docker VM 内核、CPU 架构与网络边界仍有影响。修改基础镜像不要求更换用户电脑系统，也不修改数据库内容。
+
+本地只读保留核验通过，原始数据库、既有数据/断点/文件证据保持，来源调度关闭且无额外模型调用。回执不上传公开 PR。草稿保持，不合并、不发布、不部署；机器辅助验证不是独立人工验收。
