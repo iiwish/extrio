@@ -1,0 +1,76 @@
+name: Independent image pruning
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  native-image-slim:
+    name: image-slim (${{ matrix.runner }})
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build unchanged baseline
+        run: docker build -f docker/backend.Dockerfile -t extrio/backend:slim-original .
+      - name: Verify baseline capabilities and isolated dual-database regression
+        run: bash scripts/verify-slim-image.sh baseline image-slim/baseline
+      - name: Verify LLVM removal
+        run: bash scripts/verify-slim-image.sh llvm image-slim/llvm
+      - name: Verify headless-shell and CUPS removal
+        run: bash scripts/verify-slim-image.sh headless image-slim/headless
+      - name: Complete baseline scan
+        if: always()
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: extrio/backend:slim-baseline
+          format: json
+          output: image-slim/baseline/vulnerabilities.json
+          exit-code: '0'
+          ignore-unfixed: false
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+      - name: Complete LLVM candidate scan
+        if: always()
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: extrio/backend:slim-llvm
+          format: json
+          output: image-slim/llvm/vulnerabilities.json
+          exit-code: '0'
+          ignore-unfixed: false
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+      - name: Complete headless candidate scan
+        if: always()
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: extrio/backend:slim-headless
+          format: json
+          output: image-slim/headless/vulnerabilities.json
+          exit-code: '0'
+          ignore-unfixed: false
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+      - name: Preserve existing fixable high severity gate for candidate
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: extrio/backend:slim-headless
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: HIGH,CRITICAL
+      - name: Compare capabilities, complete scans and zero-skip image regression
+        run: python3 scripts/compare-slim-images.py image-slim
+      - name: Preserve experimental evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: image-slim-${{ matrix.runner }}
+          path: image-slim/
+          if-no-files-found: warn
+          retention-days: 30

@@ -47,3 +47,7 @@ def test_security_diagnostics_are_offline_and_do_not_run_collection_commands():
     workflow = (SCRIPT.parents[1] / '.github/workflows/container.yml').read_text()
     assert 'docker run --rm --network none' in workflow
     assert 'target=/tmp/inspect-image-security.py,readonly' in workflow
+
+
+def test_isolated_browser_probe_is_valid_python():
+    compile(runpy.run_path(str(SCRIPT))['PROBE'], '<fixed-image-probe>', 'exec')
