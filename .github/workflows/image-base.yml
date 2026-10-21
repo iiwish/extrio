@@ -55,6 +55,17 @@ jobs:
           severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
       - name: Enforce capabilities, complete evidence and unhandled security gate
         run: python3 scripts/compare-base-images.py image-base '${{ matrix.suite }}'
+      - name: Assess immutable NLTK prerelease offline without replacing stable dependencies
+        if: matrix.suite == 'noble'
+        run: bash scripts/assess-nltk-prerelease.sh nltk-assessment
+      - name: Preserve prerelease assessment receipts, not third-party source archives
+        if: always() && matrix.suite == 'noble'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: nltk-assessment-${{ matrix.runner }}
+          path: nltk-assessment/assessment.json
+          if-no-files-found: warn
+          retention-days: 30
       - name: Preserve isolated image evidence even on failure
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
