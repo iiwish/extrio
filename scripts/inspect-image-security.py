@@ -113,6 +113,10 @@ def inspect():
         raise RuntimeError('Run only inside the isolated dpkg candidate image')
     packages = parse_packages(command(['dpkg-query', '-W',
         '-f=${db:Status-Status}\t${binary:Package}\t${Version}\t${Depends}\t${Essential}\n']))
+    python_packages = {dist.metadata['Name'].lower().replace('_', '-'): dist.version
+                       for dist in importlib.metadata.distributions()}
+    if {'crawl4ai', 'nltk'} & python_packages.keys():
+        raise RuntimeError('removed browser/NLP dependency is still installed')
     process = subprocess.run([sys.executable, '-c', PROBE], capture_output=True, text=True, timeout=90, check=False,
                              env={**os.environ, 'LD_DEBUG': 'libs', 'DEBUG': 'pw:browser'})
     if process.returncode:
@@ -131,6 +135,7 @@ def inspect():
         'pgDumpVersion': command(['pg_dump', '--version']).strip(),
         'lockSha256': hashlib.sha256(Path('/app/backend/uv.lock').read_bytes()).hexdigest(),
         'installedPackages': packages,
+        'pythonPackages': python_packages,
         'scope': 'fixed offline HTML/XML/PNG/SVG/PDF fixture; not global unreachability or CVE remediation',
         'globalUnreachabilityProven': False,
         'pruning': json.loads(Path('/usr/local/share/extrio/native-pruning.json').read_text())

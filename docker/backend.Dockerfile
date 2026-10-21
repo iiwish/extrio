@@ -24,7 +24,6 @@ COPY backend/pyproject.toml backend/uv.lock backend/README.md backend/hatch_buil
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --project backend --python /usr/bin/python3.12 --frozen --no-dev --no-install-project \
     && /opt/extrio/bin/python -m playwright install --with-deps --only-shell chromium \
-    && CRAWL4AI_MODE=api /opt/extrio/bin/crawl4ai-setup \
     && chmod -R a+rX /ms-playwright
 COPY scripts/prune-image-runtime.py /tmp/prune-image-runtime.py
 RUN EXTRIO_DISPOSABLE_IMAGE_BUILD=1 /opt/extrio/bin/python /tmp/prune-image-runtime.py only-shell \

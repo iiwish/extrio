@@ -2,6 +2,8 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
+from playwright.async_api import Error as PlaywrightError
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from extrio.source_clients import RestrictedBrowser
 from extrio.source_network import SourceNetworkError, SourceResponse
@@ -14,70 +16,70 @@ def browser_with_results(*results):
         target=AsyncMock(), final_urls={},
     )
     browser = RestrictedBrowser(network)
-    browser.crawler = SimpleNamespace(arun=AsyncMock(side_effect=results))
+    browser._snapshot = AsyncMock(side_effect=results)
     return browser
 
 
-def result(*, success=True, status=200, error=""):
-    return SimpleNamespace(success=success, status_code=status, error_message=error, redirected_url=None)
+def result(*, status=200):
+    return SimpleNamespace(status_code=status, redirected_url=None)
 
 
 @pytest.mark.asyncio
 async def test_navigation_timeout_retries_once_without_http_zero():
-    timeout = result(success=False, status=None, error="Page.goto: Timeout 30000ms exceeded.")
+    timeout = PlaywrightTimeoutError('navigation timeout')
     browser = browser_with_results(timeout, result())
-    assert (await browser.arun("https://example.com/", object())).success
-    assert browser.crawler.arun.await_count == 2
+    assert (await browser.arun("https://example.com/", object())).status_code == 200
+    assert browser._snapshot.await_count == 2
     assert browser.network.fetch.await_count == 2
 
 
 @pytest.mark.asyncio
 async def test_repeated_navigation_timeout_is_precise_and_bounded():
-    timeout = result(success=False, status=None, error="Page.goto: Timeout 30000ms exceeded.")
+    timeout = PlaywrightTimeoutError('navigation timeout')
     browser = browser_with_results(timeout, timeout)
     with pytest.raises(SourceNetworkError, match="^browser_navigation_timed_out$"):
         await browser.arun("https://example.com/", object())
-    assert browser.crawler.arun.await_count == 2
+    assert browser._snapshot.await_count == 2
 
 
 @pytest.mark.asyncio
 async def test_unclassified_browser_failure_does_not_become_http_zero_or_retry():
-    browser = browser_with_results(result(success=False, status=None, error="Browser disconnected"))
+    browser = browser_with_results(PlaywrightError('Browser disconnected'))
     with pytest.raises(SourceNetworkError, match="^browser_fetch_failed$"):
         await browser.arun("https://example.com/", object())
-    assert browser.crawler.arun.await_count == 1
+    assert browser._snapshot.await_count == 1
 
 
 @pytest.mark.asyncio
 async def test_network_rejection_takes_priority_over_timeout_and_never_retries():
     browser = browser_with_results()
-    async def denied(**_kwargs):
+    async def denied(*_args):
         browser.failures.append(SourceNetworkError("host_not_allowed"))
-        return result(success=False, status=None, error="Page.goto: Timeout 30000ms exceeded.")
-    browser.crawler.arun.side_effect = denied
+        raise PlaywrightTimeoutError('navigation timeout')
+    browser._snapshot.side_effect = denied
     with pytest.raises(SourceNetworkError, match="^host_not_allowed$"):
         await browser.arun("https://example.com/", object())
-    assert browser.crawler.arun.await_count == 1
+    assert browser._snapshot.await_count == 1
 
 
 @pytest.mark.asyncio
 async def test_http_rejection_preserves_status():
-    browser = browser_with_results(result(success=False, status=403))
+    browser = browser_with_results(result(status=403))
     with pytest.raises(SourceNetworkError, match="^authentication_or_access_required$"):
         await browser.arun("https://example.com/", object())
-    assert browser.crawler.arun.await_count == 1
+    assert browser._snapshot.await_count == 1
 
 
 @pytest.mark.asyncio
 async def test_timeout_retry_cannot_reset_network_budget():
-    browser = browser_with_results(result(success=False, status=None, error="Page.goto: Timeout 30000ms exceeded."))
+    browser = browser_with_results(PlaywrightTimeoutError('navigation timeout'))
     browser.network.fetch.side_effect = [
         SourceResponse("https://example.com/", 200, {}, b"page"),
         SourceNetworkError("duration_exceeded"),
     ]
     with pytest.raises(SourceNetworkError, match="^duration_exceeded$"):
         await browser.arun("https://example.com/", object())
-    assert browser.crawler.arun.await_count == 1
+    assert browser._snapshot.await_count == 1
 
 
 @pytest.mark.asyncio

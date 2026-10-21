@@ -2,7 +2,9 @@
 
 日期：2026-10-21。状态：`Release Deferred`。用户明确要求暂缓发布、保留草稿 PR 并继续安全处置；没有接受残余风险。不得合并 main、创建候选标签或发布镜像，正式版/生产/来源调度均未授权。
 
-当前默认构建配方采用 Ubuntu 24.04 官方 Python 3.12/headless-shell，两个原生架构完整扫描均为 0 CRITICAL / 1 HIGH / 30 MEDIUM / 16 LOW。唯一 HIGH 是稳定依赖 NLTK 3.10.3，按用户选择保留且保持 open；预发布仅隔离评估，不写入锁文件。实际默认镜像的完整扫描、安装升级、NLTK 反例及适用边界见 [default-ubuntu.md](default-ubuntu.md) 和 [default-ubuntu-results.json](default-ubuntu-results.json)。这不是切换现有实例或发布镜像。
+当前默认构建采用 Ubuntu 24.04 官方 Python 3.12/headless-shell，受限浏览器直接使用稳定 Playwright，冻结依赖中没有 Crawl4AI/NLTK。完整扫描包含未修复项；任何 HIGH/CRITICAL 都阻断候选。实施边界和精确提交结果入口见 [playwright.md](playwright.md) 及[草稿 PR #49](https://github.com/iiwish/extrio/pull/49)。依赖移除不修复上游 NLTK，也不更新现有实例或历史镜像，不从 CI 绿色推断发布授权。
+
+冻结提交 `631cf6771bfa1548f3b7d84dd6e37b42480eb477` 的 Ubuntu 原生双架构报告为 0 CRITICAL / 1 HIGH / 30 MEDIUM / 16 LOW，唯一 HIGH 是当时的 NLTK 3.10.3；原报告、预发布隔离研究及适用边界保留在 [default-ubuntu.md](default-ubuntu.md) 和 [default-ubuntu-results.json](default-ubuntu-results.json)，不是当前无 NLTK 候选的扫描证据。
 
 ## 已完成核查
 

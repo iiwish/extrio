@@ -136,7 +136,7 @@ Extrio 只有一套正式前端：`web/index.html` → `src/main.tsx` → `app/r
 
 ## 2. 产品简述
 
-Extrio Web 控制台面向数据接入与运营人员，把一个采集需求和多个授权 Source 从批量接入推进到可审核规则、确定性运行和可追溯 Item。第一版通过 FastAPI、Crawl4AI 与 Crawlee 跑通真实本地纵向闭环，所有对象、状态、ID 和 API 边界与 SSOT 保持一致；MSW 保留为前端隔离开发和合同测试环境。
+Extrio Web 控制台面向数据接入与运营人员，把一个采集需求和多个授权 Source 从批量接入推进到可审核规则、确定性运行和可追溯 Item。第一版通过 FastAPI、Playwright 与 Crawlee 跑通真实本地纵向闭环，所有对象、状态、ID 和 API 边界与 SSOT 保持一致；MSW 保留为前端隔离开发和合同测试环境。
 
 目标用户需要在同一工作上下文中完成三类判断：Source 是否可访问、候选规则是否可信、Run 产出的 Item 是否满足数据合同。界面重点是状态、证据和下一步动作，不是展示平台功能数量。
 
@@ -161,7 +161,7 @@ Extrio Web 控制台面向数据接入与运营人员，把一个采集需求和
   -> 查看 accepted/rejected Item 与完整 lineage
 ```
 
-闭环使用一个演示 Tenant、标讯 CollectionVersion、多个 Source 和一个 RuleReviewer 身份。一个需求通过稳定 `collectionId` 与 `collectionName` 共享 CollectionVersion，每个精确列表入口创建独立 Collector 并返回逐项创建或拒绝结果；同域名的不同业务列表保持独立运行、Checkpoint 与故障边界，站点根目录不作为生产入口。Collector 列表通过所属需求列和可搜索需求筛选器支持跨需求运营与需求内查看；文件夹不承担领域归属。用户操作通过符合 `extrio.control-plane.v1` 的 FastAPI 触发持久化状态转换；探索与 Run 返回 `202 Accepted` Operation，独立 Worker 使用 Crawl4AI 或 Crawlee 执行，页面轮询服务端事实并可在刷新后恢复，不使用静态截图或客户端伪造进度。
+闭环使用一个演示 Tenant、标讯 CollectionVersion、多个 Source 和一个 RuleReviewer 身份。一个需求通过稳定 `collectionId` 与 `collectionName` 共享 CollectionVersion，每个精确列表入口创建独立 Collector 并返回逐项创建或拒绝结果；同域名的不同业务列表保持独立运行、Checkpoint 与故障边界，站点根目录不作为生产入口。Collector 列表通过所属需求列和可搜索需求筛选器支持跨需求运营与需求内查看；文件夹不承担领域归属。用户操作通过符合 `extrio.control-plane.v1` 的 FastAPI 触发持久化状态转换；探索与 Run 返回 `202 Accepted` Operation，独立 Worker 使用 Playwright 或 Crawlee 执行，页面轮询服务端事实并可在刷新后恢复，不使用静态截图或客户端伪造进度。
 
 Source 输入只接受 HTTP(S)。HTTPS 直接进入正常校验；匿名公共 HTTP 在本地 TenantAdmin 策略允许时显示“风险已标记”并可继续导入。配置 AccessProfile 或凭据的 Source 必须使用 HTTPS。前端提示不得把 HTTP 风险接受描述为主机、DNS、重定向或凭据边界的豁免。
 
@@ -304,7 +304,7 @@ web/src/
 
 ## 9. 非目标
 
-- 本地闭环由 Crawl4AI 按固定导航条件和异步内容沉降时长固化入口、列表和详情样本，当前默认模型在接入期编译受约束 RulePlan，服务端验证 selector、分页、字段、身份与样本命中后生成候选 GatherSpec 并记录模型谱系；已发布规则的生产 Run 使用同一浏览器 snapshot 时点和确定性运行时，不读取模型设置或调用 LLM。开发持久化使用 SQLite 与本地 sampled Artifact。
+- 本地闭环由 Playwright 按固定导航条件和异步内容沉降时长固化入口、列表和详情样本，当前默认模型在接入期编译受约束 RulePlan，服务端验证 selector、分页、字段、身份与样本命中后生成候选 GatherSpec 并记录模型谱系；已发布规则的生产 Run 使用同一浏览器 snapshot 时点和确定性运行时，不读取模型设置或调用 LLM。开发持久化使用 SQLite 与本地 sampled Artifact。
 - 实现首次本地管理员设置、最少 8 个字符的密码输入约束、登录与退出；多 Tenant 切换、MFA、四眼审批和审计导出不在公开 Alpha 范围。
 - 不实现独立 Schedule 管理页、Kafka Sink、漂移恢复和 Artifact 下载；Collector 详情内提供可执行的定时计划配置、Webhook Sink 配置、投递记录与重新投递（v0.3 交付），Item 列表工具栏提供携带当前筛选的 CSV/JSONL 数据导出。
 - 不把 mock 状态或演示签名描述为生产证据。

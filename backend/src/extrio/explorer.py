@@ -9,7 +9,6 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from bs4 import BeautifulSoup, UnicodeDammit
-from crawl4ai import CacheMode, CrawlerRunConfig
 from jsonschema import ValidationError
 from soupsieve.util import SelectorSyntaxError
 
@@ -35,7 +34,7 @@ from extrio.model_gateway import (
     ModelRuleCompiler,
 )
 from extrio.pagination import pagination_hints
-from extrio.source_clients import RestrictedBrowser
+from extrio.source_clients import BrowserSnapshotConfig, RestrictedBrowser
 from extrio.source_network import SourceNetwork
 
 logger = logging.getLogger("extrio.explorer")
@@ -209,7 +208,7 @@ def _repair_detail_urls(
     return urls or fallback_urls
 
 
-class Crawl4AIExplorer:
+class SourceExplorer:
     def __init__(
         self,
         contracts: ContractBundle,
@@ -277,9 +276,7 @@ class Crawl4AIExplorer:
             "unchangedItems": 0,
             "warningCount": 0,
         }
-        config = CrawlerRunConfig(
-            cache_mode=CacheMode.BYPASS,
-            check_robots_txt=False,
+        config = BrowserSnapshotConfig(
             page_timeout=30_000,
             delay_before_return_html=3.0,
         )

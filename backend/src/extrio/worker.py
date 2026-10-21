@@ -10,7 +10,7 @@ from extrio.config import get_settings
 from extrio.contracts import ContractBundle
 from extrio.credentials import CredentialCipher
 from extrio.delivery import OUTCOME_DELIVERED, WebhookDispatcher
-from extrio.explorer import Crawl4AIExplorer
+from extrio.explorer import SourceExplorer
 from extrio.instance_guard import instance_lock
 from extrio.integrity import IntegrityError, canonical_bytes, verify_rule_attestation
 from extrio.job_control import JobCancelled, JobLeaseLost, JobTimedOut, finish_resources, owned_transaction, renew_job
@@ -106,7 +106,7 @@ class Worker:
         self.cipher = CredentialCipher(self.settings.credential_encryption_key_path)
         compiler = ModelRuleCompiler(self.store, self.cipher)
         self.model_compiler = compiler
-        self.explorer = Crawl4AIExplorer(
+        self.explorer = SourceExplorer(
             self.contracts, self.settings.artifact_path, compiler, allow_http=self.store.effective_allow_http_public
         )
         self.runtime = CrawleeRuntime(self.settings.artifact_path, allow_http=self.store.effective_allow_http_public)
@@ -221,7 +221,7 @@ class Worker:
 
             evidence_options = (
                 {"diagnostic": diagnostic, "prior_evidence": self.store.get_ai_run(ai_run_id).get("evidence")}
-                if isinstance(self.explorer, Crawl4AIExplorer)
+                if isinstance(self.explorer, SourceExplorer)
                 else {}
             )
             result = await asyncio.wait_for(

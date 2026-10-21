@@ -46,7 +46,7 @@ jobs:
           image-ref: extrio/backend:e2e
           format: table
           exit-code: '1'
-          ignore-unfixed: true
+          ignore-unfixed: false
           severity: HIGH,CRITICAL
       - name: Scan web image
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
@@ -54,7 +54,7 @@ jobs:
           image-ref: extrio/web:e2e
           format: table
           exit-code: '1'
-          ignore-unfixed: true
+          ignore-unfixed: false
           severity: HIGH,CRITICAL
       - name: Record complete backend vulnerability inventory
         if: always() && steps.sqlite.outcome == 'success'

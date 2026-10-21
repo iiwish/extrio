@@ -186,7 +186,7 @@ Extrio 只有一套正式前端：`web/index.html` → `src/main.tsx` → `app/r
 | 身份与访问 | [`architecture/ADR-004-identity-access.md`](./architecture/ADR-004-identity-access.md) | `v1.1.0` | `Proposed_Production_Target` | OIDC、会话、服务身份和 Tenant 授权 |
 | Alpha 管理员认证 | [`architecture/ADR-005-local-authentication.md`](./architecture/ADR-005-local-authentication.md) | `v1.1.0` | `Accepted` | 首次设置、Argon2、本地可撤销会话、持久化登录限流与请求来源防护 |
 | 前端原型 | [`frontend-prototype.md`](./frontend-prototype.md) | `v1.38.1` | `Confirmed` | 第一版前端闭环、管理员登录、多供应商与多模型设置、Collector 需求归属与运营列表、采集 Run、AI 任务与 Item 运营列表、Collector 任务工作区、按需证据、设计合同、技术栈和验收 |
-| 真实纵向闭环 | [`backend-vertical-slice.md`](./backend-vertical-slice.md) | `v1.15.0` | `Confirmed` | FastAPI、管理员会话、Crawl4AI、可审计 LLM RulePlan 编译、同域嵌入入口解析、确定性运行、本地持久化、可信发布与受控增量运行 |
+| 真实纵向闭环 | [`backend-vertical-slice.md`](./backend-vertical-slice.md) | `v1.15.0` | `Confirmed` | FastAPI、管理员会话、Playwright、可审计 LLM RulePlan 编译、同域嵌入入口解析、确定性运行、本地持久化、可信发布与受控增量运行 |
 | 发布验收 | [`releases/v0.2-acceptance.md`](./releases/v0.2-acceptance.md) | `v0.46.0` | `Confirmed` | 当前范围、退出标准与验收证据 |
 
 ### 2.1 冲突处理
@@ -270,7 +270,7 @@ Extrio 的产品边界是“AI 辅助接入、人工审核发布、确定性持�
 ## 6. 技术基线
 
 - Python FastAPI 控制面是租户、领域对象、权限、发布、调度、审计和交付状态的唯一写入入口；生产长任务不在 API 请求进程内执行。
-- Python 编译服务以受限 HTTP 固化已核验静态发布模板，以 Crawl4AI 获取需要渲染的 Source 样本。已核验的官网 JS 分页可以使用脚本对应的公开匿名 GET 接口，保留入口、脚本与原始响应证据。当前默认模型先编译列表发现计划，再结合详情样本编译受约束 `extrio.rule-plan.v1`；服务端验证后生成 GatherSpec，固定模型谱系及传输条件。`detail.transport` 可显式使用 HTTP 静态详情，省略时继承列表传输方式；数字 ID 详情链接仅通过受控 `url_path` 构造。字段证据按绑定阶段、详情 URL 和对应列表行定位，JSON 证据不标为 DOM。Python Worker 仅解释签名规则，不读取模型配置或调用模型，两类工作负载具有独立身份与权限边界。
+- Python 编译服务以受限 HTTP 固化已核验静态发布模板，以 Playwright 获取需要渲染的 Source 样本。已核验的官网 JS 分页可以使用脚本对应的公开匿名 GET 接口，保留入口、脚本与原始响应证据。当前默认模型先编译列表发现计划，再结合详情样本编译受约束 `extrio.rule-plan.v1`；服务端验证后生成 GatherSpec，固定模型谱系及传输条件。`detail.transport` 可显式使用 HTTP 静态详情，省略时继承列表传输方式；数字 ID 详情链接仅通过受控 `url_path` 构造。字段证据按绑定阶段、详情 URL 和对应列表行定位，JSON 证据不标为 DOM。Python Worker 仅解释签名规则，不读取模型配置或调用模型，两类工作负载具有独立身份与权限边界。
 - 1.0 单组织自托管使用 PostgreSQL 持久化领域对象、不可变 RuleVersion/RuleAttestation/AuditEvent、幂等记录、Operation 与 leased job；SQLite WAL 保留为评估和本地开发路径。实例使用受保护的 Ed25519 签名密钥、独立凭据加密主密钥与本地 Artifact 目录，密钥及数据的一致备份和空实例恢复是发布验收条件，开发样本不替代运维证据。
 - Web 控制台采用 pnpm、Vite、React、TypeScript、Tailwind CSS 与 shadcn/ui；浏览器只通过 `/api/v1` 访问控制面，类型生成自 [`contracts/openapi.yaml`](./contracts/openapi.yaml)，不读取数据库、对象存储凭据或 Worker 内部状态。
 - 后续平台拓扑以 PostgreSQL 为系统记录、Redis 为可恢复工作分发、S3 兼容对象存储保存 raw/Artifact，并采用托管 KMS/HSM；这些组件不构成单组织 1.0 的安装前置条件。

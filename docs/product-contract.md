@@ -42,7 +42,7 @@ CollectionEditor 创建或导入 Source，声明入口、允许访问域名、�
 
 ### `US-003` 编译并发布规则
 
-平台结合 Source、CollectionVersion 和 CollectorOverride 生成 RuleVersionDraft。每个 Collector 通过稳定 `collectionId` 与 `collectionName` 归属一个业务采集需求；工作区同时显示只读需求归属、可编辑来源采集说明、Source 入口、活动 RuleVersion 与候选规则摘要。CollectionEditor 可以修改 Collector 名称；修改来源采集说明或 Source 入口会关闭调度，清除候选、活动规则与 Checkpoint，后续运行需重新探索、审核发布。探索通过 Crawl4AI 固定网页证据，当前默认模型先理解入口拓扑并编译列表发现计划，再结合详情样本编译 `RulePlan`；平台只接受受约束的 CSS/JSONPath、字段、分页、身份和指纹声明，并把通过 Schema、安全与样本验证的结果转换为 GatherSpec。规则编辑表单按执行顺序呈现列表 Item selector、网页业务字段 selector、分页、`detailUrl` 交接和详情字段 selector，不展示系统管理字段，也不重复展示不可编辑的请求配置、字段语义与输出合同；CollectionEditor 可以直接编辑两个阶段的 selector 与分页参数；系统把编辑记录为受控 Override，使用最近探索样本重新验证并生成新的候选 digest。字段语义服从 CollectionVersion。RuleReviewer 查看字段预览、失败样本、网络边界和编译谱系后发布规则；任何编辑都不能改写已发布 RuleVersion。
+平台结合 Source、CollectionVersion 和 CollectorOverride 生成 RuleVersionDraft。每个 Collector 通过稳定 `collectionId` 与 `collectionName` 归属一个业务采集需求；工作区同时显示只读需求归属、可编辑来源采集说明、Source 入口、活动 RuleVersion 与候选规则摘要。CollectionEditor 可以修改 Collector 名称；修改来源采集说明或 Source 入口会关闭调度，清除候选、活动规则与 Checkpoint，后续运行需重新探索、审核发布。探索通过 Playwright 固定网页证据，当前默认模型先理解入口拓扑并编译列表发现计划，再结合详情样本编译 `RulePlan`；平台只接受受约束的 CSS/JSONPath、字段、分页、身份和指纹声明，并把通过 Schema、安全与样本验证的结果转换为 GatherSpec。规则编辑表单按执行顺序呈现列表 Item selector、网页业务字段 selector、分页、`detailUrl` 交接和详情字段 selector，不展示系统管理字段，也不重复展示不可编辑的请求配置、字段语义与输出合同；CollectionEditor 可以直接编辑两个阶段的 selector 与分页参数；系统把编辑记录为受控 Override，使用最近探索样本重新验证并生成新的候选 digest。字段语义服从 CollectionVersion。RuleReviewer 查看字段预览、失败样本、网络边界和编译谱系后发布规则；任何编辑都不能改写已发布 RuleVersion。
 
 已核验静态发布模板使用受限 HTTP 原始响应，其余需要渲染的样本使用受限浏览器。官网 JS 分页的公开 GET 接口须有脚本与响应证据。列表与详情可在签名规则中显式使用不同传输方式，仍共享访问主机、robots、匿名 GET 和预算限制。字段审核证据来自绑定阶段、精确匹配的列表行和已通过的对应详情样本；JSON 证据明确标为 JSON。已发布输出字段保留只读证据抽屉，不暴露审核编辑控件。PDF 空壳、官方原文指引和登录附件不作为已取得完整正文的证明。
 
@@ -90,7 +90,7 @@ Item 详情的返回操作位于顶部栏，以公告标题和质量终态作为
 
 一级导航包含概览、采集需求、采集来源、运行、数据和设置。`/settings` 在同一工作面按供应商分组展示模型：顶部左侧提供唯一默认模型，右侧提供添加供应商，不展示无异常含义的数量统计；每个供应商组展示 HTTPS API 地址、启停状态、密钥状态和模型数量，模型在所属供应商内添加、编辑、启停、删除或设为默认。用户在供应商对话框直接配置 API Key，编辑时留空保留原密钥。浏览器不持久化密钥，控制面读取响应只返回是否已配置。
 
-探索开始后先验证 Source 的实际可达性。域名解析、拒绝连接、连接关闭、超时或 robots.txt 阻断统一显示简短原因和检查网络、代理、网址的下一步，不向用户暴露 Crawl4AI 或浏览器内核堆栈。
+探索开始后先验证 Source 的实际可达性。域名解析、拒绝连接、连接关闭、超时或 robots.txt 阻断统一显示简短原因和检查网络、代理、网址的下一步，不向用户暴露 Playwright 或浏览器内核堆栈。
 
 ## 功能需求
 

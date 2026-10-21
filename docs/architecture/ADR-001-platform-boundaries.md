@@ -44,7 +44,7 @@ Web 控制台不得直接访问 PostgreSQL、Redis、对象存储内部地址、
 
 负责：
 
-- 使用 Crawl4AI 和受控 sample-fetch 能力探索 Source。
+- 使用 Playwright 和受控 sample-fetch 能力探索 Source。
 - 基于固定输入生成 GatherSpecDraft、字段映射、样本结果、ArtifactManifest 和验证报告。
 - 在允许的编译路径调用 LLM，并记录 provider、model、promptVersion 和 toolchainVersion。
 
@@ -61,10 +61,10 @@ Web 控制台不得直接访问 PostgreSQL、Redis、对象存储内部地址、
 
 执行 Worker 不得调用 LLM、修改规则、直接写 PostgreSQL 领域表或决定发布状态。Worker 进程可以水平扩展和被安全终止；旧租约通过 fenceToken 阻断提交。
 
-### Crawl4AI 与 Crawlee
+### Playwright 与 Crawlee
 
-- Crawl4AI 用于编译和样本探索，提供页面理解、Markdown/DOM 观察和候选提取 Schema；自适应或 LLM 行为不进入生产运行路径。
-- Crawlee 用于已发布 GatherSpec 的执行，承担请求队列、去重、HTTP/浏览器生命周期、会话、重试和并发控制。
+- Playwright 通过 Extrio 受限浏览器适配层固定渲染后的 DOM，供 Source 探索和已发布规则执行使用；页面理解和候选 RulePlan 由独立规则编译器承担。
+- Crawlee 用于已发布 GatherSpec 的 HTTP 请求队列执行；Extrio 适配层统一约束 HTTP/浏览器请求的网络边界、重试、并发、速率和预算。
 - Extrio 的 GatherSpec、提取语义和 canonicalization 是运行权威；两套库的默认行为不得越过合同。
 - Source 可由 HTTP runtime 完成时优先不用浏览器；浏览器版本和上下文按合同固定。
 
@@ -113,7 +113,7 @@ Redis 消息不得携带 raw、secret、完整规则或可变领域副本，只�
 | 相同语言导致边界模糊 | 独立入口、进程、身份、网络策略、依赖方向和 contract tests |
 | 浏览器/LLM 阻塞 API | 编译与执行只在 Worker；API 不使用 BackgroundTasks 承载长任务 |
 | Python 控制面吞吐不足 | async I/O、批量 ingest、对象存储卸载、水平扩展和压测 |
-| Crawl4AI/Crawlee 语义重叠 | 编译/执行职责分离，Extrio 适配层固定语义 |
+| 浏览器/HTTP 语义重叠 | 编译/执行职责分离，Extrio 适配层固定语义 |
 | Redis 消息丢失或重复 | PostgreSQL outbox、稳定幂等键、fenceToken 和队列重建 |
 | Worker 被恶意 Source 控制 | 沙箱、egress allowlist、短期凭据、资源预算和不可写领域边界 |
 

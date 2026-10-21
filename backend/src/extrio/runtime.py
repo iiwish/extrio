@@ -9,7 +9,6 @@ from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from bs4 import UnicodeDammit
-from crawl4ai import CacheMode, CrawlerRunConfig
 from crawlee import ConcurrencySettings, Request
 from crawlee.crawlers import ParselCrawler, ParselCrawlingContext
 from crawlee.storage_clients import MemoryStorageClient
@@ -17,7 +16,7 @@ from crawlee.storage_clients import MemoryStorageClient
 from extrio.config import get_settings
 from extrio.harvest import TITLE_MISMATCH_REASON, discover_records_from_spec, looks_like_dynamic_list_shell, make_item
 from extrio.local_evidence import LocalEvidence
-from extrio.source_clients import RestrictedBrowser, SourceHttpClient
+from extrio.source_clients import BrowserSnapshotConfig, RestrictedBrowser, SourceHttpClient
 from extrio.source_network import FetchBudget, SourceNetwork, SourceNetworkError
 
 ProgressCallback = Callable[[str, int, dict[str, int]], Awaitable[None]]
@@ -64,9 +63,7 @@ class CrawleeRuntime:
         if transport == "browser":
             pages: dict[str, str] = {}
             policy = browser_policy or {}
-            config = CrawlerRunConfig(
-                cache_mode=CacheMode.BYPASS,
-                check_robots_txt=False,
+            config = BrowserSnapshotConfig(
                 page_timeout=int(policy.get("pageLoadTimeoutMs", 30_000)),
                 wait_until=str(policy.get("waitUntil", "domcontentloaded")),
                 delay_before_return_html=max(0, int(policy.get("postLoadDelayMs", 3000))) / 1000,

@@ -21,13 +21,14 @@ def test_cross_distribution_comparison_uses_component_cve_not_version_strings():
     old = inventory([finding(version='debian-version')])
     new = inventory([finding(version='ubuntu-version')])
     result = compare(old, new)
-    assert result['newHighCritical'] == [] and result['blockers'] == []
+    assert result['newHighCritical'] == [] and result['blockers'] == ['high_remaining']
     assert result['residualBySeverity'] == {'HIGH': 1}
 
 
 @pytest.mark.parametrize('report,reason', [
     (inventory([finding('CVE-new')]), 'new_high_critical'),
     (inventory([finding(severity='CRITICAL')]), 'critical_remaining'),
+    (inventory([finding()]), 'high_remaining'),
     (inventory([{**finding(), 'FixedVersion': '2'}]), 'fixable_high_critical'),
 ])
 def test_cross_distribution_gate_preserves_all_unhandled_risks(report, reason):

@@ -30,6 +30,8 @@ def security_delta(baseline, candidate):
         blockers.append('new_high_critical')
     if any(v['Severity'] == 'CRITICAL' for v in new):
         blockers.append('critical_remaining')
+    if any(v['Severity'] == 'HIGH' for v in new):
+        blockers.append('high_remaining')
     if fixable:
         blockers.append('fixable_high_critical')
     return {'residualBySeverity': dict(Counter(v['Severity'] for v in new)),

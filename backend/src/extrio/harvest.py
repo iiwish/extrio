@@ -389,7 +389,7 @@ def build_gather_spec(
     spec["compiler"]["inputDigest"] = sha256_digest(
         {"collectionId": collector.get("collectionId"), "url": collector["sourceUrl"], "intent": collector["intent"]}
     )
-    spec["compiler"]["agent"] = {"provider": "local", "model": "crawl4ai-heuristic", "promptVersion": "1.1", "toolchainVersion": "1.0"}
+    spec["compiler"]["agent"] = {"provider": "local", "model": "local-heuristic", "promptVersion": "1.1", "toolchainVersion": "1.0"}
     spec["sourceContext"]["entrypoints"] = [collector["sourceUrl"]]
     spec["sourceContext"]["allowedHosts"] = [host]
     from extrio.public_pagination import ccgp_search_hosts

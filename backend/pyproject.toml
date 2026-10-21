@@ -8,7 +8,6 @@ authors = [{ name = "Extrio contributors" }]
 requires-python = ">=3.12,<3.13"
 dependencies = [
   "beautifulsoup4>=4.13,<5",
-  "crawl4ai>=0.9,<0.10",
   "crawlee[parsel]>=1.9,<2",
   "cryptography>=45,<51",
   "fastapi>=0.116,<1",
@@ -26,6 +25,8 @@ dependencies = [
   "mcp>=1.30,<2",
   "tiktoken>=0.14,<1",
   "pypdf>=6,<7",
+  "playwright>=1.62,<1.63",
+  "pillow>=13,<14",
 ]
 
 [dependency-groups]

@@ -13,7 +13,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --project backend --frozen --no-dev --no-install-project \
     && mkdir -p /ms-playwright \
     && /opt/extrio/bin/python -m playwright install --with-deps chromium \
-    && CRAWL4AI_MODE=api /opt/extrio/bin/crawl4ai-setup \
     && chmod -R a+rX /ms-playwright
 RUN apt-get update \
     && apt-get upgrade -y \

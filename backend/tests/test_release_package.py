@@ -50,6 +50,9 @@ def test_source_distribution_builds_a_self_contained_wheel(tmp_path):
         metadata_path = next(name for name in archive.namelist() if name.endswith(".dist-info/METADATA"))
         metadata = BytesParser().parsebytes(archive.read(metadata_path))
         assert metadata["Version"] == __version__
+        requirements = metadata.get_all('Requires-Dist') or []
+        assert any(req.lower().startswith('playwright') for req in requirements)
+        assert not any(req.lower().startswith(('crawl4ai', 'nltk')) for req in requirements)
         assert not any("/data/" in name or name.endswith("/.env") for name in archive.namelist())
         archive.extractall(installed)
     env = {key: value for key, value in os.environ.items() if not key.startswith("EXTRIO_")}

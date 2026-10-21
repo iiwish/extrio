@@ -25,6 +25,7 @@ def test_backend_image_removes_setup_tools_without_removing_the_browser_runtime(
     assert "prune-image-runtime.py only-shell" in source
     assert "--break-system-packages" not in source
     assert "apt-get autoremove" not in source
+    assert 'crawl4ai' not in source.lower()
 
 
 def test_historical_debian_control_is_not_the_default_build():

@@ -37,4 +37,4 @@ def tender_detail(code: str) -> str:
     <article class="notice"><h1 class="notice-title">{title}</h1><div class="meta">{buyer_html}
     <span data-field="region">{region}</span><time datetime="{published}">{published[:10]}</time></div>
     <p class="notice-budget">预算：<span class="amount">{budget}</span></p>
-    <div class="notice-content">这是用于验证 Extrio Crawl4AI 探索与 Crawlee 运行闭环的可重复公开页面。</div></article></body></html>"""
+    <div class="notice-content">这是用于验证 Extrio Playwright 探索与 Crawlee 运行闭环的可重复公开页面。</div></article></body></html>"""

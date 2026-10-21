@@ -3,7 +3,7 @@
   "docsetVersion": "v0.46.0",
   "productVersion": "v1.0.0",
   "status": "Ready_For_User_Review",
-  "generatedAt": "2026-10-21T02:55:03.889Z",
+  "generatedAt": "2026-10-21T07:03:24.438Z",
   "repositoryState": {
     "kind": "git_repository",
     "defaultBranch": "main"
@@ -12,12 +12,12 @@
     {
       "path": "docs/SSOT.md",
       "version": "v0.46.0",
-      "sha256": "efc1e4d1f3c04de44241d9735ec8825a122de4dcb3982c2619aa3fc7054fd6c8"
+      "sha256": "ccda576a35688e1efc1fdea9932216177b21778bad14e24730996447aa0ec581"
     },
     {
       "path": "docs/product-contract.md",
       "version": "v0.46.0",
-      "sha256": "25f28f6cd164d4cfa9de31daeeb0a2255bbb9adbefcd6f214abe50e46b230f96"
+      "sha256": "cbfe270f22ad0811550599d949587c09ad248e747371e156ea742f9d70d36704"
     },
     {
       "path": "docs/domain-model.md",
@@ -97,7 +97,7 @@
     {
       "path": "docs/contracts/api-contract.md",
       "version": "v1.16.0",
-      "sha256": "197e8e29caeaae4e194494d479b22a35d242ab0f0fbca10359b6a3d0ac3ab5bc"
+      "sha256": "37732eb654f478c7d348ef0904bd82314df18b8e36175febdba75d19c5ac73e6"
     },
     {
       "path": "docs/runtime-contract.md",
@@ -112,7 +112,7 @@
     {
       "path": "docs/architecture/ADR-001-platform-boundaries.md",
       "version": "v2.0.0",
-      "sha256": "c0f1dc7d4ad3f8b0395200e4de6076d75ece318ec9edf9e19b45bfbaceb12908"
+      "sha256": "639950e292123dbef4a3f92743de21f19c779b873736d6e118f65020a21c7509"
     },
     {
       "path": "docs/architecture/ADR-002-orchestration-storage.md",
@@ -132,12 +132,12 @@
     {
       "path": "docs/frontend-prototype.md",
       "version": "v1.38.1",
-      "sha256": "30fab0484ac69767beb3feffb69ba4203dbb8ff3c872fe31ff5af2ad3b6ee94d"
+      "sha256": "4e4c804831b1f80453c4a1fd02855841d5da516c2301527fe7cc3c27fe287440"
     },
     {
       "path": "docs/backend-vertical-slice.md",
       "version": "v1.15.0",
-      "sha256": "281f3e31997e2346117a21dd06efbcad4d02ddebd3d504515bad5dbe22d39032"
+      "sha256": "96a6b4d97e96048759a3b63319a63fb45270f732266e9fa8d13029ec5b2d200b"
     },
     {
       "path": "docs/architecture/ADR-005-local-authentication.md",
@@ -152,7 +152,7 @@
     {
       "path": "docs/releases/v0.2-acceptance.md",
       "version": "v0.46.0",
-      "sha256": "4c8882ee1d7b542bc4d34728c53b090ed279e429a50083916021d8e60214f53c"
+      "sha256": "e887e317c5b963d30f40f248bf9147078164819b9cc2f49a13f74acccf4f8fbd"
     },
     {
       "path": "docs/planning/v1.0-scope-matrix.md",
@@ -177,12 +177,12 @@
     {
       "path": "docs/releases/v1.0-rc.2.md",
       "version": "v1.0.0-rc.2",
-      "sha256": "cee4ef791a34dfad499cb175a40839f02a256190dbbff3911826b28390aadcd5"
+      "sha256": "cac4b7a9f2a3260017bee951d0732603ea436f0003c84de67f906c6704308f4f"
     },
     {
       "path": "docs/benchmarks.md",
       "version": "v0.1.0",
-      "sha256": "caf379922ac9e8a9d4fd114074c7986b280da2575d07bb1261d06df34af7d7ac"
+      "sha256": "e41331cba0f82196a40b6ddf180b3aede9c4c4822e9014f777e6edfd00745010"
     }
   ],
   "verificationFixtures": [

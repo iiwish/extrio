@@ -90,7 +90,7 @@ Prerequisites: Git, **Python 3.12**, [uv](https://docs.astral.sh/uv/), **Node.js
 
 ```bash
 uv sync --project backend --locked --python 3.12
-uv run --project backend crawl4ai-setup
+uv run --project backend python -m playwright install --with-deps --only-shell chromium
 pnpm --dir web install --frozen-lockfile
 ./scripts/dev.sh
 ```

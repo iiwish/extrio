@@ -1,7 +1,9 @@
-"""Limited reachability checks for GHSA-8mgp-746c-j5xp, not an NLTK fix."""
+"""Removed NLP dependencies cannot interpret publisher content as model paths."""
 
 import copy
 import html
+import importlib
+import importlib.abc
 import json
 import sys
 import threading
@@ -9,108 +11,51 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlencode, urlsplit
 
-import nltk.data
 import pytest
-from crawl4ai import CacheMode, CrawlerRunConfig
 from jsonschema import ValidationError
-from nltk.classify.maxent import save_maxent_params
-from nltk.downloader import Downloader
-from nltk.parse.transitionparser import TransitionParser
-from nltk.tag.perceptron import AveragedPerceptron, PerceptronTagger
 from test_runtime import runtime_spec
 
 from extrio.adaptive_compile import CURRENT_SESSION
 from extrio.contracts import ContractBundle
 from extrio.credentials import CredentialCipher
-from extrio.explorer import Crawl4AIExplorer
+from extrio.explorer import SourceExplorer
 from extrio.model_gateway import ActiveModel, ModelRuleCompiler
 from extrio.runtime import CrawleeRuntime
-from extrio.source_clients import RestrictedBrowser
+from extrio.source_clients import BrowserSnapshotConfig, RestrictedBrowser
 from extrio.source_network import SourceNetwork, SourceNetworkError
 from extrio.store import Store
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE_FIXTURES = Path(__file__).parent / "fixtures" / "sources"
-AFFECTED = (
-    TransitionParser.train,
-    TransitionParser.parse,
-    AveragedPerceptron.save,
-    AveragedPerceptron.load,
-    PerceptronTagger.save_to_json,
-    save_maxent_params,
-)
-
-
-class NltkBoundaryCrossed(RuntimeError):
+class RemovedDependencyImported(RuntimeError):
     pass
 
 
 @pytest.fixture
 def nltk_probe():
-    # Code identities also catch aliases imported before the probe was installed.
-    watched = {method.__code__: method.__qualname__ for method in (*AFFECTED, Downloader.download)}
     calls = []
+    assert not any(name.split('.')[0] in {'nltk', 'crawl4ai'} for name in sys.modules)
 
-    def observe(frame, event, _arg):
-        if event == "call" and (name := watched.get(frame.f_code)):
-            calls.append(name)
-            raise NltkBoundaryCrossed(name)
+    class DenyImports(importlib.abc.MetaPathFinder):
+        def find_spec(self, fullname, path=None, target=None):
+            if fullname.split('.')[0] in {'nltk', 'crawl4ai'}:
+                calls.append(fullname)
+                raise RemovedDependencyImported(fullname)
 
-    previous, previous_threads = sys.getprofile(), threading.getprofile()
-    sys.setprofile(observe)
-    threading.setprofile(observe)
+    finder = DenyImports()
+    sys.meta_path.insert(0, finder)
     try:
         yield calls
     finally:
-        active = sys.getprofile() is observe and threading.getprofile() is observe
-        sys.setprofile(previous)
-        threading.setprofile(previous_threads)
-        # Python disables a profile that raises; a recorded hit still fails the
-        # application's empty-call assertion even if a library catches it.
-        if not calls:
-            assert active, "NLTK observation was disabled during the application path"
+        assert finder in sys.meta_path
+        sys.meta_path.remove(finder)
 
 
-@pytest.mark.parametrize("method", AFFECTED, ids=lambda method: method.__qualname__)
-def test_probe_detects_each_affected_api_including_prebound_alias(method, nltk_probe, tmp_path):
-    # Capture targets at module import, then invoke under the installed probe.
-    path = str(tmp_path / "must-not-be-created")
-    if method in (TransitionParser.train, TransitionParser.parse):
-        args, kwargs = (None, [], path), {}
-    elif method in (AveragedPerceptron.save, AveragedPerceptron.load):
-        args, kwargs = (None, path), {}
-    elif method is PerceptronTagger.save_to_json:
-        args, kwargs = (None,), {"loc": path}
-    else:
-        args, kwargs = ([], {}, [], {}), {"tab_dir": path}
-    with pytest.raises(NltkBoundaryCrossed, match=method.__qualname__):
-        method(*args, **kwargs)
-    assert nltk_probe == [method.__qualname__]
-    assert not Path(path).exists()
-
-
-def test_probe_records_even_if_a_worker_catches_the_violation(nltk_probe, tmp_path):
-    alias = AveragedPerceptron.save
-    caught = []
-
-    def worker():
-        try:
-            alias(None, str(tmp_path / "must-not-be-created"))
-        except NltkBoundaryCrossed:
-            caught.append(True)
-
-    thread = threading.Thread(target=worker)
-    thread.start()
-    thread.join()
-    assert caught == [True]
-    assert nltk_probe == ["AveragedPerceptron.save"]
-    assert not (tmp_path / "must-not-be-created").exists()
-
-
-def test_probe_blocks_nltk_download_without_network(nltk_probe):
-    with pytest.raises(NltkBoundaryCrossed, match="Downloader.download"):
-        nltk.download("punkt")
-    assert nltk_probe == ["Downloader.download"]
+@pytest.mark.parametrize('name', ['nltk', 'crawl4ai'])
+def test_import_probe_detects_removed_dependency(name, nltk_probe):
+    with pytest.raises(RemovedDependencyImported, match=name):
+        importlib.import_module(name)
+    assert nltk_probe == [name]
 
 
 @pytest.fixture
@@ -131,7 +76,6 @@ def poisoned_models(tmp_path, monkeypatch):
         "export": str(outside / "must-not-be-created.json"),
     }
     monkeypatch.setenv("NLTK_DATA", str(data_root))
-    monkeypatch.setattr(nltk.data, "path", [str(data_root)])
     yield paths
     assert canary.read_bytes() == initial
     assert sorted(path.name for path in outside.iterdir()) == ["weights.json"]
@@ -188,7 +132,7 @@ async def test_restricted_browser_treats_model_paths_as_content_and_rejects_file
 ):
     origin, hits = poisoned_source
     network = SourceNetwork({"127.0.0.1"}, allow_localhost=True)
-    config = CrawlerRunConfig(cache_mode=CacheMode.BYPASS, check_robots_txt=False, delay_before_return_html=0.2)
+    config = BrowserSnapshotConfig( delay_before_return_html=0.2)
     url = origin + "/async?" + urlencode({"modelPath": poisoned_models["absolute"]})
     async with RestrictedBrowser(network) as browser:
         result = await browser.arun(url, config)
@@ -260,7 +204,7 @@ async def test_explorer_compiles_poisoned_model_response_without_artifact_api_ca
         return {"action": "propose_rule", "rule": copy.deepcopy(raw)}
 
     monkeypatch.setattr(compiler, "_complete_json", complete)
-    explorer = Crawl4AIExplorer(contracts, tmp_path / "explorer", compiler)
+    explorer = SourceExplorer(contracts, tmp_path / "explorer", compiler)
     collector = {
         "id": "collector_nltk_boundary", "name": "Boundary", "sourceUrl": url,
         "sourceHost": "127.0.0.1", "collectionVersion": "v1", "intent": "Collect notices",

@@ -16,7 +16,7 @@ From the repository root:
 
 ```bash
 uv sync --project backend --locked --python 3.12
-uv run --project backend crawl4ai-setup
+uv run --project backend python -m playwright install --with-deps --only-shell chromium
 uv run --project backend extrio-api
 uv run --project backend extrio-worker
 ```
@@ -40,8 +40,9 @@ Python 3.12 security packages, Playwright headless-shell and the official PGDG
 PostgreSQL 16 client. It retains LLVM/GBM and excludes full Chromium, CUPS and
 Python development tools. Container user-space libraries belong to this image;
 Docker still depends on its host or VM kernel. Changing the base image does not
-upgrade the host OS or migrate an existing database. Full scan findings and the
-remaining NLTK risk are tracked in the RC2 security review, not implicitly waived.
+upgrade the host OS or migrate an existing database. Browser rendering uses the
+direct Playwright SDK; Crawl4AI and NLTK are not runtime dependencies. Full scan
+findings and exact-build evidence are tracked in the RC2 security review.
 
 The current package is a self-hosted public alpha with first-run administrator
 setup, local users, and role-based access control. It is not a hardened

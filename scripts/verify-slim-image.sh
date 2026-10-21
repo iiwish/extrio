@@ -62,6 +62,7 @@ docker exec "$PG_ID" pg_isready -h 127.0.0.1 -U postgres
 TEST_ID="$(docker create --network "$NETWORK_ID" --label "extrio.image-slim=$PROJECT" \
   --mount "type=bind,source=$ROOT/backend/tests,target=/workspace/backend/tests,readonly" \
   --mount "type=bind,source=$ROOT/backend/pyproject.toml,target=/workspace/backend/pyproject.toml,readonly" \
+  --mount "type=bind,source=$ROOT/backend/uv.lock,target=/workspace/backend/uv.lock,readonly" \
   --mount "type=bind,source=$ROOT/docs/contracts,target=/workspace/docs/contracts,readonly" \
   --mount "type=bind,source=$ROOT/scripts,target=/workspace/scripts,readonly" \
   --mount "type=bind,source=$OUT/release-sources,target=/release-sources,readonly" \
@@ -72,7 +73,7 @@ TEST_ID="$(docker create --network "$NETWORK_ID" --label "extrio.image-slim=$PRO
   backend/tests/test_runtime.py backend/tests/test_source_network.py backend/tests/test_browser_failures.py \
   backend/tests/test_official_documents.py backend/tests/test_official_v2.py backend/tests/test_source_samples.py \
   backend/tests/test_public_pagination.py \
-  backend/tests/test_pagination_navigation.py backend/tests/test_nltk_boundary.py \
+  backend/tests/test_pagination_navigation.py backend/tests/test_nltk_boundary.py backend/tests/test_playwright_browser.py \
   backend/tests/test_lxml_boundary.py backend/tests/test_full_backup.py backend/tests/test_store_pg.py \
   backend/tests/test_tender_source_adapters.py backend/tests/test_benchmark.py \
   backend/tests/test_release_upgrade.py)"

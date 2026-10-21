@@ -32,16 +32,20 @@ keys, is development-only and must never be committed or reused in production.
 
 ## Dependency advisory boundary
 
-As of 2026-09-15, the transitive Crawl4AI dependency NLTK 3.10.3 has an unpatched
-model-artifact path containment advisory, [GHSA-8mgp-746c-j5xp](https://github.com/nltk/nltk/security/advisories/GHSA-8mgp-746c-j5xp).
-The affected APIs import or export parser/tagger models using caller-controlled
-filesystem paths. Extrio does not expose these APIs or accept NLTK model paths;
-its source code has no direct NLTK calls. The installed Crawl4AI integration uses
-tokenization and fixed `punkt` resource lookup, not the affected model persistence
-APIs. This is a scoped exposure assessment, not a dependency fix or a claim that
-the package is vulnerability-free. Do not add arbitrary model-artifact loading or
-untrusted Python execution without reassessing this boundary. The upstream alert
-remains open until a patched dependency is available.
+Browser rendering uses Playwright directly. Crawl4AI and NLTK are not runtime
+dependencies; package absence is checked in the frozen lock, installed environment
+and isolated image inventory. Historical releases containing NLTK retain their
+[GHSA-8mgp-746c-j5xp](https://github.com/nltk/nltk/security/advisories/GHSA-8mgp-746c-j5xp)
+advisory and exact-release evidence. Dependency removal does not repair upstream
+NLTK or update an existing installation. Do not add arbitrary model-artifact
+loading or untrusted Python execution without reassessing this boundary.
+
+Browser requests use the same host, DNS/IP, robots, redirect, rate and budget
+guard as HTTP collection. Chromium has a deny-only proxy, request interception,
+blocked service workers and WebSockets, and disabled downloads. These controls
+require regression evidence; Playwright alone is not an outbound sandbox.
+Complete scans include unfixed findings, and unhandled HIGH/CRITICAL findings
+block the candidate. Green CI is not production or release authorization.
 
 ## Reporting a vulnerability
 

@@ -12,7 +12,7 @@
 
 ## 2. 闭环范围
 
-本地纵向闭环覆盖需求与精确入口批量导入、Collector 创建和定义编辑、Crawl4AI Source 探索、同域 iframe 列表入口解析、默认模型两阶段 RulePlan 编译、AiRun/AiAttempt/ModelInvocation 审计、候选规则 Override 与最近探索样本验证、GatherSpec Schema 校验、字段风险审核、RuleVersion 发布、CollectorSchedule、稳定 occurrence 去重与禁止重叠调度、CollectionPolicyVersion、首次时间窗口、增量 Checkpoint、确定性运行、分页与详情发现、HTML CSS/JSON JSONPath 字段提取、new/updated/unchanged 分类、accepted/rejected 质量终结、Item 谱系查看和刷新后状态恢复。批量输入每项使用一个具体列表页或单页入口，`mode` 缺省为 `exact`，站点根目录和其他 mode 逐项拒绝；`name` 与 `scopeHint` 进入 Collector，后者只参与规则编译。
+本地纵向闭环覆盖需求与精确入口批量导入、Collector 创建和定义编辑、Playwright Source 探索、同域 iframe 列表入口解析、默认模型两阶段 RulePlan 编译、AiRun/AiAttempt/ModelInvocation 审计、候选规则 Override 与最近探索样本验证、GatherSpec Schema 校验、字段风险审核、RuleVersion 发布、CollectorSchedule、稳定 occurrence 去重与禁止重叠调度、CollectionPolicyVersion、首次时间窗口、增量 Checkpoint、确定性运行、分页与详情发现、HTML CSS/JSON JSONPath 字段提取、new/updated/unchanged 分类、accepted/rejected 质量终结、Item 谱系查看和刷新后状态恢复。批量输入每项使用一个具体列表页或单页入口，`mode` 缺省为 `exact`，站点根目录和其他 mode 逐项拒绝；`name` 与 `scopeHint` 进入 Collector，后者只参与规则编译。
 
 公告类两阶段采集以列表记录作为 Item 边界：列表阶段提取 `listTitle + detailUrl`，详情阶段提取 canonical `title + publishedAt + content`，运行时写入 `observedAt` 采集时间。详情正文中的内部表格属于公告内容，不自动展开成新的 HarvestItem。HTTP 批量抓取使用受限并发；详情标题与列表标题归一后不一致时单 URL 重取一次，仍不一致的候选以明确原因拒绝且不生成 Revision 或 Observation。
 
@@ -25,8 +25,8 @@
 | 组件 | 当前职责 | 不承担的职责 |
 | --- | --- | --- |
 | React Web | `/api/v1` 客户端、操作轮询、审核决策和桌面运营界面 | 不读取数据库，不伪造异步进度，不运行采集代码 |
-| FastAPI | OpenAPI v1、URL 校验、幂等、状态机入口、查询与本地演示 Source | 不在请求生命周期执行 Crawl4AI 或 Crawlee |
-| Crawl4AI + Rule Compiler | 获取入口样本并解析同域嵌入入口；默认模型先编译列表发现计划，再结合详情样本编译 RulePlan；服务端验证并转换为 GatherSpec | 不发布规则，不参与已发布规则的运行，不接受模型生成代码 |
+| FastAPI | OpenAPI v1、URL 校验、幂等、状态机入口、查询与本地演示 Source | 不在请求生命周期执行 Playwright 或 Crawlee |
+| Playwright + Rule Compiler | 受限浏览器固定 DOM，探索器解析同域嵌入入口；默认模型先编译列表发现计划，再结合详情样本编译 RulePlan；服务端验证并转换为 GatherSpec | 规则编译器不发布规则、不参与已发布规则执行、不接受模型生成代码；浏览器适配层可供确定性运行使用 |
 | Deterministic Runtime | 解释已发布 GatherSpec，执行其中冻结的 HTTP/browser transport、CSS/JSONPath selector、query page/next_link 分页、详情请求、字段提取和质量终结 | 不调用 LLM，不隐式修改规则 |
 | SQLite Store | 本地领域状态、不可变 RuleVersion/RuleAttestation/AuditEvent、Operation、AiRun/AiAttempt/ModelInvocation、leased job 与幂等持久化 | 不作为生产高可用数据层 |
 
@@ -35,7 +35,7 @@
 | Phase | 状态 | 退出证据 |
 | --- | --- | --- |
 | Phase 1 · 控制面与持久化 | `Completed` | FastAPI `/api/v1`、SQLite WAL、幂等响应、持久化 Operation、独立 leased job Worker 与稳定 PlatformError |
-| Phase 2 · 真实探索 | `Completed` | Crawl4AI 真实获取列表与详情样本并解析同域 iframe 入口，默认模型编译受约束 `extrio.rule-plan.v1`，服务端验证并生成 `single`/`list_detail` CandidateRule，GatherSpec 通过冻结 Schema |
+| Phase 2 · 真实探索 | `Completed` | Playwright 真实获取列表与详情样本并解析同域 iframe 入口，默认模型编译受约束 `extrio.rule-plan.v1`，服务端验证并生成 `single`/`list_detail` CandidateRule，GatherSpec 通过冻结 Schema |
 | Phase 3 · 确定性运行 | `Completed` | 运行时直接解释已发布 GatherSpec，执行 HTTP/browser、HTML CSS/JSON JSONPath、query page/next_link 分页、允许主机约束、详情发现与通用字段提取；重复 Run 不复用旧 RequestQueue |
 | Phase 4 · 产品闭环 | `Completed` | React 通过同源 `/api/v1` 完成导入、探索、审核、发布、运行、Run/Item/lineage 查看与刷新恢复，桌面双视口验证通过 |
 | Phase 5 · 可信发布与运行门 | `Completed` | RFC 8785 rule digest、Ed25519 RuleAttestation、SigningKey 信任状态、不可变 RuleVersion/AuditEvent 与摘要链均已持久化；API 接受 Run 和 Worker 发出 Source 请求前双重验证，Run 证据区展示固定证明 |
@@ -53,7 +53,7 @@
 
 ```bash
 uv sync --project backend --python 3.12
-uv run --project backend crawl4ai-setup
+uv run --project backend python -m playwright install --with-deps --only-shell chromium
 pnpm --dir web install
 ./scripts/dev.sh
 ```

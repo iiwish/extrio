@@ -33,7 +33,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     if [ "$UBUNTU_SUITE" = resolute ]; then uv python install 3.12.15; fi \
     && uv sync --project backend --python "$EXTRIO_PYTHON" --frozen --no-dev --no-install-project \
     && /opt/extrio/bin/python -m playwright install --with-deps --only-shell chromium \
-    && CRAWL4AI_MODE=api /opt/extrio/bin/crawl4ai-setup \
     && mkdir -p /opt/python && chmod -R a+rX /ms-playwright /opt/python
 
 COPY scripts/prune-image-runtime.py /tmp/prune-image-runtime.py
