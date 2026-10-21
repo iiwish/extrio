@@ -65,8 +65,10 @@ def test_stable_handoff_covers_all_acceptance_items_and_preserves_release_gates(
     assert "72 小时观测" in handoff
     assert "不计为通过" in handoff
     assert "禁止创建正式 `v1.0.0` tag 或生产部署，不启用来源调度" in handoff
-    assert "测试候选版发布已暂缓" in handoff
-    assert "重新发布须取得用户明确授权" in handoff
+    assert "明确授权在检查通过后合入 main 并仅发布 `v1.0.0-rc.2`" in handoff
+    assert "不构成历史或新增高危风险接受" in handoff
+    assert "稳定版安全结论和验收结果仍须呈交用户，再取得相应发布授权" in handoff
+    assert 'release-closeout.md' in handoff
     assert 'v1.0-rc.2.md' in handoff
 
 

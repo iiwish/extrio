@@ -1,6 +1,6 @@
 # RC2 安全核查与风险决策
 
-日期：2026-10-21。状态：`Release Deferred`。用户明确要求暂缓发布、保留草稿 PR 并继续安全处置；没有接受残余风险。不得合并 main、创建候选标签或发布镜像，正式版/生产/来源调度均未授权。
+日期：2026-10-21。状态：`RC2 Authorized / Gated`。用户明确授权候选检查通过后正常合入 main 并仅发布 `v1.0.0-rc.2` 预发布版，执行边界见 [release-closeout.md](release-closeout.md)。没有接受高危残余风险，任何 HIGH/CRITICAL 均阻断；正式版、生产部署和来源调度均未授权。
 
 当前默认构建采用 Ubuntu 24.04 官方 Python 3.12/headless-shell，受限浏览器直接使用稳定 Playwright，冻结依赖中没有 Crawl4AI/NLTK。完整扫描包含未修复项；任何 HIGH/CRITICAL 都阻断候选。实施边界和精确提交结果入口见 [playwright.md](playwright.md) 及[草稿 PR #49](https://github.com/iiwish/extrio/pull/49)。依赖移除不修复上游 NLTK，也不更新现有实例或历史镜像，不从 CI 绿色推断发布授权。
 
