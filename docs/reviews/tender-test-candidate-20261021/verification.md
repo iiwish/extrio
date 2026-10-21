@@ -44,3 +44,9 @@ RC1 schema 013 升级到 schema 014 保留既有迁移时间、规则、签名�
 发行安全状态与完整高等级清单见 [security.md](security.md) 和 [security-inventory.json](security-inventory.json)。用户未接受该风险，发布授权已暂缓，不进入合并/标签/镜像发布阶段。新增只读镜像诊断独立验证，不把诊断结果冒充漏洞已修复。
 
 独立镜像精简的[对照、完整扫描及剩余边界](image-pruning.md)单独登记：默认构建保持不变，LLVM 路径因必需 GBM 依赖不采用，仅 headless/CUPS 实验通过双架构镜像内各 246 项定向回归。对应提交的完整主 CI 为后端 1088 / 前端 278，通过不代表所有安全风险解除；普通容器验证的 Alpine 仓库 TLS 失败保留，最终提交仍须重新通过原有流程。
+
+## 替代基础镜像验证
+
+冻结参考 `2caaa414db6d30a83113db539d59818888974671` 的[完整主 CI](https://github.com/iiwish/extrio/actions/runs/39545727394)为后端 1100 / 前端 278 全部通过，[普通双库容器安装](https://github.com/iiwish/extrio/actions/runs/39545727380)和[原生精简对照](https://github.com/iiwish/extrio/actions/runs/39545727384)也通过。Ubuntu 两个 LTS 的实际镜像内采集/PDF/双库定向回归每组 246 项、零跳过；完整未过滤扫描与运行镜像身份、层和报告哈希逐项核对。
+
+[替代镜像矩阵](https://github.com/iiwish/extrio/actions/runs/39545727389)不是全部通过：Ubuntu 24.04 官方 Python 的两组为 0 CRITICAL / 1 HIGH，满足无新增/可修复高危门槛，但 NLTK 遗留 HIGH 未接受；Ubuntu 26.04 两组为 1 CRITICAL / 8 HIGH，因新高危保持失败，拒绝采用。方案、真实失败、版本差异及完整边界见 [alternative-base.md](alternative-base.md)，关键镜像与报告摘要见 [alternative-base-results.json](alternative-base-results.json)。没有切换默认 Dockerfile、改写业务数据或重试采购网；本轮不合并、不发布、不部署、不开调度。

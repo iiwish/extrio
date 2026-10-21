@@ -52,4 +52,6 @@
 
 NLTK 继续核对官方修复或评估替换完整上游依赖，不能局部卸载后保留失效的 Crawl4AI 导入。其余 Essential 与原生库等待受支持发行版修复或独立验证的基础镜像方案，不以无补丁为由接受风险。
 
+受支持[替代基础镜像实测](alternative-base.md)已完成：Ubuntu 24.04 官方 Python 3.12 的独立候选在 amd64/arm64 均为 0 CRITICAL / 1 HIGH，目标系统 libxml2 漏洞由 Ubuntu 包修复，LLVM/GBM 保留，采集/PDF/双库定向回归通过。唯一 HIGH 仍为上述 NLTK，无修复且未获风险接受；47 条完整记录中的 MEDIUM/LOW 同样保留。Ubuntu 26.04 的受管理 Python/pip 及镜像自带 pebble 引入可修复新高危，两架构安全门槛保持失败，拒绝采用。默认发行镜像没有切换，原 1 CRITICAL / 63 HIGH 状态不被实验结果改写。完整主 CI 通过不代表整个替代镜像矩阵全绿或发布获准。
+
 本地完整回执位于 `backend/data/tender-manual-20261019/release-rc2-20261021/`。本机大镜像/漏洞库下载因速度中断，回执保留为未通过；安装与镜像安全结论来自上述原生 Linux 精确提交 CI，不冒称本机镜像安装完成。
