@@ -5,8 +5,26 @@
   "observedAt": "2026-10-21",
   "reviewDue": null,
   "scope": "test candidate only; no production, schedules or stable-release acceptance",
-  "evidenceRun": "https://github.com/iiwish/extrio/actions/runs/39533490291",
-  "sourceSha": "27c8c97bee63fca4c6b415fd5e4d194b71e18aec",
+  "evidenceRun": "https://github.com/iiwish/extrio/actions/runs/39536007421",
+  "sourceSha": "3676f284a90ba434e1cefc81bf6298477d333262",
+  "runtimeEvidence": {
+    "architecture": "amd64",
+    "network": "none",
+    "artifactName": "container-vulnerability-inventory",
+    "runtimeReportSha256": "836abe6ae94d73b82864517f7ee998d1842fa29f23297cb35ad021256d3a4b9a",
+    "backendReportSha256": "0d7b5e5465099fab0f25e11916b05dea59af1c5c220caa89d2c2366fb6665f3e",
+    "webReportSha256": "f5d99aadaa839c6f6643268f82fe5248b6af09bb782d834d41c417dd59cf9542",
+    "lxmlBundledLibxml2": "2.14.6",
+    "systemLibxml2DeclaredReverseDependencies": ["libllvm19:amd64"],
+    "fullChromiumLddIncludesLibcups": true,
+    "selectedPrintComponentPathsPresent": false,
+    "essentialPackages": ["bsdutils", "perl-base", "util-linux"],
+    "postgresqlClientCommonDependsOnPerl": true,
+    "fixtureScreenshotBytes": 7993,
+    "fixturePdfBytes": 7118,
+    "globalUnreachabilityProven": false,
+    "remediationClaim": false
+  },
   "records": [
     {
       "image": "backend",
