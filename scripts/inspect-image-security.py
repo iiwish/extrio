@@ -1,8 +1,10 @@
-"""Read-only Debian image diagnostics; never classifies a CVE as resolved."""
+"""Read-only dpkg image diagnostics; never classifies a CVE as resolved."""
 
+import hashlib
 import importlib.metadata
 import json
 import os
+import platform
 import re
 import subprocess
 import sys
@@ -108,7 +110,7 @@ def command(arguments):
 
 def inspect():
     if sys.platform != 'linux':
-        raise RuntimeError('Run only inside the isolated Debian candidate image')
+        raise RuntimeError('Run only inside the isolated dpkg candidate image')
     packages = parse_packages(command(['dpkg-query', '-W',
         '-f=${db:Status-Status}\t${binary:Package}\t${Version}\t${Depends}\t${Essential}\n']))
     process = subprocess.run([sys.executable, '-c', PROBE], capture_output=True, text=True, timeout=90, check=False,
@@ -123,6 +125,11 @@ def inspect():
     executables = sorted(set(launched + ([probe['browserPath']] if Path(probe['browserPath']).is_file() else [])))
     return {
         'schemaVersion': 1, 'appVersion': importlib.metadata.version('extrio-backend'),
+        'osRelease': platform.freedesktop_os_release(), 'pythonVersion': platform.python_version(),
+        'uvVersion': command(['uv', '--version']).strip(),
+        'pgDumpVersion': command(['pg_dump', '--version']).strip(),
+        'lockSha256': hashlib.sha256(Path('/app/backend/uv.lock').read_bytes()).hexdigest(),
+        'installedPackages': packages,
         'scope': 'fixed offline HTML/XML/PNG/SVG/PDF fixture; not global unreachability or CVE remediation',
         'globalUnreachabilityProven': False,
         'pruning': json.loads(Path('/usr/local/share/extrio/native-pruning.json').read_text())

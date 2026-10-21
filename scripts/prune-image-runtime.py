@@ -37,6 +37,11 @@ def full_browser_directory(root, executable):
     return directory
 
 
+def shell_only_directory(root):
+    if list(Path(root).glob('chromium-[0-9]*')):
+        raise ValueError('only-shell image unexpectedly contains full Chromium')
+
+
 def command(arguments):
     result = subprocess.run(arguments, capture_output=True, text=True, timeout=180, check=True,
                             env={**os.environ, 'LC_ALL': 'C'})
@@ -63,11 +68,11 @@ def prune(variant, *, plan_only=False):
     if variant == 'baseline':
         return {'variant': variant, 'removedPackages': []}
     before, essential = packages()
-    roots = ['libcups2t64'] if variant == 'headless' else ['libxml2', 'libllvm19']
+    roots = ['libcups2t64'] if variant in {'headless', 'only-shell'} else ['libxml2', 'libllvm19']
     if not set(roots) <= before:
         raise RuntimeError('expected baseline packages are absent')
     browser_directory = None
-    if variant == 'headless':
+    if variant in {'headless', 'only-shell'}:
         from playwright.sync_api import sync_playwright
 
         root = Path('/ms-playwright')
@@ -75,8 +80,11 @@ def prune(variant, *, plan_only=False):
                   if p.name in {'headless_shell', 'chrome-headless-shell'} and p.is_file()]
         if len(shells) != 1 or 'libcups.so' in command(['ldd', str(shells[0])]):
             raise RuntimeError('headless shell is absent, ambiguous or still requires libcups')
-        with sync_playwright() as p:
-            browser_directory = full_browser_directory(root, p.chromium.executable_path)
+        if variant == 'only-shell':
+            shell_only_directory(root)
+        else:
+            with sync_playwright() as p:
+                browser_directory = full_browser_directory(root, p.chromium.executable_path)
     simulated = command(['apt-get', '--simulate', 'purge', *roots])
     if plan_only:
         actions = {m.partition(':')[0] for m in re.findall(
@@ -100,7 +108,7 @@ def prune(variant, *, plan_only=False):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('variant', choices=['baseline', 'llvm', 'headless'])
+    parser.add_argument('variant', choices=['baseline', 'llvm', 'headless', 'only-shell'])
     parser.add_argument('--plan', action='store_true')
     args = parser.parse_args()
     result = prune(args.variant, plan_only=args.plan)

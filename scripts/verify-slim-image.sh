@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VARIANT="${1:?baseline, llvm or headless required}"
+VARIANT="${1:?baseline, llvm, headless, noble or resolute required}"
 OUT="${2:?receipt directory required}"
-case "$VARIANT" in baseline|llvm|headless) ;; *) exit 2 ;; esac
+case "$VARIANT" in
+  baseline|llvm|headless) DOCKERFILE=backend-slim.Dockerfile; BUILD_ARG="PRUNE_VARIANT=$VARIANT" ;;
+  noble|resolute) DOCKERFILE=backend-ubuntu.Dockerfile; BUILD_ARG="UBUNTU_SUITE=$VARIANT" ;;
+  *) exit 2 ;;
+esac
 PROJECT="extrio-image-slim-${VARIANT}-$(date +%s)-$$"
 mkdir -p "$OUT"
 OUT="$(cd "$OUT" && pwd)"
@@ -33,10 +37,10 @@ cleanup() {
 }
 trap cleanup EXIT
 
-docker build -f "$ROOT/docker/backend-slim.Dockerfile" --target runtime \
-  --build-arg "PRUNE_VARIANT=$VARIANT" -t "extrio/backend:slim-$VARIANT" "$ROOT"
-docker build -f "$ROOT/docker/backend-slim.Dockerfile" --target verification \
-  --build-arg "PRUNE_VARIANT=$VARIANT" -t "extrio/backend:slim-$VARIANT-tests" "$ROOT"
+docker build -f "$ROOT/docker/$DOCKERFILE" --target runtime \
+  --build-arg "$BUILD_ARG" -t "extrio/backend:slim-$VARIANT" "$ROOT"
+docker build -f "$ROOT/docker/$DOCKERFILE" --target verification \
+  --build-arg "$BUILD_ARG" -t "extrio/backend:slim-$VARIANT-tests" "$ROOT"
 docker run --rm --network none \
   --mount "type=bind,source=$ROOT/scripts/inspect-image-security.py,target=/tmp/inspect-image-security.py,readonly" \
   --entrypoint /opt/extrio/bin/python "extrio/backend:slim-$VARIANT" \
