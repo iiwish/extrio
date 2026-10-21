@@ -22,8 +22,12 @@ jobs:
         run: docker build -f docker/backend.Dockerfile -t extrio/backend:slim-original .
       - name: Verify baseline capabilities and isolated dual-database regression
         run: bash scripts/verify-slim-image.sh baseline image-slim/baseline
-      - name: Verify LLVM removal
-        run: bash scripts/verify-slim-image.sh llvm image-slim/llvm
+      - name: Record blocked LLVM plan without removing required browser libraries
+        run: |
+          docker run --rm --network none --user root -e EXTRIO_DISPOSABLE_IMAGE_BUILD=1 \
+            --mount "type=bind,source=$PWD/scripts/prune-image-runtime.py,target=/tmp/prune-image-runtime.py,readonly" \
+            --entrypoint /opt/extrio/bin/python extrio/backend:slim-original \
+            /tmp/prune-image-runtime.py llvm --plan > image-slim/llvm-plan.json
       - name: Verify headless-shell and CUPS removal
         run: bash scripts/verify-slim-image.sh headless image-slim/headless
       - name: Complete baseline scan
@@ -33,16 +37,6 @@ jobs:
           image-ref: extrio/backend:slim-baseline
           format: json
           output: image-slim/baseline/vulnerabilities.json
-          exit-code: '0'
-          ignore-unfixed: false
-          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
-      - name: Complete LLVM candidate scan
-        if: always()
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          image-ref: extrio/backend:slim-llvm
-          format: json
-          output: image-slim/llvm/vulnerabilities.json
           exit-code: '0'
           ignore-unfixed: false
           severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL

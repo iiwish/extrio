@@ -49,16 +49,19 @@ def compare(root):
     baseline = read('baseline', 'runtime.json')
     inventory = read('baseline', 'vulnerabilities.json')
     count = test_counts(root / 'baseline/tests.xml')
-    result = {'scope': 'native isolated experimental images, not release acceptance', 'variants': {}}
-    for variant in ('baseline', 'llvm', 'headless'):
+    llvm = json.loads((root / 'llvm-plan.json').read_text())
+    if (llvm.get('status') != 'blocked' or not llvm.get('planOnly') or llvm.get('removedPackages') != []
+            or 'libgbm1' not in llvm.get('blockers', [])):
+        raise ValueError('LLVM browser dependency boundary changed; review required')
+    result = {'scope': 'native isolated experimental images, not release acceptance',
+              'llvmRemoval': llvm, 'variants': {}}
+    for variant in ('baseline', 'headless'):
         runtime = read(variant, 'runtime.json')
         compare_capabilities(baseline['probe'], runtime['probe'])
         if test_counts(root / variant / 'tests.xml') != count:
             raise ValueError('image test count changed')
         pruning = runtime['pruning']
         names = {p['name'] for p in runtime['packages']}
-        if variant != 'baseline' and ('libxml2' in names or any(n.startswith('libllvm') for n in names)):
-            raise ValueError('LLVM/libxml2 remained installed')
         if variant == 'headless' and ('libcups2t64' in names or runtime['fullChromiumPresent']):
             raise ValueError('full Chromium/CUPS remained installed')
         result['variants'][variant] = {

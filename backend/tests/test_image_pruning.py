@@ -19,10 +19,32 @@ def test_pruning_never_runs_outside_explicit_disposable_build(monkeypatch):
         runpy.run_path(str(SCRIPT))['prune']('baseline')
 
 
+def test_blocked_llvm_preview_never_executes_package_removal(monkeypatch):
+    module = runpy.run_path(str(SCRIPT))
+    scope = module['prune'].__globals__
+    calls = []
+    monkeypatch.setenv('EXTRIO_DISPOSABLE_IMAGE_BUILD', '1')
+    monkeypatch.setattr(scope['sys'], 'platform', 'linux')
+    monkeypatch.setattr(scope['os'], 'geteuid', lambda: 0)
+    monkeypatch.setattr(Path, 'is_file', lambda _: True)
+    monkeypatch.setitem(scope, 'packages', lambda: ({'libxml2', 'libllvm19', 'libgbm1'}, set()))
+
+    def simulate(arguments):
+        calls.append(arguments)
+        return 'Purg libxml2 [2.9]\nPurg libllvm19 [19]\nPurg libgbm1 [25]\n'
+
+    monkeypatch.setitem(scope, 'command', simulate)
+    result = module['prune']('llvm', plan_only=True)
+    assert result['status'] == 'blocked' and result['blockers'] == ['libgbm1']
+    assert result['removedPackages'] == [] and result['planOnly']
+    assert len(calls) == 1 and '--simulate' in calls[0]
+
+
 @pytest.mark.parametrize('output,essential', [
     ('Remv postgresql-client-16 [16]\n', set()),
     ('Remv libxml2 [2.9]\n', {'libxml2'}),
     ('Remv libc6 [2.41]\n', {'libc6'}),
+    ('Purg libgbm1 [25.0.7]\n', set()),
     ('Inst libxml2 [2.9] (2.15)\n', set()),
     ('not a removal plan', set()),
 ])

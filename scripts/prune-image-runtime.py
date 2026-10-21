@@ -56,14 +56,14 @@ def packages():
     return installed, essential
 
 
-def prune(variant):
+def prune(variant, *, plan_only=False):
     if (os.environ.get('EXTRIO_DISPOSABLE_IMAGE_BUILD') != '1' or sys.platform != 'linux' or os.geteuid() != 0
             or not Path('/opt/extrio/bin/python').is_file() or not Path('/app/backend/uv.lock').is_file()):
         raise RuntimeError('Pruning requires the disposable root build container')
     if variant == 'baseline':
         return {'variant': variant, 'removedPackages': []}
     before, essential = packages()
-    roots = ['libxml2', 'libllvm19'] + (['libcups2t64'] if variant == 'headless' else [])
+    roots = ['libcups2t64'] if variant == 'headless' else ['libxml2', 'libllvm19']
     if not set(roots) <= before:
         raise RuntimeError('expected baseline packages are absent')
     browser_directory = None
@@ -78,6 +78,12 @@ def prune(variant):
         with sync_playwright() as p:
             browser_directory = full_browser_directory(root, p.chromium.executable_path)
     simulated = command(['apt-get', '--simulate', 'purge', *roots])
+    if plan_only:
+        actions = {m.partition(':')[0] for m in re.findall(
+            r'^(?:Remv|Purg) ([a-z0-9][a-z0-9+.:-]*)', simulated, re.MULTILINE)}
+        blockers = actions - ALLOWED | actions & essential
+        return {'variant': variant, 'planOnly': True, 'status': 'blocked' if blockers else 'eligible_for_review',
+                'plannedPackages': sorted(actions), 'blockers': sorted(blockers), 'removedPackages': [], 'aptPlan': simulated}
     print(simulated, flush=True)
     planned = removal_plan(simulated, essential)
     if not set(roots) <= planned:
@@ -95,8 +101,11 @@ def prune(variant):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('variant', choices=['baseline', 'llvm', 'headless'])
-    result = prune(parser.parse_args().variant)
-    target = Path('/usr/local/share/extrio/native-pruning.json')
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(result, indent=2) + '\n')
+    parser.add_argument('--plan', action='store_true')
+    args = parser.parse_args()
+    result = prune(args.variant, plan_only=args.plan)
+    if not args.plan:
+        target = Path('/usr/local/share/extrio/native-pruning.json')
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result))
