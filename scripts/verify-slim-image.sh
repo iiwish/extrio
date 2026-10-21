@@ -46,10 +46,10 @@ NETWORK_ID="$(docker network create --internal --label "extrio.image-slim=$PROJE
 PG_ID="$(docker run -d --network "$NETWORK_ID" --network-alias fixture-pg --label "extrio.image-slim=$PROJECT" \
   -e POSTGRES_PASSWORD=extrio_test postgres:16-alpine)"
 for attempt in {1..40}; do
-  if docker exec "$PG_ID" pg_isready -U postgres; then break; fi
+  if docker exec "$PG_ID" pg_isready -h 127.0.0.1 -U postgres; then break; fi
   sleep 1
 done
-docker exec "$PG_ID" pg_isready -U postgres
+docker exec "$PG_ID" pg_isready -h 127.0.0.1 -U postgres
 TEST_ID="$(docker create --network "$NETWORK_ID" --label "extrio.image-slim=$PROJECT" \
   --mount "type=bind,source=$ROOT/backend/tests,target=/workspace/backend/tests,readonly" \
   --mount "type=bind,source=$ROOT/backend/pyproject.toml,target=/workspace/backend/pyproject.toml,readonly" \
@@ -59,7 +59,8 @@ TEST_ID="$(docker create --network "$NETWORK_ID" --label "extrio.image-slim=$PRO
   --entrypoint /opt/extrio/bin/python "extrio/backend:slim-$VARIANT-tests" \
   -m pytest -c backend/pyproject.toml -p no:cacheprovider --junitxml=/tmp/image-tests.xml \
   backend/tests/test_runtime.py backend/tests/test_source_network.py backend/tests/test_browser_failures.py \
-  backend/tests/test_official_documents.py backend/tests/test_public_pagination.py \
+  backend/tests/test_official_documents.py backend/tests/test_official_v2.py backend/tests/test_source_samples.py \
+  backend/tests/test_public_pagination.py \
   backend/tests/test_pagination_navigation.py backend/tests/test_nltk_boundary.py \
   backend/tests/test_lxml_boundary.py backend/tests/test_full_backup.py backend/tests/test_store_pg.py \
   backend/tests/test_tender_source_adapters.py backend/tests/test_benchmark.py)"
