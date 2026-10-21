@@ -36,7 +36,7 @@ def reverse_dependencies(packages, target):
 
 
 PROBE = """
-import asyncio, io, json
+import asyncio, io, json, unicodedata
 from lxml import etree, html
 from PIL import Image, _imaging
 from playwright.sync_api import sync_playwright
@@ -54,8 +54,9 @@ with sync_playwright() as p:
     context.route('**/*', lambda route: route.abort())
     context.route_web_socket('**/*', lambda socket: socket.close())
     page = context.new_page()
-    page.set_content('<h1>bounded fixture</h1><p>Public procurement fixture body with sufficient text for PDF extraction.</p>'
-        '<svg width="10" height="10"><rect width="10" height="10"/></svg><canvas id="canvas" width="4" height="4"></canvas>')
+    page.set_content('<h1>bounded fixture</h1>'
+        + '<p>Public procurement fixture body with sufficient text for PDF extraction.</p>' * 4
+        + '<svg width="10" height="10"><rect width="10" height="10"/></svg><canvas id="canvas" width="4" height="4"></canvas>')
     assert page.locator('h1').inner_text() == 'bounded fixture'
     assert page.evaluate('2 + 2') == 4
     canvas = page.evaluate('''() => {
@@ -83,7 +84,8 @@ with sync_playwright() as p:
     browser_path = p.chromium.executable_path
     browser.close()
 parsed = asyncio.run(OfficialDocuments.pdf(pdf))
-assert parsed['extraction'] == 'text_layer' and 'Public procurement fixture body' in parsed['text']
+assert parsed['extraction'] == 'text_layer'
+assert 'Public procurement fixture body' in unicodedata.normalize('NFKC', parsed['text'])
 scanned = io.BytesIO()
 writer = PdfWriter(); writer.add_blank_page(width=500, height=500); writer.write(scanned)
 try:
