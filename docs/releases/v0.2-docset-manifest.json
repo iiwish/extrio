@@ -3,7 +3,7 @@
   "docsetVersion": "v0.46.0",
   "productVersion": "v1.0.0",
   "status": "Ready_For_User_Review",
-  "generatedAt": "2026-10-21T02:40:51.689Z",
+  "generatedAt": "2026-10-21T02:55:03.889Z",
   "repositoryState": {
     "kind": "git_repository",
     "defaultBranch": "main"
@@ -12,12 +12,12 @@
     {
       "path": "docs/SSOT.md",
       "version": "v0.46.0",
-      "sha256": "030fbe9b11501e261b0dc50f88ee4f2be4e249e14cd99a47827660fa79a8f245"
+      "sha256": "efc1e4d1f3c04de44241d9735ec8825a122de4dcb3982c2619aa3fc7054fd6c8"
     },
     {
       "path": "docs/product-contract.md",
       "version": "v0.46.0",
-      "sha256": "05e28987c74add3c68fa11c8cababb1fb68e880296d1c15f4cef9be6164f746d"
+      "sha256": "25f28f6cd164d4cfa9de31daeeb0a2255bbb9adbefcd6f214abe50e46b230f96"
     },
     {
       "path": "docs/domain-model.md",
@@ -132,7 +132,7 @@
     {
       "path": "docs/frontend-prototype.md",
       "version": "v1.38.1",
-      "sha256": "48013562f3ed0bbfe2bab4b40109a612b2b007d179a7c9e15c74cd17baf5508e"
+      "sha256": "30fab0484ac69767beb3feffb69ba4203dbb8ff3c872fe31ff5af2ad3b6ee94d"
     },
     {
       "path": "docs/backend-vertical-slice.md",
@@ -152,7 +152,7 @@
     {
       "path": "docs/releases/v0.2-acceptance.md",
       "version": "v0.46.0",
-      "sha256": "3e4eb67bbca806e0d48dcc615883e17c8cf8af36a1c39ba013255a2fca78ef30"
+      "sha256": "4c8882ee1d7b542bc4d34728c53b090ed279e429a50083916021d8e60214f53c"
     },
     {
       "path": "docs/planning/v1.0-scope-matrix.md",
@@ -172,12 +172,12 @@
     {
       "path": "docs/releases/v1.0.0.md",
       "version": "v1.0.0",
-      "sha256": "19142ba8a799b7a389bca95e70d43cea1d741c61dfa9153916e903cf0a1cdb6a"
+      "sha256": "9e112984ee308ae7a64e56b2347c9c3d3599bc1d4e7aff25647e401a454799cc"
     },
     {
       "path": "docs/releases/v1.0-rc.2.md",
       "version": "v1.0.0-rc.2",
-      "sha256": "0287baa239e7dae9c15d3c8b98047d48c5cb5200493c6ae4be2f19bcf7353591"
+      "sha256": "cee4ef791a34dfad499cb175a40839f02a256190dbbff3911826b28390aadcd5"
     },
     {
       "path": "docs/benchmarks.md",

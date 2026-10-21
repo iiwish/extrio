@@ -1,8 +1,9 @@
 {
   "candidate": "v1.0.0-rc.2",
-  "decision": "pending",
+  "decision": "deferred_by_user",
+  "decisionDate": "2026-10-21",
   "observedAt": "2026-10-21",
-  "reviewDue": "2026-11-04",
+  "reviewDue": null,
   "scope": "test candidate only; no production, schedules or stable-release acceptance",
   "evidenceRun": "https://github.com/iiwish/extrio/actions/runs/39533490291",
   "sourceSha": "27c8c97bee63fca4c6b415fd5e4d194b71e18aec",

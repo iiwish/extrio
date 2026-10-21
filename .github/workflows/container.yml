@@ -33,6 +33,13 @@ jobs:
           EXTRIO_E2E_COMPOSE_FILE: compose.postgres.yaml
           EXTRIO_AUTH_COOKIE_SECURE: 'false'
         run: ./scripts/verify-compose.sh
+      - name: Inspect installed native components with an offline fixture
+        if: always() && steps.sqlite.outcome == 'success'
+        run: |
+          docker run --rm --network none \
+            --mount "type=bind,source=$PWD/scripts/inspect-image-security.py,target=/tmp/inspect-image-security.py,readonly" \
+            --entrypoint /opt/extrio/bin/python extrio/backend:e2e \
+            /tmp/inspect-image-security.py > image-runtime-security.json
       - name: Scan backend image
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
@@ -74,6 +81,8 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: container-vulnerability-inventory
-          path: '*-vulnerabilities.json'
+          path: |
+            *-vulnerabilities.json
+            image-runtime-security.json
           if-no-files-found: warn
           retention-days: 30
