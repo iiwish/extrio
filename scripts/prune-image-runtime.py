@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 ALLOWED = {'libxml2', 'libllvm19', 'libcups2t64', 'libegl-mesa0', 'libgl1-mesa-dri', 'libglx-mesa0',
@@ -56,7 +57,8 @@ def packages():
 
 
 def prune(variant):
-    if not Path('/.dockerenv').is_file() or os.geteuid() != 0:
+    if (os.environ.get('EXTRIO_DISPOSABLE_IMAGE_BUILD') != '1' or sys.platform != 'linux' or os.geteuid() != 0
+            or not Path('/opt/extrio/bin/python').is_file() or not Path('/app/backend/uv.lock').is_file()):
         raise RuntimeError('Pruning requires the disposable root build container')
     if variant == 'baseline':
         return {'variant': variant, 'removedPackages': []}

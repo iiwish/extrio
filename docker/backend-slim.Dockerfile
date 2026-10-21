@@ -3,7 +3,7 @@ FROM extrio/backend:slim-original AS runtime
 USER root
 ARG PRUNE_VARIANT=llvm
 COPY scripts/prune-image-runtime.py /tmp/prune-image-runtime.py
-RUN /opt/extrio/bin/python /tmp/prune-image-runtime.py "$PRUNE_VARIANT" \
+RUN EXTRIO_DISPOSABLE_IMAGE_BUILD=1 /opt/extrio/bin/python /tmp/prune-image-runtime.py "$PRUNE_VARIANT" \
     && rm /tmp/prune-image-runtime.py
 USER extrio
 

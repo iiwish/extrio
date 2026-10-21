@@ -24,6 +24,8 @@ def scan_delta(baseline, candidate, removed_packages):
     added, removed = new.keys() - old.keys(), old.keys() - new.keys()
     if any(k[3] in {'HIGH', 'CRITICAL'} for k in added):
         raise ValueError('new high or critical finding')
+    if any(k[3] in {'HIGH', 'CRITICAL'} and v.get('FixedVersion') for k, v in new.items()):
+        raise ValueError('unremediated fixable high or critical finding')
     if any(k[0] not in removed_packages for k in removed):
         raise ValueError('finding disappeared without package removal')
     return {'removedRecords': len(removed), 'addedRecords': len(added),

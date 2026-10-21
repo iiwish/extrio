@@ -13,6 +13,12 @@ def test_removal_plan_accepts_only_explicit_native_packages():
         'libllvm19', 'libxml2'}
 
 
+def test_pruning_never_runs_outside_explicit_disposable_build(monkeypatch):
+    monkeypatch.delenv('EXTRIO_DISPOSABLE_IMAGE_BUILD', raising=False)
+    with pytest.raises(RuntimeError, match='disposable root build container'):
+        runpy.run_path(str(SCRIPT))['prune']('baseline')
+
+
 @pytest.mark.parametrize('output,essential', [
     ('Remv postgresql-client-16 [16]\n', set()),
     ('Remv libxml2 [2.9]\n', {'libxml2'}),
@@ -77,3 +83,6 @@ def test_comparison_fails_on_graphics_regression_or_new_high_findings():
     with pytest.raises(ValueError, match='without package removal'):
         module['scan_delta'](inventory([vuln]), inventory([]), set())
     assert module['scan_delta'](inventory([vuln]), inventory([]), {'example'})['removedRecords'] == 1
+    fixable = {**vuln, 'FixedVersion': '2'}
+    with pytest.raises(ValueError, match='fixable high'):
+        module['scan_delta'](inventory([fixable]), inventory([fixable]), set())

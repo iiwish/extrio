@@ -56,15 +56,7 @@ jobs:
           exit-code: '0'
           ignore-unfixed: false
           severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
-      - name: Preserve existing fixable high severity gate for candidate
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          image-ref: extrio/backend:slim-headless
-          format: table
-          exit-code: '1'
-          ignore-unfixed: true
-          severity: HIGH,CRITICAL
-      - name: Compare capabilities, complete scans and zero-skip image regression
+      - name: Compare full scans, enforce fixable-high gate and zero-skip regression
         run: python3 scripts/compare-slim-images.py image-slim
       - name: Preserve experimental evidence
         if: always()
