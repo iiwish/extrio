@@ -1,0 +1,2 @@
+# Keep spreadsheet exports portable while storing normalized text in Git.
+test-data/tender-sources/*.csv text eol=crlf

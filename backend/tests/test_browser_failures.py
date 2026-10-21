@@ -91,10 +91,35 @@ async def test_late_route_failure_after_page_close_does_not_pollute_next_attempt
     await browser.install_routes(page, context)
     route = SimpleNamespace(
         request=SimpleNamespace(method="GET", url="https://example.com/asset.js",
-                                frame=SimpleNamespace(page=page), is_navigation_request=lambda: False),
+                                resource_type="script", frame=SimpleNamespace(page=page), is_navigation_request=lambda: False),
         abort=AsyncMock(),
     )
     browser.network.fetch.side_effect = SourceNetworkError("source_request_timed_out")
     await context.route.call_args.args[1](route)
     assert browser.failures == []
     route.abort.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('resource_type', ['image', 'font', 'media', 'script', 'stylesheet', 'fetch', 'xhr', 'document'])
+async def test_browser_skips_decorative_media_but_retains_text_rendering_dependencies(resource_type):
+    browser = browser_with_results()
+    page = SimpleNamespace(is_closed=lambda: False)
+    class Context:
+        route = AsyncMock()
+        route_web_socket = AsyncMock()
+    context = Context()
+    await browser.install_routes(page, context)
+    url = 'https://example.com/asset'
+    route = SimpleNamespace(request=SimpleNamespace(method='GET', url=url, resource_type=resource_type,
+                            frame=SimpleNamespace(page=page), is_navigation_request=lambda: resource_type == 'document'),
+                            abort=AsyncMock(), fulfill=AsyncMock())
+    browser.network.fetch.return_value = SourceResponse(url, 200, {}, b'content')
+    await context.route.call_args.args[1](route)
+    if resource_type in {'image', 'font', 'media'}:
+        browser.network.fetch.assert_not_awaited()
+        route.abort.assert_awaited_once_with('blockedbyclient')
+    else:
+        browser.network.fetch.assert_awaited_once()
+        route.fulfill.assert_awaited_once()
+    assert not browser.failures

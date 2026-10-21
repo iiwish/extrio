@@ -1157,7 +1157,9 @@ class Store:
     @staticmethod
     def validate_collection_policy(values: dict[str, Any]) -> dict[str, Any]:
         expected = set(DEFAULT_COLLECTION_POLICY)
-        if set(values) != expected or values.get("mode") != "rolling_incremental" or values.get("timezone") != "Asia/Shanghai":
+        if (set(values) - {'checkpointMode'} != expected or values.get("mode") != "rolling_incremental"
+                or values.get("timezone") != "Asia/Shanghai"
+                or values.get('checkpointMode', 'accepted_only') not in {'accepted_only', 'observed'}):
             raise ValueError("collection policy fields are invalid")
         ranges = {
             "initialWindowDays": (1, 3650),
@@ -1206,6 +1208,7 @@ class Store:
             )
             connection.execute("DELETE FROM collector_checkpoints WHERE collector_id=?", (collector_id,))
             collector.update(activeCollectionPolicyId=policy_id, collectionPolicy=policy, checkpoint=None, updatedAt="刚刚")
+            collector.pop('coverageProgress', None)
             self.save_collector(collector, connection)
             return collector
 
@@ -1862,6 +1865,10 @@ class Store:
             lock_collector(self, connection, collector_id)
             current_source = self.get_collector(collector_id, connection)
             require_active(current_source)
+            if kind in {'run', 'explore'}:
+                from extrio.bounded_recovery import guard_source_work
+
+                guard_source_work(self, connection, current_source, job_payload.get('recoveryBatchId'))
             if expected_source_digest is not None and expected_source_digest != source_execution_digest(current_source):
                 raise LifecycleError("COLLECTOR_CONFLICT")
             if blockers := active_blockers(self, connection, collector_id):
@@ -1951,7 +1958,7 @@ class Store:
             if not operation or operation["status"] in TERMINAL_OPERATION_STATUSES:
                 connection.execute("UPDATE jobs SET status='completed', lease_until=NULL WHERE id=?", (job["id"],))
                 return None
-            if operation.get("cancelRequested") or row["attempts"] >= 3:
+            if operation.get("cancelRequested") or row["attempts"] >= job['payload'].get('maxJobAttempts', 3):
                 cancelled = bool(operation.get("cancelRequested"))
                 finish_resources(
                     self,
@@ -2145,7 +2152,8 @@ class Store:
                 placeholders = ",".join("?" for _ in batch)
                 rows = connection.execute(
                     "SELECT data, collection_attribution FROM (SELECT data, collection_attribution, ROW_NUMBER() OVER ("
-                    f"PARTITION BY {field('data', 'entityKey')} ORDER BY {field('data', 'observedAt')} DESC, id DESC) AS rank "
+                    f"PARTITION BY {field('data', 'entityKey')} "
+                    f"ORDER BY {field('data', 'observedAt')} DESC, created_at DESC, id DESC) AS rank "
                     f"FROM {item_source()} WHERE {field('data', 'collectorId')}=? AND {field('data', 'entityKey')} IN ({placeholders}) "
                     f"AND ({field('collection_attribution', 'collectionId')}=? OR (collection_attribution IS NULL AND ?=0)) "
                     f"AND {field('data', 'decision')}='accepted') latest WHERE rank=1",
@@ -2153,6 +2161,20 @@ class Store:
                 ).fetchall()
                 items.extend(self._decode(row) for row in rows)
         return items
+
+    def rejected_entities(self, collector_id: str, connection=None, *, limit: int = 50) -> tuple[int, list[dict]]:
+        field = self.dialect.json_extract_text
+        collector = self.get_collector(collector_id, connection)
+        if not collector:
+            return 0, []
+        query = (f"FROM {self._item_query_source('entities')} WHERE {field('data', 'collectorId')}=? "
+                 f"AND {field('data', 'decision')}='rejected' AND ({field('collection_attribution', 'collectionId')}=? "
+                 "OR (collection_attribution IS NULL AND ?=0))")
+        params = (collector_id, collector['collectionId'], int(bool(collector.get('hasReassignmentHistory'))))
+        with nullcontext(connection) if connection is not None else self.connect() as target:
+            count = int(target.execute('SELECT COUNT(*) AS total ' + query, params).fetchone()['total'])
+            rows = target.execute('SELECT data, collection_attribution ' + query + ' ORDER BY id LIMIT ?', (*params, limit)).fetchall()
+            return count, [self._decode(row) for row in rows]
 
     def get_item(self, item_id: str) -> dict[str, Any] | None:
         from extrio.collector_history import item_source
@@ -2210,12 +2232,13 @@ class Store:
         if view != "entities":
             raise ValueError("unsupported item view")
         field = self.dialect.json_extract_text
+        # Legacy observedAt values have minute precision; persistence time breaks ties before random IDs.
         # Rank before filtering so an older matching observation cannot replace current state.
         return (
             "(SELECT current.id, current.run_id, current.data, current.collection_attribution, current.collector_deleted_at "
             f"FROM (SELECT * FROM {item_source()}) current JOIN (SELECT id, ROW_NUMBER() OVER ("
             f"PARTITION BY {field('data', 'collectorId')}, {field('collection_attribution', 'collectionId')}, {field('data', 'entityKey')} "
-            f"ORDER BY {field('data', 'observedAt')} DESC, id DESC) AS entity_rank "
+            f"ORDER BY {field('data', 'observedAt')} DESC, created_at DESC, id DESC) AS entity_rank "
             f"FROM {item_source()}) ranked ON current.id=ranked.id WHERE entity_rank=1) current_items"
         )
 

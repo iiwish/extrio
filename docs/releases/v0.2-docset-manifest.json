@@ -3,7 +3,7 @@
   "docsetVersion": "v0.46.0",
   "productVersion": "v1.0.0",
   "status": "Ready_For_User_Review",
-  "generatedAt": "2026-10-06T11:21:16.112Z",
+  "generatedAt": "2026-10-21T02:22:30.598Z",
   "repositoryState": {
     "kind": "git_repository",
     "defaultBranch": "main"
@@ -12,12 +12,12 @@
     {
       "path": "docs/SSOT.md",
       "version": "v0.46.0",
-      "sha256": "30810274dbfbbb77850bf2df5b6debe4fc7e7e583c396fa79737d7e9d5abd721"
+      "sha256": "030fbe9b11501e261b0dc50f88ee4f2be4e249e14cd99a47827660fa79a8f245"
     },
     {
       "path": "docs/product-contract.md",
       "version": "v0.46.0",
-      "sha256": "17bf6865572a3d66bbc363b3c94d4f031de08a9e790157881b2d6a9010d645f4"
+      "sha256": "05e28987c74add3c68fa11c8cababb1fb68e880296d1c15f4cef9be6164f746d"
     },
     {
       "path": "docs/domain-model.md",
@@ -27,17 +27,17 @@
     {
       "path": "docs/contracts/gather-spec.md",
       "version": "v1.6.0",
-      "sha256": "c98f292372070190f246d76282bce464a184ba6cc212ed6f5a2d90caf5d8de19"
+      "sha256": "dae8417f7143e1f288628179e84aed93e98ccc269d29758b6cfd173b7b525907"
     },
     {
       "path": "docs/contracts/gather-spec.schema.json",
       "version": "extrio.gather.v1",
-      "sha256": "b03c68be5f93f20466b9876ce5da84be6167e6b19638ad556012912495325319"
+      "sha256": "16e55182648f6d56a07426e4b8853b88906b919a682046e013e86964f8fddc38"
     },
     {
       "path": "docs/contracts/extraction-semantics.md",
       "version": "v1.1.1",
-      "sha256": "108b6ce2b6ddde1edd73839f31d273cc7855c913e1388910fcd5c2cf7b6ef97a"
+      "sha256": "cc58a5c6078664ec3f3e4923053fa416b7b45907fe6705248b951c9025f60961"
     },
     {
       "path": "docs/contracts/rule-attestation.md",
@@ -92,7 +92,7 @@
     {
       "path": "docs/contracts/openapi.yaml",
       "version": "extrio.control-plane.v1",
-      "sha256": "1f6a51791ab3b962a375495172ababb9e23b3a81d8931e0a61fa744eb5ac008c"
+      "sha256": "df3d2b0d71438128eb8b7d0c6725f84ced8af0ba607f8b8aa8c61f21368dea78"
     },
     {
       "path": "docs/contracts/api-contract.md",
@@ -132,7 +132,7 @@
     {
       "path": "docs/frontend-prototype.md",
       "version": "v1.38.1",
-      "sha256": "37d439633fa0ff2d9c8316c4970a634f28483ee5bd2b1793667cce31dcbe3a4c"
+      "sha256": "48013562f3ed0bbfe2bab4b40109a612b2b007d179a7c9e15c74cd17baf5508e"
     },
     {
       "path": "docs/backend-vertical-slice.md",
@@ -152,7 +152,7 @@
     {
       "path": "docs/releases/v0.2-acceptance.md",
       "version": "v0.46.0",
-      "sha256": "1b35a51c2ad3ceb32176942b7d928d37a860da4e9a6a444ae435db4bb21b3ffc"
+      "sha256": "3e4eb67bbca806e0d48dcc615883e17c8cf8af36a1c39ba013255a2fca78ef30"
     },
     {
       "path": "docs/planning/v1.0-scope-matrix.md",
@@ -162,7 +162,7 @@
     {
       "path": "docs/releases/v0.7-upgrade.md",
       "version": "v1.0.0",
-      "sha256": "90989f763cc1753ad3c6965f213ca74c1ba6215d7846f12d4d19de49c411041a"
+      "sha256": "abc65f6e6b95c59188e0bcba18576c4d0a59418aeda3502795e75ce976f9b474"
     },
     {
       "path": "docs/releases/v1.0-rc.1.md",
@@ -172,7 +172,12 @@
     {
       "path": "docs/releases/v1.0.0.md",
       "version": "v1.0.0",
-      "sha256": "a12e06f0121f7779ae4b9358b60e359592f8a58081ea76ab8aa8a8fb94e5b9f6"
+      "sha256": "19142ba8a799b7a389bca95e70d43cea1d741c61dfa9153916e903cf0a1cdb6a"
+    },
+    {
+      "path": "docs/releases/v1.0-rc.2.md",
+      "version": "v1.0.0-rc.2",
+      "sha256": "7560072a25a47e646aa9474fb9613d155a77678694077348b98bdd663f883b69"
     },
     {
       "path": "docs/benchmarks.md",

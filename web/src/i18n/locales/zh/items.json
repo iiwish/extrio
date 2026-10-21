@@ -1,4 +1,5 @@
 {
+  "resolutionV2": {"originalDate": "原始公告发布日期", "publisherDate": "发布者转载日期", "outcome": "公告结果", "failed": "未成交 / 失败", "awarded": "已成交"},
   "toolbar": {
     "aria": "数据工具栏",
     "sourceAria": "按站点域名筛选",
@@ -96,9 +97,32 @@
     "bodyExtracted": "正文已提取",
     "bodyNotExtracted": "正文未提取",
     "bodyAvailable": "规范化正文可用",
-    "bodyOptional": "当前合同允许正文为空",
+    "bodyUnavailableDetail": "未取得正文，接收结果以当前质量决定为准",
     "lineageTitle": "来源与谱系",
     "lineageSubtitle": "从采集来源、运行到当前数据的可追溯关系",
+    "documentResolution": "原文解析",
+    "noticeIdentityMatched": "公告身份已核验",
+    "noticeIdentityDetail": "EPS GUID、包件与公告阶段匹配；列表与模板标题措辞不同",
+    "documentEvidence": "文档证据与校验值",
+    "pdfPages": "页",
+    "resolutionKinds": {
+      "unresolved": "正文未取得",
+      "publisher_html": "发布者 HTML 正文",
+      "publisher_linked_original": "发布者指向的官方原文",
+      "embedded_pdf_text": "内嵌 PDF 文本层（非 OCR）",
+      "eps_public_template_render": "EPS 公开 GET 数据与公告模板渲染（非原始 DOM）"
+    },
+    "documentRoles": {
+      "publisher_landing": "发布者详情页",
+      "publisher_linked_original": "官方公告原文",
+      "embedded_body_pdf": "公告正文 PDF",
+      "eps_landing": "EPS 详情入口",
+      "eps_public_template": "EPS 公开公告模板",
+      "eps_public_get": "EPS 公开 GET 响应",
+      "eps_public_unit_get": "EPS 公开单位信息",
+      "eps_public_clock_get": "EPS 公开服务器时间",
+      "eps_public_supplement_index_get": "EPS 公开补遗目录"
+    },
     "collectorLabel": "采集来源",
     "sourceLabel": "详情来源",
     "latestRunLabel": "最近运行",

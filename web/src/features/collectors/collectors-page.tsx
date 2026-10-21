@@ -181,6 +181,11 @@ function CollectorRow({ collector, latestRun }: { collector: CollectorDetail; la
 
 function stopReasonLabel(reason: Run['paginationStopReason'], t: TFunction<'collectors'>) {
   return {
+    coverage_date_unknown: t('runs:coverage.dateUnknown'),
+    coverage_order_unverified: t('runs:coverage.orderUnverified'),
+    source_window_truncated: t('runs:coverage.sourceTruncated'),
+    source_rate_limited: t('runs:coverage.rateLimited'),
+    source_structure_mismatch: t('runs:coverage.structureMismatch'),
     not_applicable: t('list.stopReason.notApplicable'),
     empty_page: t('list.stopReason.emptyPage'),
     next_link_exhausted: t('list.stopReason.nextLinkExhausted'),

@@ -14,6 +14,48 @@ def test_json_content_accepts_compact_and_fenced_responses() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(("host", "limits", "thinking"), [
+    ("api.xiaomimimo.com", {"reasoningTokens": 0}, {"type": "disabled"}),
+    ("token-plan-cn.xiaomimimo.com", {"reasoningTokens": 0}, {"type": "disabled"}),
+    ("api.xiaomimimo.com", {"reasoningTokens": 1024}, None),
+    ("api.xiaomimimo.com", None, None),
+    ("api.xiaomimimo.com.example.com", {"reasoningTokens": 0}, None),
+    ("models.example.com", {"reasoningTokens": 0}, None),
+])
+async def test_mimo_zero_reasoning_reservation_disables_provider_thinking(tmp_path, monkeypatch, host, limits, thinking):
+    sent = []
+
+    class Client:
+        def __init__(self, **_kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            pass
+
+        async def post(self, _url, *, json, **_kwargs):
+            from types import SimpleNamespace
+
+            sent.append(json)
+            return SimpleNamespace(raise_for_status=lambda: None, json=lambda: {
+                "choices": [{"message": {"content": '{"mode":"single"}'}, "finish_reason": "stop"}]
+            })
+
+    monkeypatch.setattr(model_gateway.httpx, "AsyncClient", Client)
+    compiler = ModelRuleCompiler(Store(tmp_path / "mimo.db"), CredentialCipher(tmp_path / "key"))
+    result = await compiler._complete_json(
+        ActiveModel("custom", f"https://{host}/v1", "mimo-v2.6-flash", "secret", limits), "system", {})
+    assert result == {"mode": "single"}
+    assert sent[0].get("thinking") == thinking
+    assert sent[0].get('response_format') == (
+        {'type': 'json_object'} if host in {'api.xiaomimimo.com', 'token-plan-cn.xiaomimimo.com'} else None
+    )
+    assert sent[0]["max_tokens"] == 4096
+
+
+@pytest.mark.asyncio
 async def test_model_call_records_usage_and_response_digest_without_raw_prompt(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     class FakeResponse:
         def raise_for_status(self) -> None:

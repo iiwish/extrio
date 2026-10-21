@@ -1,3 +1,4 @@
+import json
 import threading
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -18,7 +19,12 @@ def allow_fixture_loopback(monkeypatch):
 
 class FixtureHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802
-        if self.path.startswith("/window-list"):
+        content_type = 'text/html; charset=utf-8'
+        if self.path.startswith('/json-list'):
+            page = int(parse_qs(urlsplit(self.path).query).get('page', ['1'])[0])
+            body = json.dumps({'rows': [{'id': page, 'title': 'A', 'date': '2026-08-30'}]})
+            content_type = 'application/json; charset=utf-8'
+        elif self.path.startswith("/window-list"):
             page = int(parse_qs(urlsplit(self.path).query).get("page", ["1"])[0])
             rows = {
                 1: [("new-a", "2026-08-30"), ("new-b", "2026-08-29")],
@@ -89,7 +95,7 @@ class FixtureHandler(BaseHTTPRequestHandler):
             )
         payload = body.encode()
         self.send_response(200)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(payload)))
         self.end_headers()
         self.wfile.write(payload)
@@ -250,6 +256,61 @@ async def test_repeated_runs_do_not_reuse_crawlee_request_queue(tmp_path: Path) 
         second = await runtime.run(collector, {"id": "run_second", "ruleVersion": "rule_v1"}, progress)
     assert [item["decision"] for item in first.items] == ["accepted"]
     assert [item["decision"] for item in second.items] == ["accepted"]
+
+
+@pytest.mark.asyncio
+async def test_detail_can_use_declared_http_transport_after_browser_list(tmp_path, monkeypatch):
+    url = 'https://example.com/list'
+    spec = runtime_spec(url, mode='list_detail')
+    spec['sourceContext']['allowedHosts'] = ['example.com']
+    spec['sourceContext']['transport'] = 'browser'
+    spec['collect']['detail']['transport'] = 'http'
+    calls = []
+    runtime = CrawleeRuntime(tmp_path)
+
+    async def fetch(urls, transport='http', browser_policy=None):
+        calls.append(transport)
+        if urls == [url]:
+            return {url: '<ul class="notice-list"><li><a class="notice-title" href="/detail">A</a>'
+                    '<time datetime="2026-08-30"></time></li></ul>'}
+        return {urls[0]: '<h1 class="notice-title">A</h1><div class="meta"><span data-field="buyer">B</span>'
+                '<time datetime="2026-08-30"></time></div>'}
+
+    async def progress(*_args):
+        pass
+
+    monkeypatch.setattr(runtime, '_fetch_many', fetch)
+    collector = {'id': 'collector_mixed', 'name': 'Mixed', 'sourceHost': 'example.com', 'sourceUrl': url,
+                 'collectionVersion': 'v1', 'candidate': {'mode': 'list_detail', 'gatherSpec': spec}}
+    result = await runtime.run(collector, {'id': 'run_mixed', 'ruleVersion': 'rule_v1'}, progress)
+    assert calls == ['browser', 'http']
+    assert result.items[0]['decision'] == 'accepted'
+
+
+@pytest.mark.asyncio
+async def test_json_numeric_id_query_pagination_preserves_three_distinct_source_responses(tmp_path):
+    async def progress(*_args):
+        pass
+
+    with fixture_server() as origin:
+        url = origin + '/json-list?page=1'
+        spec = runtime_spec(url, mode='list_detail')
+        spec['collect']['list'].update(
+            responseType='json', itemsSelector='jsonpath:$.rows[*]', fields={
+                'listTitle': {'selector': 'jsonpath:$.title'},
+                'listPublishedAt': {'selector': 'jsonpath:$.date'},
+                'detailUrl': {'selector': 'jsonpath:$.id', 'transforms': [{'type': 'url_path', 'prefix': '/detail/'}]},
+            }, pagination={'type': 'page', 'parameter': 'page', 'start': 1, 'step': 1, 'maxPages': 3, 'stopWhenNoItems': True},
+        )
+        spec['collect']['budget'] = {'maxPages': 3, 'maxItems': 50}
+        collector = {'id': 'collector_json', 'name': 'JSON', 'sourceUrl': url, 'sourceHost': '127.0.0.1',
+                     'collectionVersion': 'v1', 'candidate': {'mode': 'list_detail', 'gatherSpec': spec}}
+        result = await CrawleeRuntime(tmp_path).run(collector, {'id': 'run_json', 'ruleVersion': 'rule_v1'}, progress)
+    assert result.metrics['listPagesFetched'] == result.metrics['detailPagesFetched'] == 3
+    assert len({item['sourceUrl'] for item in result.items}) == 3
+    assert all(item['decision'] == 'accepted' for item in result.items)
+    pages = sorted(tmp_path.rglob('list-*.html'))
+    assert [json.loads(page.read_text())['rows'][0]['id'] for page in pages] == [1, 2, 3]
 
 
 @pytest.mark.asyncio

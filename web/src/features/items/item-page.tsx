@@ -39,7 +39,12 @@ export function ItemPage() {
     [t('detail.factRegion'), item.region],
     [t('detail.factBudget'), item.budget],
   ].filter(([, value]) => hasUsefulBusinessValue(value))
-  const titleConsistent = titlesConsistent(item.title, item.listTitle)
+  const resolution = item.lineage.documentResolution
+  const documents = Array.isArray(resolution?.documents) ? resolution.documents as Record<string, unknown>[] : []
+  const resolvedIdentity = resolution?.kind === 'eps_public_template_render' && !resolution.error
+    && resolution.renderedTitle === item.title && Array.isArray(resolution.identityListTitles)
+    && resolution.identityListTitles.some((label: unknown) => typeof label === 'string' && titlesConsistent(label, item.listTitle))
+  const titleConsistent = titlesConsistent(item.title, item.listTitle) || resolvedIdentity
 
   return (
     <div className="run-workbench item-workbench">
@@ -108,14 +113,28 @@ export function ItemPage() {
               {item.rejectionReason && <div className="rejection-banner item-quality-rejection"><strong>{t('detail.rejectionReason')}</strong><p>{item.rejectionReason}</p></div>}
               <div className="run-proof-grid item-quality-grid">
                 <article className={item.decision === 'accepted' ? 'verified' : 'warning'}><ShieldCheck /><span><strong>{item.decision === 'accepted' ? t('detail.qualityGatePassed') : t('detail.qualityGateRejected')}</strong><small>{item.decision === 'accepted' ? t('detail.qualityGatePassedDetail') : t('detail.qualityGateRejectedDetail')}</small></span></article>
-                <article className={titleConsistent ? 'verified' : 'warning'}><CheckCircle2 /><span><strong>{titleConsistent ? t('detail.titleMatch') : t('detail.titleMismatch')}</strong><small>{titleConsistent ? t('detail.titleConsistent') : t('detail.titleInconsistent')}</small></span></article>
+                <article className={titleConsistent ? 'verified' : 'warning'}><CheckCircle2 /><span><strong>{resolvedIdentity ? t('detail.noticeIdentityMatched') : titleConsistent ? t('detail.titleMatch') : t('detail.titleMismatch')}</strong><small>{resolvedIdentity ? t('detail.noticeIdentityDetail') : titleConsistent ? t('detail.titleConsistent') : t('detail.titleInconsistent')}</small></span></article>
                 <article className="verified"><Network /><span><strong>{t('detail.sourceBoundaryPassed')}</strong><small>{item.sourceHost}</small></span></article>
-                <article className={item.content ? 'verified' : 'neutral'}><FileText /><span><strong>{item.content ? t('detail.bodyExtracted') : t('detail.bodyNotExtracted')}</strong><small>{item.content ? t('detail.bodyAvailable') : t('detail.bodyOptional')}</small></span></article>
+                <article className={item.content ? 'verified' : 'neutral'}><FileText /><span><strong>{item.content ? t('detail.bodyExtracted') : t('detail.bodyNotExtracted')}</strong><small>{item.content ? t('detail.bodyAvailable') : t('detail.bodyUnavailableDetail')}</small></span></article>
               </div>
             </DetailPanel>
           </TabsContent>
 
           <TabsContent value="lineage" className="run-tab-panel item-tab-panel">
+            {resolution && <DetailPanel className="run-detail-section item-lineage-section">
+              <header><div><h2>{t('detail.documentResolution')}</h2><p>{t(`detail.resolutionKinds.${String(resolution.kind)}`, { defaultValue: String(resolution.kind ?? '') })}</p></div><FileText /></header>
+              {typeof resolution.error === 'string' && <div className="rejection-banner item-quality-rejection"><strong>{t('detail.rejectionReason')}</strong><p>{resolution.error}</p></div>}
+              <dl className="run-scope-grid">
+                {typeof resolution.originalPublishedAt === 'string' && <div><dt>{t('resolutionV2.originalDate')}</dt><dd>{resolution.originalPublishedAt}</dd></div>}
+                {typeof resolution.publisherPublishedAt === 'string' && <div><dt>{t('resolutionV2.publisherDate')}</dt><dd>{resolution.publisherPublishedAt}</dd></div>}
+                {(resolution.noticeOutcome === 'failed' || resolution.noticeOutcome === 'awarded') && <div><dt>{t('resolutionV2.outcome')}</dt><dd>{t(`resolutionV2.${resolution.noticeOutcome}`)}</dd></div>}
+              </dl>
+              <div className="item-lineage-links">{documents.map((document, index) => {
+                const url = typeof document.url === 'string' && /^https?:\/\//.test(document.url) ? document.url : null
+                return <article key={index}><Link2 /><span><small>{t(`detail.documentRoles.${String(document.role)}`, { defaultValue: String(document.role ?? '') })}{typeof document.pages === 'number' && ` · PDF · ${document.pages} ${t('detail.pdfPages')}`}</small>{url && <a href={url} target="_blank" rel="noreferrer">{url} <ExternalLink /></a>}</span></article>
+              })}</div>
+              <details className="run-technical-details item-technical-details"><summary><Braces /><span><strong>{t('detail.documentEvidence')}</strong><small>{String(resolution.profile)}</small></span><ArrowRight /></summary><pre className="item-raw-content">{JSON.stringify(resolution, null, 2)}</pre></details>
+            </DetailPanel>}
             <DetailPanel className="run-detail-section item-lineage-section">
               <header><div><h2>{t('detail.lineageTitle')}</h2><p>{t('detail.lineageSubtitle')}</p></div><Fingerprint /></header>
               <div className="item-lineage-links">

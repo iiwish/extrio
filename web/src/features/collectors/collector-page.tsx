@@ -469,7 +469,7 @@ function CollectorWorkspace() {
                 digest: candidate.digest,
                 decisions: { ...(current.digest === candidate.digest ? current.decisions : {}), [key]: decision },
               }))}
-            /> : <ValidationWorkspace candidate={candidate} sourceUrl={collector.sourceUrl} published={collector.status === 'published'} reviewDecisions={collector.reviewDecisions ?? reviewDecisions} />)}
+            /> : <ValidationWorkspace candidate={candidate} sourceUrl={collector.sourceUrl} published={collector.status === 'published'} reviewDecisions={collector.reviewDecisions ?? reviewDecisions} selectedField={selectedField} onSelectField={openFieldEvidence} />)}
             <div className="source-evidence-actions"><EvidenceExportButton pending={exportEvidence.isPending} onExport={() => exportEvidence.mutate()} /></div>
           </TabsContent>
         </Tabs>
@@ -485,7 +485,7 @@ function CollectorWorkspace() {
               mode="drawer"
               collector={collector}
               field={selectedField}
-              fieldDecision={selectedField ? reviewDecisions[selectedField.key] ?? 'pending' : undefined}
+              fieldDecision={selectedField ? (collector.reviewDecisions ?? reviewDecisions)[selectedField.key] ?? 'pending' : undefined}
               item={selectedItem}
             />
           </ScrollArea>
@@ -585,11 +585,13 @@ function overviewDescription(status: CollectorDetail['status'], running: boolean
   return 'overview.description.draft'
 }
 
-function ValidationWorkspace({ candidate, sourceUrl, published, reviewDecisions }: {
+function ValidationWorkspace({ candidate, sourceUrl, published, reviewDecisions, selectedField, onSelectField }: {
   candidate: CandidateRule
   sourceUrl: string
   published: boolean
   reviewDecisions: Record<string, FieldReviewDecision>
+  selectedField?: CandidateField
+  onSelectField: (field: CandidateField) => void
 }) {
   const { t } = useTranslation('collectorDetail')
   const acceptedRisk = Object.values(reviewDecisions).filter((decision) => decision === 'risk_accepted').length
@@ -616,6 +618,19 @@ function ValidationWorkspace({ candidate, sourceUrl, published, reviewDecisions 
     </section>
 
     <CollectionFlow candidate={candidate} sourceUrl={sourceUrl} />
+    {published && <section aria-label={t('validation.metrics.outputFields')}>
+      <div className="section-heading"><h2>{t('validation.metrics.outputFields')}</h2></div>
+      <div className="field-table review-field-table">
+        <div className="field-table-head"><span>{t('review.fieldsLabel')}</span><span>{t('common:evidence.extractSample')}</span><span>{t('common:evidence.confidence')}</span><span>{t('common:evidence.reviewDecision')}</span><span aria-hidden="true" /></div>
+        {candidate.fields.map(field => <div className={`field-row ${selectedField?.key === field.key ? 'is-selected' : ''}`} key={field.key}>
+          <div className="field-name-button"><strong>{field.label}</strong><small>{field.key} · {field.required ? t('review.required') : t('review.optional')}</small></div>
+          <span className="truncate-cell">{field.sample}</span>
+          <span className="confidence"><i style={{ width: `${field.confidence * 100}%` }} />{Math.round(field.confidence * 100)}%</span>
+          <span>{t(`common:decision.${reviewDecisions[field.key] ?? 'pending'}`)}</span>
+          <Button variant="ghost" size="icon-sm" aria-label={t('review.viewFieldEvidence', { label: field.label })} title={t('review.viewEvidence')} onClick={() => onSelectField(field)}><PanelRightOpen /></Button>
+        </div>)}
+      </div>
+    </section>}
   </div>
 }
 
@@ -1157,6 +1172,7 @@ function CollectionPolicyPanel({
         maxPages: policy.maxPages,
         maxItems: policy.maxItems,
         timezone: policy.timezone,
+        ...(policy.checkpointMode ? { checkpointMode: policy.checkpointMode } : {}),
       }
     : {
         mode: 'rolling_incremental',
@@ -1196,6 +1212,7 @@ function CollectionPolicyPanel({
           <label><span>{t('policy.stopAfterOldPages')}</span><div className="number-control"><Input type="number" min={1} max={10} value={draft.consecutiveOlderPages} onChange={(event) => setNumber('consecutiveOlderPages', event.target.value)} disabled={disabled} /><small>{t('policy.unit.pages')}</small></div></label>
           <label><span>{t('policy.maxPages')}</span><div className="number-control"><Input type="number" min={1} max={1000} value={draft.maxPages} onChange={(event) => setNumber('maxPages', event.target.value)} disabled={disabled} /><small>{t('policy.unit.pages')}</small></div></label>
           <label><span>{t('policy.maxItems')}</span><div className="number-control"><Input type="number" min={1} max={100000} value={draft.maxItems} onChange={(event) => setNumber('maxItems', event.target.value)} disabled={disabled} /><small>{t('policy.unit.items')}</small></div></label>
+          <label><span>{t('policy.checkpointMode')}</span><Select value={draft.checkpointMode ?? 'accepted_only'} onValueChange={(value) => setDraft(current => ({ ...current, checkpointMode: value as 'accepted_only' | 'observed' }))} disabled={disabled}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="accepted_only">{t('policy.acceptedMode')}</SelectItem><SelectItem value="observed">{t('policy.observedMode')}</SelectItem></SelectContent></Select></label>
         </div><DialogFooter><DialogClose asChild><Button variant="ghost">{t('common:action.cancel')}</Button></DialogClose><Button onClick={submit} disabled={disabled || !changed}>{pending ? <LoaderCircle className="animate-spin" /> : <Save />}{pending ? t('policy.saving') : t('policy.save')}</Button></DialogFooter></DialogContent></Dialog></div>
       </div>
       <div className="policy-summary-grid">
@@ -1203,6 +1220,7 @@ function CollectionPolicyPanel({
         <span><small>{t('policy.lookback')}</small><strong>{t('policy.daysValue', { days: initial.lookbackDays })}</strong></span>
         <span><small>{t('policy.stopCondition')}</small><strong>{t('policy.consecutiveOldPages', { total: initial.consecutiveOlderPages })}</strong></span>
         <span><small>{t('policy.runLimit')}</small><strong>{t('policy.runLimitValue', { pages: initial.maxPages, items: initial.maxItems })}</strong></span>
+        <span><small>{t('policy.checkpointMode')}</small><strong>{t(initial.checkpointMode === 'observed' ? 'policy.observedMode' : 'policy.acceptedMode')}</strong></span>
       </div>
     </section>
   )
@@ -1773,6 +1791,7 @@ function ReviewWorkspace({ candidate, collectionFields, previewItems, selectedFi
 
 function CollectionFlow({ candidate, sourceUrl }: { candidate: CandidateRule; sourceUrl: string }) {
   const { t } = useTranslation('collectorDetail')
+  const entrypoint = candidate.gatherSpec.sourceContext.entrypoints[candidate.gatherSpec.collect.list.request.entrypointIndex] ?? sourceUrl
   const pagination = candidate.pagination.type === 'page'
     ? t('flow.paginationPage', { parameter: candidate.pagination.parameter, start: candidate.pagination.start, maxPages: candidate.pagination.maxPages })
     : candidate.pagination.type === 'next_link'
@@ -1787,7 +1806,7 @@ function CollectionFlow({ candidate, sourceUrl }: { candidate: CandidateRule; so
     <div className={`crawl-stage-grid ${singleStage ? 'single-stage' : ''}`}>
       <article className="crawl-stage-card list-stage">
         <div className="crawl-stage-title"><span>{singleStage ? <FileSearch /> : <ListTree />}</span><div><small>STAGE 01</small><h3>{singleStage ? t('flow.stageDirect') : t('flow.stageList')}</h3></div></div>
-        <dl><div><dt>{t('common:evidence.entryUrl')}</dt><dd><code>{sourceUrl}</code></dd></div><div><dt>Item selector</dt><dd><code>{candidate.listSelector}</code></dd></div>{!singleStage && <div><dt>{t('flow.detailLink')}</dt><dd><code>{candidate.detailLinkSelector}</code></dd></div>}{listPublishedAtSelector && <div><dt>{t('flow.listTime')}</dt><dd><code>{listPublishedAtSelector}</code></dd></div>}<div><dt>{t('common:evidence.paginationStrategy')}</dt><dd>{pagination}</dd></div></dl>
+        <dl><div><dt>{t('common:evidence.entryUrl')}</dt><dd><code>{entrypoint}</code></dd></div><div><dt>Item selector</dt><dd><code>{candidate.listSelector}</code></dd></div>{!singleStage && <div><dt>{t('flow.detailLink')}</dt><dd><code>{candidate.detailLinkSelector}</code></dd></div>}{listPublishedAtSelector && <div><dt>{t('flow.listTime')}</dt><dd><code>{listPublishedAtSelector}</code></dd></div>}<div><dt>{t('common:evidence.paginationStrategy')}</dt><dd>{pagination}</dd></div></dl>
         <p>{singleStage ? <ShieldCheck /> : <Route />}{singleStage ? t('flow.singleQualityNote') : t('flow.listSampleNote', { listPages: candidate.discovery.listPagesSampled, detailUrls: candidate.discovery.detailUrlsDiscovered })}</p>
       </article>
       {!singleStage && <><ArrowRight className="crawl-stage-arrow" aria-hidden="true" />

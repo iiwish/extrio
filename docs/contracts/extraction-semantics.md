@@ -35,6 +35,10 @@ v0.2 只支持标量字段提取。数组和嵌套对象可以通过 `valueType=
 - 输入解码固定为 UTF-8；错误编码或重复 key 产生 `EXTRACT_DOCUMENT_INVALID`。
 - JSON number 在转换前保持十进制词法值；不得先转为平台浮点再生成 identity 或 fingerprint。
 
+### 3.3 官方文档派生输入
+
+签名的 `official_notice_v1` 输入为 `extrio.official-document.v1` JSON envelope，包含详情标题、发布日期、纯文本正文及独立 resolution 来源证据，不将结构化项目字段序列化为公告正文。HTML 正文取发布者正文节点；精确官方原文须核验项目、阶段和日期。PDF 以独立进程解析，限制 5MB、40 页、20 秒 CPU、25 秒墙钟及内存；任一图片页缺少充分文本层即拒收，不执行 OCR 或 PDF 动作。EPS 正文为公开数据与发布者模板的可见渲染文本，技术谱系明确为派生结果而非原始 DOM。原始响应和派生快照分别保留；resolution 错误强制拒收，即使字段 selector 返回非空也不能变为 accepted。冻结业务输出的五字段与身份键保持不变。
+
 ## 4. Selector 方言
 
 ### 4.1 CSS
@@ -163,9 +167,9 @@ v0.2 只支持标量字段提取。数组和嵌套对象可以通过 `valueType=
 `transforms` 数组项接受两种形态：
 
 - 纯字符串：`trim`、`collapse_whitespace`、`lowercase`、`uppercase`、`absolute_url`、`strip_html`。
-- 对象形态：仅允许 `{"type": "regex_extract", "pattern": "<RE2>", "group": <0-8>}`；`trim` 等既有 transform 永远使用纯字符串，对象形态包装其他类型会被 Schema 拒绝。
+- 对象形态：`{"type":"regex_extract","pattern":"<RE2>","group":<0-8>}` 或 `{"type":"url_path","prefix":"/observed/path/"}`；`trim` 等既有 transform 使用纯字符串，对象形态包装其他类型会被 Schema 拒绝。
 
-两种形态可共存于同一数组并按顺序执行。Schema 通过 `oneOf` 保证每个数组项要么是合法枚举字符串，要么是合法 regex_extract 对象，不存在第三种形态。
+两种形态可共存于同一数组并按顺序执行。Schema 通过 `oneOf` 限定每个数组项的合法形态。
 
 ### 9.2 `regex_extract`
 
@@ -184,6 +188,10 @@ v0.2 只支持标量字段提取。数组和嵌套对象可以通过 `valueType=
 3. 未命中时：**输出值不存在**，该字段进入既有缺失值处理——`required=true` 时按 `onError=reject_item|fail_run` 执行质量门（产生 `EXTRACT_NO_MATCH` 类拒绝证据）；`required=false` 且 `onError=null` 时输出 null，此时 `normalizedItemSchema` 必须允许该字段为 null。
 4. `pattern` 使用 **RE2 语法**：不支持前瞻 `(?=...)`/`(?!...)`、后顾 `(?<=...)`/`(?<!...)`、反向引用 `\1`–`\9` 与 `(?P=name)`。RE2 无回溯引擎保证线性时间与确定性；离线语义校验器（`re2_pattern_error`）在审核前拒绝越界 pattern，运行时 RE2 引擎是最终裁决者。
 5. `regex_extract` 属于 transforms 链，执行先于 valueType 转换：pattern 命中的字符串（如 `"355.6"`）随后按 `valueType=number` 转为 `355.6`。与 identity/fingerprint 的交互与其它 transform 一致——指纹输入取 transforms 完成后的规范值。
+
+### 9.3 `url_path`
+
+输入为纯 ASCII 数字 ID；前缀最长 1024 字符，只包含斜杠、ASCII 字母、数字、下划线和连字符，必须以单个根斜杠开头并以斜杠结尾。以当前响应 URL 为基地址，拼接固定前缀与 ID 后形成同主机 URL。无效 ID 或前缀产生缺失值，不进行请求。该 transform 不支持域名、查询、片段、变量、表达式或路径穿越；生成的详情 URL 仍受网络策略与总预算约束。
 
 ## 10. Output contract 与 fingerprint
 

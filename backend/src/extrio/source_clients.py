@@ -133,6 +133,9 @@ class RestrictedBrowser:
             try:
                 if request.method != "GET":
                     raise SourceNetworkError("anonymous_get_only")
+                if not request.is_navigation_request() and request.resource_type in {"image", "font", "media"}:
+                    await route.abort("blockedbyclient")
+                    return
                 if request.is_navigation_request():
                     await self.network.check_robots(request.url)
                 response = self.prefetched.pop(request.url, None)

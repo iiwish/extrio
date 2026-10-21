@@ -477,10 +477,19 @@
         }
       }
     },
+    "urlPathTransform": {
+      "type": "object", "additionalProperties": false, "required": ["type", "prefix"],
+      "properties": {
+        "type": {"const": "url_path"},
+        "prefix": {"type": "string", "maxLength": 1024, "pattern": "^/[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*/$"}
+      },
+      "description": "Build a same-host URL from an evidenced relative path prefix and a digits-only ID. No templates, code or cross-host URLs."
+    },
     "transformItem": {
       "oneOf": [
         {"$ref": "#/$defs/transform"},
-        {"$ref": "#/$defs/regexExtractTransform"}
+        {"$ref": "#/$defs/regexExtractTransform"},
+        {"$ref": "#/$defs/urlPathTransform"}
       ]
     },
     "fieldRule": {
@@ -630,6 +639,8 @@
       "additionalProperties": false,
       "required": ["request", "responseType", "fields"],
       "properties": {
+        "resolution": {"enum": ["official_notice_v1", "official_notice_v2", "official_notice_v3"]},
+        "transport": {"enum": ["http", "browser"]},
         "request": {"$ref": "#/$defs/detailRequest"},
         "responseType": {"enum": ["html", "json"]},
         "fields": {"$ref": "#/$defs/fields"}

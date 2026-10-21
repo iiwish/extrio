@@ -1,6 +1,6 @@
 [project]
 name = "extrio-backend"
-version = "1.0.0"
+version = "1.0.0rc2"
 description = "Extrio FastAPI control plane and collection workers"
 readme = "README.md"
 license = "Apache-2.0"
@@ -23,8 +23,9 @@ dependencies = [
   "uvicorn[standard]>=0.35,<1",
   "croniter>=6,<7",
   "limits>=5.8,<6",
-  "mcp>=1.10,<2",
+  "mcp>=1.30,<2",
   "tiktoken>=0.14,<1",
+  "pypdf>=6,<7",
 ]
 
 [dependency-groups]

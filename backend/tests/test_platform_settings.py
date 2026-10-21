@@ -105,6 +105,7 @@ def test_migration_002_applies_to_v05_database_without_the_row(tmp_path: Path) -
         "011_delivery_sink_version_identity",
         "012_auth_login_attempts",
         "013_runtime_backfills",
+        "014_bounded_recovery",
     ]
     assert store.get_platform_setting_value("allowAnonymousHttp") == "true"
 

@@ -42,6 +42,52 @@ describe('RunPage information architecture', () => {
     vi.unstubAllGlobals()
   })
 
+  it('separates coverage continuation from unresolved quality', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => json(String(input).includes('/collectors/')
+      ? collectorWithPath
+      : { ...seedRuns[0], coverageMode: 'observed', pendingQualityCount: 7, coverageProgressAfter: {
+        ruleDigest: 'digest', policyVersionId: 'policy', windowStart: '2026-09-19', resumeUrl: 'https://example.com/list?page=3',
+        pageIndex: 2, anchorUrl: 'https://example.com/a', processedUrls: [], olderPagesBefore: 0, watermark: '2026-10-19',
+      } })))
+    renderPage('?section=scope')
+    expect(await screen.findByText('采集覆盖检查点')).toBeInTheDocument()
+    expect(screen.getByText('第 3 页续跑')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '7 条待处理' })).toHaveAttribute('href', expect.stringContaining('decision=rejected'))
+    expect(screen.getByRole('button', { name: '重新处理拒收项' })).toBeEnabled()
+  })
+
+  it('does not present stale coverage as the current policy checkpoint', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => json(String(input).includes('/collectors/')
+      ? { ...collectorWithPath, collectionPolicy: { ...collectorWithPath.collectionPolicy, id: 'policy-recovery-v5' } }
+      : { ...seedRuns[0], coverageMode: 'observed', policyVersion: 'policy-old-v4',
+        checkpointAfter: { kind: 'coverage', watermark: '2026-10-19' } })))
+    renderPage('?section=scope')
+    expect(await screen.findByText('历史策略记录，不作为当前覆盖依据')).toBeInTheDocument()
+    expect(screen.queryByText('本次窗口已覆盖')).not.toBeInTheDocument()
+  })
+
+  it('shows a rate-limited list as incomplete rather than exhausted', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => json(String(input).endsWith('/recovery') ? null : String(input).includes('/collectors/')
+      ? collectorWithPath
+      : { ...seedRuns[0], status: 'failed', coverageMode: 'observed', paginationStopReason: 'source_rate_limited',
+        checkpointAfter: null, coverageProgressAfter: null, items: [] })))
+    renderPage('?section=scope')
+    expect(await screen.findByText('来源限流，已停止请求')).toBeInTheDocument()
+    expect(screen.queryByText('本次窗口已覆盖')).not.toBeInTheDocument()
+  })
+
+  it('labels rejected retries and uses the current source backlog rather than a historical snapshot', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => json(String(input).includes('/collectors/')
+      ? { ...collectorWithPath, qualityBacklogCount: 0 }
+      : { ...seedRuns[0], coverageMode: 'observed', runPurpose: 'retry_rejected', pendingQualityCount: 7 })))
+    renderPage('?section=scope')
+    expect(await screen.findByText('采集覆盖检查点')).toBeInTheDocument()
+    expect(screen.getAllByText('拒收项重处理').length).toBeGreaterThan(1)
+    expect(screen.getByText('覆盖进度保持不变')).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: '0 条待处理' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '重新处理拒收项' })).toBeDisabled()
+  })
+
   it('leads with the collector and keeps the main views at the top', async () => {
     renderPage()
 

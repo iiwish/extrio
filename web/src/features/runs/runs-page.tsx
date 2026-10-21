@@ -207,6 +207,9 @@ function formatTokens(value: number) {
 
 function stopReasonLabel(t: TFunction, reason: Run['paginationStopReason']) {
   return {
+    coverage_date_unknown: t('coverage.dateUnknown'), coverage_order_unverified: t('coverage.orderUnverified'),
+    source_window_truncated: t('coverage.sourceTruncated'),
+    source_rate_limited: t('coverage.rateLimited'), source_structure_mismatch: t('coverage.structureMismatch'),
     not_applicable: t('stopReason.not_applicable'), empty_page: t('stopReason.empty_page'), next_link_exhausted: t('stopReason.next_link_exhausted'), max_pages: t('stopReason.max_pages'), max_items: t('stopReason.max_items'), budget_exhausted: t('stopReason.budget_exhausted'), cross_host_blocked: t('stopReason.cross_host_blocked'), time_window_reached: t('stopReason.time_window_reached'), checkpoint_reached: t('stopReason.checkpoint_reached'), detail_fetch_incomplete: t('stopReason.detail_fetch_incomplete'),
   }[reason]
 }

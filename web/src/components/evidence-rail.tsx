@@ -36,7 +36,7 @@ export function EvidenceRail({ mode = 'rail', collector, field, fieldDecision = 
           </section>
           {field.warning && <section className="evidence-card evidence-warning"><span className="evidence-label">{t('evidence.qualityWarning')}</span><p>{field.warning}</p></section>}
           <section className="evidence-card"><span className="evidence-label">{t('evidence.extractSample')}</span><p>{field.sample}</p></section>
-          <section className="evidence-card code-block"><span className="evidence-label">{t('evidence.domSnippet')}</span><code>{field.evidence}</code></section>
+          <section className="evidence-card code-block"><span className="evidence-label">{t(field.selector.startsWith('jsonpath:') ? 'evidence.jsonSnippet' : 'evidence.domSnippet')}</span><code>{field.evidence}</code></section>
         </>
       ) : (
         <>

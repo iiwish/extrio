@@ -221,6 +221,7 @@
     "qualityWarning": "质量警告",
     "extractSample": "提取样本",
     "domSnippet": "DOM 片段",
+    "jsonSnippet": "JSON 证据",
     "allowedHosts": "允许主机",
     "awaitingSource": "等待 Source",
     "entryUrl": "采集入口",

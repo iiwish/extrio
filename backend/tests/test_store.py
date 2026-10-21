@@ -403,6 +403,7 @@ def test_initialize_records_baseline_migration_and_replays_idempotently(tmp_path
         "011_delivery_sink_version_identity",
         "012_auth_login_attempts",
         "013_runtime_backfills",
+        "014_bounded_recovery",
     ]
 
 

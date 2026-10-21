@@ -362,6 +362,9 @@
     "customCron": "自定义 Cron · {{cron}}"
   },
   "policy": {
+    "checkpointMode": "检查点口径",
+    "observedMode": "采集覆盖（保留拒收待处理）",
+    "acceptedMode": "全部接收后推进",
     "panelAria": "采集范围与增量策略",
     "title": "采集范围与增量",
     "description": "首次按时间窗口回溯；后续从成功检查点回看，分页规则仍由已发布规则固定。",

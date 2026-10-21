@@ -16,6 +16,8 @@ Actions:
 {"action":"expand_nodes","requests":[{"pageId":"list-1","nodeId":"n0","cursor":null}]}
 {"action":"read_nodes","requests":[{"pageId":"detail-1","nodeId":"n7","cursor":null}]}
 {"action":"propose_rule","rule":{...the requested discovery/RulePlan object...}}
+For read/expand actions, action and requests are top-level keys; pageId, nodeId and cursor belong inside each requests item.
+Never return a bare node request without its action/requests envelope.
 At most 6 requests; batch independent sample reads. Use supplied IDs and exact nextCursor only.
 Directory hints are not full DOM. Expand children or read HTML/JSON directly, skipping layout-wrapper walks.
 Fragments include ancestors/offsets. complete means end of this node, NOT full page coverage or a complete field value.
@@ -193,6 +195,7 @@ class AdaptiveSession:
             finally:
                 self.budget.settle(self.current_reservation, None, None)
             self.budget.check_consumption()
+            invalid_reason = "EVIDENCE_ACTION_INVALID"
             if raw.get("action") == "propose_rule":
                 rule = raw.get("rule")
                 if isinstance(rule, dict):
@@ -208,9 +211,12 @@ class AdaptiveSession:
                     self._progress(progressed)
                     await self.notify()
                     continue
-                except EvidenceError:
-                    pass
-            self.feedback = [{"code": "EVIDENCE_ACTION_INVALID"}]
+                except EvidenceError as exc:
+                    invalid_reason = str(exc)
+            self.feedback = [{"code": "EVIDENCE_ACTION_INVALID", "reason": invalid_reason,
+                              "expectedAction": {"action": "read_nodes", "requests": [
+                                  {"pageId": next(iter(self.pages), "list-1"), "nodeId": "n0", "cursor": None}
+                              ]}}]
             self._progress(None)
 
     def _read_action(self, raw: dict) -> str | None:

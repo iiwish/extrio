@@ -315,6 +315,9 @@ class Worker:
             policy = self.store.get_collection_policy(job["payload"].get("policyVersionId", ""))
             if not policy or policy.get("digest") != job["payload"].get("policyDigest"):
                 raise IntegrityError("run collection policy context changed after command acceptance")
+            from extrio.bounded_recovery import validate_attempt
+
+            validate_attempt(self.store, run)
             collector = copy.deepcopy(collector)
             collector["candidate"]["gatherSpec"] = rule_version["gatherSpec"]
             collector["collectionPolicy"] = policy
@@ -328,7 +331,9 @@ class Worker:
                 self.store.save_run(run, connection)
             budget = rule_version["gatherSpec"]["collect"]["budget"]
             try:
-                result = await asyncio.wait_for(self.runtime.run(collector, run, progress), timeout=budget.get("maxDurationSeconds", 300))
+                runtime_run = {**run, **({'retryRecords': job['payload']['retryRecords']} if 'retryRecords' in job['payload'] else {})}
+                result = await asyncio.wait_for(self.runtime.run(collector, runtime_run, progress),
+                                                timeout=budget.get("maxDurationSeconds", 300))
             except TimeoutError as exc:
                 raise JobTimedOut("run duration budget exhausted") from exc
             fingerprint_fields = collector["candidate"]["gatherSpec"]["contract"]["fingerprintFields"]
@@ -344,15 +349,23 @@ class Worker:
             rejected = len(result.items) - accepted
             final_status = final_run_status(accepted=accepted, rejected=rejected, stop_reason=result.pagination_stop_reason)
             checkpoint_after = None
-            if final_status == "succeeded" and result.pagination_stop_reason != "max_pages" and result.watermark_candidate:
+            observed = policy.get('checkpointMode') == 'observed'
+            retry_rejected = run.get('runPurpose') == 'retry_rejected'
+            if observed and rejected and (result.coverage_complete or result.coverage_progress or retry_rejected):
+                final_status = 'partially_succeeded'
+            coverage_commit = observed and not retry_rejected and result.coverage_complete
+            if coverage_commit or (not observed and final_status == "succeeded"
+                                   and result.pagination_stop_reason != "max_pages" and result.watermark_candidate):
                 previous_watermark = (run.get("checkpointBefore") or {}).get("watermark")
-                watermark = max(filter(None, [previous_watermark, result.watermark_candidate]))
+                watermark = max(filter(None, [previous_watermark, result.watermark_candidate,
+                                              run.get('windowStart') if observed else None]))
                 checkpoint_after = {
                     "collectorId": collector_id,
                     "policyVersionId": policy["id"],
                     "lastSuccessfulRunId": run_id,
                     "watermark": watermark,
                     "advancedAt": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+                    **({'kind': 'coverage', 'ruleDigest': run['ruleDigest']} if observed else {}),
                 }
             run.update(
                 status=final_status,
@@ -372,7 +385,11 @@ class Worker:
                 duration=result.duration,
                 localEvidenceDigest=result.evidence_digest,
                 artifactMode=result.artifact_mode,
+                finishedAtIso=datetime.now(UTC).isoformat().replace('+00:00', 'Z'),
+                sourceRequests=result.source_requests,
+                retryAfterSeconds=result.retry_after_seconds,
                 items=result.items,
+                **({'coverageProgressAfter': result.coverage_progress} if observed and not retry_rejected else {}),
                 summary=(
                     f"{accepted} 个 accepted Item 已冻结；新增 {result.metrics['newItems']}、更新 {result.metrics['updatedItems']}、"
                     f"未变化 {result.metrics['unchangedItems']}；{rejected} 个候选被拒绝"
@@ -384,6 +401,11 @@ class Worker:
                     + "。"
                 ),
                 recoveryAction=(
+                    "来源提示访问过于频繁，已停止后续请求并保留原覆盖进度；请冷却后重试。"
+                    if result.pagination_stop_reason == 'source_rate_limited'
+                    else "列表响应结构无法验证，未推进覆盖检查点；请核对来源响应与规则。"
+                    if result.pagination_stop_reason == 'source_structure_mismatch'
+                    else
                     "部分详情页抓取失败；检查站点访问限制或网络状态后重试。"
                     if result.pagination_stop_reason == "detail_fetch_incomplete"
                     else "运行因预算或异常停止，检查范围与分页上限后重试。"
@@ -400,6 +422,17 @@ class Worker:
                 self.store.save_items(run_id, result.items, connection)
                 current = self.store.get_collector(collector_id, connection)
                 current.update({key: collector[key] for key in ("latestRunId", "previewItems", "activeOperationId", "updatedAt")})
+                if observed:
+                    if current['activeRuleVersion'] != run['ruleVersion'] or current['collectionPolicy']['id'] != policy['id']:
+                        raise IntegrityError('coverage context changed before finalization')
+                    backlog, _ = self.store.rejected_entities(collector_id, connection, limit=1)
+                    current['qualityBacklogCount'] = backlog
+                    run['pendingQualityCount'] = backlog
+                    if not retry_rejected:
+                        current['coverageProgress'] = result.coverage_progress
+                    else:
+                        run['coverageProgressAfter'] = current.get('coverageProgress')
+                    self.store.save_run(run, connection)
                 self.store.save_collector(current, connection)
                 if checkpoint_after:
                     self.store.save_checkpoint(checkpoint_after, connection)

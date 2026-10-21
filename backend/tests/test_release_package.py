@@ -9,6 +9,7 @@ from email.parser import BytesParser
 from pathlib import Path
 
 import pytest
+from packaging.version import Version
 
 from extrio import __version__
 
@@ -19,7 +20,9 @@ def test_release_version_metadata_is_consistent():
     lock = tomllib.loads((root / "backend/uv.lock").read_text())
     locked_project = next(package for package in lock["package"] if package["name"] == "extrio-backend")
     web = json.loads((root / "web/package.json").read_text())
-    assert project["project"]["version"] == locked_project["version"] == web["version"] == __version__ == "1.0.0"
+    assert project["project"]["version"] == locked_project["version"] == __version__ == "1.0.0rc2"
+    assert web['version'] == '1.0.0-rc.2'
+    assert Version(web['version']) == Version(__version__)
 
 
 def test_source_distribution_builds_a_self_contained_wheel(tmp_path):
@@ -40,6 +43,8 @@ def test_source_distribution_builds_a_self_contained_wheel(tmp_path):
             "extrio/migrations/008_item_entity_index.sqlite.sql",
             "extrio/migrations/013_runtime_backfills.pg.sql",
             "extrio/migrations/013_runtime_backfills.sqlite.sql",
+            "extrio/migrations/014_bounded_recovery.pg.sql",
+            "extrio/migrations/014_bounded_recovery.sqlite.sql",
         ):
             assert name in archive.namelist()
         metadata_path = next(name for name in archive.namelist() if name.endswith(".dist-info/METADATA"))

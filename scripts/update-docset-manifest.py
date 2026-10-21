@@ -25,6 +25,7 @@ VERSION_OVERRIDES = {
     "docs/releases/v0.2-acceptance.md": "v0.46.0",
     "docs/releases/v0.7-upgrade.md": "v1.0.0",
     "docs/releases/v1.0-rc.1.md": "v1.0.0",
+    "docs/releases/v1.0-rc.2.md": "v1.0.0-rc.2",
     "docs/releases/v1.0.0.md": "v1.0.0",
     "docs/planning/v1.0-scope-matrix.md": "v1.0.0",
 }
@@ -48,6 +49,7 @@ def expected_manifest(source: dict) -> dict:
         "docs/releases/v0.2-public-readiness.md",
         "docs/releases/v0.7-upgrade.md",
         "docs/releases/v1.0-rc.1.md",
+        "docs/releases/v1.0-rc.2.md",
         "docs/releases/v1.0.0.md",
         "docs/planning/v1.0-scope-matrix.md",
     ):

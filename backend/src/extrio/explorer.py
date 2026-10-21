@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
+from bs4 import BeautifulSoup, UnicodeDammit
 from crawl4ai import CacheMode, CrawlerRunConfig
 from jsonschema import ValidationError
 from soupsieve.util import SelectorSyntaxError
@@ -40,6 +41,29 @@ from extrio.source_network import SourceNetwork
 logger = logging.getLogger("extrio.explorer")
 
 ProgressCallback = Callable[[str, int, dict[str, int]], Awaitable[None]]
+
+
+@dataclass
+class SourceSample:
+    html: str
+    redirected_url: str
+
+
+async def _fetch_source_sample(crawler, network, url: str, config):
+    # These publisher templates expose the complete notice DOM over anonymous
+    # HTTP. Do not run their analytics/counter POST scripts to read static text.
+    if urlsplit(url).hostname in {'www.bidding.csg.cn', 'czzx.fudan.edu.cn', 'ztb.xmu.edu.cn', 'www.gdebidding.com',
+                                 'search.ccgp.gov.cn', 'www.ccgp.gov.cn'}:
+        response = (await network.fetch(url, respect_robots=True)).require_success()
+        return SourceSample(UnicodeDammit(response.body).unicode_markup or response.body.decode('utf-8', errors='replace'), response.url)
+    return await crawler.arun(url=url, config=config)
+
+
+def _requires_pagination_browser(html: str, url: str) -> bool:
+    if urlsplit(url).hostname != 'www.ccgp.gov.cn':
+        return False
+    soup = BeautifulSoup(html, 'html.parser')
+    return bool(soup.select_one('p.pager') and any('Pager(' in node.get_text() for node in soup.select('script:not([src])')))
 
 
 def _validation_feedback(exc: Exception, code: str) -> list[dict]:
@@ -259,21 +283,54 @@ class Crawl4AIExplorer:
             page_timeout=30_000,
             delay_before_return_html=3.0,
         )
+        from extrio.official_documents import (
+            RESOLUTION,
+            RESOLUTION_V2,
+            RESOLUTION_V3,
+            OfficialDocuments,
+            profile_hosts,
+            supports_resolution,
+        )
+
+        document_profile = repair_spec['collect'].get('detail', {}).get('resolution') if repair_spec else RESOLUTION
+        from extrio.public_pagination import ccgp_search_hosts
+
+        archive_hosts = ccgp_search_hosts(collector['sourceUrl'])
+        use_documents = (supports_resolution(collector['sourceUrl']) and self.model_compiler is not None
+                         and document_profile in {RESOLUTION, RESOLUTION_V2, RESOLUTION_V3})
         network = SourceNetwork(
-            {urlsplit(collector["sourceUrl"]).hostname or ""},
+            profile_hosts(collector['sourceUrl']) if use_documents else archive_hosts or {urlsplit(collector["sourceUrl"]).hostname or ""},
             allow_localhost=get_settings().allow_http_localhost,
             allow_http=self.allow_http(),
+            upgrade_fudan_original=use_documents,
         )
         async with RestrictedBrowser(network) as crawler:
             await progress("fetching_list", 10, metrics)
-            list_result = await crawler.arun(url=collector["sourceUrl"], config=config)
+            list_result = await _fetch_source_sample(crawler, network, collector['sourceUrl'], config)
             source_html = list_result.html
             requires_browser = looks_like_dynamic_list_shell(source_html)
             if requires_browser:
                 settled_result = await crawler.arun(url=collector["sourceUrl"], config=config)
                 source_html = settled_result.html
+            requires_browser = requires_browser or _requires_pagination_browser(source_html, collector['sourceUrl'])
             effective_url = list_result.redirected_url or collector["sourceUrl"]
             list_html = source_html
+            from extrio.public_pagination import hospital_list_request, hospital_paging_script, validate_hospital_list
+
+            paging_script_url = hospital_paging_script(source_html, effective_url)
+            if paging_script_url:
+                script_response = (await network.fetch(paging_script_url, respect_robots=True)).require_success()
+                script = script_response.body.decode('utf-8')
+                api_url = hospital_list_request(source_html, effective_url, script)
+                if not api_url:
+                    raise ValueError('hospital_public_pagination_script_changed')
+                api_response = (await network.fetch(api_url, respect_robots=True)).require_success()
+                list_html = api_response.body.decode('utf-8')
+                validate_hospital_list(api_url, list_html)
+                (artifact_dir / 'source-shell.html').write_text(source_html, encoding='utf-8')
+                (artifact_dir / 'pagination-source.js').write_text(script, encoding='utf-8')
+                effective_url = api_response.url
+                requires_browser = False
             detail_urls, _next_url = discover(list_html, effective_url)
             frame_url = embedded_list_url(source_html, collector["sourceUrl"]) if not detail_urls else None
             if frame_url:
@@ -315,6 +372,16 @@ class Crawl4AIExplorer:
                         discovered_records = []
                     if len(discovered_records) >= 2:
                         issues = _pagination_issues(discovery_plan, list_html, effective_url)
+                        expected = (collector.get('frozenCollectionVersion') or {}).get('fields', [])
+                        if (any(field['key'] == 'listTitle' and field['required'] for field in expected)
+                                and any(not record.get('listTitle') for record in discovered_records)):
+                            issues.append({'code': 'LIST_FIELD_MISSING', 'field': 'list.listTitle', 'stage': 'list',
+                                           'reason': 'Required listTitle is empty. Read actual rows; do not invent title attributes.'})
+                        if (urlsplit(effective_url).hostname == 'www.bidding.csg.cn'
+                                and any(str(record.get('listTitle', '')).endswith(('...', '…')) for record in discovered_records)
+                                and any(not record.get('publishedAt') for record in discovered_records)):
+                            issues.append({'code': 'LIST_DATE_REQUIRED', 'field': 'list.fields.publishedAt', 'stage': 'list',
+                                           'reason': 'CSG truncated titles require list publishedAt from span.Right span.Gray.'})
                         if issues:
                             if not session:
                                 error = ModelCompileError('列表分页规则未通过样本验证。')
@@ -346,18 +413,33 @@ class Crawl4AIExplorer:
                 detail_urls = []
             elif repair_spec is not None:
                 detail_urls = _repair_detail_urls(list_html, effective_url, repair_spec, detail_urls)
+                if use_documents:
+                    discovered_records, _ = discover_records_from_spec(list_html, effective_url, repair_spec['collect']['list'])
             source_host = urlsplit(collector["sourceUrl"]).hostname
-            detail_urls = list(dict.fromkeys(url for url in detail_urls if urlsplit(url).hostname == source_host))[:4]
+            detail_urls = list(dict.fromkeys(url for url in detail_urls if urlsplit(url).hostname in (
+                network.allowed_hosts if use_documents or archive_hosts else {source_host})))[:4]
             metrics["detailUrlsDiscovered"] = len(detail_urls)
 
             samples: list[tuple[str, str]] = []
             if detail_urls:
                 await progress("discovering_details", 45, metrics)
                 await progress("fetching_details", 52, metrics)
-                for index, detail_url in enumerate(detail_urls[:3], start=1):
-                    result = await crawler.arun(url=detail_url, config=config)
-                    samples.append((detail_url, result.html))
-                    (artifact_dir / f"detail-{index:03d}.html").write_text(result.html, encoding="utf-8")
+                resolver = (OfficialDocuments(network, collector['sourceUrl'], lambda name, data: (artifact_dir / name).write_bytes(data),
+                                              profile=document_profile)
+                            if use_documents else None)
+                try:
+                    for index, detail_url in enumerate(detail_urls[:3], start=1):
+                        if resolver:
+                            record = next(r for r in discovered_records if r['detailUrl'] == detail_url)
+                            html = await resolver.resolve(record, index)
+                        else:
+                            result = await _fetch_source_sample(crawler, network, detail_url, config)
+                            html = result.html
+                        samples.append((detail_url, html))
+                        (artifact_dir / f"detail-{index:03d}.html").write_text(html, encoding="utf-8")
+                finally:
+                    if resolver:
+                        await resolver.close()
             metrics["detailPagesFetched"] = len(samples)
 
         rule_collector = {**collector, "sourceUrl": effective_url}
@@ -374,12 +456,15 @@ class Crawl4AIExplorer:
                                             guidance=guidance, ai_run_id=ai_run_id, attempt_id=attempt_id)
                     if requires_browser:
                         compiled.plan["transport"] = "browser"
+                    if use_documents:
+                        compiled.plan['detail'].update(resolution=document_profile, transport='http')
                 await progress("validating", 85, metrics)
                 result = self._validate_candidate(collector, rule_collector, operation_id, effective_url, list_html,
                                                   samples, compiled, repair_spec, metrics)
                 if session:
                     session.budget.check_consumption()
-                    issues = _sample_issues(result.candidate, result.preview_items)
+                    issues = _sample_issues(result.candidate, [i for i in result.preview_items if i['decision'] == 'accepted']
+                                            if use_documents else result.preview_items)
                     session.validate_feedback(issues)
                     await session.notify()
                     if issues:

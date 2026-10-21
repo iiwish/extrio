@@ -4,7 +4,7 @@ import type { TFunction } from 'i18next'
 import { AlertTriangle, ArrowRight, Braces, Check, Clock3, FileCheck2, FileSearch, Fingerprint, ListTree, LoaderCircle, Route, ShieldCheck, Square, RotateCcw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useRef } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api } from '@/api/client'
 import type { Run } from '@/api/types'
 import { useAuth } from '@/features/auth/auth-gate'
@@ -18,6 +18,7 @@ import './run-detail.css'
 import { QueryError } from '@/components/query-error'
 import { useWorkspaceLink, useWorkspaceSection } from '@/lib/workspace-navigation'
 import { publishedTimeLabel, runTimestamp } from '@/lib/content-presentation'
+import { RecoveryPanel } from './recovery-panel'
 
 export function RunPage() {
   const { t, i18n } = useTranslation('runs')
@@ -41,6 +42,7 @@ export function RunPage() {
   const { runId = '' } = useParams()
   const queryClient = useQueryClient()
   const { user } = useAuth()
+  const navigate = useNavigate()
   const query = useQuery({ queryKey: ['run', runId], queryFn: () => api.runDetail(runId), refetchInterval: (query) => query.state.data && ['queued', 'running', 'finalizing'].includes(query.state.data.status) ? 2000 : false })
   const operationId = query.data?.operationId
   const operationQuery = useQuery({ queryKey: ['operation', operationId], queryFn: () => api.operation(operationId!), enabled: Boolean(operationId), refetchInterval: (query) => query.state.data && ['queued', 'running', 'finalizing'].includes(query.state.data.status) ? 2000 : false })
@@ -51,7 +53,12 @@ export function RunPage() {
     void queryClient.invalidateQueries({ queryKey: ['runs'] })
   } })
   const collectorId = query.data?.collectorId ?? ''
-  const collectorQuery = useQuery({ queryKey: ['collector', collectorId], queryFn: () => api.collector(collectorId), enabled: Boolean(collectorId) && !query.data?.collectorDeleted })
+  const collectorQuery = useQuery({ queryKey: ['collector', collectorId], queryFn: () => api.collector(collectorId), enabled: Boolean(collectorId) && !query.data?.collectorDeleted, refetchInterval: query => query.state.data?.activeOperationId ? 2000 : false })
+  const retryRejected = useMutation({ mutationFn: () => api.reprocessRejected(collectorId), onSuccess: operation => {
+    void queryClient.invalidateQueries({ queryKey: ['runs'] })
+    void queryClient.invalidateQueries({ queryKey: ['collector', collectorId] })
+    navigate(`/runs/${operation.resourceId}`)
+  } })
 
   if (query.isLoading) return <div className="page-frame"><Skeleton className="h-80 w-full" /></div>
   const run = query.data
@@ -80,6 +87,10 @@ export function RunPage() {
   const source = runSourcePresentation(collectorQuery.data?.sourceUrl, run.collectorName)
   const failureReason = operation?.error?.details?.reason
   const failureGroup = operation?.error?.code === 'SOURCE_NETWORK_REJECTED' ? sourceFailureGroup(String(failureReason ?? '')) : run.status === 'cancelled' ? 'cancelled' : run.status === 'timed_out' ? 'budget' : 'general'
+  const modeLabel = run.runPurpose === 'retry_rejected' ? t('coverage.retryRun') : executionModeLabel(t, run.executionMode)
+  const currentBacklog = collectorQuery.data?.qualityBacklogCount ?? run.pendingQualityCount ?? 0
+  const historicalCoveragePolicy = Boolean(collectorQuery.data?.collectionPolicy
+    && run.policyVersion !== collectorQuery.data.collectionPolicy.id)
 
   return (
     <div className="run-workbench">
@@ -90,7 +101,7 @@ export function RunPage() {
             <div className="title-line"><h1 title={source.full}>{source.root}</h1><StatusBadge status={run.status} />{run.collectorDeleted && <DeletedSourceBadge />}</div>
             <div className="run-header-subtitle">
               {source.path && <span className="run-source-path" title={source.full}>{source.path}</span>}
-              <span className="run-header-meta">{t('detail.headerMeta', { started: runTimestamp(run, i18n.language), duration: run.duration, mode: executionModeLabel(t, run.executionMode) })}</span>
+              <span className="run-header-meta">{t('detail.headerMeta', { started: runTimestamp(run, i18n.language), duration: run.duration, mode: modeLabel })}</span>
             </div>
           </div>
           <div className="run-header-actions">
@@ -113,7 +124,7 @@ export function RunPage() {
           <TabsContent value="results" className="run-tab-panel">
             <DetailPanel aria-label={t('detail.summaryAria')} className={`run-result-summary ${unsuccessful ? 'danger' : run.status === 'partially_succeeded' ? 'warning' : 'success'}`}>
               <div className="run-result-heading">
-                <div><h2>{runOutcomeTitle(t, run)}</h2><p>{paginationStopLabel(t, run.paginationStopReason)} · {executionModeLabel(t, run.executionMode)}</p></div>
+                <div><h2>{runOutcomeTitle(t, run)}</h2><p>{paginationStopLabel(t, run.paginationStopReason)} · {modeLabel}</p></div>
                 <dl className="run-result-facts">
                   <div><dt>{t('detail.facts.accepted')}</dt><dd>{run.acceptedCount}</dd></div>
                   <div><dt>{t('detail.facts.rejected')}</dt><dd className={run.rejectedCount > 0 ? 'danger-text' : ''}>{run.rejectedCount}</dd></div>
@@ -187,10 +198,24 @@ export function RunPage() {
           </TabsContent>
 
           <TabsContent value="scope" className="run-tab-panel">
-            <DetailPanel className="run-detail-section">
-              <header><div><h2>{t('detail.scopeHeading')}</h2><p>{executionModeLabel(t, run.executionMode)}</p></div></header>
+            {(run.recoveryBatchId || run.paginationStopReason === 'source_rate_limited') && <RecoveryPanel runId={run.id}
+              eligible={Boolean(!historicalCoveragePolicy && collectorQuery.data?.latestRunId === run.id
+                && collectorQuery.data.activeRuleVersion === run.ruleVersion
+                && collectorQuery.data?.coverageProgress && !collectorQuery.data.activeOperationId
+                && !collectorQuery.data.schedule.enabled && run.status === 'failed')} />}
+            {run.coverageMode === 'observed' && <DetailPanel className="run-detail-section">
+              <header><div><h2>{t('coverage.title')}</h2><p>{run.runPurpose === 'retry_rejected' ? t('coverage.retryRun') : t('coverage.basis')}</p></div></header>
               <dl className="run-scope-grid">
-                <div><dt>{t('detail.scope.executionMode')}</dt><dd>{run.executionMode === 'initial' ? t('detail.scope.modeInitial') : run.executionMode === 'incremental' ? t('detail.scope.modeIncremental') : t('detail.scope.modeLegacy')}</dd></div>
+                <div><dt>{t('coverage.progress')}</dt><dd>{historicalCoveragePolicy ? t('coverage.historicalPolicy') : run.runPurpose === 'retry_rejected' ? t('coverage.unchanged') : run.coverageProgressAfter ? t('coverage.resume', { page: run.coverageProgressAfter.pageIndex + 1 }) : run.checkpointAfter?.kind === 'coverage' ? t('coverage.complete') : t('coverage.incomplete')}</dd></div>
+                <div><dt>{t('coverage.backlog')}</dt><dd><Link to={`/items?collector=${encodeURIComponent(run.collectorId)}&decision=rejected`}>{t('coverage.pending', { count: currentBacklog })}</Link></dd></div>
+              </dl>
+              <Button size="sm" variant="outline" disabled={!['administrator', 'engineer'].includes(user?.role ?? '') || retryRejected.isPending || !terminal || !currentBacklog || Boolean(collectorQuery.data?.activeOperationId) || Boolean(run.collectorDeleted)} onClick={() => retryRejected.mutate()}><RotateCcw />{retryRejected.isPending ? t('coverage.retrying') : t('coverage.retry')}</Button>
+              <QueryError error={retryRejected.error} onRetry={() => retryRejected.mutate()} retrying={retryRejected.isPending} />
+            </DetailPanel>}
+            <DetailPanel className="run-detail-section">
+              <header><div><h2>{t('detail.scopeHeading')}</h2><p>{modeLabel}</p></div></header>
+              <dl className="run-scope-grid">
+                <div><dt>{t('detail.scope.executionMode')}</dt><dd>{run.runPurpose === 'retry_rejected' ? modeLabel : run.executionMode === 'initial' ? t('detail.scope.modeInitial') : run.executionMode === 'incremental' ? t('detail.scope.modeIncremental') : t('detail.scope.modeLegacy')}</dd></div>
                 <div><dt>{t('detail.scope.window')}</dt><dd>{run.windowStart ? t('detail.scope.windowFrom', { watermark: run.windowStart }) : t('detail.scope.notRecorded')}</dd></div>
                 <div><dt>{t('detail.scope.stopReason')}</dt><dd>{paginationStopLabel(t, run.paginationStopReason)}</dd></div>
                 <div><dt>{t('detail.scope.checkpointBefore')}</dt><dd>{run.checkpointBefore?.watermark ?? t('detail.scope.checkpointNotSet')}</dd></div>
@@ -328,5 +353,10 @@ function paginationStopLabel(t: TFunction, reason: Run['paginationStopReason']) 
     time_window_reached: t('detail.stopReason.time_window_reached'),
     checkpoint_reached: t('detail.stopReason.checkpoint_reached'),
     detail_fetch_incomplete: t('detail.stopReason.detail_fetch_incomplete'),
+    coverage_date_unknown: t('coverage.dateUnknown'),
+    coverage_order_unverified: t('coverage.orderUnverified'),
+    source_window_truncated: t('coverage.sourceTruncated'),
+    source_rate_limited: t('coverage.rateLimited'),
+    source_structure_mismatch: t('coverage.structureMismatch'),
   }[reason]
 }
