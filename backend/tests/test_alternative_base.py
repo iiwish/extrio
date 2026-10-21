@@ -75,3 +75,12 @@ def test_base_workflow_retains_full_scans_and_native_capability_gate():
     assert 'UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL' in source
     assert 'compare-base-images.py' in source
     assert 'push:' not in source and 'packages: write' not in source
+
+
+def test_noble_uses_vendor_python_without_managed_interpreter_or_pip_overrides():
+    source = (ROOT / 'docker/backend-ubuntu.Dockerfile').read_text()
+    assert 'UV_PYTHON_PREFERENCE=only-system' in source
+    assert 'EXTRIO_PYTHON=/usr/bin/python3.12' in source
+    assert 'apt-get install -y --no-install-recommends python3.12' in source
+    assert '--python "$EXTRIO_PYTHON"' in source
+    assert '--break-system-packages' not in source and 'EXTERNALLY-MANAGED' not in source

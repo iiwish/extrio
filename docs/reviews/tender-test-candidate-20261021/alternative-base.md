@@ -5,7 +5,7 @@
 ## 执行合同
 
 - 默认 `docker/backend.Dockerfile`、现有服务、业务源码、Python/Web 锁文件和数据合同不变。只增加独立 Ubuntu Dockerfile、基础镜像工作流、验证/比较工具、相应测试及本目录报告；可有界扩展既有镜像工具以复用测试与删除保护。
-- 使用官方多架构镜像摘要、同版本 uv 和 Python 3.12，冻结应用依赖。Ubuntu 与 PGDG 仓库发行代号必须一致，不混入 Debian、testing/unstable、手工替换共享库或强制删除依赖。
+- 使用官方多架构镜像摘要、同版本 uv 和 Python 3.12，冻结应用依赖。noble 使用 Ubuntu 官方 Python 3.12 及其发行版安全回补，resolute 单独验证 uv 管理的 Python 3.12.15，不使用其不兼容的系统 Python 3.14。Ubuntu 与 PGDG 仓库发行代号必须一致，不混入 Debian、testing/unstable、手工替换共享库或强制删除依赖。
 - 只安装官方 Playwright headless-shell；有界卸载 CUPS，保留 GBM/LLVM 图形能力。保留既有 Debian headless 对照，不将基线风险接受延伸到任何候选。
 - 先用反例测试约束跨发行版比较、完整清单、镜像身份、平台与删除边界，再实现。新 HIGH/CRITICAL、可修复未处置高危、缺失扫描/能力/测试证据均阻止建议采用，不添加忽略、风险例外或 VEX。
 - 在原生 amd64/arm64 CI 对照 Debian headless、Ubuntu noble/resolute。每个运行镜像进行完整未过滤扫描和断网浏览器/Canvas/WebGL/PDF 实测；只增加冻结 Python 测试工具的派生镜像执行相同采集、原文/PDF/EPS、网络边界、SQLite/PostgreSQL 16 完整备份恢复回归，零跳过。
@@ -27,3 +27,5 @@
 ## 保留的失败
 
 初始提交 `7cec20e95725a79dae23199ae326833cc2738f1c` 的[独立矩阵](https://github.com/iiwish/extrio/actions/runs/39544388744)在 uv 管理的 Python 上执行系统 pip 卸载时，被 externally-managed 保护拒绝。这是候选构建失败，不是能力或安全验证通过。候选保持 uv 管理的解释器完整，不删除管理标记、不使用 break-system-packages；pip 和所有内置组件仍进入完整扫描，不能隐藏其风险。该限制不修改默认 Debian 镜像的既有构建。
+
+提交 `61954ed957e6629ca0706491c0357f161b1451c6` 的[完整矩阵](https://github.com/iiwish/extrio/actions/runs/39544914984)在两个原生架构均通过每镜像 246 项能力/双库回归，但安全门槛真实失败：noble 为 1 CRITICAL / 5 HIGH，resolute 为 1 CRITICAL / 8 HIGH。目标系统 `CVE-2026-6653` 已不在清单，LLVM 和 GBM 均保留；新 CRITICAL 来自受管理解释器自带 pip 的旧 certifi，另有 msgpack、setuptools、urllib3 可修复 HIGH。resolute 自带的 `/usr/bin/pebble` 还引入 3 条 Go 标准库 HIGH。这些候选不采用，没有风险豁免。noble 继续独立验证官方系统 Python 3.12，应用依赖仍冻结；这不是手工清理受管理解释器或更改包元数据。

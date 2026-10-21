@@ -126,6 +126,7 @@ def inspect():
     return {
         'schemaVersion': 1, 'appVersion': importlib.metadata.version('extrio-backend'),
         'osRelease': platform.freedesktop_os_release(), 'pythonVersion': platform.python_version(),
+        'pythonBaseExecutable': sys._base_executable,
         'uvVersion': command(['uv', '--version']).strip(),
         'pgDumpVersion': command(['pg_dump', '--version']).strip(),
         'lockSha256': hashlib.sha256(Path('/app/backend/uv.lock').read_bytes()).hexdigest(),

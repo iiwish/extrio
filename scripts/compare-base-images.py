@@ -61,6 +61,8 @@ def compare(root, variant):
             or not runtime['pgDumpVersion'].startswith('pg_dump (PostgreSQL) 16.')):
         raise ValueError('frozen application/Python/uv/PostgreSQL contract differs')
     names = {p['name'] for p in runtime['installedPackages']}
+    if variant == 'noble' and ('python3.12' not in names or runtime['pythonBaseExecutable'] != '/usr/bin/python3.12'):
+        raise ValueError('Ubuntu vendor Python identity differs')
     if (runtime['fullChromiumPresent'] or 'libcups2t64' in names or 'libgbm1' not in names
             or runtime['pruning'].get('removedPackages') != ['libcups2t64']
             or not runtime['pruning'].get('essentialPackagesPreserved')):
