@@ -46,6 +46,36 @@ it('puts the full entry URL before the intent and keeps technical rules out of t
   expect(screen.getByRole('button', { name: '编辑' })).toBeDisabled()
 })
 
+it('shows the signed effective list entrypoint in the rule flow, not the publisher landing URL', async () => {
+  const source = structuredClone(seedCollectors[0])
+  source.status = 'published'
+  const entrypoint = 'https://example.com/api/notices?page=1&category=193'
+  source.candidate!.gatherSpec.sourceContext.entrypoints = [entrypoint]
+  renderConfiguration(source, false, 'rule')
+  const flow = await screen.findByRole('region', { name: '两阶段采集流程' })
+  expect(within(flow).getByText(entrypoint)).toBeInTheDocument()
+  expect(within(flow).queryByText(source.sourceUrl)).not.toBeInTheDocument()
+})
+
+it('keeps published field evidence reachable read-only and labels JSON honestly', async () => {
+  const source = structuredClone(seedCollectors[0])
+  source.status = 'published'
+  const field = source.candidate!.fields[0]
+  field.selector = 'jsonpath:$.title'
+  field.evidence = 'JSON {"values":["Verified notice"]}'
+  source.reviewDecisions = { [field.key]: 'approved' }
+  const update = vi.spyOn(api, 'updateCandidateRule')
+  renderConfiguration(source, false, 'rule')
+  const user = userEvent.setup()
+  const button = await screen.findByRole('button', { name: `查看${field.label}证据` })
+  await user.click(button)
+  const drawer = await screen.findByRole('dialog')
+  expect(within(drawer).getByText('JSON 证据')).toBeInTheDocument()
+  expect(within(drawer).getByText(field.evidence)).toBeInTheDocument()
+  expect(within(drawer).queryByText('DOM 片段')).not.toBeInTheDocument()
+  expect(update).not.toHaveBeenCalled()
+})
+
 it('copies the exact URL with success feedback without changing the source', async () => {
   const user = userEvent.setup()
   const copy = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue()

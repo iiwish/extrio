@@ -449,7 +449,7 @@
 .rule-empty p,
 .rule-rebuild-warning {
   margin-top: 3px;
-  color: #6b7980;
+  color: var(--muted-foreground);
   font-size: 11px;
   line-height: 1.55;
 }
@@ -497,7 +497,7 @@
 }
 
 .definition-form > small {
-  color: #718087;
+  color: var(--muted-foreground);
   font-size: 10px;
   line-height: 1.5;
 }

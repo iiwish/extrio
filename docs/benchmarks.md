@@ -87,6 +87,6 @@ uv run --project backend python scripts/benchmark.py --collectors 3 --pages 2
 
 ## 5. 边界说明
 
-- 本基准不覆盖：浏览器传输（Crawl4AI）路径、Webhook/Kafka 交付吞吐、LLM 探索与规则编译耗时、PostgreSQL 后端。
+- 本基准不覆盖：浏览器传输（Playwright）路径、Webhook/Kafka 交付吞吐、LLM 探索与规则编译耗时、PostgreSQL 后端。
 - 数字依赖运行机器与并发环境，仅用于同机回归对比；跨机器比较时应重新采集基线。
 - demo 源的公告内容固定，因此数据路径确定；耗时数字存在正常抖动。

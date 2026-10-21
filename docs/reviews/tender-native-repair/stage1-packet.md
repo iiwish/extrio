@@ -1,0 +1,20 @@
+# Stage 1: Bounded Coverage And Quality Recovery
+
+Status: Needs User Review. Implementation, full regression, retained-response audit and bounded native runs are verified; high-volume initial-window catch-up and remaining quality backlog are explicit limitations in `stage1-review.md`. Direct execution; delegation is not requested. User approves the first-stage plan and explicitly approves original publication dates with separate repost provenance, and coverage checkpoints independent from quality delivery.
+
+## Contract And Decisions
+
+- Existing strict policies and `official_notice_v1` remain compatible. Opt-in immutable policy `checkpointMode=observed` enables bounded continuation and coverage checkpoints. Coverage means every discovered in-window record is durably accepted or rejected; it never asserts complete accepted content. Rejected records generate no valid revision, observation or delivery.
+- Keep the five business fields unchanged. Preserve an internal list-date binding through model compilation; a controlled candidate override can add that operational selector. New signed `official_notice_v2` rules opt into reviewed original-identity/date and PDF/EPS refinements. Old signed rules do not silently adopt new date semantics.
+- Continuation stays bound to source/rule/policy/window. Each capped run resumes with an overlapping list page and verifies its saved anchor. Missing anchors restart traversal rather than guessing. Partial-page caps cannot drop the remaining rows. Consecutive-old-page accounting does not count an overlapped page twice. Unknown dates, unsafe URLs, failed fetches and invalid contexts cannot certify coverage.
+- Capture continuation, items, coverage checkpoint and quality backlog in the same leased completion transaction. Cancelled, expired, timed-out or failed attempts cannot advance progress. Rule/policy/source changes invalidate the continuation context. Default strict checkpoint behavior is unchanged.
+- Quality backlog uses persisted latest rejected entities. A bounded explicit retry command re-fetches their source records with the current signed rule, without changing coverage progress. History remains immutable. UI exposes continuation, coverage-not-quality semantics, backlog count and retry action.
+- Source adapters use publisher-emitted originals, exact buyer/project metadata and constrained observed title variants, not fuzzy matching. Original publication is the output date; publisher date remains separate provenance. EPS stage 2 is interpreted only from its retained public template; no restricted projects or login data are enabled. PDF footer relief requires an exact known footer, preceding complete text pages and small directly placed images; scans remain rejected.
+
+## Execution And Validation
+
+Allowed: relevant compiler/override, runtime/worker/store, official document/PDF modules, API/schema/types, existing desktop source/run/item surfaces and their tests, canonical contracts and this review directory. Preserve all dirty work, independent source scripts and all historical records. Original database stays read-only. Manual instance only; schedules remain off, at most three list pages and fifty notices per run. No deployment, commit, mass source adaptation or automatic paid generation.
+
+TDD: operational binding retention and override review; multi-run capped continuation including partial pages and anchor drift; checkpoint/quality separation; retry scope; lease/cancel/timeout safety; source-specific identity/date/stage and footer positive/negative cases. Run complete backend suites with owned PG16, frontend tests/lint/build, OpenAPI parity and docset checks. Retain RED/GREEN and native receipts. Desktop QA uses 1440x900,1280x800,1132x1028,1024x800.
+
+Live: review/publish all changed rules via public API, run bounded cycles, inspect persisted continuation and backlog, demonstrate real checkpoints where the requested window can actually finish. High-volume unfinished history remains explicitly catching up; no fabricated checkpoints or smaller windows. User acceptance remains separate from implementation verification.

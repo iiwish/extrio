@@ -1,0 +1,4 @@
+[FETCH]... ↓ http://127.0.0.1:42745/demo/tenders                                                                  | ✓ | ⏱: 0.35s
+[SCRAPE].. ◆ http://127.0.0.1:42745/demo/tenders                                                                  | ✓ | ⏱: 0.00s
+[COMPLETE] ● http://127.0.0.1:42745/demo/tenders                                                                  | ✓ | ⏱: 0.36s
+{"basePipRemoved": true, "restrictedChromium": "passed", "status": 200}

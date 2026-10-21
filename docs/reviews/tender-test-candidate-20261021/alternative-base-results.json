@@ -1,0 +1,326 @@
+{
+  "schemaVersion": 1,
+  "scope": "Independent image qualification, not release acceptance",
+  "sourceCommit": "2caaa414db6d30a83113db539d59818888974671",
+  "workflow": "https://github.com/iiwish/extrio/actions/runs/39545727389",
+  "defaultImageChanged": false,
+  "riskWaiver": false,
+  "variants": [
+    {
+      "runner": "ubuntu-24.04-arm",
+      "variant": "noble",
+      "imageId": "sha256:927636857c2316664100415102a01729af681a89050906600fb1760ec020904f",
+      "pythonVersion": "3.12.3",
+      "pythonBaseExecutable": "/usr/bin/python3.12",
+      "pgDumpVersion": "pg_dump (PostgreSQL) 16.15 (Ubuntu 16.15-1.pgdg24.04+2)",
+      "testsPassed": 246,
+      "capabilitiesMatch": true,
+      "packages": [
+        {
+          "name": "libgbm1",
+          "version": "25.2.8-0ubuntu0.24.04.4"
+        },
+        {
+          "name": "libllvm20",
+          "version": "1:20.1.2-0ubuntu1~24.04.3"
+        },
+        {
+          "name": "libxml2",
+          "version": "2.9.14+dfsg-1.3ubuntu3.10"
+        },
+        {
+          "name": "python3.12",
+          "version": "3.12.3-1ubuntu0.17"
+        }
+      ],
+      "residualBySeverity": {
+        "MEDIUM": 30,
+        "LOW": 16,
+        "HIGH": 1
+      },
+      "residualHighCriticalCves": [
+        "CVE-2026-81726"
+      ],
+      "newHighCritical": [],
+      "blockers": [],
+      "eligibleForFurtherReview": true,
+      "acceptedForRelease": false,
+      "sha256": {
+        "runtime.json": "81043e52f6e58beaeecdbc86c916d29b78be219a7873e7f6f8c3cff0eecc15a5",
+        "vulnerabilities.json": "c8df04977edc2629d5f847b6a53cc46101ac207fee29777bad38449bc03c6ad7",
+        "tests.xml": "267e9d0bf8606e947d08bb1105db1249e21ee7130d285250c81aea34bc8673d5",
+        "image.json": "9a580138421bf6b7f64e751890a15c3677ffabbd286569297c8ec4568a4cd602"
+      }
+    },
+    {
+      "runner": "ubuntu-24.04-arm",
+      "variant": "resolute",
+      "imageId": "sha256:2257cf510fc5bacec6154dd1c16bd3564ef29beefd0d505c0ebcd1772d7b8357",
+      "pythonVersion": "3.12.15",
+      "pythonBaseExecutable": "/opt/python/cpython-3.12.15-linux-aarch64-gnu/bin/python3.12",
+      "pgDumpVersion": "pg_dump (PostgreSQL) 16.15 (Ubuntu 16.15-1.pgdg26.04+2)",
+      "testsPassed": 246,
+      "capabilitiesMatch": true,
+      "packages": [
+        {
+          "name": "libgbm1",
+          "version": "26.0.8-1ubuntu0.3"
+        },
+        {
+          "name": "libllvm21",
+          "version": "1:21.1.8-6ubuntu1"
+        },
+        {
+          "name": "libxml2-16",
+          "version": "2.15.2+dfsg-0.1ubuntu0.3"
+        }
+      ],
+      "residualBySeverity": {
+        "MEDIUM": 65,
+        "LOW": 9,
+        "CRITICAL": 1,
+        "HIGH": 8
+      },
+      "residualHighCriticalCves": [
+        "CVE-2025-47273",
+        "CVE-2026-78667",
+        "CVE-2026-78669",
+        "CVE-2026-81726",
+        "CVE-2026-97031",
+        "CVE-2026-97687",
+        "CVE-2026-97689",
+        "GHSA-6q48-6c7w-9gw2",
+        "GHSA-6v7p-g79w-8964"
+      ],
+      "newHighCritical": [
+        {
+          "package": "certifi",
+          "cve": "GHSA-6q48-6c7w-9gw2",
+          "severity": "CRITICAL",
+          "version": "2026.6.17",
+          "fixedVersion": "2026.10.19"
+        },
+        {
+          "package": "msgpack",
+          "cve": "GHSA-6v7p-g79w-8964",
+          "severity": "HIGH",
+          "version": "1.1.2",
+          "fixedVersion": "1.2.1"
+        },
+        {
+          "package": "setuptools",
+          "cve": "CVE-2025-47273",
+          "severity": "HIGH",
+          "version": "70.3.0",
+          "fixedVersion": "78.1.1"
+        },
+        {
+          "package": "urllib3",
+          "cve": "CVE-2026-97687",
+          "severity": "HIGH",
+          "version": "2.7.0",
+          "fixedVersion": "2.8.0"
+        },
+        {
+          "package": "urllib3",
+          "cve": "CVE-2026-97689",
+          "severity": "HIGH",
+          "version": "2.7.0",
+          "fixedVersion": "2.8.0"
+        },
+        {
+          "package": "stdlib",
+          "cve": "CVE-2026-78667",
+          "severity": "HIGH",
+          "version": "v1.27.1",
+          "fixedVersion": "1.26.9, 1.27.2"
+        },
+        {
+          "package": "stdlib",
+          "cve": "CVE-2026-78669",
+          "severity": "HIGH",
+          "version": "v1.27.1",
+          "fixedVersion": "1.26.9, 1.27.2"
+        },
+        {
+          "package": "stdlib",
+          "cve": "CVE-2026-97031",
+          "severity": "HIGH",
+          "version": "v1.27.1",
+          "fixedVersion": "1.26.9, 1.27.2"
+        }
+      ],
+      "blockers": [
+        "new_high_critical",
+        "critical_remaining",
+        "fixable_high_critical"
+      ],
+      "eligibleForFurtherReview": false,
+      "acceptedForRelease": false,
+      "sha256": {
+        "runtime.json": "2e7334fb5d184b81cf7fccfc4693ff2f67f4af5138806d9160cf95dde3329f11",
+        "vulnerabilities.json": "d5335547f73ab1b6709eccd54a093d78d38981574f02192de648d393754976af",
+        "tests.xml": "30135cdf560c4d6ab17cc306479747e84a136fd4d7ee2ba61b7b7770abb891d5",
+        "image.json": "41bd63010cf5172ed91a828006328b10213bedceb887c33b460eb044ee6348ec"
+      }
+    },
+    {
+      "runner": "ubuntu-latest",
+      "variant": "noble",
+      "imageId": "sha256:e2087b0f59dc86054eb8706174425509bc0751ab44bdaf28a3563f36864610b6",
+      "pythonVersion": "3.12.3",
+      "pythonBaseExecutable": "/usr/bin/python3.12",
+      "pgDumpVersion": "pg_dump (PostgreSQL) 16.15 (Ubuntu 16.15-1.pgdg24.04+2)",
+      "testsPassed": 246,
+      "capabilitiesMatch": true,
+      "packages": [
+        {
+          "name": "libgbm1",
+          "version": "25.2.8-0ubuntu0.24.04.4"
+        },
+        {
+          "name": "libllvm20",
+          "version": "1:20.1.2-0ubuntu1~24.04.3"
+        },
+        {
+          "name": "libxml2",
+          "version": "2.9.14+dfsg-1.3ubuntu3.10"
+        },
+        {
+          "name": "python3.12",
+          "version": "3.12.3-1ubuntu0.17"
+        }
+      ],
+      "residualBySeverity": {
+        "MEDIUM": 30,
+        "LOW": 16,
+        "HIGH": 1
+      },
+      "residualHighCriticalCves": [
+        "CVE-2026-81726"
+      ],
+      "newHighCritical": [],
+      "blockers": [],
+      "eligibleForFurtherReview": true,
+      "acceptedForRelease": false,
+      "sha256": {
+        "tests.xml": "22aaf006508e01337613a268f9cc3052216a1153572225fd711c5caa00d7df98",
+        "runtime.json": "2926305a37323e969e521774e9bddab68d31ed1727c8eb8e8821b584cded554f",
+        "vulnerabilities.json": "5d0d66eb0b8ae264b02e325d225da0632b2b0eac7dd7547d5b8007bac0e6c7a9",
+        "image.json": "be260fddead7143b5f95b5b7ef55f5307040656b70f5d6408dbf453dc9c87222"
+      }
+    },
+    {
+      "runner": "ubuntu-latest",
+      "variant": "resolute",
+      "imageId": "sha256:4107a86a5290d8986326c038e0c30fa0b4b8b50d4ae5ea4f21bfb98273b95e87",
+      "pythonVersion": "3.12.15",
+      "pythonBaseExecutable": "/opt/python/cpython-3.12.15-linux-x86_64-gnu/bin/python3.12",
+      "pgDumpVersion": "pg_dump (PostgreSQL) 16.15 (Ubuntu 16.15-1.pgdg26.04+2)",
+      "testsPassed": 246,
+      "capabilitiesMatch": true,
+      "packages": [
+        {
+          "name": "libgbm1",
+          "version": "26.0.8-1ubuntu0.3"
+        },
+        {
+          "name": "libllvm21",
+          "version": "1:21.1.8-6ubuntu1"
+        },
+        {
+          "name": "libxml2-16",
+          "version": "2.15.2+dfsg-0.1ubuntu0.3"
+        }
+      ],
+      "residualBySeverity": {
+        "MEDIUM": 65,
+        "LOW": 9,
+        "CRITICAL": 1,
+        "HIGH": 8
+      },
+      "residualHighCriticalCves": [
+        "CVE-2025-47273",
+        "CVE-2026-78667",
+        "CVE-2026-78669",
+        "CVE-2026-81726",
+        "CVE-2026-97031",
+        "CVE-2026-97687",
+        "CVE-2026-97689",
+        "GHSA-6q48-6c7w-9gw2",
+        "GHSA-6v7p-g79w-8964"
+      ],
+      "newHighCritical": [
+        {
+          "package": "certifi",
+          "cve": "GHSA-6q48-6c7w-9gw2",
+          "severity": "CRITICAL",
+          "version": "2026.6.17",
+          "fixedVersion": "2026.10.19"
+        },
+        {
+          "package": "msgpack",
+          "cve": "GHSA-6v7p-g79w-8964",
+          "severity": "HIGH",
+          "version": "1.1.2",
+          "fixedVersion": "1.2.1"
+        },
+        {
+          "package": "setuptools",
+          "cve": "CVE-2025-47273",
+          "severity": "HIGH",
+          "version": "70.3.0",
+          "fixedVersion": "78.1.1"
+        },
+        {
+          "package": "urllib3",
+          "cve": "CVE-2026-97687",
+          "severity": "HIGH",
+          "version": "2.7.0",
+          "fixedVersion": "2.8.0"
+        },
+        {
+          "package": "urllib3",
+          "cve": "CVE-2026-97689",
+          "severity": "HIGH",
+          "version": "2.7.0",
+          "fixedVersion": "2.8.0"
+        },
+        {
+          "package": "stdlib",
+          "cve": "CVE-2026-78667",
+          "severity": "HIGH",
+          "version": "v1.27.1",
+          "fixedVersion": "1.26.9, 1.27.2"
+        },
+        {
+          "package": "stdlib",
+          "cve": "CVE-2026-78669",
+          "severity": "HIGH",
+          "version": "v1.27.1",
+          "fixedVersion": "1.26.9, 1.27.2"
+        },
+        {
+          "package": "stdlib",
+          "cve": "CVE-2026-97031",
+          "severity": "HIGH",
+          "version": "v1.27.1",
+          "fixedVersion": "1.26.9, 1.27.2"
+        }
+      ],
+      "blockers": [
+        "new_high_critical",
+        "critical_remaining",
+        "fixable_high_critical"
+      ],
+      "eligibleForFurtherReview": false,
+      "acceptedForRelease": false,
+      "sha256": {
+        "vulnerabilities.json": "93d14ad994e21c31ff2fab52f17dcae076e44f71c9c58763a40d1a96907bd29a",
+        "image.json": "6d9ec11f7624fffd8a4d563dd1e6feafc72d90f9012d83cde6f03b14ae662254",
+        "runtime.json": "3a73f3585d7a282ce37cb8ab33bd7e2b7ea9654f2f5c227019cf9ef7e37c9a32",
+        "tests.xml": "534ce942c8b907d0a5a145ea40bac2a0ea1a82b7cf0af8006344d5c82219b7ef"
+      }
+    }
+  ]
+}

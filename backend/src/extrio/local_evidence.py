@@ -7,7 +7,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 SAFE_ID = re.compile(r"^[a-zA-Z0-9_-]{1,160}$")
-SAFE_FILE = re.compile(r"^(list|detail)-[0-9]+\.html$")
+SAFE_FILE = re.compile(r"^(?:(list|detail)-[0-9]+\.html|document-(?:[0-9]+-(?:[0-9]+|rendered)|asset-[0-9]+)\.(?:html|pdf))$")
 MANIFEST = "local-evidence.json"
 
 
@@ -29,12 +29,12 @@ class LocalEvidence:
         self.mode = "sampled" if self.retention_days else "metadata_only"
         self.files = {}
 
-    def write(self, filename: str, source: str) -> None:
+    def write(self, filename: str, source: str | bytes) -> None:
         if not SAFE_FILE.fullmatch(filename):
             raise ValueError("invalid snapshot name")
         if not self.retention_days:
             return
-        payload = source.encode("utf-8")
+        payload = source.encode("utf-8") if isinstance(source, str) else source
         path = self.directory / filename
         if path.is_symlink():
             raise ValueError("invalid snapshot file")

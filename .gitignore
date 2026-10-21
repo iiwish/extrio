@@ -36,6 +36,13 @@ backend/storage/
 *.log
 *.pid
 
+# Publisher responses and live-run receipts stay local. Only URL catalogs ship.
+test-data/tender-sources/*
+!test-data/tender-sources/README.md
+!test-data/tender-sources/tender-source-lists.csv
+!test-data/tender-sources/tender-source-lists-review.csv
+!test-data/tender-sources/tender-source-sites-review.csv
+
 # Build output
 build/
 site/

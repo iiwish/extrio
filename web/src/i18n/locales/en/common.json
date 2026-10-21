@@ -221,6 +221,7 @@
     "qualityWarning": "Quality warning",
     "extractSample": "Extracted sample",
     "domSnippet": "DOM snippet",
+    "jsonSnippet": "JSON evidence",
     "allowedHosts": "Allowed hosts",
     "awaitingSource": "Awaiting Source",
     "entryUrl": "Entry URL",

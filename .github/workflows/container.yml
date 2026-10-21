@@ -25,14 +25,28 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build and verify authenticated stack
+        id: sqlite
         run: ./scripts/verify-compose.sh
+      - name: Verify isolated PostgreSQL 16 installation
+        id: postgres
+        env:
+          EXTRIO_E2E_COMPOSE_FILE: compose.postgres.yaml
+          EXTRIO_AUTH_COOKIE_SECURE: 'false'
+        run: ./scripts/verify-compose.sh
+      - name: Inspect installed native components with an offline fixture
+        if: always() && steps.sqlite.outcome == 'success'
+        run: |
+          docker run --rm --network none \
+            --mount "type=bind,source=$PWD/scripts/inspect-image-security.py,target=/tmp/inspect-image-security.py,readonly" \
+            --entrypoint /opt/extrio/bin/python extrio/backend:e2e \
+            /tmp/inspect-image-security.py > image-runtime-security.json
       - name: Scan backend image
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: extrio/backend:e2e
           format: table
           exit-code: '1'
-          ignore-unfixed: true
+          ignore-unfixed: false
           severity: HIGH,CRITICAL
       - name: Scan web image
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
@@ -40,5 +54,35 @@ jobs:
           image-ref: extrio/web:e2e
           format: table
           exit-code: '1'
-          ignore-unfixed: true
+          ignore-unfixed: false
           severity: HIGH,CRITICAL
+      - name: Record complete backend vulnerability inventory
+        if: always() && steps.sqlite.outcome == 'success'
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: extrio/backend:e2e
+          format: json
+          output: backend-vulnerabilities.json
+          exit-code: '0'
+          ignore-unfixed: false
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+      - name: Record complete web vulnerability inventory
+        if: always() && steps.sqlite.outcome == 'success'
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: extrio/web:e2e
+          format: json
+          output: web-vulnerabilities.json
+          exit-code: '0'
+          ignore-unfixed: false
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+      - name: Preserve full vulnerability inventories
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: container-vulnerability-inventory
+          path: |
+            *-vulnerabilities.json
+            image-runtime-security.json
+          if-no-files-found: warn
+          retention-days: 30

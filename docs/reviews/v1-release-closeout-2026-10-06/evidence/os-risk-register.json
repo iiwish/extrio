@@ -1,0 +1,1609 @@
+{
+  "createdAt": "2026-10-06T11:04:18.736642337Z",
+  "image": "sha256:e5e2a4a710d1c9045f082182710044752ca8be29023304ccf743fc93916cc4c2",
+  "source": "https://security-tracker.debian.org/tracker/data/json",
+  "records": 68,
+  "uniqueCVEs": 27,
+  "baselineRecords": 95,
+  "baselineCVEs": 42,
+  "absentBaselineCVEs": [
+    "CVE-2023-25193",
+    "CVE-2023-2953",
+    "CVE-2023-45853",
+    "CVE-2023-5574",
+    "CVE-2025-7458",
+    "CVE-2026-11822",
+    "CVE-2026-11824",
+    "CVE-2026-41992",
+    "CVE-2026-53613",
+    "CVE-2026-55999",
+    "CVE-2026-56000",
+    "CVE-2026-58010",
+    "CVE-2026-58011",
+    "CVE-2026-58012",
+    "CVE-2026-58013",
+    "CVE-2026-58014",
+    "CVE-2026-58015",
+    "CVE-2026-58016",
+    "CVE-2026-6276",
+    "CVE-2026-84782"
+  ],
+  "newlyReportedCVEs": [
+    "CVE-2026-66046",
+    "CVE-2026-76956",
+    "CVE-2026-76957",
+    "CVE-2026-86139",
+    "CVE-2026-93990"
+  ],
+  "acceptance": "None; release decision required",
+  "items": [
+    {
+      "id": "CVE-2025-69720",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "package": "libncursesw6",
+          "installedVersion": "6.5+20250216-2",
+          "sourcePackage": "ncurses",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2025-69720",
+          "vendor": {
+            "description": "The infocmp command-line tool in ncurses before 6.5-20251213 has a stack-based buffer overflow in analyze_string in progs/infocmp.c.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "6.5+20250216-2"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "libtinfo6",
+          "installedVersion": "6.5+20250216-2",
+          "sourcePackage": "ncurses",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2025-69720",
+          "vendor": {
+            "description": "The infocmp command-line tool in ncurses before 6.5-20251213 has a stack-based buffer overflow in analyze_string in progs/infocmp.c.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "6.5+20250216-2"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "ncurses-base",
+          "installedVersion": "6.5+20250216-2",
+          "sourcePackage": "ncurses",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2025-69720",
+          "vendor": {
+            "description": "The infocmp command-line tool in ncurses before 6.5-20251213 has a stack-based buffer overflow in analyze_string in progs/infocmp.c.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "6.5+20250216-2"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "ncurses-bin",
+          "installedVersion": "6.5+20250216-2",
+          "sourcePackage": "ncurses",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2025-69720",
+          "vendor": {
+            "description": "The infocmp command-line tool in ncurses before 6.5-20251213 has a stack-based buffer overflow in analyze_string in progs/infocmp.c.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "6.5+20250216-2"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        }
+      ],
+      "decision": "Open; not accepted",
+      "owner": "Project security/technical owner",
+      "due": "Before v1.0.0 release"
+    },
+    {
+      "id": "CVE-2026-12064",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "package": "libcurl4t64",
+          "installedVersion": "8.14.1-2+deb13u5",
+          "sourcePackage": "curl",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-12064",
+          "vendor": {
+            "description": "When a user invokes curl using a schemeless URL combined with `--proto-default` sftp (or scp), a disconnect occurs between the tool layer and libcurl. The tool layer incorrectly infers the URL scheme, which erroneously bypasses the initialization of critical SSH security options like CURLOPT_SSH_HOST_PUBLIC_KEY_SHA256 and CURLOPT_SSH_KNOWNHOSTS. Conversely, the libcurl runtime successfully honors CURLOPT_DEFAULT_PROTOCOL and establishes the connection via SFTP/SCP as specified. Because the tool layer skipped the security configuration, these SSH host verification options are silently omitted, causing curl to connect to an unverified SSH remote host without throwing an error.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "8.14.1-2+deb13u5"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        }
+      ],
+      "decision": "Open; not accepted",
+      "owner": "Project security/technical owner",
+      "due": "Before v1.0.0 release"
+    },
+    {
+      "id": "CVE-2026-16742",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "package": "libsystemd0",
+          "installedVersion": "257.13-1~deb13u1",
+          "sourcePackage": "systemd",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-16742",
+          "vendor": {
+            "description": "systemd-homed contains a local privilege escalation bug via arbitrary system group addition to a local, logged in, homed-managed user",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "257.13-1~deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "libudev1",
+          "installedVersion": "257.13-1~deb13u1",
+          "sourcePackage": "systemd",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-16742",
+          "vendor": {
+            "description": "systemd-homed contains a local privilege escalation bug via arbitrary system group addition to a local, logged in, homed-managed user",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "257.13-1~deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        }
+      ],
+      "decision": "Open; not accepted",
+      "owner": "Project security/technical owner",
+      "due": "Before v1.0.0 release"
+    },
+    {
+      "id": "CVE-2026-34980",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "package": "libcups2t64",
+          "installedVersion": "2.4.10-3+deb13u2",
+          "sourcePackage": "cups",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-34980",
+          "vendor": {
+            "description": "OpenPrinting CUPS is an open source printing system for Linux and other Unix-like operating systems. In versions 2.4.16 and prior, in a network-exposed cupsd with a shared target queue, an unauthorized client can send a Print-Job to that shared PostScript queue without authentication. The server accepts a page-border value supplied as textWithoutLanguage, preserves an embedded newline through option escaping and reparse, and then reparses the resulting second-line PPD: text as a trusted scheduler control record. A follow-up raw print job can therefore make the server execute an attacker-chosen existing binary such as /usr/bin/vim as lp. At time of publication, there are no publicly available patches.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.4.10-3+deb13u2",
+                "trixie-security": "2.4.10-3+deb13u1"
+              },
+              "urgency": "not yet assigned"
+            }
+          }
+        }
+      ],
+      "decision": "Open; not accepted",
+      "owner": "Project security/technical owner",
+      "due": "Before v1.0.0 release"
+    },
+    {
+      "id": "CVE-2026-54369",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "package": "libacl1",
+          "installedVersion": "2.3.2-2+b1",
+          "sourcePackage": "acl",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-54369",
+          "vendor": {
+            "description": "acl before version 2.4.0 contains a symlink traversal vulnerability in the libacl pathname-based functions acl_get_file(), acl_set_file(), acl_extended_file(), and acl_delete_def_file() that allows local attackers to escalate privileges by replacing any pathname component with a symbolic link. Attackers who control any component of a pathname processed by a privileged caller can redirect ACL read or write operations to arbitrary files or directories, enabling unauthorized manipulation of access control lists and local privilege escalation.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.3.2-2"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Will be fixed first in unstable, then point release update; not to be backported by individual patches",
+              "nodsa_reason": ""
+            }
+          }
+        }
+      ],
+      "decision": "Open; not accepted",
+      "owner": "Project security/technical owner",
+      "due": "Before v1.0.0 release"
+    },
+    {
+      "id": "CVE-2026-66046",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "package": "libexpat1",
+          "installedVersion": "2.8.3-1~deb13u1",
+          "sourcePackage": "expat",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-66046",
+          "vendor": {
+            "description": "Expat through 2.8.3 contains a denial of service vulnerability caused by quadratic algorithmic complexity in the storeAtts() function in xmlparse.c, where processing N specified attributes with non-normalized values triggers an O(N^2) linear scan of elementType->defaultAtts to determine CDATA status. A remote unauthenticated attacker can supply a single well-formed XML document of a few megabytes to an application parsing untrusted XML to cause excessive CPU consumption, resulting in denial of service without requiring authentication, external entity resolution, or non-default parser options.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.8.3-1~deb13u1",
+                "trixie-security": "2.8.3-1~deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        }
+      ],
+      "decision": "Open; not accepted",
+      "owner": "Project security/technical owner",
+      "due": "Before v1.0.0 release"
+    },
+    {
+      "id": "CVE-2026-6653",
+      "severity": "CRITICAL",
+      "packages": [
+        {
+          "package": "libxml2",
+          "installedVersion": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+          "sourcePackage": "libxml2",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-6653",
+          "vendor": {
+            "description": "Use After Free in libxml2's xmlParseInternalSubset from GNOME libxml2 version 2.9.11 to 2.11.0 allows a remote attacker to cause a denial-of-service via maliciously crafted XML input with improper entity resolution handling.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+                "trixie-security": "2.12.7+dfsg+really2.9.14-2.1+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        }
+      ],
+      "decision": "Open; not accepted",
+      "owner": "Project security/technical owner",
+      "due": "Before v1.0.0 release"
+    },
+    {
+      "id": "CVE-2026-74860",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "package": "libxml2",
+          "installedVersion": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+          "sourcePackage": "libxml2",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-74860",
+          "vendor": {
+            "description": "A flaw was found in libxml2 with Python bindings enabled. A remote attacker could exploit this vulnerability by providing a specially crafted XML document containing a Document Type Definition (DTD) with enumerated attribute values. This triggers a double-free error in the SAX attributeDecl callback handler, where a string is freed twice. This flaw can lead to a denial of service (DoS) due to a reproducible crash in Python applications using the libxml2 SAX bindings.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+                "trixie-security": "2.12.7+dfsg+really2.9.14-2.1+deb13u1"
+              },
+              "urgency": "not yet assigned"
+            }
+          }
+        }
+      ],
+      "decision": "Open; not accepted",
+      "owner": "Project security/technical owner",
+      "due": "Before v1.0.0 release"
+    },
+    {
+      "id": "CVE-2026-76642",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "package": "bsdutils",
+          "installedVersion": "1:2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-76642",
+          "vendor": {
+            "description": "util-linux versions through 2.41.5 and 2.42.2 fail to check mount helper exit status before running post-mount hooks, allowing unprivileged users to execute privileged operations on pre-existing filesystems. Attackers can exploit X-mount.idmap or X-mount.owner hooks to clone filesystems with inherited suid bits or modify target inode permissions after a helper fails, achieving privilege escalation.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "libblkid1",
+          "installedVersion": "2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-76642",
+          "vendor": {
+            "description": "util-linux versions through 2.41.5 and 2.42.2 fail to check mount helper exit status before running post-mount hooks, allowing unprivileged users to execute privileged operations on pre-existing filesystems. Attackers can exploit X-mount.idmap or X-mount.owner hooks to clone filesystems with inherited suid bits or modify target inode permissions after a helper fails, achieving privilege escalation.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "liblastlog2-2",
+          "installedVersion": "2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-76642",
+          "vendor": {
+            "description": "util-linux versions through 2.41.5 and 2.42.2 fail to check mount helper exit status before running post-mount hooks, allowing unprivileged users to execute privileged operations on pre-existing filesystems. Attackers can exploit X-mount.idmap or X-mount.owner hooks to clone filesystems with inherited suid bits or modify target inode permissions after a helper fails, achieving privilege escalation.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "libmount1",
+          "installedVersion": "2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-76642",
+          "vendor": {
+            "description": "util-linux versions through 2.41.5 and 2.42.2 fail to check mount helper exit status before running post-mount hooks, allowing unprivileged users to execute privileged operations on pre-existing filesystems. Attackers can exploit X-mount.idmap or X-mount.owner hooks to clone filesystems with inherited suid bits or modify target inode permissions after a helper fails, achieving privilege escalation.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "libsmartcols1",
+          "installedVersion": "2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-76642",
+          "vendor": {
+            "description": "util-linux versions through 2.41.5 and 2.42.2 fail to check mount helper exit status before running post-mount hooks, allowing unprivileged users to execute privileged operations on pre-existing filesystems. Attackers can exploit X-mount.idmap or X-mount.owner hooks to clone filesystems with inherited suid bits or modify target inode permissions after a helper fails, achieving privilege escalation.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "libuuid1",
+          "installedVersion": "2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-76642",
+          "vendor": {
+            "description": "util-linux versions through 2.41.5 and 2.42.2 fail to check mount helper exit status before running post-mount hooks, allowing unprivileged users to execute privileged operations on pre-existing filesystems. Attackers can exploit X-mount.idmap or X-mount.owner hooks to clone filesystems with inherited suid bits or modify target inode permissions after a helper fails, achieving privilege escalation.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "login",
+          "installedVersion": "1:4.16.0-2+really2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-76642",
+          "vendor": {
+            "description": "util-linux versions through 2.41.5 and 2.42.2 fail to check mount helper exit status before running post-mount hooks, allowing unprivileged users to execute privileged operations on pre-existing filesystems. Attackers can exploit X-mount.idmap or X-mount.owner hooks to clone filesystems with inherited suid bits or modify target inode permissions after a helper fails, achieving privilege escalation.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "mount",
+          "installedVersion": "2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-76642",
+          "vendor": {
+            "description": "util-linux versions through 2.41.5 and 2.42.2 fail to check mount helper exit status before running post-mount hooks, allowing unprivileged users to execute privileged operations on pre-existing filesystems. Attackers can exploit X-mount.idmap or X-mount.owner hooks to clone filesystems with inherited suid bits or modify target inode permissions after a helper fails, achieving privilege escalation.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "util-linux",
+          "installedVersion": "2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-76642",
+          "vendor": {
+            "description": "util-linux versions through 2.41.5 and 2.42.2 fail to check mount helper exit status before running post-mount hooks, allowing unprivileged users to execute privileged operations on pre-existing filesystems. Attackers can exploit X-mount.idmap or X-mount.owner hooks to clone filesystems with inherited suid bits or modify target inode permissions after a helper fails, achieving privilege escalation.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        }
+      ],
+      "decision": "Open; not accepted",
+      "owner": "Project security/technical owner",
+      "due": "Before v1.0.0 release"
+    },
+    {
+      "id": "CVE-2026-76956",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "package": "libexpat1",
+          "installedVersion": "2.8.3-1~deb13u1",
+          "sourcePackage": "expat",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-76956",
+          "vendor": {
+            "description": "In libexpat 2.8.2 and 2.8.3 before 2.8.4, misinterpretation of getentropy's return code leads to insufficient entropy, which results in being vulnerable to hash flooding attacks, causing a denial of service via crafted XML content.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.8.3-1~deb13u1",
+                "trixie-security": "2.8.3-1~deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        }
+      ],
+      "decision": "Open; not accepted",
+      "owner": "Project security/technical owner",
+      "due": "Before v1.0.0 release"
+    },
+    {
+      "id": "CVE-2026-76957",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "package": "libexpat1",
+          "installedVersion": "2.8.3-1~deb13u1",
+          "sourcePackage": "expat",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-76957",
+          "vendor": {
+            "description": "libexpat before 2.8.4 lacks handler call depth tracking with custom encoding callbacks. Thus, a use-after-free can occur. NOTE: this is similar to CVE-2026-50219, CVE-2026-56131 and CVE-2026-56412.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.8.3-1~deb13u1",
+                "trixie-security": "2.8.3-1~deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        }
+      ],
+      "decision": "Open; not accepted",
+      "owner": "Project security/technical owner",
+      "due": "Before v1.0.0 release"
+    },
+    {
+      "id": "CVE-2026-78408",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "package": "bsdutils",
+          "installedVersion": "1:2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-78408",
+          "vendor": {
+            "description": "The nsenter --join-cgroup option opens the target cgroup.procs file as root and leaves that file descriptor open across later namespace and credential changes and across execve(). Because the kernel checks later cgroup migrations using the credentials from the original open, a program run in an attacker-controlled target can inherit root's ability to move host processes between cgroups. After a privileged operator uses --join-cgroup against that target, an unprivileged user can migrate and terminate unrelated root processes.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "libblkid1",
+          "installedVersion": "2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-78408",
+          "vendor": {
+            "description": "The nsenter --join-cgroup option opens the target cgroup.procs file as root and leaves that file descriptor open across later namespace and credential changes and across execve(). Because the kernel checks later cgroup migrations using the credentials from the original open, a program run in an attacker-controlled target can inherit root's ability to move host processes between cgroups. After a privileged operator uses --join-cgroup against that target, an unprivileged user can migrate and terminate unrelated root processes.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "liblastlog2-2",
+          "installedVersion": "2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-78408",
+          "vendor": {
+            "description": "The nsenter --join-cgroup option opens the target cgroup.procs file as root and leaves that file descriptor open across later namespace and credential changes and across execve(). Because the kernel checks later cgroup migrations using the credentials from the original open, a program run in an attacker-controlled target can inherit root's ability to move host processes between cgroups. After a privileged operator uses --join-cgroup against that target, an unprivileged user can migrate and terminate unrelated root processes.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "libmount1",
+          "installedVersion": "2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-78408",
+          "vendor": {
+            "description": "The nsenter --join-cgroup option opens the target cgroup.procs file as root and leaves that file descriptor open across later namespace and credential changes and across execve(). Because the kernel checks later cgroup migrations using the credentials from the original open, a program run in an attacker-controlled target can inherit root's ability to move host processes between cgroups. After a privileged operator uses --join-cgroup against that target, an unprivileged user can migrate and terminate unrelated root processes.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "libsmartcols1",
+          "installedVersion": "2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-78408",
+          "vendor": {
+            "description": "The nsenter --join-cgroup option opens the target cgroup.procs file as root and leaves that file descriptor open across later namespace and credential changes and across execve(). Because the kernel checks later cgroup migrations using the credentials from the original open, a program run in an attacker-controlled target can inherit root's ability to move host processes between cgroups. After a privileged operator uses --join-cgroup against that target, an unprivileged user can migrate and terminate unrelated root processes.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "libuuid1",
+          "installedVersion": "2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-78408",
+          "vendor": {
+            "description": "The nsenter --join-cgroup option opens the target cgroup.procs file as root and leaves that file descriptor open across later namespace and credential changes and across execve(). Because the kernel checks later cgroup migrations using the credentials from the original open, a program run in an attacker-controlled target can inherit root's ability to move host processes between cgroups. After a privileged operator uses --join-cgroup against that target, an unprivileged user can migrate and terminate unrelated root processes.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "login",
+          "installedVersion": "1:4.16.0-2+really2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-78408",
+          "vendor": {
+            "description": "The nsenter --join-cgroup option opens the target cgroup.procs file as root and leaves that file descriptor open across later namespace and credential changes and across execve(). Because the kernel checks later cgroup migrations using the credentials from the original open, a program run in an attacker-controlled target can inherit root's ability to move host processes between cgroups. After a privileged operator uses --join-cgroup against that target, an unprivileged user can migrate and terminate unrelated root processes.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "mount",
+          "installedVersion": "2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-78408",
+          "vendor": {
+            "description": "The nsenter --join-cgroup option opens the target cgroup.procs file as root and leaves that file descriptor open across later namespace and credential changes and across execve(). Because the kernel checks later cgroup migrations using the credentials from the original open, a program run in an attacker-controlled target can inherit root's ability to move host processes between cgroups. After a privileged operator uses --join-cgroup against that target, an unprivileged user can migrate and terminate unrelated root processes.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "util-linux",
+          "installedVersion": "2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-78408",
+          "vendor": {
+            "description": "The nsenter --join-cgroup option opens the target cgroup.procs file as root and leaves that file descriptor open across later namespace and credential changes and across execve(). Because the kernel checks later cgroup migrations using the credentials from the original open, a program run in an attacker-controlled target can inherit root's ability to move host processes between cgroups. After a privileged operator uses --join-cgroup against that target, an unprivileged user can migrate and terminate unrelated root processes.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        }
+      ],
+      "decision": "Open; not accepted",
+      "owner": "Project security/technical owner",
+      "due": "Before v1.0.0 release"
+    },
+    {
+      "id": "CVE-2026-78409",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "package": "bsdutils",
+          "installedVersion": "1:2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-78409",
+          "vendor": {
+            "description": "The X-mount.subdir option uses a detached-tree fast path on Linux 6.15 and later and passes the configured subdirectory to open_tree() with AT_SYMLINK_NOFOLLOW. That flag does not stop intermediate symlink traversal or keep resolution inside the newly mounted filesystem. A local unprivileged user with an fstab-authorized X-mount.subdir entry can attach a host path at the intended mountpoint.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "libblkid1",
+          "installedVersion": "2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-78409",
+          "vendor": {
+            "description": "The X-mount.subdir option uses a detached-tree fast path on Linux 6.15 and later and passes the configured subdirectory to open_tree() with AT_SYMLINK_NOFOLLOW. That flag does not stop intermediate symlink traversal or keep resolution inside the newly mounted filesystem. A local unprivileged user with an fstab-authorized X-mount.subdir entry can attach a host path at the intended mountpoint.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "liblastlog2-2",
+          "installedVersion": "2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-78409",
+          "vendor": {
+            "description": "The X-mount.subdir option uses a detached-tree fast path on Linux 6.15 and later and passes the configured subdirectory to open_tree() with AT_SYMLINK_NOFOLLOW. That flag does not stop intermediate symlink traversal or keep resolution inside the newly mounted filesystem. A local unprivileged user with an fstab-authorized X-mount.subdir entry can attach a host path at the intended mountpoint.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "libmount1",
+          "installedVersion": "2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-78409",
+          "vendor": {
+            "description": "The X-mount.subdir option uses a detached-tree fast path on Linux 6.15 and later and passes the configured subdirectory to open_tree() with AT_SYMLINK_NOFOLLOW. That flag does not stop intermediate symlink traversal or keep resolution inside the newly mounted filesystem. A local unprivileged user with an fstab-authorized X-mount.subdir entry can attach a host path at the intended mountpoint.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "libsmartcols1",
+          "installedVersion": "2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-78409",
+          "vendor": {
+            "description": "The X-mount.subdir option uses a detached-tree fast path on Linux 6.15 and later and passes the configured subdirectory to open_tree() with AT_SYMLINK_NOFOLLOW. That flag does not stop intermediate symlink traversal or keep resolution inside the newly mounted filesystem. A local unprivileged user with an fstab-authorized X-mount.subdir entry can attach a host path at the intended mountpoint.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "libuuid1",
+          "installedVersion": "2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-78409",
+          "vendor": {
+            "description": "The X-mount.subdir option uses a detached-tree fast path on Linux 6.15 and later and passes the configured subdirectory to open_tree() with AT_SYMLINK_NOFOLLOW. That flag does not stop intermediate symlink traversal or keep resolution inside the newly mounted filesystem. A local unprivileged user with an fstab-authorized X-mount.subdir entry can attach a host path at the intended mountpoint.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "login",
+          "installedVersion": "1:4.16.0-2+really2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-78409",
+          "vendor": {
+            "description": "The X-mount.subdir option uses a detached-tree fast path on Linux 6.15 and later and passes the configured subdirectory to open_tree() with AT_SYMLINK_NOFOLLOW. That flag does not stop intermediate symlink traversal or keep resolution inside the newly mounted filesystem. A local unprivileged user with an fstab-authorized X-mount.subdir entry can attach a host path at the intended mountpoint.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "mount",
+          "installedVersion": "2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-78409",
+          "vendor": {
+            "description": "The X-mount.subdir option uses a detached-tree fast path on Linux 6.15 and later and passes the configured subdirectory to open_tree() with AT_SYMLINK_NOFOLLOW. That flag does not stop intermediate symlink traversal or keep resolution inside the newly mounted filesystem. A local unprivileged user with an fstab-authorized X-mount.subdir entry can attach a host path at the intended mountpoint.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "util-linux",
+          "installedVersion": "2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-78409",
+          "vendor": {
+            "description": "The X-mount.subdir option uses a detached-tree fast path on Linux 6.15 and later and passes the configured subdirectory to open_tree() with AT_SYMLINK_NOFOLLOW. That flag does not stop intermediate symlink traversal or keep resolution inside the newly mounted filesystem. A local unprivileged user with an fstab-authorized X-mount.subdir entry can attach a host path at the intended mountpoint.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        }
+      ],
+      "decision": "Open; not accepted",
+      "owner": "Project security/technical owner",
+      "due": "Before v1.0.0 release"
+    },
+    {
+      "id": "CVE-2026-78410",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "package": "bsdutils",
+          "installedVersion": "1:2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-78410",
+          "vendor": {
+            "description": "A flaw was found in util-linux. Restricted bind mounts take the source path from fstab but do not pin that source before the privileged mount. A local unprivileged user who can replace the authorized source or a writable ancestor can redirect SUID mount(8) to bind another host directory. If the fstab entry also sets X-mount.owner, X-mount.group, or X-mount.mode, root then changes ownership or mode on that redirected inode.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "libblkid1",
+          "installedVersion": "2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-78410",
+          "vendor": {
+            "description": "A flaw was found in util-linux. Restricted bind mounts take the source path from fstab but do not pin that source before the privileged mount. A local unprivileged user who can replace the authorized source or a writable ancestor can redirect SUID mount(8) to bind another host directory. If the fstab entry also sets X-mount.owner, X-mount.group, or X-mount.mode, root then changes ownership or mode on that redirected inode.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "liblastlog2-2",
+          "installedVersion": "2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-78410",
+          "vendor": {
+            "description": "A flaw was found in util-linux. Restricted bind mounts take the source path from fstab but do not pin that source before the privileged mount. A local unprivileged user who can replace the authorized source or a writable ancestor can redirect SUID mount(8) to bind another host directory. If the fstab entry also sets X-mount.owner, X-mount.group, or X-mount.mode, root then changes ownership or mode on that redirected inode.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "libmount1",
+          "installedVersion": "2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-78410",
+          "vendor": {
+            "description": "A flaw was found in util-linux. Restricted bind mounts take the source path from fstab but do not pin that source before the privileged mount. A local unprivileged user who can replace the authorized source or a writable ancestor can redirect SUID mount(8) to bind another host directory. If the fstab entry also sets X-mount.owner, X-mount.group, or X-mount.mode, root then changes ownership or mode on that redirected inode.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "libsmartcols1",
+          "installedVersion": "2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-78410",
+          "vendor": {
+            "description": "A flaw was found in util-linux. Restricted bind mounts take the source path from fstab but do not pin that source before the privileged mount. A local unprivileged user who can replace the authorized source or a writable ancestor can redirect SUID mount(8) to bind another host directory. If the fstab entry also sets X-mount.owner, X-mount.group, or X-mount.mode, root then changes ownership or mode on that redirected inode.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "libuuid1",
+          "installedVersion": "2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-78410",
+          "vendor": {
+            "description": "A flaw was found in util-linux. Restricted bind mounts take the source path from fstab but do not pin that source before the privileged mount. A local unprivileged user who can replace the authorized source or a writable ancestor can redirect SUID mount(8) to bind another host directory. If the fstab entry also sets X-mount.owner, X-mount.group, or X-mount.mode, root then changes ownership or mode on that redirected inode.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "login",
+          "installedVersion": "1:4.16.0-2+really2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-78410",
+          "vendor": {
+            "description": "A flaw was found in util-linux. Restricted bind mounts take the source path from fstab but do not pin that source before the privileged mount. A local unprivileged user who can replace the authorized source or a writable ancestor can redirect SUID mount(8) to bind another host directory. If the fstab entry also sets X-mount.owner, X-mount.group, or X-mount.mode, root then changes ownership or mode on that redirected inode.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "mount",
+          "installedVersion": "2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-78410",
+          "vendor": {
+            "description": "A flaw was found in util-linux. Restricted bind mounts take the source path from fstab but do not pin that source before the privileged mount. A local unprivileged user who can replace the authorized source or a writable ancestor can redirect SUID mount(8) to bind another host directory. If the fstab entry also sets X-mount.owner, X-mount.group, or X-mount.mode, root then changes ownership or mode on that redirected inode.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "util-linux",
+          "installedVersion": "2.41.5-0+deb13u1",
+          "sourcePackage": "util-linux",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-78410",
+          "vendor": {
+            "description": "A flaw was found in util-linux. Restricted bind mounts take the source path from fstab but do not pin that source before the privileged mount. A local unprivileged user who can replace the authorized source or a writable ancestor can redirect SUID mount(8) to bind another host directory. If the fstab entry also sets X-mount.owner, X-mount.group, or X-mount.mode, root then changes ownership or mode on that redirected inode.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.41.5-0+deb13u1",
+                "trixie-security": "2.41.5-0+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        }
+      ],
+      "decision": "Open; not accepted",
+      "owner": "Project security/technical owner",
+      "due": "Before v1.0.0 release"
+    },
+    {
+      "id": "CVE-2026-8286",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "package": "libcurl4t64",
+          "installedVersion": "8.14.1-2+deb13u5",
+          "sourcePackage": "curl",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-8286",
+          "vendor": {
+            "description": "A vulnerability exists where a new transfer that uses STARTTLS to upgrade the connection might reuse an existing live connection even though the TLS configuration mismatches so it should not.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "8.14.1-2+deb13u5"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": "",
+              "next_point_update": true
+            }
+          }
+        }
+      ],
+      "decision": "Open; not accepted",
+      "owner": "Project security/technical owner",
+      "due": "Before v1.0.0 release"
+    },
+    {
+      "id": "CVE-2026-8458",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "package": "libcurl4t64",
+          "installedVersion": "8.14.1-2+deb13u5",
+          "sourcePackage": "curl",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-8458",
+          "vendor": {
+            "description": "libcurl might in some circumstances reuse the wrong connection when asked to do Negotiate-authenticated ones, even when they are set to use different \"services\".  libcurl features a pool of recent connections so that subsequent requests can reuse an existing connection to avoid overhead.  When reusing a connection a range of criteria must be met. Due to a logical error in the code, a request that was issued by an application could wrongfully reuse an existing connection to the same server that was authenticated using different services.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "8.14.1-2+deb13u5"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        }
+      ],
+      "decision": "Open; not accepted",
+      "owner": "Project security/technical owner",
+      "due": "Before v1.0.0 release"
+    },
+    {
+      "id": "CVE-2026-86138",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "package": "libxml2",
+          "installedVersion": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+          "sourcePackage": "libxml2",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-86138",
+          "vendor": {
+            "description": "In libxml2 before 2.15.4, xmlDictAddQString in dict.c has an integer overflow and resultant heap-based buffer overflow.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+                "trixie-security": "2.12.7+dfsg+really2.9.14-2.1+deb13u1"
+              },
+              "urgency": "not yet assigned"
+            }
+          }
+        }
+      ],
+      "decision": "Open; not accepted",
+      "owner": "Project security/technical owner",
+      "due": "Before v1.0.0 release"
+    },
+    {
+      "id": "CVE-2026-86139",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "package": "libxml2",
+          "installedVersion": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+          "sourcePackage": "libxml2",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-86139",
+          "vendor": {
+            "description": "In libxml2 before 2.15.4, xmlURIEscapeStr in uri.c has an integer overflow.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+                "trixie-security": "2.12.7+dfsg+really2.9.14-2.1+deb13u1"
+              },
+              "urgency": "not yet assigned"
+            }
+          }
+        }
+      ],
+      "decision": "Open; not accepted",
+      "owner": "Project security/technical owner",
+      "due": "Before v1.0.0 release"
+    },
+    {
+      "id": "CVE-2026-86140",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "package": "libxml2",
+          "installedVersion": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+          "sourcePackage": "libxml2",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-86140",
+          "vendor": {
+            "description": "In libxml2 before 2.15.4, xmlSnprintfElements in valid.c has a strcat stack-based buffer overflow.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+                "trixie-security": "2.12.7+dfsg+really2.9.14-2.1+deb13u1"
+              },
+              "urgency": "not yet assigned"
+            }
+          }
+        }
+      ],
+      "decision": "Open; not accepted",
+      "owner": "Project security/technical owner",
+      "due": "Before v1.0.0 release"
+    },
+    {
+      "id": "CVE-2026-86142",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "package": "libxml2",
+          "installedVersion": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+          "sourcePackage": "libxml2",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-86142",
+          "vendor": {
+            "description": "In libxml2 before 2.15.4, there is a heap-based buffer overflow in xmlXPtrEvalXPtrPart because of xmlXPtrEval xpointer length saturation.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+                "trixie-security": "2.12.7+dfsg+really2.9.14-2.1+deb13u1"
+              },
+              "urgency": "not yet assigned"
+            }
+          }
+        }
+      ],
+      "decision": "Open; not accepted",
+      "owner": "Project security/technical owner",
+      "due": "Before v1.0.0 release"
+    },
+    {
+      "id": "CVE-2026-86143",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "package": "libxml2",
+          "installedVersion": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+          "sourcePackage": "libxml2",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-86143",
+          "vendor": {
+            "description": "In xmlIO in libxml2 before 2.15.4, an inconsistency in xmlOutputWriteCallback and xmlBufUse causes negative lengths to reach write callbacks, aka a lack of a check for integer overflow before calling writecallback. This has security relevance for many types of uses of that length value within a callback.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+                "trixie-security": "2.12.7+dfsg+really2.9.14-2.1+deb13u1"
+              },
+              "urgency": "not yet assigned"
+            }
+          }
+        }
+      ],
+      "decision": "Open; not accepted",
+      "owner": "Project security/technical owner",
+      "due": "Before v1.0.0 release"
+    },
+    {
+      "id": "CVE-2026-86144",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "package": "libxml2",
+          "installedVersion": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+          "sourcePackage": "libxml2",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-86144",
+          "vendor": {
+            "description": "In xinclude in libxml2 before 2.15.4, xmlXIncludeProcess and xmlXIncludeProcessTree do not propagate parseFlags. This has security relevance for, for example, the XML_PARSE_NONET flag, if (without it) a custom resource loader accesses the internet and triggers XML external entity injection, SSRF, or a denial of service (e.g., for an attacker-controlled internet resource that is intentionally slow).",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.12.7+dfsg+really2.9.14-2.1+deb13u3",
+                "trixie-security": "2.12.7+dfsg+really2.9.14-2.1+deb13u1"
+              },
+              "urgency": "not yet assigned"
+            }
+          }
+        }
+      ],
+      "decision": "Open; not accepted",
+      "owner": "Project security/technical owner",
+      "due": "Before v1.0.0 release"
+    },
+    {
+      "id": "CVE-2026-88806",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "package": "libx11-6",
+          "installedVersion": "2:1.8.12-1",
+          "sourcePackage": "libx11",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-88806",
+          "vendor": {
+            "description": "A malicious X server could exploit a buffer overflow in libX11 before 1.8.14 during handling of XkbGetMap overflowing the key_sym_map.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2:1.8.12-1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "libx11-data",
+          "installedVersion": "2:1.8.12-1",
+          "sourcePackage": "libx11",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-88806",
+          "vendor": {
+            "description": "A malicious X server could exploit a buffer overflow in libX11 before 1.8.14 during handling of XkbGetMap overflowing the key_sym_map.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2:1.8.12-1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        },
+        {
+          "package": "libx11-xcb1",
+          "installedVersion": "2:1.8.12-1",
+          "sourcePackage": "libx11",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-88806",
+          "vendor": {
+            "description": "A malicious X server could exploit a buffer overflow in libX11 before 1.8.14 during handling of XkbGetMap overflowing the key_sym_map.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2:1.8.12-1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        }
+      ],
+      "decision": "Open; not accepted",
+      "owner": "Project security/technical owner",
+      "due": "Before v1.0.0 release"
+    },
+    {
+      "id": "CVE-2026-88807",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "package": "libxrender1",
+          "installedVersion": "1:0.9.12-1",
+          "sourcePackage": "libxrender",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-88807",
+          "vendor": {
+            "description": "A heap overflow in libXrender before 0.9.13 in RenderQueryPictFormats could be used by malicious X servers to inject code into attached X clients.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "1:0.9.12-1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": ""
+            }
+          }
+        }
+      ],
+      "decision": "Open; not accepted",
+      "owner": "Project security/technical owner",
+      "due": "Before v1.0.0 release"
+    },
+    {
+      "id": "CVE-2026-8927",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "package": "libcurl4t64",
+          "installedVersion": "8.14.1-2+deb13u5",
+          "sourcePackage": "curl",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-8927",
+          "vendor": {
+            "description": "When reusing a libcurl handle for sequential transfers driven by environment-variable proxy configuration, libcurl fails to clear the proxy authentication state between requests. Specifically, if the initial transfer authenticates against `proxyA` using Digest auth, a subsequent transfer routed through `proxyB` erroneously leaks the `Proxy-Authorization:` header intended solely for `proxyA`.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "8.14.1-2+deb13u5"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue",
+              "nodsa_reason": "",
+              "next_point_update": true
+            }
+          }
+        }
+      ],
+      "decision": "Open; not accepted",
+      "owner": "Project security/technical owner",
+      "due": "Before v1.0.0 release"
+    },
+    {
+      "id": "CVE-2026-93990",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "package": "libexpat1",
+          "installedVersion": "2.8.3-1~deb13u1",
+          "sourcePackage": "expat",
+          "scannerStatus": "affected",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-93990",
+          "vendor": {
+            "description": "Expat before 2.8.5 fails to validate that a high surrogate in UTF-16 input is followed by a low surrogate, allowing malformed UTF-16 sequences to be accepted. Attackers can supply UTF-16 encoded XML containing lone high surrogates that consume the following code unit, causing Expat to pass unpaired surrogates to applications built with XML_UNICODE and to silently replace input characters in other builds.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "2.8.3-1~deb13u1",
+                "trixie-security": "2.8.3-1~deb13u1"
+              },
+              "urgency": "not yet assigned"
+            }
+          }
+        }
+      ],
+      "decision": "Open; not accepted",
+      "owner": "Project security/technical owner",
+      "due": "Before v1.0.0 release"
+    },
+    {
+      "id": "CVE-2026-9538",
+      "severity": "HIGH",
+      "packages": [
+        {
+          "package": "libperl5.40",
+          "installedVersion": "5.40.1-6+deb13u1",
+          "sourcePackage": "perl",
+          "scannerStatus": "fix_deferred",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-9538",
+          "vendor": {
+            "description": "Archive::Tar versions before 3.10 for Perl allow memory exhaustion via attacker controlled entry size field in tar header.  _read_tar() reads each entry's payload with $handle->read($$data, $block), where $block is derived from the entry's 12-byte size field in the tar header with no upper bound on that value.  A crafted header declaring a multi-gigabyte size causes Perl to allocate a scalar of that size.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "5.40.1-6+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue; wait for regressions upstream sorted out",
+              "nodsa_reason": "postponed"
+            }
+          }
+        },
+        {
+          "package": "perl",
+          "installedVersion": "5.40.1-6+deb13u1",
+          "sourcePackage": "perl",
+          "scannerStatus": "fix_deferred",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-9538",
+          "vendor": {
+            "description": "Archive::Tar versions before 3.10 for Perl allow memory exhaustion via attacker controlled entry size field in tar header.  _read_tar() reads each entry's payload with $handle->read($$data, $block), where $block is derived from the entry's 12-byte size field in the tar header with no upper bound on that value.  A crafted header declaring a multi-gigabyte size causes Perl to allocate a scalar of that size.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "5.40.1-6+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue; wait for regressions upstream sorted out",
+              "nodsa_reason": "postponed"
+            }
+          }
+        },
+        {
+          "package": "perl-base",
+          "installedVersion": "5.40.1-6+deb13u1",
+          "sourcePackage": "perl",
+          "scannerStatus": "fix_deferred",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-9538",
+          "vendor": {
+            "description": "Archive::Tar versions before 3.10 for Perl allow memory exhaustion via attacker controlled entry size field in tar header.  _read_tar() reads each entry's payload with $handle->read($$data, $block), where $block is derived from the entry's 12-byte size field in the tar header with no upper bound on that value.  A crafted header declaring a multi-gigabyte size causes Perl to allocate a scalar of that size.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "5.40.1-6+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue; wait for regressions upstream sorted out",
+              "nodsa_reason": "postponed"
+            }
+          }
+        },
+        {
+          "package": "perl-modules-5.40",
+          "installedVersion": "5.40.1-6+deb13u1",
+          "sourcePackage": "perl",
+          "scannerStatus": "fix_deferred",
+          "sourceUrl": "https://security-tracker.debian.org/tracker/CVE-2026-9538",
+          "vendor": {
+            "description": "Archive::Tar versions before 3.10 for Perl allow memory exhaustion via attacker controlled entry size field in tar header.  _read_tar() reads each entry's payload with $handle->read($$data, $block), where $block is derived from the entry's 12-byte size field in the tar header with no upper bound on that value.  A crafted header declaring a multi-gigabyte size causes Perl to allocate a scalar of that size.",
+            "trixie": {
+              "status": "open",
+              "repositories": {
+                "trixie": "5.40.1-6+deb13u1"
+              },
+              "urgency": "not yet assigned",
+              "nodsa": "Minor issue; wait for regressions upstream sorted out",
+              "nodsa_reason": "postponed"
+            }
+          }
+        }
+      ],
+      "decision": "Open; not accepted",
+      "owner": "Project security/technical owner",
+      "due": "Before v1.0.0 release"
+    }
+  ]
+}

@@ -64,7 +64,12 @@ def test_stable_handoff_covers_all_acceptance_items_and_preserves_release_gates(
     assert "RC 风险接受不等于稳定版风险接受" in handoff
     assert "72 小时观测" in handoff
     assert "不计为通过" in handoff
-    assert "禁止合并、创建 `v1.0.0` tag、运行 release 工作流、发布镜像或生产部署" in handoff
+    assert "禁止创建正式 `v1.0.0` tag 或生产部署，不启用来源调度" in handoff
+    assert "明确授权在检查通过后合入 main 并仅发布 `v1.0.0-rc.2`" in handoff
+    assert "不构成历史或新增高危风险接受" in handoff
+    assert "稳定版安全结论和验收结果仍须呈交用户，再取得相应发布授权" in handoff
+    assert 'release-closeout.md' in handoff
+    assert 'v1.0-rc.2.md' in handoff
 
 
 def test_manifest_generator_tracks_unpublished_stable_handoff_without_mutating_input() -> None:

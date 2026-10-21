@@ -1,4 +1,5 @@
 {
+  "resolutionV2": {"originalDate": "Original publication date", "publisherDate": "Publisher repost date", "outcome": "Notice outcome", "failed": "Not awarded / failed", "awarded": "Awarded"},
   "toolbar": {
     "aria": "Data toolbar",
     "sourceAria": "Filter by site host",
@@ -100,9 +101,32 @@
     "bodyExtracted": "Body text extracted",
     "bodyNotExtracted": "Body text not extracted",
     "bodyAvailable": "Normalized body text is available",
-    "bodyOptional": "The current contract allows an empty body",
+    "bodyUnavailableDetail": "Body unavailable; acceptance follows the current quality decision",
     "lineageTitle": "Source & lineage",
     "lineageSubtitle": "Traceable relationships from source and run to this data",
+    "documentResolution": "Original document resolution",
+    "noticeIdentityMatched": "Notice identity verified",
+    "noticeIdentityDetail": "EPS GUID, package and notice stage match; list and template titles differ",
+    "documentEvidence": "Document evidence and hashes",
+    "pdfPages": "pages",
+    "resolutionKinds": {
+      "unresolved": "Body unavailable",
+      "publisher_html": "Publisher HTML body",
+      "publisher_linked_original": "Publisher-linked official original",
+      "embedded_pdf_text": "Embedded PDF text layer (not OCR)",
+      "eps_public_template_render": "EPS public GET data rendered with publisher template (not original DOM)"
+    },
+    "documentRoles": {
+      "publisher_landing": "Publisher detail page",
+      "publisher_linked_original": "Official original notice",
+      "embedded_body_pdf": "Notice body PDF",
+      "eps_landing": "EPS detail entry",
+      "eps_public_template": "EPS public notice template",
+      "eps_public_get": "EPS public GET response",
+      "eps_public_unit_get": "EPS public unit data",
+      "eps_public_clock_get": "EPS public server time",
+      "eps_public_supplement_index_get": "EPS public amendment index"
+    },
     "collectorLabel": "Source",
     "sourceLabel": "Detail source",
     "latestRunLabel": "Latest run",

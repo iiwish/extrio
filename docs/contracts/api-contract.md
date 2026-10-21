@@ -110,7 +110,7 @@ Source URL 只接受 `http` 与 `https`。匿名公共 HTTP 生产默认关闭�
 
 API Key 仅允许出现在 `PUT /settings/models` 请求的 `apiKey` 字段中。服务端使用独立主密钥加密保存，幂等记录只保存请求摘要；响应、日志和模型元数据均不得包含明文或密文。`credentialConfigured` 只表示服务端持有可解密凭据。`GET/PUT /settings/model` 作为单供应商环境变量引用兼容接口保留；新界面和后续客户端使用 `/settings/models`。该配置只属于探索和候选规则编译边界，Run API 与执行 Worker 不读取它。
 
-Source 首次导航失败返回 `SOURCE_UNREACHABLE`。错误正文包含 Source 主机、归一化连接原因和检查动作，`retryable` 表示可在修正网址、网络或代理后重试；响应不得包含 Crawl4AI、Playwright 或浏览器内核的堆栈与源码路径。
+Source 首次导航失败返回 `SOURCE_UNREACHABLE`。错误正文包含 Source 主机、归一化连接原因和检查动作，`retryable` 表示可在修正网址、网络或代理后重试；响应不得包含 Playwright 或浏览器内核的堆栈与源码路径。
 
 ## 6. GatherSpec 与候选规则
 

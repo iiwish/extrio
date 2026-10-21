@@ -6,13 +6,12 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
-from crawl4ai import CacheMode, CrawlerRunConfig
 from test_runtime import runtime_spec
 
 from extrio.config import Settings
 from extrio.harvest import embedded_list_url
 from extrio.runtime import CrawleeRuntime
-from extrio.source_clients import RestrictedBrowser
+from extrio.source_clients import BrowserSnapshotConfig, RestrictedBrowser
 from extrio.source_network import SourceNetwork, SourceNetworkError
 
 FIXTURES = Path(__file__).parent / "fixtures" / "sources"
@@ -73,6 +72,12 @@ def source_server(monkeypatch):
                 body = body.replace("utf-8", encoding).replace(">A<", ">采购公告<")
             if path == "/subrequest-blocked":
                 body = '<html><script>fetch("http://localhost/not-allowed")</script></html>'
+            if path == '/post-blocked':
+                body = '<html><script>fetch("/must-not-post", {method:"POST", body:"x"})</script></html>'
+            if path == '/socket-blocked':
+                body = '<html><script>new WebSocket(location.origin.replace("http", "ws") + "/socket")</script></html>'
+            if path == '/service-worker':
+                body = '<html><body>notice<script>navigator.serviceWorker.register("/worker.js")</script></body></html>'
             if path == "/auxiliary-blocked":
                 body = (FIXTURES / "list.html").read_text() + (
                     '<script src="http://localhost/not-allowed.js"></script>'
@@ -136,7 +141,7 @@ async def test_repeatable_source_catalog(sample, source_server, tmp_path):
     url = origin + sample["path"]
     if sample["id"] == "iframe-shell":
         network = SourceNetwork({"127.0.0.1"}, allow_localhost=True)
-        config = CrawlerRunConfig(cache_mode=CacheMode.BYPASS, check_robots_txt=False, delay_before_return_html=0.2)
+        config = BrowserSnapshotConfig( delay_before_return_html=0.2)
         async with RestrictedBrowser(network) as browser:
             shell = await browser.arun(url, config)
             frame = embedded_list_url(shell.html, url)
@@ -180,18 +185,39 @@ async def test_repeatable_source_catalog(sample, source_server, tmp_path):
 async def test_browser_blocks_cross_host_xhr(source_server):
     origin, hits = source_server
     network = SourceNetwork({"127.0.0.1"}, allow_localhost=True)
-    config = CrawlerRunConfig(cache_mode=CacheMode.BYPASS, check_robots_txt=False, delay_before_return_html=0.2)
+    config = BrowserSnapshotConfig( delay_before_return_html=0.2)
     async with RestrictedBrowser(network) as browser:
         with pytest.raises(SourceNetworkError, match="host_not_allowed"):
             await browser.arun(origin + "/subrequest-blocked", config)
     assert not any("not-allowed" in path for path in hits)
 
 
+@pytest.mark.parametrize('path,reason', [('/post-blocked', 'anonymous_get_only'), ('/socket-blocked', 'websocket_unsupported')])
+async def test_browser_blocks_post_and_websocket_without_forwarding(source_server, path, reason):
+    origin, hits = source_server
+    network = SourceNetwork({'127.0.0.1'}, allow_localhost=True)
+    async with RestrictedBrowser(network) as browser:
+        with pytest.raises(SourceNetworkError, match=reason):
+            await browser.arun(origin + path, BrowserSnapshotConfig(delay_before_return_html=0.2))
+    assert hits == ['/robots.txt', path]
+    assert network.requests_used == 2
+
+
+async def test_browser_service_worker_cannot_bypass_guard(source_server):
+    origin, hits = source_server
+    network = SourceNetwork({'127.0.0.1'}, allow_localhost=True)
+    async with RestrictedBrowser(network) as browser:
+        result = await browser.arun(origin + '/service-worker', BrowserSnapshotConfig(delay_before_return_html=0.2))
+        assert 'notice' in result.html
+    assert hits == ['/robots.txt', '/service-worker']
+    assert network.requests_used == 2
+
+
 @pytest.mark.asyncio
 async def test_blocked_auxiliary_assets_do_not_discard_valid_page(source_server):
     origin, hits = source_server
     network = SourceNetwork({"127.0.0.1"}, allow_localhost=True)
-    config = CrawlerRunConfig(cache_mode=CacheMode.BYPASS, check_robots_txt=False, delay_before_return_html=0.2)
+    config = BrowserSnapshotConfig( delay_before_return_html=0.2)
     async with RestrictedBrowser(network) as browser:
         result = await browser.arun(origin + "/auxiliary-blocked", config)
         assert "notice-list" in result.html
@@ -202,7 +228,7 @@ async def test_blocked_auxiliary_assets_do_not_discard_valid_page(source_server)
 async def test_browser_still_rejects_cross_host_frame(source_server):
     origin, hits = source_server
     network = SourceNetwork({"127.0.0.1"}, allow_localhost=True)
-    config = CrawlerRunConfig(cache_mode=CacheMode.BYPASS, check_robots_txt=False, delay_before_return_html=0.2)
+    config = BrowserSnapshotConfig( delay_before_return_html=0.2)
     async with RestrictedBrowser(network) as browser:
         with pytest.raises(SourceNetworkError, match="host_not_allowed"):
             await browser.arun(origin + "/frame-blocked", config)
@@ -224,7 +250,7 @@ async def test_browser_recovers_from_one_navigation_timeout(source_server):
         return await fetch(url, **kwargs)
 
     network.fetch = delayed_fetch
-    config = CrawlerRunConfig(cache_mode=CacheMode.BYPASS, check_robots_txt=False,
+    config = BrowserSnapshotConfig(
                               page_timeout=2000, delay_before_return_html=0.1)
     async with RestrictedBrowser(network) as browser:
         result = await browser.arun(origin + "/timeout-once", config)
@@ -238,7 +264,7 @@ async def test_browser_recovers_from_one_navigation_timeout(source_server):
 async def test_browser_respects_declared_redirect_chain_limit(source_server):
     origin, hits = source_server
     network = SourceNetwork({"127.0.0.1"}, allow_localhost=True, max_redirects=1)
-    config = CrawlerRunConfig(cache_mode=CacheMode.BYPASS, check_robots_txt=False, delay_before_return_html=0)
+    config = BrowserSnapshotConfig( delay_before_return_html=0)
     async with RestrictedBrowser(network) as browser:
         with pytest.raises(SourceNetworkError, match="redirect_limit_exceeded"):
             await browser.arun(origin + "/redirect-chain/0", config)

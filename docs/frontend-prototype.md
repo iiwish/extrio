@@ -8,6 +8,8 @@
 
 1.0 的功能、AC/NFR、部署依赖和退出条件以[单组织自托管验收范围](planning/v1.0-scope-matrix.md)为版本适用合同。功能实现、工程验证、页面设计签收和生产目标达成分别记录，不将范围确认视为已实现或已验收。
 
+当前源码为 [v1.0.0-rc.2 测试候选版草稿](releases/v1.0-rc.2.md)，发布因残余安全风险暂缓。桌面界面提供字段证据、原文/PDF/EPS 文档谱系、覆盖进度、拒收待处理及有限恢复批次入口；采购网未完成覆盖与 106 条质量积压保持可见，不显示为正文完整或全站验收。当前不合并 main、发布制品、启用来源调度或部署生产。
+
 ## 运营状态与处理入口
 
 首页与来源列表共享当前来源待处理分类，纳入首次待运行、待审核、待生成、待完成迁移、活动规则缺失、最近运行不可用及最近终态异常。归档来源和实际执行中的来源不计为待处理；历史异常不替代最新运行。字段目标尚未开始迁移的未对齐来源在需求详情独立呈现，不从首页待处理数量推断全部需求已达成。
@@ -134,7 +136,7 @@ Extrio 只有一套正式前端：`web/index.html` → `src/main.tsx` → `app/r
 
 ## 2. 产品简述
 
-Extrio Web 控制台面向数据接入与运营人员，把一个采集需求和多个授权 Source 从批量接入推进到可审核规则、确定性运行和可追溯 Item。第一版通过 FastAPI、Crawl4AI 与 Crawlee 跑通真实本地纵向闭环，所有对象、状态、ID 和 API 边界与 SSOT 保持一致；MSW 保留为前端隔离开发和合同测试环境。
+Extrio Web 控制台面向数据接入与运营人员，把一个采集需求和多个授权 Source 从批量接入推进到可审核规则、确定性运行和可追溯 Item。第一版通过 FastAPI、Playwright 与 Crawlee 跑通真实本地纵向闭环，所有对象、状态、ID 和 API 边界与 SSOT 保持一致；MSW 保留为前端隔离开发和合同测试环境。
 
 目标用户需要在同一工作上下文中完成三类判断：Source 是否可访问、候选规则是否可信、Run 产出的 Item 是否满足数据合同。界面重点是状态、证据和下一步动作，不是展示平台功能数量。
 
@@ -159,7 +161,7 @@ Extrio Web 控制台面向数据接入与运营人员，把一个采集需求和
   -> 查看 accepted/rejected Item 与完整 lineage
 ```
 
-闭环使用一个演示 Tenant、标讯 CollectionVersion、多个 Source 和一个 RuleReviewer 身份。一个需求通过稳定 `collectionId` 与 `collectionName` 共享 CollectionVersion，每个精确列表入口创建独立 Collector 并返回逐项创建或拒绝结果；同域名的不同业务列表保持独立运行、Checkpoint 与故障边界，站点根目录不作为生产入口。Collector 列表通过所属需求列和可搜索需求筛选器支持跨需求运营与需求内查看；文件夹不承担领域归属。用户操作通过符合 `extrio.control-plane.v1` 的 FastAPI 触发持久化状态转换；探索与 Run 返回 `202 Accepted` Operation，独立 Worker 使用 Crawl4AI 或 Crawlee 执行，页面轮询服务端事实并可在刷新后恢复，不使用静态截图或客户端伪造进度。
+闭环使用一个演示 Tenant、标讯 CollectionVersion、多个 Source 和一个 RuleReviewer 身份。一个需求通过稳定 `collectionId` 与 `collectionName` 共享 CollectionVersion，每个精确列表入口创建独立 Collector 并返回逐项创建或拒绝结果；同域名的不同业务列表保持独立运行、Checkpoint 与故障边界，站点根目录不作为生产入口。Collector 列表通过所属需求列和可搜索需求筛选器支持跨需求运营与需求内查看；文件夹不承担领域归属。用户操作通过符合 `extrio.control-plane.v1` 的 FastAPI 触发持久化状态转换；探索与 Run 返回 `202 Accepted` Operation，独立 Worker 使用 Playwright 或 Crawlee 执行，页面轮询服务端事实并可在刷新后恢复，不使用静态截图或客户端伪造进度。
 
 Source 输入只接受 HTTP(S)。HTTPS 直接进入正常校验；匿名公共 HTTP 在本地 TenantAdmin 策略允许时显示“风险已标记”并可继续导入。配置 AccessProfile 或凭据的 Source 必须使用 HTTPS。前端提示不得把 HTTP 风险接受描述为主机、DNS、重定向或凭据边界的豁免。
 
@@ -289,7 +291,8 @@ web/src/
 - Operation 阶段使用 `queued`、`fetching_list`、`discovering_details`、`fetching_details`、`validating`、`finalizing`、`completed`；状态使用 `queued`、`running` 与四种终态，阶段与指标完全来自 API。排队超过 15 秒时显示 Worker 未领取诊断，明确检查 `extrio-worker` 是否运行以及 Worker 与 API 是否使用同一数据库；该提示不把仍可自动恢复的任务误报为终态失败。
 - 候选规则审核根据 `mode` 展示 `single` 单阶段或 `list_detail` 两阶段采集流程；分页策略、停止条件、detail URL 样本和 allowedHosts 证据仅在适用时出现。
 - 字段审核使用 `approved`、`risk_accepted`、`excluded`、`pending` 四种明确决定；任何 `pending` 字段阻断发布，发布确认必须逐项汇总决定。
-- 样本 accepted/rejected 标记和证据定位；字段、样本、已发布规则、Run 与 Item 分别通过按需 Sheet 显示对应证据，不复用过期选择状态，页面初始状态不显示证据 Sheet。
+- 样本 accepted/rejected 标记和证据定位；字段证据遵循绑定阶段，列表字段定位到详情 URL 对应行，详情字段定位到同一已通过样本，JSON 证据明确标为 JSON。已发布输出字段提供只读证据入口，不显示审核编辑控件。字段、样本、已发布规则、Run 与 Item 分别通过按需 Sheet 显示对应证据，不复用过期选择状态，页面初始状态不显示证据 Sheet。浏览器列表与 HTTP 详情的显式传输选择进入只读签名规则，不在界面虚报正文或附件解析成功。
+- 数据「来源与谱系」按真实解析类型展示发布者 HTML、官方原文跳转、PDF 文本层或 EPS 公开 GET/模板派生正文。来源链接、PDF 页数与解析失败原因可见，完整文件引用与校验值按需展开；派生 JSON 与渲染快照不标为原始 DOM。EPS 列表/模板标题措辞不同但 GUID、包件、公告阶段已核验时展示公告身份匹配，而非虚报标题文字相同。旧记录不显示空的原文解析分区。
 - 发布确认、权限说明、发布 loading、成功和失败。
 - 已发布状态展示 canonical rule digest；新 Run 的“质量与证据”视图直接展示 RuleAttestation、固定策略和结果集冻结状态，attestation ID、digest、SigningKey 与 trust revision 收纳进默认折叠的技术信息，失败不得伪装为已验证。
 - Run 的 queued、running、finalizing、succeeded、partially_succeeded、failed、cancelled、timed_out。
@@ -301,7 +304,7 @@ web/src/
 
 ## 9. 非目标
 
-- 本地闭环由 Crawl4AI 按固定导航条件和异步内容沉降时长固化入口、列表和详情样本，当前默认模型在接入期编译受约束 RulePlan，服务端验证 selector、分页、字段、身份与样本命中后生成候选 GatherSpec 并记录模型谱系；已发布规则的生产 Run 使用同一浏览器 snapshot 时点和确定性运行时，不读取模型设置或调用 LLM。开发持久化使用 SQLite 与本地 sampled Artifact。
+- 本地闭环由 Playwright 按固定导航条件和异步内容沉降时长固化入口、列表和详情样本，当前默认模型在接入期编译受约束 RulePlan，服务端验证 selector、分页、字段、身份与样本命中后生成候选 GatherSpec 并记录模型谱系；已发布规则的生产 Run 使用同一浏览器 snapshot 时点和确定性运行时，不读取模型设置或调用 LLM。开发持久化使用 SQLite 与本地 sampled Artifact。
 - 实现首次本地管理员设置、最少 8 个字符的密码输入约束、登录与退出；多 Tenant 切换、MFA、四眼审批和审计导出不在公开 Alpha 范围。
 - 不实现独立 Schedule 管理页、Kafka Sink、漂移恢复和 Artifact 下载；Collector 详情内提供可执行的定时计划配置、Webhook Sink 配置、投递记录与重新投递（v0.3 交付），Item 列表工具栏提供携带当前筛选的 CSV/JSONL 数据导出。
 - 不把 mock 状态或演示签名描述为生产证据。
@@ -321,3 +324,10 @@ web/src/
 7. Collector 详情的采集来源定义与规则工作区在两种支持视口均可扫描和操作；需求归属通过独立确认流程调整，固定数据合同只读；名称修改保留活动规则状态，来源采集说明或入口修改关闭调度并清除后续执行依据，提供保存后重新生成路径；直接规则编辑产生新候选 digest、清空旧审核决定并显示最近样本验证结果，已发布 RuleVersion 始终只读。
 8. `pnpm api:generate`、`pnpm build`、TypeScript、lint、OpenAPI/异步合同测试和 GatherSpec Schema 测试通过。
 9. 前端不包含 secret、真实签名私钥、内部对象存储 URL 或把客户端 tenantId 当作权限依据的逻辑。
+10. 同一分钟的连续运行在数据列表显示实际最新观测，版本与观察保留历史；未变化不显示为更新。运行详情如实显示首次/增量模式和检查点，不把达到页数上限或去重成功显示为完整增量覆盖。
+11. 覆盖模式在运行的“范围与增量”显示续跑页、覆盖检查点口径和可进入数据列表的质量积压；工程师或管理员可显式重新处理拒收项，活动任务、删除来源和只读角色不可提交。来源策略的检查点口径可选且真实保存；原文谱系并列展示原始日期和转载日期，并区分成交结果与失败结果。页面沿用既有面板和任务导航，不新增移动端。
+
+运行视图区分“来源限流，已停止请求”和“列表响应结构无法确认”，不把异常空页显示为正常结束。相对当前来源已被替代的策略在覆盖进度位置显示历史策略记录，不作为当前覆盖依据；原生历史执行状态和检查点数值保持可追溯。沿用现有桌面布局、字体和面板，不增加专用仪表盘或移动端分支。
+
+运行的“范围与增量”显示独立的有限恢复栏：冷却/执行/停止/人工处理状态、已用尝试次数、接续起点、下次时刻、绝对截止时间、已预留请求预算和原生尝试链接。工程师或管理员仅可对最新有效限流运行创建固定上限批次或停止已有批次；历史批次不提供重置预算操作。读取失败显示错误而非未创建，刷新从后端恢复真实状态。界面“接续已验证”与覆盖检查点分开，不改写种子失败状态，不显示虚构倒计时或完成结果。沿用 DetailPanel、现有字体和三列紧凑事实网格，仅验证受支持桌面视口。
+12. 近期栏目耗尽但未覆盖历史窗口时显示“当前栏目未覆盖历史窗口”，而非覆盖完成。官网历史搜索和询比采购的候选规则、发布证明、真实运行及模板派生证据沿用现有审核、运行和数据界面；不得通过脚本导入结果模拟原生采集。

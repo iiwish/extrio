@@ -27,31 +27,44 @@ ROOT = Path(__file__).resolve().parents[2]
 FIXTURE = Path(__file__).parent / "fixtures" / "release_baseline.py"
 
 
-@pytest.fixture
-def baseline(tmp_path):
-    result = subprocess.run(["git", "archive", BASELINE, "backend", "docs/contracts"], cwd=ROOT, capture_output=True, check=True)
-    target = tmp_path / "baseline"
-    with tarfile.open(fileobj=io.BytesIO(result.stdout)) as archive:
+def test_preexported_upgrade_sources_do_not_invoke_git(tmp_path, monkeypatch):
+    exports = tmp_path / "exports"
+    exports.mkdir()
+    with tarfile.open(exports / f"{RC_RELEASE}.tar", "w") as archive:
+        info = tarfile.TarInfo("backend/fixture.txt")
+        info.size = 7
+        archive.addfile(info, io.BytesIO(b"fixture"))
+    monkeypatch.setenv("EXTRIO_TEST_RELEASE_ARCHIVES", str(exports))
+    monkeypatch.setattr(subprocess, "run", lambda *_args, **_kwargs: pytest.fail("git was invoked"))
+    target = archived_release(RC_RELEASE, tmp_path / "restored-source")
+    assert (target / "backend/fixture.txt").read_text() == "fixture"
+
+
+def archived_release(commit, target):
+    if exported := os.environ.get("EXTRIO_TEST_RELEASE_ARCHIVES"):
+        source = tarfile.open(Path(exported) / f"{commit}.tar")
+    else:
+        result = subprocess.run(["git", "archive", commit, "backend", "docs/contracts"],
+                                cwd=ROOT, capture_output=True, check=True)
+        source = tarfile.open(fileobj=io.BytesIO(result.stdout))
+    with source as archive:
         archive.extractall(target, filter="data")
     return target
+
+
+@pytest.fixture
+def baseline(tmp_path):
+    return archived_release(BASELINE, tmp_path / "baseline")
 
 
 @pytest.fixture
 def alpha_release(tmp_path):
-    result = subprocess.run(["git", "archive", ALPHA_RELEASE, "backend", "docs/contracts"], cwd=ROOT, capture_output=True, check=True)
-    target = tmp_path / "alpha-release"
-    with tarfile.open(fileobj=io.BytesIO(result.stdout)) as archive:
-        archive.extractall(target, filter="data")
-    return target
+    return archived_release(ALPHA_RELEASE, tmp_path / "alpha-release")
 
 
 @pytest.fixture
 def rc_release(tmp_path):
-    result = subprocess.run(["git", "archive", RC_RELEASE, "backend", "docs/contracts"], cwd=ROOT, capture_output=True, check=True)
-    target = tmp_path / "rc-release"
-    with tarfile.open(fileobj=io.BytesIO(result.stdout)) as archive:
-        archive.extractall(target, filter="data")
-    return target
+    return archived_release(RC_RELEASE, tmp_path / "rc-release")
 
 
 @pytest.fixture(params=["sqlite", "postgresql"])
@@ -266,8 +279,9 @@ def test_published_alpha_upgrade_and_full_backup_rollback(alpha_release, databas
     for key in ("rules", "attestations", "versions", "boundCollector", "deliveries", "user", "session"):
         assert after[key] == before[key], key
     assert after["collector"]["activeRuleVersion"] == before["collector"]["activeRuleVersion"]
-    assert after["migrations"][-3:] == [
+    assert after["migrations"][-4:] == [
         "011_delivery_sink_version_identity", "012_auth_login_attempts", "013_runtime_backfills",
+        "014_bounded_recovery",
     ]
     upgraded = Store(source / "database.db", database_url=source_url)
     for original in before["rules"]:
@@ -319,8 +333,12 @@ def test_published_rc_upgrade_and_matching_rc_full_backup_rollback(rc_release, d
     current_env["EXTRIO_DATABASE_AUTO_MIGRATE"] = "false"
     after_file = tmp_path / "rc-upgraded.json"
     old_process(ROOT, current_env, [str(FIXTURE), "inspect-rc", str(after_file)])
-    # RC and the stable candidate share schema 013; migration timestamps and all seeded history stay unchanged.
-    assert json.loads(after_file.read_text()) == before
+    after = json.loads(after_file.read_text())
+    assert after['migrations'] == [*before['migrations'], '014_bounded_recovery']
+    assert after['migrationRecords'][:-1] == before['migrationRecords']
+    assert after['migrationRecords'][-1]['id'] == '014_bounded_recovery'
+    assert {k: v for k, v in after.items() if k not in {'migrations', 'migrationRecords'}} == {
+        k: v for k, v in before.items() if k not in {'migrations', 'migrationRecords'}}
     upgraded = Store(source / "database.db", database_url=source_url)
     assert verify_password("Release-fixture-123!", upgraded.get_auth_credentials("release-admin")["passwordHash"])
     for attestation in before["attestations"]:

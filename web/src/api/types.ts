@@ -54,6 +54,7 @@ export type CandidateRule = Omit<Schemas['CandidateRule'], 'gatherSpec'> & { gat
 export type ItemLineage = Schemas['ItemLineage']
 export type HarvestItem = Schemas['HarvestResult']
 export type Run = Schemas['Run']
+export type RecoveryBatch = Schemas['RecoveryBatch']
 export type AiRun = Schemas['AiRun']
 export type AiRunDetail = Schemas['AiRunDetail']
 export type AiAttempt = Schemas['AiAttempt']

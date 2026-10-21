@@ -6,7 +6,7 @@ from urllib.parse import quote, urldefrag, urljoin, urlsplit
 from bs4 import BeautifulSoup, Tag
 
 
-def navigation_url(anchor: Tag | None, base_url: str) -> str | None:
+def navigation_url(anchor: Tag | None, base_url: str, *, retain_self: bool = False) -> str | None:
     if anchor is None or anchor.get('aria-disabled') == 'true' or 'disabled' in anchor.get('class', []):
         return None
     href = str(anchor.get('href', '')).strip()
@@ -31,7 +31,7 @@ def navigation_url(anchor: Tag | None, base_url: str) -> str | None:
         parsed, base = urlsplit(target), urlsplit(base_url)
         if parsed.scheme not in {'http', 'https'} or not parsed.hostname or parsed.username or parsed.password:
             return None
-        if target == urldefrag(base_url)[0]:
+        if not retain_self and target == urldefrag(base_url)[0]:
             return None
         if static and (parsed.scheme, parsed.hostname, parsed.port) != (base.scheme, base.hostname, base.port):
             return None

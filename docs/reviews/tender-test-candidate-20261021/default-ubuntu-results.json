@@ -1,0 +1,249 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "631cf6771bfa1548f3b7d84dd6e37b42480eb477",
+  "defaultBuild": "Ubuntu 24.04, official Python 3.12, headless-shell",
+  "liveInstanceChanged": false,
+  "stableDependencyChanged": false,
+  "riskWaiver": false,
+  "workflow": "https://github.com/iiwish/extrio/actions/runs/39554200976",
+  "variants": [
+    {
+      "runner": "ubuntu-24.04-arm",
+      "imageId": "sha256:257db5e1ffbc1d3969d6e2a7a647305c62ac8981cbb9cebe01e2584a43069795",
+      "testsPassed": 255,
+      "capabilitiesMatch": true,
+      "pythonVersion": "3.12.3",
+      "pythonBaseExecutable": "/usr/bin/python3.12",
+      "pgDumpVersion": "pg_dump (PostgreSQL) 16.15 (Ubuntu 16.15-1.pgdg24.04+2)",
+      "lockSha256": "fdb2c652e2e3e2f55c69a37846216c2de73949cc01e1d5a829b09f8f65a89d7a",
+      "security": {
+        "residualBySeverity": {
+          "MEDIUM": 30,
+          "LOW": 16,
+          "HIGH": 1
+        },
+        "residualHighCriticalCves": [
+          "CVE-2026-81726"
+        ],
+        "blockers": []
+      },
+      "sha256": {
+        "vulnerabilities.json": "3083403c37157fc94abf067f2e5e22b8b57d856a978c9a505bf9bd70748612d9",
+        "tests.xml": "f9c20aff59a58affb652b6b0abed8afde71701113809736b41dae44bccdad735",
+        "runtime.json": "ca19d31c6238c5ed20b723a91041aa56d2e2f06cf20e5fcd6c1c8ecf0b89cf4d",
+        "image.json": "6ecb40f9a219e1db31f2f78288075762a5b3232d79e45346cea2f35ec0f0b38a"
+      },
+      "releaseAccepted": false
+    },
+    {
+      "runner": "ubuntu-latest",
+      "imageId": "sha256:32e95bb94d9f5e2d821f75dbbdb2933e7b5acf0f5be515e4ee3cfa48e3a1f7f2",
+      "testsPassed": 255,
+      "capabilitiesMatch": true,
+      "pythonVersion": "3.12.3",
+      "pythonBaseExecutable": "/usr/bin/python3.12",
+      "pgDumpVersion": "pg_dump (PostgreSQL) 16.15 (Ubuntu 16.15-1.pgdg24.04+2)",
+      "lockSha256": "fdb2c652e2e3e2f55c69a37846216c2de73949cc01e1d5a829b09f8f65a89d7a",
+      "security": {
+        "residualBySeverity": {
+          "MEDIUM": 30,
+          "LOW": 16,
+          "HIGH": 1
+        },
+        "residualHighCriticalCves": [
+          "CVE-2026-81726"
+        ],
+        "blockers": []
+      },
+      "sha256": {
+        "tests.xml": "a97767b0e01b9a7edcf7d9d9206a02615ddebdceb08879f1c6855838b361cba0",
+        "runtime.json": "6d76b83ce7b45516f4c140c80bc4e570c7b7018315a58620adc125d951432beb",
+        "vulnerabilities.json": "5ca00f95a52aa00093037d5366876d37f9c4a46fe0e8817aacd095361dc15284",
+        "image.json": "94c7748ac4dee307246ad4e0174dc06a58071dbd6b5954f83c82dcec52862e26"
+      },
+      "releaseAccepted": false
+    }
+  ],
+  "prereleaseAssessments": [
+    {
+      "runner": "ubuntu-24.04-arm",
+      "sourceCommit": "ba6b259aa94a85168c031ad60e4072538c30b513",
+      "sourceVersion": "3.10.4",
+      "modulePath": "/nltk-source/nltk/__init__.py",
+      "guardRefusals": [
+        {
+          "vector": "absolute",
+          "api": "negativeControl"
+        },
+        {
+          "vector": "absolute",
+          "api": "AveragedPerceptron.save"
+        },
+        {
+          "vector": "absolute",
+          "api": "AveragedPerceptron.load"
+        },
+        {
+          "vector": "absolute",
+          "api": "PerceptronTagger.save_to_json"
+        },
+        {
+          "vector": "absolute",
+          "api": "save_maxent_params"
+        },
+        {
+          "vector": "absolute",
+          "api": "TransitionParser.parse"
+        },
+        {
+          "vector": "traversal",
+          "api": "negativeControl"
+        },
+        {
+          "vector": "traversal",
+          "api": "AveragedPerceptron.save"
+        },
+        {
+          "vector": "traversal",
+          "api": "AveragedPerceptron.load"
+        },
+        {
+          "vector": "traversal",
+          "api": "PerceptronTagger.save_to_json"
+        },
+        {
+          "vector": "traversal",
+          "api": "save_maxent_params"
+        },
+        {
+          "vector": "traversal",
+          "api": "TransitionParser.parse"
+        },
+        {
+          "vector": "symlink",
+          "api": "negativeControl"
+        },
+        {
+          "vector": "symlink",
+          "api": "AveragedPerceptron.save"
+        },
+        {
+          "vector": "symlink",
+          "api": "AveragedPerceptron.load"
+        },
+        {
+          "vector": "symlink",
+          "api": "PerceptronTagger.save_to_json"
+        },
+        {
+          "vector": "symlink",
+          "api": "save_maxent_params"
+        },
+        {
+          "vector": "symlink",
+          "api": "TransitionParser.parse"
+        }
+      ],
+      "roundTripChecks": [
+        "AveragedPerceptron",
+        "maxent parameters"
+      ],
+      "transitionTrain": "source review only; optional scikit-learn training is not exercised",
+      "scope": "five affected APIs, three escape vectors and controls; not full prerelease qualification",
+      "stableDependencyChanged": false,
+      "riskWaiver": false,
+      "archiveSha256": "2d401f212e7d872d9349bd43dedcab08bda54a807ce99957569725b567714464",
+      "assessmentSha256": "8aa0e82ea2b51948fe701a66482e41fdc831300db69a7aa3baf947bde92f54d0"
+    },
+    {
+      "runner": "ubuntu-latest",
+      "sourceCommit": "ba6b259aa94a85168c031ad60e4072538c30b513",
+      "sourceVersion": "3.10.4",
+      "modulePath": "/nltk-source/nltk/__init__.py",
+      "guardRefusals": [
+        {
+          "vector": "absolute",
+          "api": "negativeControl"
+        },
+        {
+          "vector": "absolute",
+          "api": "AveragedPerceptron.save"
+        },
+        {
+          "vector": "absolute",
+          "api": "AveragedPerceptron.load"
+        },
+        {
+          "vector": "absolute",
+          "api": "PerceptronTagger.save_to_json"
+        },
+        {
+          "vector": "absolute",
+          "api": "save_maxent_params"
+        },
+        {
+          "vector": "absolute",
+          "api": "TransitionParser.parse"
+        },
+        {
+          "vector": "traversal",
+          "api": "negativeControl"
+        },
+        {
+          "vector": "traversal",
+          "api": "AveragedPerceptron.save"
+        },
+        {
+          "vector": "traversal",
+          "api": "AveragedPerceptron.load"
+        },
+        {
+          "vector": "traversal",
+          "api": "PerceptronTagger.save_to_json"
+        },
+        {
+          "vector": "traversal",
+          "api": "save_maxent_params"
+        },
+        {
+          "vector": "traversal",
+          "api": "TransitionParser.parse"
+        },
+        {
+          "vector": "symlink",
+          "api": "negativeControl"
+        },
+        {
+          "vector": "symlink",
+          "api": "AveragedPerceptron.save"
+        },
+        {
+          "vector": "symlink",
+          "api": "AveragedPerceptron.load"
+        },
+        {
+          "vector": "symlink",
+          "api": "PerceptronTagger.save_to_json"
+        },
+        {
+          "vector": "symlink",
+          "api": "save_maxent_params"
+        },
+        {
+          "vector": "symlink",
+          "api": "TransitionParser.parse"
+        }
+      ],
+      "roundTripChecks": [
+        "AveragedPerceptron",
+        "maxent parameters"
+      ],
+      "transitionTrain": "source review only; optional scikit-learn training is not exercised",
+      "scope": "five affected APIs, three escape vectors and controls; not full prerelease qualification",
+      "stableDependencyChanged": false,
+      "riskWaiver": false,
+      "archiveSha256": "2d401f212e7d872d9349bd43dedcab08bda54a807ce99957569725b567714464",
+      "assessmentSha256": "8aa0e82ea2b51948fe701a66482e41fdc831300db69a7aa3baf947bde92f54d0"
+    }
+  ]
+}

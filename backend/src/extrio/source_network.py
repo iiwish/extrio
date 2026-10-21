@@ -6,6 +6,9 @@ import socket
 import ssl
 import zlib
 from dataclasses import dataclass
+from datetime import UTC, datetime
+from email.utils import parsedate_to_datetime
+from math import ceil
 from time import monotonic
 from urllib.parse import urljoin, urlsplit, urlunsplit
 from urllib.robotparser import RobotFileParser
@@ -16,6 +19,21 @@ import httpx
 class SourceNetworkError(RuntimeError):
     code = "SOURCE_NETWORK_REJECTED"
     retryable = False
+
+
+def retry_after_seconds(value: str | None, *, now: datetime | None = None) -> int | None:
+    if not value:
+        return None
+    value = value.strip()
+    if value.isascii() and value.isdigit():
+        return min(int(value), 315360000) if len(value) <= 10 else 315360000
+    try:
+        parsed = parsedate_to_datetime(value)
+        if parsed.tzinfo is None:
+            return None
+        return min(315360000, max(0, ceil((parsed - (now or datetime.now(UTC))).total_seconds())))
+    except (TypeError, ValueError, OverflowError):
+        return None
 
 
 def _bad_ecpoint(exc: BaseException) -> bool:
@@ -34,6 +52,7 @@ class FetchBudget:
     max_page_bytes: int = 5_000_000
     max_seconds: float = 180
     total_bytes: int = 0
+    max_requests: int | None = None
 
 
 @dataclass
@@ -65,6 +84,7 @@ class SourceNetwork:
         max_concurrency: int = 4,
         requests_per_second: float | None = None,
         max_attempts: int = 3,
+        upgrade_fudan_original: bool = False,
     ):
         self.allowed_hosts = {host.lower().rstrip(".") for host in allowed_hosts}
         self.allow_localhost = allow_localhost
@@ -79,10 +99,15 @@ class SourceNetwork:
         self.max_redirects = max(0, min(max_redirects, 5))
         self.request_timeout = min(request_timeout, 30)
         self.max_attempts = max(1, min(max_attempts, 3))
+        self.upgrade_fudan_original = upgrade_fudan_original
+        self.redirect_evidence: list[dict] = []
         self.slots = asyncio.Semaphore(max(1, min(max_concurrency, 4)))
         self.rate_lock = asyncio.Lock()
         self.spacing = 1 / requests_per_second if requests_per_second else 0
         self.next_request_at = 0.0
+        self.requests_used = 0
+        self.rate_limit_response: SourceResponse | None = None
+        self.retry_after: int | None = None
 
     async def target(self, url: str) -> tuple[httpx.URL, str, str]:
         try:
@@ -135,6 +160,8 @@ class SourceNetwork:
 
     async def _fetch(self, url: str, *, follow_redirects: bool, respect_robots: bool = False) -> SourceResponse:
         for _hop in range(self.max_redirects + 1):
+            if self.rate_limit_response is not None:
+                raise SourceNetworkError('source_rate_limited')
             if respect_robots:
                 await self.check_robots(url, within_slot=True)
             pinned_url, host_header, tls_name = await self.target(url)
@@ -146,6 +173,12 @@ class SourceNetwork:
                     result = await self._request(url, pinned_url, host_header, tls_name)
             except TimeoutError as exc:
                 raise SourceNetworkError("source_request_timed_out") from exc
+            hint = retry_after_seconds(result.headers.get('retry-after'))
+            if hint is not None:
+                self.retry_after = max(self.retry_after or 0, hint)
+            if result.status == 429:
+                self.rate_limit_response = result
+                raise SourceNetworkError('source_rate_limited')
             if result.status not in {301, 302, 303, 307, 308}:
                 return result
             location = result.headers.get("location")
@@ -153,7 +186,15 @@ class SourceNetwork:
                 raise SourceNetworkError("redirect_missing_location")
             next_url = urljoin(url, location)
             if urlsplit(url).scheme == "https" and urlsplit(next_url).scheme != "https":
-                raise SourceNetworkError("redirect_https_downgrade")
+                from extrio.official_documents import ccgp_notice, https_original
+
+                if (self.upgrade_fudan_original and urlsplit(url).hostname == "czzx.fudan.edu.cn"
+                        and urlsplit(url).path.startswith("/_redirect") and ccgp_notice(next_url)):
+                    upgraded = https_original(next_url)
+                    self.redirect_evidence.append({"url": url, "status": result.status, "location": next_url, "upgradedTo": upgraded})
+                    next_url = upgraded
+                else:
+                    raise SourceNetworkError("redirect_https_downgrade")
             await self.target(next_url)
             if not follow_redirects:
                 if self.max_redirects == 0:
@@ -184,6 +225,11 @@ class SourceNetwork:
         return result
 
     async def _request_once(self, url, pinned_url, host_header, tls_name, *, verify=True):
+        if self.rate_limit_response is not None:
+            raise SourceNetworkError('source_rate_limited')
+        if self.budget.max_requests is not None and self.requests_used >= self.budget.max_requests:
+            raise SourceNetworkError('source_request_budget_exceeded')
+        self.requests_used += 1
         # No ambient proxies, cookies, user headers, or credentials cross this boundary.
         async with httpx.AsyncClient(
             transport=self.transport, trust_env=False, follow_redirects=False, timeout=self.request_timeout, verify=verify

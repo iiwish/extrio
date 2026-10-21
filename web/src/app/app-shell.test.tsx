@@ -29,7 +29,7 @@ describe('AppShell navigation', () => {
     expect(within(screen.getByRole('main')).getByText('采集来源详情')).toBeInTheDocument()
     expect(within(screen.getByRole('navigation', { name: '主导航' })).getByRole('link', { name: '采集来源' })).toHaveClass('is-active')
     expect(screen.queryByText('本地验收工作区')).not.toBeInTheDocument()
-    expect(screen.getByLabelText('当前页面')).toHaveTextContent('采集来源')
+    expect(screen.getByRole('group', { name: '当前页面' })).toHaveTextContent('采集来源')
     expect(screen.queryByText('北辰数据')).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: '返回采集来源列表' })).toHaveAttribute('href', '/collectors')
     expect(screen.queryByText('返回所属需求')).not.toBeInTheDocument()

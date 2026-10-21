@@ -580,6 +580,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/collectors/{collectorId}/reprocess-rejected": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Explicit bounded re-fetch of current rejected entities using the active signed rule. Does not advance coverage. */
+        post: operations["reprocessCollectorRejected"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/operations/{operationId}": {
         parameters: {
             query?: never;
@@ -672,6 +689,54 @@ export interface paths {
         get: operations["listRuns"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/runs/{runId}/recovery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getRunRecovery"];
+        put?: never;
+        post: operations["startRunRecovery"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recovery-batches/{batchId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getRecoveryBatch"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recovery-batches/{batchId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancelRecoveryBatch"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1646,6 +1711,8 @@ export interface components {
             } | null;
             collectionPolicy: components["schemas"]["CollectionPolicy"] | null;
             checkpoint: components["schemas"]["CollectorCheckpoint"] | null;
+            coverageProgress?: components["schemas"]["CoverageProgress"] | null;
+            qualityBacklogCount?: number;
             schedule: components["schemas"]["CollectorSchedule"];
         };
         CollectorPage: {
@@ -1696,6 +1763,10 @@ export interface components {
             pagination: components["schemas"]["PaginationNone"] | components["schemas"]["PaginationPage"] | components["schemas"]["PaginationNextLink"];
             /** @description Complete list-stage field selector set for list_detail candidates. Optional for backward-compatible clients; when present, detailUrl must match detailLinkSelector. */
             listFields?: components["schemas"]["CandidateRuleFieldEditInput"][];
+            /** @description Optional operational list date. Does not expand the frozen business output. */
+            listDateSelector?: string;
+            /** @enum {unknown} */
+            officialResolutionVersion?: "official_notice_v2" | "official_notice_v3";
             fields: components["schemas"]["CandidateRuleFieldEditInput"][];
         };
         CandidateRuleFieldEditInput: {
@@ -1773,6 +1844,8 @@ export interface components {
             updatedAt: string;
         };
         CollectionPolicyInput: {
+            /** @enum {string} */
+            checkpointMode?: "accepted_only" | "observed";
             /** @constant */
             mode: "rolling_incremental";
             initialWindowDays: number;
@@ -1784,6 +1857,8 @@ export interface components {
             timezone: "Asia/Shanghai";
         };
         CollectionPolicy: {
+            /** @enum {string} */
+            checkpointMode?: "accepted_only" | "observed";
             id: string;
             collectorId: string;
             version: number;
@@ -1801,6 +1876,9 @@ export interface components {
             digest: string;
         };
         CollectorCheckpoint: {
+            /** @constant */
+            kind?: "coverage";
+            ruleDigest?: string;
             collectorId: string;
             policyVersionId: string;
             lastSuccessfulRunId: string;
@@ -1809,7 +1887,31 @@ export interface components {
             /** Format: date-time */
             advancedAt: string;
         };
+        CoverageProgress: {
+            ruleDigest: string;
+            policyVersionId: string;
+            /** Format: date */
+            windowStart: string;
+            resumeUrl: string;
+            pageIndex: number;
+            anchorUrl: string | null;
+            processedUrls: string[];
+            pageComplete?: boolean;
+            overlapUrls?: string[];
+            olderPagesBefore: number;
+            /** Format: date */
+            oldestDateBefore?: string | null;
+            watermark: string | null;
+        };
         ItemLineage: {
+            /** @description Normalized source list fields retained for explicit reprocessing; values follow the signed field definitions. */
+            listRecord?: {
+                [key: string]: unknown;
+            };
+            /** @description Derived official document provenance, raw response hashes, format and quality errors. Not original DOM. */
+            documentResolution?: {
+                [key: string]: unknown;
+            };
             sourceRevision: string;
             collectionVersion: string;
             ruleVersion: string;
@@ -1876,7 +1978,58 @@ export interface components {
             /** @constant */
             replayReason: "complete_replayable_evidence_unavailable";
         };
+        RecoveryBatch: {
+            id: string;
+            collectorId: string;
+            seedRunId: string;
+            /** @enum {unknown} */
+            status: "cooling_down" | "running" | "cancelling" | "recovered" | "needs_attention" | "cancelled";
+            reason: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** Format: date-time */
+            finishedAt: string | null;
+            /** Format: date-time */
+            nextAttemptAt: string | null;
+            /** @constant */
+            maxAttempts: 3;
+            attemptRunIds: string[];
+            activeRunId: string | null;
+            reservedRequests: number;
+            /** @constant */
+            maxRequests: 360;
+            /** @constant */
+            requestsPerAttempt: 120;
+            /** @constant */
+            maxPages: 3;
+            /** @constant */
+            maxItems: 50;
+            cooldownSeconds: number[];
+            /** Format: date */
+            windowStart: string;
+            ruleVersion: string;
+            policyVersion: string;
+            cancelRequested: boolean;
+            resumePage: number;
+        };
         Run: {
+            recoveryBatchId?: string;
+            sourceRequestLimit?: number;
+            sourceRequests?: number;
+            retryAfterSeconds?: number | null;
+            /** Format: date-time */
+            finishedAtIso?: string;
+            /** @constant */
+            coverageMode?: "observed";
+            /** @constant */
+            runPurpose?: "retry_rejected";
+            pendingQualityCount?: number;
+            coverageProgressBefore?: components["schemas"]["CoverageProgress"] | null;
+            coverageProgressAfter?: components["schemas"]["CoverageProgress"] | null;
             /** @description The source was deleted; this historical record remains available. */
             collectorDeleted?: boolean;
             collectionAttribution?: components["schemas"]["CollectionAttribution"];
@@ -1902,7 +2055,7 @@ export interface components {
             updatedItems: number;
             unchangedItems: number;
             /** @enum {string} */
-            paginationStopReason: "not_applicable" | "empty_page" | "next_link_exhausted" | "max_pages" | "max_items" | "budget_exhausted" | "cross_host_blocked" | "time_window_reached" | "checkpoint_reached" | "detail_fetch_incomplete";
+            paginationStopReason: "not_applicable" | "empty_page" | "next_link_exhausted" | "max_pages" | "max_items" | "budget_exhausted" | "cross_host_blocked" | "time_window_reached" | "checkpoint_reached" | "detail_fetch_incomplete" | "coverage_date_unknown" | "coverage_order_unverified" | "source_window_truncated" | "source_rate_limited" | "source_structure_mismatch";
             ruleVersion: string;
             ruleDigest: string;
             ruleAttestationId: string;
@@ -2178,7 +2331,13 @@ export interface components {
             /** @description Capture group index to emit; 0 emits the whole match. Defaults to 0. */
             group?: number;
         };
-        transformItem: components["schemas"]["transform"] | components["schemas"]["regexExtractTransform"];
+        /** @description Build a same-host URL from an evidenced relative path prefix and a digits-only ID. No templates, code or cross-host URLs. */
+        urlPathTransform: {
+            /** @constant */
+            type: "url_path";
+            prefix: string;
+        };
+        transformItem: components["schemas"]["transform"] | components["schemas"]["regexExtractTransform"] | components["schemas"]["urlPathTransform"];
         fieldRule: {
             selector: string;
             /** @enum {unknown} */
@@ -2245,6 +2404,10 @@ export interface components {
             pagination: components["schemas"]["pagination"];
         };
         detailStage: {
+            /** @enum {unknown} */
+            resolution?: "official_notice_v1" | "official_notice_v2" | "official_notice_v3";
+            /** @enum {unknown} */
+            transport?: "http" | "browser";
             request: components["schemas"]["detailRequest"];
             /** @enum {unknown} */
             responseType: "html" | "json";
@@ -2548,7 +2711,13 @@ export interface components {
                     /** @description Capture group index to emit; 0 emits the whole match. Defaults to 0. */
                     group?: number;
                 };
-                transformItem: components["schemas"]["transform"] | components["schemas"]["regexExtractTransform"];
+                /** @description Build a same-host URL from an evidenced relative path prefix and a digits-only ID. No templates, code or cross-host URLs. */
+                urlPathTransform: {
+                    /** @constant */
+                    type: "url_path";
+                    prefix: string;
+                };
+                transformItem: components["schemas"]["transform"] | components["schemas"]["regexExtractTransform"] | components["schemas"]["urlPathTransform"];
                 fieldRule: {
                     selector: string;
                     /** @enum {unknown} */
@@ -2600,6 +2769,10 @@ export interface components {
                     pagination: components["schemas"]["pagination"];
                 };
                 detailStage: {
+                    /** @enum {unknown} */
+                    resolution?: "official_notice_v1" | "official_notice_v2" | "official_notice_v3";
+                    /** @enum {unknown} */
+                    transport?: "http" | "browser";
                     request: components["schemas"]["detailRequest"];
                     /** @enum {unknown} */
                     responseType: "html" | "json";
@@ -4009,6 +4182,32 @@ export interface operations {
             default: components["responses"]["PlatformError"];
         };
     };
+    reprocessCollectorRejected: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                collectorId: components["parameters"]["CollectorId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Reprocessing accepted for asynchronous execution. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Operation"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
     getOperation: {
         parameters: {
             query?: never;
@@ -4165,6 +4364,112 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RunPage"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    getRunRecovery: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runId: components["parameters"]["RunId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Persistent bounded recovery batch, or null when none exists. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryBatch"] | null;
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    startRunRecovery: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                runId: components["parameters"]["RunId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Explicit finite recovery authorization; never enables the source schedule. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryBatch"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    getRecoveryBatch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                batchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Persistent finite recovery state. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryBatch"];
+                };
+            };
+            default: components["responses"]["PlatformError"];
+        };
+    };
+    cancelRecoveryBatch: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description Stable UUID or equivalent token for one logical mutation. Retries reuse the same value. */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+            };
+            path: {
+                batchId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            /** @description Stops future dispatch and requests cancellation of an active attempt. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryBatch"];
                 };
             };
             default: components["responses"]["PlatformError"];

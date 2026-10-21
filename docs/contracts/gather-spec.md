@@ -131,6 +131,10 @@ RuleVersion 必须完整保存这些字段。运行时不得用数据库中的�
 
 ### 7.4 限流与请求策略
 
+`collect.detail.resolution=official_notice_v1` 是显式签名的平台能力，限定三个已注册采购入口及精确主机组合：复旦/厦大与 `www.ccgp.gov.cn`，广东招标中心与 `eps.gdebidding.com`。它要求 detail `responseType=json`、HTTP transport 和 JSONPath 字段，输出带文档来源的派生 JSON。运行前复核配置，模型不能扩展主机或接口。复旦发布者 `_redirect` 给出的精确 CCGP 公告 HTTP 地址仅请求其 HTTPS 对应地址，记录原始 Location 与升级地址，不发送降级请求。其他重定向继续执行通用安全限制。
+
+EPS 原始模板、匿名 GET 响应及实际使用的脚本/CSS 保留为原始证据；隔离浏览器无可转发代理，模板公开读取回调只消费预取 GET 响应。登录探测中止，未知数据请求、隐藏公告和不完整渲染拒收。公开补遗目录仅验证并保留有界目录，不遍历登录附件或自动采集补遗详情。该能力不改变输出合同或引入运行时模型调用。
+
 - `rateLimit.rps`、`burst` 和 `maxConcurrency` 是该规则允许的上限，不覆盖平台、Tenant 或 Source 更严格的动态限制。
 - `timeoutMs` 是单请求总超时。
 - `maxResponseBytes` 以解压后的响应体计算。
@@ -159,13 +163,15 @@ Selector 不允许脚本、网络请求、函数调用或正则替换。语法�
 - `required=true` 且字段缺失时，`onError` 不能为 `null`。
 - `datetime` 必须声明可解析格式或使用严格 RFC 3339；无时区输入使用 `defaultTimezone`。
 - `url` 在 `absolute_url` transform 后仍必须经过 allowedHosts 检查，才可以作为 detail URL。
-- transforms 按数组顺序执行；数组项既可以是既有纯字符串枚举（`trim`、`collapse_whitespace`、`lowercase`、`uppercase`、`absolute_url`、`strip_html`），也可以是仅用于 `regex_extract` 的对象形态 `{"type": "regex_extract", "pattern": "<RE2>", "group": <0-8>}`；两种形态不得混用于同一数组项以外的键。运行时不得增加未声明 transform。
+- transforms 按数组顺序执行；数组项为纯字符串枚举（`trim`、`collapse_whitespace`、`lowercase`、`uppercase`、`absolute_url`、`strip_html`），或 `regex_extract`、`url_path` 受控对象。`url_path` 仅由纯数字 ID 和已核验的相对路径前缀构造同主机详情 URL，不能改变访问主机或执行代码。运行时不得增加未声明 transform。
 - `label` 为可选展示字段（1–64 字符，任意 Unicode），用于审核界面与 LLM prompt 语义；省略时必须整体省略该键，编译器不得虚构占位值。`label` 不参与提取、指纹、`outputContractDigest` 或 `ruleDigest`。
 - `html` 保留 Source 内容语义，但仍是不受信任内容，展示与输出遵守安全合同。
 
 `regex_extract` 的 RE2 语法边界、捕获组语义与无匹配时同 `onError` 的交互，以 [`extraction-semantics.md`](./extraction-semantics.md) 为准；完整的编写视角解读见 [`../rules-guide.md`](../rules-guide.md) 第 4 节。
 
 ## 9. 模板变量
+
+`collect.detail.transport` 可显式声明 `http|browser`，省略时继承 `sourceContext.transport`。列表与详情使用相同 SourceNetwork、访问主机白名单、robots、速率和总预算；传输选择进入 RuleVersion 签名，运行时不自行降级或改写。
 
 模板仅允许精确变量替换，不允许表达式：
 

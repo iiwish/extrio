@@ -1,32 +1,34 @@
-FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+FROM ghcr.io/astral-sh/uv:0.12.23@sha256:61d393e44e249f2e4b526b6c7ddcecce245946826e608e11c93ad4f5bba55b21 AS uv
+FROM ubuntu:24.04@sha256:68ee22004a9109b44973313b02ff7b1de250f1de0f5ecb628d73f579aaff33ac AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_HTTP_TIMEOUT=600 \
     UV_LINK_MODE=copy \
     UV_PROJECT_ENVIRONMENT=/opt/extrio \
+    UV_PYTHON_PREFERENCE=only-system \
     PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
     DEBIAN_FRONTEND=noninteractive
 
+COPY --from=uv /uv /uvx /usr/local/bin/
 WORKDIR /app
-
-COPY backend/pyproject.toml backend/uv.lock backend/README.md backend/hatch_build.py backend/
-
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --project backend --frozen --no-dev --no-install-project \
-    && mkdir -p /ms-playwright \
-    && /opt/extrio/bin/python -m playwright install --with-deps chromium \
-    && CRAWL4AI_MODE=api /opt/extrio/bin/crawl4ai-setup \
-    && chmod -R a+rX /ms-playwright
-
-RUN apt-get update \
-    && apt-get upgrade -y \
-    && apt-get install -y --no-install-recommends curl ca-certificates \
+RUN . /etc/os-release && test "$VERSION_CODENAME" = noble \
+    && apt-get update && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends curl ca-certificates python3.12 \
     && mkdir -p /usr/share/postgresql-common/pgdg \
     && curl --fail --silent --show-error https://www.postgresql.org/media/keys/ACCC4CF8.asc -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
-    && printf '%s\n' 'deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main' > /etc/apt/sources.list.d/pgdg.list \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends postgresql-client-17 \
+    && printf '%s\n' 'deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main' > /etc/apt/sources.list.d/pgdg.list \
+    && apt-get update && apt-get install -y --no-install-recommends postgresql-client-16
+
+COPY backend/pyproject.toml backend/uv.lock backend/README.md backend/hatch_build.py backend/
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --project backend --python /usr/bin/python3.12 --frozen --no-dev --no-install-project \
+    && /opt/extrio/bin/python -m playwright install --with-deps --only-shell chromium \
+    && chmod -R a+rX /ms-playwright
+COPY scripts/prune-image-runtime.py /tmp/prune-image-runtime.py
+RUN EXTRIO_DISPOSABLE_IMAGE_BUILD=1 /opt/extrio/bin/python /tmp/prune-image-runtime.py only-shell \
+    && rm /tmp/prune-image-runtime.py \
+    && apt-get purge -y curl xvfb xserver-common \
     && rm -rf /var/lib/apt/lists/*
 
 COPY LICENSE NOTICE ./
@@ -35,15 +37,19 @@ COPY backend/src backend/src
 COPY backend/migrations backend/migrations
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --project backend --frozen --no-dev
-
+    uv sync --project backend --python /usr/bin/python3.12 --frozen --no-dev \
+    && useradd --create-home --uid 10001 extrio \
+    && mkdir -p /var/lib/extrio && chown extrio:extrio /var/lib/extrio
 ENV PATH="/opt/extrio/bin:${PATH}"
-
-RUN useradd --create-home --uid 10001 extrio \
-    && mkdir -p /var/lib/extrio \
-    && chown -R extrio:extrio /var/lib/extrio
-
 USER extrio
 EXPOSE 8000
-
 CMD ["extrio-api"]
+
+# Test tools are not part of the default runtime image.
+FROM runtime AS verification
+USER root
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --project backend --python /usr/bin/python3.12 --frozen
+USER extrio
+
+FROM runtime AS default

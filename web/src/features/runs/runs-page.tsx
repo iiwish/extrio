@@ -68,7 +68,7 @@ function CollectionRunsView({ list, filter, search, updateParam }: { list: RunsL
 
   return <ListWorkspace label={t('list.aria')} count={query.data?.total} loading={query.isLoading} refreshing={query.isFetching} failed={query.isError} resetKey={list.resetKey} pagination={list.pagination}
     notices={<QueryError error={query.error} onRetry={() => void query.refetch()} retrying={query.isFetching} />}
-    toolbar={<div className="filter-card runs-toolbar" aria-label={t('toolbar.aria')}>
+    toolbar={<div role="group" className="filter-card runs-toolbar" aria-label={t('toolbar.aria')}>
       <div className="segmented" role="group" aria-label={t('toolbar.filterAria')}>
         <Button aria-pressed={filter === 'all'} variant={filter === 'all' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('status', 'all', 'all')}>{t('filter.all')} <span>{count('all')}</span></Button>
         <Button aria-pressed={filter === 'attention'} variant={filter === 'attention' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('status', 'attention', 'all')}>{t('filter.attention')} <span>{count('attention')}</span></Button>
@@ -95,7 +95,7 @@ function AiRunsView({ list, filter, search, updateParam }: { list: AiRunsList; f
 
   return <ListWorkspace label={t('aiList.aria')} count={query.data?.total} loading={query.isLoading} refreshing={query.isFetching} failed={query.isError} resetKey={list.resetKey} pagination={list.pagination}
     notices={<QueryError error={query.error} onRetry={() => void query.refetch()} retrying={query.isFetching} />}
-    toolbar={<div className="filter-card runs-toolbar" aria-label={t('toolbar.aiAria')}>
+    toolbar={<div role="group" className="filter-card runs-toolbar" aria-label={t('toolbar.aiAria')}>
       <div className="segmented" role="group" aria-label={t('toolbar.aiFilterAria')}>
         <Button aria-pressed={filter === 'all'} variant={filter === 'all' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('status', 'all', 'all')}>{t('filter.all')} <span>{count('all')}</span></Button>
         <Button aria-pressed={filter === 'running'} variant={filter === 'running' ? 'secondary' : 'ghost'} size="sm" onClick={() => updateParam('status', 'running', 'all')}>{t('filter.running')} <span>{count('running')}</span></Button>
@@ -207,6 +207,9 @@ function formatTokens(value: number) {
 
 function stopReasonLabel(t: TFunction, reason: Run['paginationStopReason']) {
   return {
+    coverage_date_unknown: t('coverage.dateUnknown'), coverage_order_unverified: t('coverage.orderUnverified'),
+    source_window_truncated: t('coverage.sourceTruncated'),
+    source_rate_limited: t('coverage.rateLimited'), source_structure_mismatch: t('coverage.structureMismatch'),
     not_applicable: t('stopReason.not_applicable'), empty_page: t('stopReason.empty_page'), next_link_exhausted: t('stopReason.next_link_exhausted'), max_pages: t('stopReason.max_pages'), max_items: t('stopReason.max_items'), budget_exhausted: t('stopReason.budget_exhausted'), cross_host_blocked: t('stopReason.cross_host_blocked'), time_window_reached: t('stopReason.time_window_reached'), checkpoint_reached: t('stopReason.checkpoint_reached'), detail_fetch_incomplete: t('stopReason.detail_fetch_incomplete'),
   }[reason]
 }

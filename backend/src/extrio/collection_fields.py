@@ -211,6 +211,14 @@ def constrain_rule_plan(plan: dict[str, Any], version: dict[str, Any]) -> dict[s
     """Only extraction mechanics come from the model; field semantics come from the version."""
     plan = copy.deepcopy(plan)
     fields = {field["key"]: field for field in version["fields"]}
+    date_binding = plan.get('bindings', {}).get('listPublishedAt', '')
+    if plan['mode'] == 'list_detail' and date_binding.startswith('list.'):
+        date_key = date_binding.split('.', 1)[1]
+        if date_key not in fields and date_key in plan['list']['fields']:
+            rule = copy.deepcopy(plan['list']['fields'][date_key])
+            rule.update(label='列表日期', required=False, valueType='string', onError='null')
+            plan['list']['fields']['listPublishedAt'] = rule
+            plan['bindings']['listPublishedAt'] = 'list.listPublishedAt'
     stages = [plan["list"]] + ([plan["detail"]] if plan["mode"] == "list_detail" else [])
     available = {key for stage in stages for key in stage["fields"]}
     missing = fields.keys() - available
@@ -219,7 +227,9 @@ def constrain_rule_plan(plan: dict[str, Any], version: dict[str, Any]) -> dict[s
     for stage in stages:
         for key in list(stage["fields"]):
             if key not in fields:
-                if stage is plan["list"] and plan["mode"] == "list_detail" and key == "detailUrl":
+                if (stage is plan['list'] and plan['mode'] == 'list_detail' and (
+                        key == 'detailUrl' or key == 'listPublishedAt'
+                        and plan['bindings'].get('listPublishedAt') == 'list.listPublishedAt')):
                     continue
                 del stage["fields"][key]
                 continue
@@ -241,6 +251,7 @@ def constrain_rule_plan(plan: dict[str, Any], version: dict[str, Any]) -> dict[s
     plan["bindings"] = {
         role: binding
         for role, binding in plan["bindings"].items()
-        if binding.split(".", 1)[-1] in fields or binding == "list.detailUrl" and plan["mode"] == "list_detail"
+        if binding.split(".", 1)[-1] in fields or (
+            binding in {'list.detailUrl', 'list.listPublishedAt'} and plan['mode'] == 'list_detail')
     }
     return plan

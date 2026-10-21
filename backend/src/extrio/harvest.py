@@ -153,6 +153,11 @@ def _apply_transforms(value: Any, transforms: list[Any], source_url: str) -> Any
         if isinstance(transform, dict):
             if transform.get("type") == "regex_extract" and isinstance(value, str):
                 value = _regex_extract(value, transform)
+            elif transform.get('type') == 'url_path':
+                prefix = transform.get('prefix', '')
+                value = (urljoin(source_url, prefix + str(value))
+                         if isinstance(prefix, str) and re.fullmatch(r'/[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*/', prefix)
+                         and re.fullmatch(r'[0-9]+', str(value)) else None)
             continue
         if transform == "trim" and isinstance(value, str):
             value = value.strip()
@@ -226,7 +231,52 @@ def discover_from_spec(html: str, base_url: str, list_spec: dict[str, Any]) -> t
     return [record["detailUrl"] for record in records], next_url
 
 
-def discover_records_from_spec(html: str, base_url: str, list_spec: dict[str, Any]) -> tuple[list[dict[str, str]], str | None]:
+def field_evidence(spec: dict[str, Any], key: str, list_html: str, sample_url: str, sample_html: str) -> str:
+    """Locate proof in the bound document and exact URL-matched list row."""
+    collect = spec['collect']
+    list_spec = collect['list']
+    detail_fields = collect.get('detail', {}).get('fields', {})
+    binding = spec.get('contract', {}).get('fieldBindings', {}).get(key)
+    default_stage = 'detail' if key in detail_fields else 'list'
+    stage, field_key = binding.split('.', 1) if isinstance(binding, str) and '.' in binding else (default_stage, key)
+    field = collect.get(stage, {}).get('fields', {}).get(field_key)
+    if not field:
+        return '样本中未定位到绑定字段'
+    selector = str(field['selector'])
+    source_url = spec['sourceContext']['entrypoints'][0]
+    document_html = list_html if stage == 'list' else sample_html
+    is_json = selector.startswith('jsonpath:')
+    try:
+        document = json.loads(document_html) if is_json else BeautifulSoup(document_html, 'html.parser')
+        if stage == 'list' and 'detail' in collect:
+            item_selector = list_spec['itemsSelector']
+            rows = (jsonpath_values(document, item_selector) if item_selector.startswith('jsonpath:')
+                    else document.select(item_selector.removeprefix('css:')))
+            link = list_spec['fields']['detailUrl']
+            document = None
+            for row in rows:
+                matches = (jsonpath_values(row, link['selector']) if link['selector'].startswith('jsonpath:')
+                           else selector_values(row, link['selector'], source_url))
+                if link.get('multipleMatchPolicy') == 'error' and len(matches) > 1:
+                    continue
+                value = _apply_transforms(matches[0] if matches else '', link.get('transforms', []), source_url)
+                if value == sample_url:
+                    document = row
+                    break
+        if document is None:
+            return '样本中未定位到对应列表行'
+        if is_json:
+            matches = jsonpath_values(document, selector)
+            return ('JSON ' + json.dumps({'selector': selector, 'values': matches}, ensure_ascii=False))[:500]
+        node = document.select_one(selector.removeprefix('css:').split('::', 1)[0])
+        return str(node)[:500] if node else '样本中未定位到 DOM 节点'
+    except (ValueError, TypeError, KeyError):
+        return '样本中未定位到有效字段证据'
+
+
+def discover_records_from_spec(
+    html: str, base_url: str, list_spec: dict[str, Any], *, retain_self_next: bool = False,
+) -> tuple[list[dict[str, str]], str | None]:
     item_selector = str(list_spec["itemsSelector"])
     uses_json = item_selector.startswith("jsonpath:")
     document: Any = json.loads(html) if uses_json else BeautifulSoup(html, "html.parser")
@@ -266,7 +316,7 @@ def discover_records_from_spec(html: str, base_url: str, list_spec: dict[str, An
             next_anchor = document.select_one(next_selector)
         except Exception:
             next_anchor = None
-        return records, navigation_url(next_anchor, base_url)
+        return records, navigation_url(next_anchor, base_url, retain_self=retain_self_next)
     return records, urljoin(base_url, next_href) if next_href else None
 
 
@@ -339,9 +389,13 @@ def build_gather_spec(
     spec["compiler"]["inputDigest"] = sha256_digest(
         {"collectionId": collector.get("collectionId"), "url": collector["sourceUrl"], "intent": collector["intent"]}
     )
-    spec["compiler"]["agent"] = {"provider": "local", "model": "crawl4ai-heuristic", "promptVersion": "1.1", "toolchainVersion": "1.0"}
+    spec["compiler"]["agent"] = {"provider": "local", "model": "local-heuristic", "promptVersion": "1.1", "toolchainVersion": "1.0"}
     spec["sourceContext"]["entrypoints"] = [collector["sourceUrl"]]
     spec["sourceContext"]["allowedHosts"] = [host]
+    from extrio.public_pagination import ccgp_search_hosts
+
+    if archive_hosts := ccgp_search_hosts(collector['sourceUrl']):
+        spec['sourceContext']['allowedHosts'] = sorted(archive_hosts)
     spec["sourceContext"].pop("accessProfileRef", None)
     detail_fields = {
         key: {
@@ -532,6 +586,14 @@ def build_gather_spec_from_plan(
             "responseType": detail_plan["responseType"],
             "fields": {key: _execution_field(field) for key, field in detail_plan["fields"].items()},
         }
+        if detail_plan.get('transport'):
+            spec['collect']['detail']['transport'] = detail_plan['transport']
+        if detail_plan.get('resolution'):
+            from extrio.official_documents import profile_hosts, validate_resolution
+
+            spec['collect']['detail']['resolution'] = detail_plan['resolution']
+            spec['sourceContext']['allowedHosts'] = sorted(profile_hosts(collector['sourceUrl']))
+            validate_resolution(spec)
         output_fields = _merge_stage_fields(list_plan["fields"], detail_plan["fields"], plan["bindings"])
     else:
         spec["collect"].pop("detail", None)
@@ -605,11 +667,9 @@ def build_candidate_from_plan(
     sample_url, sample_html = detail_samples[0] if detail_samples else (collector["sourceUrl"], list_html)
     detail_execution_fields = {key: _execution_field(field) for key, field in detail_fields_plan.items()}
     detail_values = contract_field_values(sample_html, sample_url, detail_execution_fields) if detail_fields_plan else {}
-    list_record = detail_records[0] if detail_records else {}
+    list_record = next((record for record in detail_records if record['detailUrl'] == sample_url), {})
     if mode == "single":
         list_record = contract_field_values(list_html, collector["sourceUrl"], list_spec["fields"])
-    list_soup = BeautifulSoup(list_html, "html.parser")
-    detail_soup = BeautifulSoup(sample_html, "html.parser")
     fields = []
     for key, field in output_plan.items():
         binding = plan["bindings"].get(key)
@@ -617,17 +677,12 @@ def build_candidate_from_plan(
         selector = str(field["selector"])
         if is_list:
             sample = list_record.get(key)
-            soup = list_soup
         else:
             sample = detail_values.get(key) if binding == f"detail.{key}" or not _missing(detail_values.get(key)) else list_record.get(key)
-            soup = detail_soup
         display_sample = "字段缺失" if _missing(sample) else str(sample)
         if len(display_sample) > 240:
             display_sample = f"{display_sample[:240]}…"
-        evidence = "JSON 字段证据"
-        if selector.startswith("css:"):
-            evidence_node = soup.select_one(selector.removeprefix("css:").split("::", 1)[0])
-            evidence = str(evidence_node)[:500] if evidence_node else "样本中未定位到节点"
+        evidence = field_evidence(gather_spec, key, list_html, sample_url, sample_html)
         fields.append(
             {
                 "key": key,
@@ -786,7 +841,27 @@ def make_item(
         or (source_record or {}).get("listTitle")
         or ((source_record or {}).get("title") if bindings.get("title", "").startswith("list.") else None)
     )
-    title_mismatch = bool(detail_title and list_title and not titles_consistent(str(detail_title), str(list_title)))
+    title_mismatch = bool(
+        detail_title and list_title and not titles_consistent(str(detail_title), str(list_title))
+        and not publisher_truncated_title_match(source_url, html, str(detail_title), str(list_title),
+                                              str(bound_value('publishedAt') or ''), source_record or {})
+    )
+    if title_mismatch and collect.get('detail', {}).get('resolution'):
+        from extrio.official_documents import resolved_title_matches
+
+        title_mismatch = not resolved_title_matches(source_url, json.loads(html), source_record or {})
+    resolution = None
+    if collect.get('detail', {}).get('resolution'):
+        resolution = json.loads(html).get('resolution')
+        compatible_profiles = {collect['detail']['resolution']}
+        if collect['detail']['resolution'] in {'official_notice_v2', 'official_notice_v3'}:
+            compatible_profiles.add('official_notice_v1')
+        if collect['detail']['resolution'] == 'official_notice_v3':
+            compatible_profiles.add('official_notice_v2')
+        if not resolution or resolution.get('profile') not in compatible_profiles:
+            contract_error = '官方原文解析证据缺失'
+        elif resolution.get('error'):
+            contract_error = '官方原文解析待审核：' + resolution['error']
     decision = "rejected" if required_missing or title_mismatch or contract_error else "accepted"
     identity_fields = gather_spec.get("contract", {}).get("identityFields", [])
     identity_payload = {key: extracted_data.get(key) for key in identity_fields if not _missing(extracted_data.get(key))}
@@ -826,7 +901,7 @@ def make_item(
         "decision": decision,
         "changeType": "new" if decision == "accepted" else None,
         "rejectionReason": (
-            f"必填字段 {required_missing} 未通过非空质量门"
+            contract_error if resolution and contract_error else f"必填字段 {required_missing} 未通过非空质量门"
             if required_missing
             else TITLE_MISMATCH_REASON
             if title_mismatch
@@ -846,8 +921,25 @@ def make_item(
             "runId": run["id"],
             "observationId": observation_id,
             "artifactId": f"artifact_{run['id']}_{index:04d}",
+            **({'documentResolution': resolution} if resolution else {}),
+            **({'listRecord': dict(source_record)} if source_record and run.get('coverageMode') == 'observed' else {}),
         },
     }
+
+
+def publisher_truncated_title_match(url: str, html: str, title: str, shown: str, published: str, record: dict) -> bool:
+    """CSG truncates list labels; require three independent document checks."""
+    if urlsplit(url).hostname != 'www.bidding.csg.cn' or record.get('detailUrl') != url or not shown.endswith(('...', '…')):
+        return False
+    prefix = re.sub(r'\s+', '', unicodedata.normalize('NFKC', shown.rstrip('. …')))
+    full = re.sub(r'\s+', '', unicodedata.normalize('NFKC', title))
+    if len(prefix) < 40 or not full.startswith(prefix):
+        return False
+    list_date = re.search(r'\d{4}-\d{2}-\d{2}', str(record.get('listPublishedAt') or record.get('publishedAt') or ''))
+    detail_date = re.search(r'\d{4}-\d{2}-\d{2}', published)
+    crumb = BeautifulSoup(html, 'html.parser').select_one('.W1200.Center.Top18')
+    return bool(list_date and detail_date and list_date[0] == detail_date[0] and crumb
+                and titles_consistent(title, crumb.get_text(' ', strip=True).rsplit('>', 1)[-1].strip()))
 
 
 def titles_consistent(detail_title: str, list_title: str) -> bool:

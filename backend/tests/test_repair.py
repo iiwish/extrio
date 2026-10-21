@@ -10,7 +10,7 @@ import extrio.explorer as explorer_module
 import extrio.model_gateway as model_gateway
 from extrio.contracts import sha256_digest
 from extrio.credentials import CredentialCipher
-from extrio.explorer import Crawl4AIExplorer, ExplorationResult
+from extrio.explorer import ExplorationResult, SourceExplorer
 from extrio.harvest import build_candidate, build_gather_spec_from_plan
 from extrio.model_budget import BudgetError
 from extrio.model_gateway import (
@@ -423,7 +423,7 @@ async def test_repair_explore_updates_detail_selectors_and_preserves_contract(tm
         },
     )
     compiler = ModelRuleCompiler(store, CredentialCipher(tmp_path / "cipher.key"))
-    explorer = Crawl4AIExplorer(app_module.contracts, tmp_path / "artifacts", compiler)
+    explorer = SourceExplorer(app_module.contracts, tmp_path / "artifacts", compiler)
 
     result = await explorer.explore(collector, "op_repair_1", _noop_progress, repair_spec=old_spec)
 
@@ -449,7 +449,7 @@ async def test_repair_explore_fails_when_identity_field_cannot_be_extracted(tmp_
     broken_list_html = '<ul class="old-list"><li>站点已改版，暂无公告</li></ul>'
     install_crawler(monkeypatch, {"https://example.com/list": broken_list_html})
     compiler = ModelRuleCompiler(store, CredentialCipher(tmp_path / "cipher.key"))
-    explorer = Crawl4AIExplorer(app_module.contracts, tmp_path / "artifacts", compiler)
+    explorer = SourceExplorer(app_module.contracts, tmp_path / "artifacts", compiler)
 
     diagnostics = []
     async def report(value):
@@ -498,7 +498,7 @@ async def test_repair_missing_field_triggers_directed_read_and_full_sample_reval
     async def report(value):
         diagnostics.append(value)
 
-    result = await Crawl4AIExplorer(app_module.contracts, tmp_path / "artifacts", compiler).explore(
+    result = await SourceExplorer(app_module.contracts, tmp_path / "artifacts", compiler).explore(
         collector, "op_adaptive", _noop_progress, repair_spec=old_spec, diagnostic=report)
     assert len(calls) == 3
     assert result.candidate["gatherSpec"]["contract"] == old_spec["contract"]
@@ -706,7 +706,7 @@ async def test_repair_end_to_end_preserves_published_contract_and_returns_to_rev
             assert job is not None
             worker = Worker.__new__(Worker)
             worker.store = app_module.store
-            worker.explorer = Crawl4AIExplorer(
+            worker.explorer = SourceExplorer(
                 app_module.contracts,
                 tmp_path / "artifacts",
                 ModelRuleCompiler(app_module.store, CredentialCipher(tmp_path / "cipher.key")),

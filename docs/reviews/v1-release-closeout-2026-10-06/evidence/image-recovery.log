@@ -1,0 +1,5 @@
+backup complete: scope=full dialect=sqlite archive=/tmp/extrio-image-recovery-47j9wk91/sqlite/archive
+restore complete: start the matching API and Worker, then verify /readyz and stored evidence
+backup complete: scope=full dialect=postgresql archive=/tmp/extrio-image-recovery-47j9wk91/postgres/archive
+restore complete: start the matching API and Worker, then verify /readyz and stored evidence
+{"uid": 10001, "sqliteVersion": "3.46.1", "sqliteFullRecovery": "passed", "postgresFullRecovery": "passed", "keysAndCredentials": "verified", "setupToolsRemoved": true}

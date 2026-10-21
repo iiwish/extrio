@@ -1,0 +1,67 @@
+name: Default native image verification
+
+on:
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Default noble or rejected resolute research reproduction
+        type: choice
+        options: [noble, resolute]
+        default: noble
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  native-image-base:
+    name: image-base (${{ matrix.runner }}, ${{ matrix.suite }})
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+        suite: ["${{ inputs.suite || 'noble' }}"]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Build historical Debian research control, not the release image
+        run: docker build -f docker/backend-debian-control.Dockerfile -t extrio/backend:slim-original .
+      - name: Retain verified headless and CUPS control
+        run: bash scripts/verify-slim-image.sh headless image-base/headless
+      - name: Verify supported Ubuntu candidate and isolated dual-database regression
+        run: bash scripts/verify-slim-image.sh '${{ matrix.suite }}' 'image-base/${{ matrix.suite }}'
+      - name: Complete control inventory
+        if: always()
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: extrio/backend:slim-headless
+          format: json
+          output: image-base/headless/vulnerabilities.json
+          exit-code: '0'
+          ignore-unfixed: false
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+      - name: Complete candidate inventory
+        if: always()
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: extrio/backend:slim-${{ matrix.suite }}
+          format: json
+          output: image-base/${{ matrix.suite }}/vulnerabilities.json
+          exit-code: '0'
+          ignore-unfixed: false
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+      - name: Enforce capabilities, complete evidence and unhandled security gate
+        run: python3 scripts/compare-base-images.py image-base '${{ matrix.suite }}'
+      - name: Preserve isolated image evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: image-base-${{ matrix.runner }}-${{ matrix.suite }}
+          path: |
+            image-base/
+            !image-base/**/release-sources/**
+          if-no-files-found: warn
+          retention-days: 30

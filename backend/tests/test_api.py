@@ -459,7 +459,10 @@ def test_collector_definition_edit_preserves_name_only_and_invalidates_rule_inpu
         app_module.store = original
 
 
-def test_direct_rule_edit_creates_new_candidate_without_mutating_published_rule(tmp_path: Path) -> None:
+@pytest.mark.parametrize(('include_list_outputs', 'first_page_only'), [(False, False), (True, False), (True, True)])
+def test_direct_rule_edit_creates_new_candidate_without_mutating_published_rule(
+    tmp_path: Path, include_list_outputs, first_page_only
+) -> None:
     original = app_module.store
     original_artifact_path = app_module.settings.artifact_path
     app_module.store = Store(tmp_path / "api.db")
@@ -490,6 +493,17 @@ def test_direct_rule_edit_creates_new_candidate_without_mutating_published_rule(
             )
             output_fields = candidate["gatherSpec"]["collect"]["detail"]["fields"]
             list_fields = candidate["gatherSpec"]["collect"]["list"]["fields"]
+            if first_page_only:
+                candidate['pagination'] = {'type': 'none'}
+                candidate['gatherSpec']['collect']['list']['pagination'] = {'type': 'none'}
+            if include_list_outputs:
+                schema = candidate['gatherSpec']['contract']['normalizedItemSchema']
+                for key in ('listTitle', 'detailUrl'):
+                    candidate['fields'].append(dict(key=key, label=key, selector=list_fields[key]['selector'],
+                                                    required=True, confidence=0.98, sample='A', evidence='list', warning=None))
+                    schema['properties'][key] = {'type': 'string', 'minLength': 1}
+                    schema['required'].append(key)
+                app_module.store.save_collector(collector)
             body = {
                 "listSelector": "css:ul.notice-list > li",
                 "detailLinkSelector": "css:a.notice-title::attr(href)",
@@ -506,23 +520,35 @@ def test_direct_rule_edit_creates_new_candidate_without_mutating_published_rule(
                     }
                     for key, value in list_fields.items()
                 ],
-                "fields": [{"key": field["key"], "selector": output_fields[field["key"]]["selector"]} for field in candidate["fields"]],
+                "fields": [{"key": field["key"], "selector": (
+                    'css:a.notice-title::text' if field['key'] == 'listTitle' else
+                    (list_fields if field['key'] == 'detailUrl' else output_fields)[field["key"]]["selector"])}
+                           for field in candidate["fields"]],
             }
+            if first_page_only:
+                body['pagination'] = {'type': 'none'}
             edited = client.patch(
                 f"/api/v1/collectors/{collector['id']}/candidate-rule",
                 headers={"Idempotency-Key": "edit-candidate-rule-0001"},
                 json=body,
             )
-            assert edited.status_code == 200
+            assert edited.status_code == 200, edited.text
             updated = edited.json()
             assert updated["status"] == "ready_review"
             assert updated["candidate"]["id"] != candidate["id"]
             assert updated["candidate"]["digest"] != candidate["digest"]
-            assert updated["candidate"]["pagination"]["maxPages"] == 12
+            assert updated["candidate"]["pagination"].get("maxPages", 1) == (1 if first_page_only else 12)
             assert updated["candidate"]["gatherSpec"]["collect"]["list"]["itemsSelector"] == body["listSelector"]
             assert updated["candidate"]["gatherSpec"]["collect"]["list"]["fields"]["listTitle"]["selector"] == "css:a.notice-title::text"
             assert updated["candidate"]["gatherSpec"]["compiler"]["overrideRefs"]
             app_module.contracts.validate_gather_spec(updated["candidate"]["gatherSpec"])
+            if include_list_outputs:
+                samples = {field['key']: field['sample'] for field in updated['candidate']['fields']}
+                assert samples['listTitle'] == 'A'
+                assert samples['detailUrl'] == 'https://example.com/detail/1'
+                proofs = {field['key']: field['evidence'] for field in updated['candidate']['fields']}
+                assert 'href="/detail/1"' in proofs['listTitle']
+                assert 'href="/detail/1"' in proofs['detailUrl']
 
             replayed = client.patch(
                 f"/api/v1/collectors/{collector['id']}/candidate-rule",
@@ -545,9 +571,48 @@ def test_direct_rule_edit_creates_new_candidate_without_mutating_published_rule(
             )
             assert rejected.status_code == 422
             assert rejected.json()["code"] == "VALIDATION_FAILED"
+            if not first_page_only:
+                disabled = copy.deepcopy(body)
+                disabled['pagination'] = {'type': 'none'}
+                rejected = client.patch(f"/api/v1/collectors/{collector['id']}/candidate-rule",
+                                        headers={'Idempotency-Key': 'cannot-disable-proven-pagination'}, json=disabled)
+                assert rejected.status_code == 422
     finally:
         app_module.store = original
         app_module.settings.artifact_path = original_artifact_path
+
+
+@pytest.mark.parametrize('missing_first_file', [False, True])
+def test_manual_evidence_uses_accepted_sample_and_matching_list_row(tmp_path, monkeypatch, missing_first_file):
+    store = Store(tmp_path / 'api.db')
+    store.initialize()
+    monkeypatch.setattr(app_module, 'store', store)
+    monkeypatch.setattr(app_module.settings, 'artifact_path', tmp_path / 'artifacts')
+    collector = ready_review_collector(store)
+    candidate = collector['candidate']
+    urls = ['https://example.com/detail/1', 'https://example.com/detail/2']
+    candidate['discovery']['detailUrlSamples'] = urls
+    for key in ('listTitle', 'detailUrl'):
+        candidate['fields'].append({'key': key, 'selector': candidate['gatherSpec']['collect']['list']['fields'][key]['selector']})
+    op = {'id': 'op_accepted_evidence', 'kind': 'explore', 'status': 'succeeded', 'resourceId': collector['id']}
+    store.save_operation(op, collector['id'])
+    path = app_module.settings.artifact_path / op['id']
+    path.mkdir(parents=True)
+    (path / 'list-001.html').write_text(
+        '<a class="notice-title" href="/nav">Navigation</a><ul class="notice-list">'
+        '<li><a class="notice-title" href="/detail/1">A</a><time datetime="2026-08-31"></time></li>'
+        '<li><a class="notice-title" href="/detail/2">B</a><time datetime="2026-08-31"></time></li></ul>')
+    if not missing_first_file:
+        (path / 'detail-001.html').write_text('<h1 class="notice-title">A</h1>')
+    (path / 'detail-002.html').write_text('<h1 class="notice-title">B</h1><div class="meta">'
+        '<span data-field="buyer">Buyer</span><time datetime="2026-08-31T00:00:00Z"></time></div>')
+    previews = app_module._validate_candidate_against_latest_samples(collector, candidate)
+    assert [row['decision'] for row in previews] == (['accepted'] if missing_first_file else ['rejected', 'accepted'])
+    fields = {field['key']: field for field in candidate['fields']}
+    assert fields['title']['sample'] == 'B'
+    assert '>B</h1>' in fields['title']['evidence']
+    assert 'href="/detail/2"' in fields['detailUrl']['evidence']
+    assert '/nav' not in fields['listTitle']['evidence']
 
 
 def test_openapi_external_gather_schema_is_served() -> None:

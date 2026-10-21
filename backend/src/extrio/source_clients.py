@@ -1,13 +1,15 @@
 import asyncio
 import logging
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlsplit
 
-from crawl4ai import AsyncWebCrawler, BrowserConfig
 from crawlee import HttpHeaders
 from crawlee.http_clients import HttpClient, HttpCrawlingResult
 from playwright.async_api import Error as PlaywrightError
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+from playwright.async_api import async_playwright
 
 from extrio.source_network import SourceNetwork, SourceNetworkError, SourceResponse
 
@@ -70,13 +72,28 @@ class SourceHttpClient(HttpClient):
         pass
 
 
+@dataclass(frozen=True)
+class BrowserSnapshotConfig:
+    page_timeout: int = 30_000
+    wait_until: str = 'domcontentloaded'
+    delay_before_return_html: float = 3.0
+
+
+@dataclass(frozen=True)
+class BrowserSnapshot:
+    html: str
+    redirected_url: str
+    status_code: int
+
+
 class RestrictedBrowser:
-    """Render with Crawl4AI; all actual source requests use the pinned HTTP guard."""
+    """Render with Playwright; all source requests use the pinned HTTP guard."""
 
     def __init__(self, network: SourceNetwork):
         self.network = network
         self.failures: list[SourceNetworkError] = []
-        self.crawler = None
+        self.playwright = None
+        self.browser = None
         self.server = None
         self.contexts: set[Any] = set()
         self.prefetched: dict[str, SourceResponse] = {}
@@ -90,37 +107,50 @@ class RestrictedBrowser:
         # service-worker traffic) cannot bypass the guard via Chromium's stack.
         self.server = await asyncio.start_server(deny_connection, "127.0.0.1", 0)
         port = self.server.sockets[0].getsockname()[1]
-        self.crawler = AsyncWebCrawler(
-            config=BrowserConfig(
-                headless=True,
-                verbose=False,
-                ignore_https_errors=False,
-                proxy_config={"server": f"http://127.0.0.1:{port}"},
-                extra_args=[
+        try:
+            self.playwright = await async_playwright().start()
+            self.browser = await self.playwright.chromium.launch(
+                headless=True, proxy={"server": f"http://127.0.0.1:{port}"},
+                args=[
                     "--proxy-bypass-list=<-loopback>",
                     "--disable-quic",
                     "--disable-background-networking",
                     "--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
                 ],
             )
-        )
-        self.crawler.crawler_strategy.set_hook("on_page_context_created", self.install_routes)
-        try:
-            await self.crawler.__aenter__()
         except BaseException:
-            self.server.close()
-            await self.server.wait_closed()
+            await self.__aexit__(None, None, None)
             raise
         return self
 
     async def __aexit__(self, *args):
         try:
-            if self.crawler:
-                await self.crawler.__aexit__(*args)
+            if self.browser:
+                await self.browser.close()
         finally:
-            if self.server:
-                self.server.close()
-                await self.server.wait_closed()
+            try:
+                if self.playwright:
+                    await self.playwright.stop()
+            finally:
+                if self.server:
+                    self.server.close()
+                    await self.server.wait_closed()
+
+    async def _snapshot(self, url: str, config: BrowserSnapshotConfig) -> BrowserSnapshot:
+        context = await self.browser.new_context(
+            service_workers='block', accept_downloads=False, ignore_https_errors=False,
+            viewport={'width': 1080, 'height': 600}, device_scale_factor=1,
+            user_agent='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/116.0.0.0 Safari/537.36',
+        )
+        try:
+            page = await context.new_page()
+            await self.install_routes(page, context)
+            response = await page.goto(url, wait_until=config.wait_until, timeout=config.page_timeout)
+            await asyncio.sleep(config.delay_before_return_html)
+            return BrowserSnapshot(await page.content(), page.url, response.status if response else 0)
+        finally:
+            await context.close()
+            self.contexts.discard(context)
 
     async def install_routes(self, page, context, **_kwargs):
         if context in self.contexts:
@@ -133,6 +163,9 @@ class RestrictedBrowser:
             try:
                 if request.method != "GET":
                     raise SourceNetworkError("anonymous_get_only")
+                if not request.is_navigation_request() and request.resource_type in {"image", "font", "media"}:
+                    await route.abort("blockedbyclient")
+                    return
                 if request.is_navigation_request():
                     await self.network.check_robots(request.url)
                 response = self.prefetched.pop(request.url, None)
@@ -195,20 +228,18 @@ class RestrictedBrowser:
         initial = (await self.network.fetch(url, respect_robots=True)).require_success()
         await self.network.check_robots(initial.url)
         self.prefetched = {initial.url: initial}
-        result = await self.crawler.arun(url=initial.url, config=config)
+        try:
+            result = await self._snapshot(initial.url, config)
+        except PlaywrightError as exc:
+            if self.failures:
+                raise self.failures[0] from exc
+            reason = 'browser_navigation_timed_out' if isinstance(exc, PlaywrightTimeoutError) else 'browser_fetch_failed'
+            raise SourceNetworkError(reason) from exc
         if self.failures:
             raise self.failures[0]
         status = result.status_code
         if status:
             SourceResponse(url, status, {}, b"").require_success()
-        # Crawl4AI labels short valid pages and iframe shells as structural
-        # anti-bot failures. Keep their raw DOM for Extrio's selector validation;
-        # genuine challenges and transport failures remain fatal.
-        structural_only = (result.error_message or "").startswith("Blocked by anti-bot protection: Structural:")
-        if not result.success and not structural_only:
-            if "Page.goto: Timeout" in (result.error_message or ""):
-                raise SourceNetworkError("browser_navigation_timed_out")
-            raise SourceNetworkError("browser_fetch_failed")
         if not status:
             raise SourceNetworkError("browser_fetch_failed")
         await self.network.target(result.redirected_url or initial.url)

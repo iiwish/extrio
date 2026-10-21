@@ -29,7 +29,7 @@ export function CollectionPage() {
   const missing = query.error instanceof ApiRequestError && query.error.code === 'COLLECTION_NOT_FOUND'
   if (missing && !query.data) return <div className="page-frame collections-empty"><FileText /><h1>{t('collections.notFound')}</h1><Button variant="outline" asChild><Link to="/collections">{t('action.detailBack', { target: t('nav.collections') })}</Link></Button></div>
   if (query.isError && !query.data) return <div className="page-frame"><Alert variant="destructive"><AlertDescription>{t('state.error')} · {query.error.message}<Button variant="outline" size="sm" onClick={() => query.refetch()}><RefreshCw />{t('action.retry')}</Button></AlertDescription></Alert></div>
-  if (!query.data) return <div className="page-frame" aria-label={t('state.loading')}><Skeleton className="h-8 w-64" /><Skeleton className="mt-6 h-48 w-full" /></div>
+  if (!query.data) return <div role="status" className="page-frame" aria-label={t('state.loading')}><Skeleton className="h-8 w-64" /><Skeleton className="mt-6 h-48 w-full" /></div>
   return <CollectionContent key={collectionId} requirement={query.data} readError={query.error} reload={() => query.refetch()} />
 }
 

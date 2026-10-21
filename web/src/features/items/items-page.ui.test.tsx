@@ -36,7 +36,7 @@ describe('ItemsPage operational list', () => {
   it('uses a filter-first toolbar and renders fixed-column rows instead of cards', async () => {
     renderPage()
 
-    const toolbar = screen.getByLabelText('数据工具栏')
+    const toolbar = screen.getByRole('group', { name: '数据工具栏' })
     const list = await screen.findByLabelText('Item 列表')
     const rows = await within(list).findAllByRole('link')
     expect(screen.getByRole('heading', { name: '数据' })).toHaveClass('sr-only')

@@ -160,7 +160,7 @@ export function HomePage() {
                   const height = bucket.volume === 0 ? 0 : Math.max(10, Math.round((bucket.volume / maxRunVolume) * 100))
                   const acceptedShare = bucket.volume ? Math.round((bucket.accepted / bucket.volume) * 100) : 0
                   return (
-                    <div tabIndex={0} className={`overview-chart-point ${bucket.tone}`} key={bucket.key} aria-label={t('trend.pointTitle', { title: bucket.title, runs: bucket.runs, accepted: bucket.accepted, rejected: bucket.rejected })} title={t('trend.pointTitle', { title: bucket.title, runs: bucket.runs, accepted: bucket.accepted, rejected: bucket.rejected })}>
+                    <div role="img" tabIndex={0} className={`overview-chart-point ${bucket.tone}`} key={bucket.key} aria-label={t('trend.pointTitle', { title: bucket.title, runs: bucket.runs, accepted: bucket.accepted, rejected: bucket.rejected })} title={t('trend.pointTitle', { title: bucket.title, runs: bucket.runs, accepted: bucket.accepted, rejected: bucket.rejected })}>
                       <span className="overview-chart-bar" style={{ height: `${height}%` }}>
                         <i className="accepted" style={{ height: `${acceptedShare}%` }} />
                         <i className="rejected" style={{ height: `${100 - acceptedShare}%` }} />
@@ -179,7 +179,7 @@ export function HomePage() {
           <section className="overview-panel overview-quality-panel" aria-labelledby="quality-heading">
             <header className="overview-panel-header"><div><h2 id="quality-heading">{t('quality.title')}</h2><p>{trendRange}</p></div><strong className={trendSuccessRate !== null && trendSuccessRate < 80 ? 'warning-text' : ''}>{trendSuccessRate === null ? '—' : `${trendSuccessRate}%`}</strong></header>
             <div className="overview-quality-body">
-              <div className="overview-quality-bar" aria-label={t('quality.barAria', { success: successfulRuns, partial: partialRuns, failed: failedRuns })}>
+              <div role="img" aria-hidden={!overview} className="overview-quality-bar" aria-label={t('quality.barAria', { success: successfulRuns, partial: partialRuns, failed: failedRuns })}>
                 {completedRuns > 0 && <><i className="success" style={{ width: `${(successfulRuns / completedRuns) * 100}%` }} /><i className="warning" style={{ width: `${(partialRuns / completedRuns) * 100}%` }} /><i className="danger" style={{ width: `${(failedRuns / completedRuns) * 100}%` }} /></>}
               </div>
               <div className="overview-quality-stats"><span><i className="success" />{t('quality.success')} <strong>{overview ? successfulRuns : '—'}</strong></span><span><i className="warning" />{t('quality.partial')} <strong>{overview ? partialRuns : '—'}</strong></span><span><i className="danger" />{t('quality.failed')} <strong>{overview ? failedRuns : '—'}</strong></span></div>

@@ -20,6 +20,40 @@ function renderPage() {
 }
 
 describe('ItemPage information architecture', () => {
+  it('does not claim an empty body is allowed when document resolution is rejected', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ ...item, content: '', decision: 'rejected',
+      rejectionReason: 'pdf_image_requires_review' }), { headers: { 'Content-Type': 'application/json' } })))
+    renderPage()
+    await screen.findByRole('heading', { level: 1 })
+    await userEvent.click(screen.getByRole('tab', { name: '质量决定' }))
+    expect(screen.getByText('未取得正文，接收结果以当前质量决定为准')).toBeInTheDocument()
+    expect(screen.queryByText('当前合同允许正文为空')).not.toBeInTheDocument()
+  })
+  it('distinguishes verified EPS package identity from identical title wording', async () => {
+    const documentResolution = { kind: 'eps_public_template_render', error: null,
+      renderedTitle: '项目采购成交结果公告', identityListTitles: ['项目(包件01)成交结果公告'], documents: [] }
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ ...item, title: documentResolution.renderedTitle,
+      listTitle: documentResolution.identityListTitles[0], lineage: { ...item.lineage, documentResolution } }),
+      { headers: { 'Content-Type': 'application/json' } })))
+    renderPage()
+    await screen.findByRole('heading', { level: 1 })
+    await userEvent.click(screen.getByRole('tab', { name: '质量决定' }))
+    expect(screen.getByText('公告身份已核验')).toBeInTheDocument()
+    expect(screen.queryByText('列表标题与详情标题一致')).not.toBeInTheDocument()
+  })
+  it('shows document provenance and quality errors without mounting publisher markup', async () => {
+    const documentResolution = { profile: 'official_notice_v1', kind: 'embedded_pdf_text', error: 'pdf_image_requires_review',
+      documents: [{ role: 'embedded_body_pdf', url: 'https://czzx.fudan.edu.cn/body.pdf', pages: 2, sha256: 'abc' }] }
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ ...item,
+      lineage: { ...item.lineage, documentResolution } }), { headers: { 'Content-Type': 'application/json' } })))
+    renderPage()
+    await screen.findByRole('heading', { level: 1 })
+    await userEvent.click(screen.getByRole('tab', { name: '来源与谱系' }))
+    expect(screen.getByRole('heading', { name: '原文解析' })).toBeInTheDocument()
+    expect(screen.getByText('内嵌 PDF 文本层（非 OCR）')).toBeInTheDocument()
+    expect(screen.getByText('pdf_image_requires_review')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /https:\/\/czzx.fudan.edu.cn\/body.pdf/ })).toHaveAttribute('href', 'https://czzx.fudan.edu.cn/body.pdf')
+  })
   it('retains content and run lineage for a deleted source without a broken source link', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ ...item, collectorDeleted: true }), { headers: { 'Content-Type': 'application/json' } })))
     renderPage()

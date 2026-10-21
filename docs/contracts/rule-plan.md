@@ -24,6 +24,7 @@ RulePlan 是 Source 接入期的受约束编译中间表示。LLM 负责从非�
 - `transport=http`：运行时保存并解析原始响应字节，避免中间 DOM 序列化改变已验证 selector 的语义。
 - `transport=browser`：只使用受限浏览器获取渲染后 HTML，仍由相同字段解释器执行规则。
 - `responseType=html` 使用 `css:`；`responseType=json` 使用 `jsonpath:`。
+- `detail.transport` 可显式声明 `http|browser`；省略时继承顶层 transport。浏览器渲染列表与 HTTP 静态详情可以在同一签名规则中组合，两个阶段共享相同网络边界和总预算。
 
 ## 4. 字段规则
 
@@ -31,6 +32,7 @@ RulePlan 是 Source 接入期的受约束编译中间表示。LLM 负责从非�
 
 - `label`（可选，1–100 字符）：模型应在能提升审核清晰度时提供；省略时平台不虚构占位值。label 通过编译进入 GatherSpec 的 `fieldRule.label`（截断到 64 字符），仅用于审核界面与后续 prompt 语义，不参与提取、指纹或 digest。
 - `regex_extract`：当 selector 无法单独隔离目标值时，模型可追加一个 regex_extract 对象（详见 [`gather-spec.md`](./gather-spec.md) 第 8 节与 [`extraction-semantics.md`](./extraction-semantics.md) 第 9.2 节）。pattern 必须落在 RE2 兼容子集内——前瞻、后顾和反向引用不受支持；`group` 为捕获组索引（0 = 整个匹配）。正则不得用于改变提取边界以外的语义，更不得作为绕过 selector 方言的手段。
+- `url_path`：对象形态为 `{"type":"url_path","prefix":"/observed/path/"}`。仅将纯数字 ID 拼接到已核验、以 `/` 结尾的同主机相对路径前缀。前缀不能包含域名、查询、片段、模板表达式或路径穿越；错误输入产生缺失值，后续请求仍通过 allowedHosts、DNS、robots 与匿名 GET 校验。
 
 HTML selector 相对当前列表 Item 或详情文档执行，并以 `::text`、`::html` 或 `::attr(name)` 明确取值。JSONPath 相对当前 JSON Item 或响应执行。必填字段不得使用 `onError=null`；列表阶段和详情阶段的必填字段都参与 Item 质量终结。
 
@@ -66,7 +68,7 @@ HTML selector 相对当前列表 Item 或详情文档执行，并以 `::text`、
 
 ## 8. 两阶段编译与验证
 
-1. Crawl4AI 获取入口样本并裁剪脚本、样式和注释等主动内容。
+1. 受限 HTTP/Playwright 获取入口样本，规则编译器裁剪脚本、样式和注释等主动内容。
 2. 默认模型编译发现计划；平台执行它并要求 `list_detail` 至少发现两个详情记录。
 3. 平台抓取最多三个详情样本；默认模型编译完整 RulePlan。
 4. 平台规范化有限别名，验证 Schema、selector 命中、必填字段、详情交接、allowedHosts、分页、身份、指纹和兼容绑定。
@@ -76,4 +78,4 @@ HTML selector 相对当前列表 Item 或详情文档执行，并以 `::text`、
 
 ## 9. v1 支持边界
 
-v1 面向公开或已授权、可由 HTTP 或受限浏览器访问的 HTML/JSON Source，覆盖单页与列表详情结构、CSS/JSONPath 字段、同源 next link 和 query page。登录交互、验证码、复杂表单、GraphQL 游标协商、无限滚动、附件解析和多级详情链需要后续方言或显式平台能力，不得通过模型生成代码绕过。
+v1 面向公开或已授权、可由 HTTP 或受限浏览器访问的 HTML/JSON Source，覆盖单页与列表详情结构、CSS/JSONPath 字段、同源 next link 和 query page。`detail.resolution=official_notice_v1` 由应用为已注册采购入口选择并进入 GatherSpec 签名，模型不决定该能力或其主机。模型读取派生 JSON 编译 JSONPath 字段；原始文档、精确原文跳转、PDF 文本层与 EPS 模板的证据分别保留。登录交互、验证码、复杂表单、GraphQL 游标协商、无限滚动、一般附件解析、OCR 和任意多级详情链不在此能力范围，不得通过模型生成代码绕过。

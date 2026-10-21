@@ -1,0 +1,28 @@
+Extrio deterministic pipeline benchmark
+  source      : http://127.0.0.1:41337/demo/tenders (in-process demo router, offline)
+  collectors  : 1   runs per collector: 2   total runs: 2
+  storage     : temporary sqlite + temporary artifacts (removed on exit)
+
+collector  run  status                stop_reason            pages  list  detail  accepted  rejected  duration
+1          1    succeeded             next_link_exhausted       7     3       4         4         0     3.80s
+1          2    succeeded             next_link_exhausted       7     3       4         4         0     3.68s
+
+summary: collectors=1 runs_per_collector=2 total_runs=2 wall=12.89s pages=14 (65/min) accepted=8 (37/min) p50=3.68s p95=3.80s
+
+markdown block for docs/benchmarks.md:
+
+<!-- 以下数据块由 scripts/benchmark.py 实际运行生成，请勿手写数字。 -->
+
+- 运行参数：`--collectors 1 --pages 2`（1 个采集器 × 2 次运行 = 2 次）
+- 运行日期：2026-10-06
+- 环境：Python 3.12.12 / Linux-7.0.14-orbstack-00380-ga7e0a2dc9535-aarch64-with-glibc2.36
+- 存储：临时 SQLite（每次基准运行独立创建，结束后删除）
+- 数据源：本机 demo 源 `http://127.0.0.1:41337/demo/tenders`（进程内 uvicorn，无外部网络）
+
+| 采集器 | 运行 | 终态 | 停止原因 | 列表页 | 详情页 | 页面合计 | 接收 | 拒绝 | 变化（新增/更新/未变） | 耗时 (s) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | 1 | succeeded | next_link_exhausted | 3 | 4 | 7 | 4 | 0 | 4/0/0 | 3.80 |
+| 1 | 2 | succeeded | next_link_exhausted | 3 | 4 | 7 | 4 | 0 | 0/0/4 | 3.68 |
+| **合计** | | | | | | **14** | **8** | **0** | **4/0/4** | **12.89** |
+
+吞吐：**65 页/分钟**、**37 接收 Item/分钟**；单次运行耗时 p50 = **3.68s**、p95 = **3.80s**。

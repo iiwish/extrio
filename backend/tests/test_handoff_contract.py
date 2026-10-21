@@ -6,7 +6,7 @@ import pytest
 import extrio.app as app_module
 from extrio.adaptive_compile import CURRENT_SESSION
 from extrio.credentials import CredentialCipher
-from extrio.explorer import Crawl4AIExplorer, _sample_issues
+from extrio.explorer import SourceExplorer, _sample_issues
 from extrio.model_gateway import ActiveModel, ModelCompileError, ModelRuleCompiler, normalize_discovery_plan, normalize_rule_plan
 from extrio.store import Store
 
@@ -65,7 +65,7 @@ async def test_worker_compilation_context_validates_frozen_url_output(tmp_path, 
                 (f'<link rel="canonical" href="https://example.com/{i}">' if self_link else '') + f'<h1>{title}</h1>')
                for i, title in ((1, 'One'), (2, 'Two'))]
     plan = await compiler.compile(context, context['sourceUrl'], listing, samples, normalize_discovery_plan(DISCOVERY))
-    explorer = Crawl4AIExplorer(app_module.contracts, tmp_path / 'artifacts', compiler)
+    explorer = SourceExplorer(app_module.contracts, tmp_path / 'artifacts', compiler)
     result = explorer._validate_candidate(context, context, 'op_test', context['sourceUrl'], listing, samples, plan, None, {})
     assert len(calls) == 1
     assert len(result.preview_items) == 2

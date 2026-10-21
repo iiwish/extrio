@@ -142,7 +142,7 @@
   border: 1px solid var(--border);
   border-radius: 7px;
   background: #f7f9fa;
-  color: #7a878d;
+  color: var(--muted-foreground);
 }
 
 .topbar-search input {
@@ -158,7 +158,7 @@
   border: 1px solid #d5dce0;
   border-radius: 4px;
   background: #fff;
-  color: #7a878d;
+  color: var(--muted-foreground);
   text-align: center;
   font-size: 10px;
 }
@@ -173,7 +173,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #7a878d;
+  color: var(--muted-foreground);
   font-size: 12px;
 }
 
@@ -190,7 +190,7 @@
 }
 
 .topbar-trail a {
-  color: #6e7b82;
+  color: var(--muted-foreground);
   font-weight: 550;
 }
 
@@ -310,7 +310,7 @@
 .auth-heading p,
 .auth-unavailable p {
   margin: 4px 0 0;
-  color: #6b7a82;
+  color: var(--muted-foreground);
   font-size: 13px;
 }
 
@@ -443,7 +443,7 @@
 
 .object-list-head {
   min-height: 38px;
-  color: #7a878d;
+  color: var(--muted-foreground);
   font-size: 11px;
   font-weight: 650;
   text-transform: uppercase;
@@ -546,6 +546,6 @@
 }
 
 .object-primary small {
-  color: #75838a;
+  color: var(--muted-foreground);
   font-size: 11px;
 }

@@ -62,6 +62,33 @@ async def test_invalid_actions_are_bounded_and_cannot_read_files_or_other_pages(
 
 
 @pytest.mark.asyncio
+async def test_bare_node_request_is_rejected_with_action_envelope_feedback():
+    session = AdaptiveSession(model())
+    session.register("list-1", "list", "<main>Actual notice</main>")
+    calls = []
+
+    async def call(_model, _system, evidence, **_kwargs):
+        calls.append(evidence)
+        if len(calls) == 1:
+            return await metered(session, {"pageId": "list-1", "nodeId": "n0", "cursor": None})
+        if len(calls) == 2:
+            feedback = evidence["validationFeedback"][0]
+            assert feedback["code"] == "EVIDENCE_ACTION_INVALID"
+            assert feedback["reason"] == "EVIDENCE_ACTION_INVALID"
+            assert feedback["expectedAction"] == {
+                "action": "read_nodes", "requests": [{"pageId": "list-1", "nodeId": "n0", "cursor": None}]
+            }
+            assert not evidence["evidence"] and not session.reads
+            return await metered(session, feedback["expectedAction"])
+        assert "Actual notice" in str(evidence["evidence"])
+        return await metered(session, {"action": "propose_rule", "rule": {"mode": "single"}})
+
+    assert (await session.run(call, "system", {}))["mode"] == "single"
+    assert session.budget.calls == 3 and len(session.reads) == 1
+    assert "expectedAction" not in str(session.summary())
+
+
+@pytest.mark.asyncio
 async def test_cancellation_prevents_later_calls():
     session = AdaptiveSession(model())
     session.register("list-1", "list", "<p>Data</p>")

@@ -1,0 +1,3253 @@
+{
+  "axeVersion": "4.13.0",
+  "scans": [
+    {
+      "surface": "login",
+      "language": "zh",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-login-zh-1440.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                "p"
+              ],
+              "html": "<p>\u8fdb\u5165\u91c7\u96c6\u8fd0\u8425\u63a7\u5236\u53f0</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.43 (foreground color: #6b7a82, background color: #ffffff, font size: 9.8pt (13px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [],
+      "passes": 19,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "home",
+      "language": "zh",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-home-zh-1440.png",
+      "violations": [
+        {
+          "id": "aria-prohibited-attr",
+          "impact": "serious",
+          "description": "Ensure ARIA attributes are not prohibited for an element's role",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/aria-prohibited-attr?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".overview-quality-bar"
+              ],
+              "html": "<div class=\"overview-quality-bar\" aria-label=\"2 \u6210\u529f\uff0c0 \u90e8\u5206\u6210\u529f\uff0c0 \u5931\u8d25\"><i class=\"success\" style=\"width: 100%;\"></i><i class=\"warning\" style=\"width: 0%;\"></i><i class=\"danger\" style=\"width: 0%;\"></i></div>",
+              "failureSummary": "Fix all of the following:\n  aria-label attribute cannot be used on a div with no valid role attribute."
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".overview-trend-header > div:nth-child(1) > p"
+              ],
+              "html": "<p>\u6700\u8fd1 14 \u5929 \u00b7 \u63a5\u6536\u4e0e\u62d2\u7edd\u6570\u636e</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "button[type=\"button\"]:nth-child(2)"
+              ],
+              "html": "<button aria-pressed=\"false\" class=\"\" type=\"button\">\u6309\u5468</button>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.3 (foreground color: #66767d, background color: #f2f5f6, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "button[type=\"button\"]:nth-child(3)"
+              ],
+              "html": "<button aria-pressed=\"false\" class=\"\" type=\"button\">\u6309\u6708</button>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.3 (foreground color: #66767d, background color: #f2f5f6, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".overview-quality-panel > .overview-panel-header > div > p"
+              ],
+              "html": "<p>\u6700\u8fd1 14 \u5929</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".overview-quality-stats > span:nth-child(1)"
+              ],
+              "html": "<span><i class=\"success\"></i>\u6210\u529f <strong>2</strong></span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.01 (foreground color: #738188, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".overview-quality-stats > span:nth-child(2)"
+              ],
+              "html": "<span><i class=\"warning\"></i>\u90e8\u5206\u6210\u529f <strong>0</strong></span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.01 (foreground color: #738188, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "span:nth-child(3)"
+              ],
+              "html": "<span><i class=\"danger\"></i>\u5931\u8d25 <strong>0</strong></span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.01 (foreground color: #738188, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".overview-quality-foot > span"
+              ],
+              "html": "<span>\u6570\u636e\u901a\u8fc7\u7387</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.24 (foreground color: #6f7d84, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".overview-board-attention > .overview-panel-header > div > p"
+              ],
+              "html": "<p>\u5f53\u524d\u6765\u6e90\u5217\u8868\u672a\u53d1\u73b0\u5f85\u5904\u7406\u9879</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "span > small"
+              ],
+              "html": "<small>\u5f53\u524d\u5df2\u8bfb\u53d6\u7684\u6765\u6e90\u4e0e\u6700\u8fd1\u8fd0\u884c\u4e2d\uff0c\u6ca1\u6709\u9700\u8981\u4eba\u5de5\u5904\u7406\u7684\u4e8b\u9879\u3002</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 15
+        }
+      ],
+      "passes": 22,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "collections",
+      "language": "zh",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-collections-zh-1440.png",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        }
+      ],
+      "passes": 25,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "long-content",
+      "language": "zh",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-long-content-zh-1440.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".topbar-trail > a[href$=\"collections\"]"
+              ],
+              "html": "<a class=\"\" href=\"/collections\" data-discover=\"true\">\u91c7\u96c6\u9700\u6c42</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.35 (foreground color: #6e7b82, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "#radix-_r_0_-trigger-sources"
+              ],
+              "html": "<button type=\"button\" role=\"tab\" aria-selected=\"false\" aria-controls=\"radix-_r_0_-content-...\" data-state=\"inactive\" id=\"radix-_r_0_-trigger-...\" data-slot=\"tabs-trigger\" class=\"relative inline-flex...\" tabindex=\"-1\" data-orientation=\"horizontal\" data-radix-collectio...=\"\">",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.24 (foreground color: #70777a, background color: #f5f7f8, font size: 9.8pt (13px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        }
+      ],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "new-collector",
+      "language": "zh",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-new-collector-zh-1440.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".topbar-trail > a[href$=\"collectors\"]"
+              ],
+              "html": "<a class=\"\" href=\"/collectors\" data-discover=\"true\">\u91c7\u96c6\u6765\u6e90</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.35 (foreground color: #6e7b82, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".object-primary > span:nth-child(2) > small"
+              ],
+              "html": "<small>127.0.0.1 / notice</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.91 (foreground color: #75838a, background color: #ffffff, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".collector-list-collection > small"
+              ],
+              "html": "<small>colver_collection_x_695f8fba07b9457cab0b9a9c4b7ea9a1_v1</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.64 (foreground color: #7b888e, background color: #ffffff, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "span[title=\"rule_x_127_0_0_1_43fe411c_v1\"] > small"
+              ],
+              "html": "<small>\u7b56\u7565 v1</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.64 (foreground color: #7b888e, background color: #ffffff, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".collector-list-fact:nth-child(4) > small"
+              ],
+              "html": "<small>1 \u63a5\u6536 \u00b7 0 \u62d2\u7edd</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.64 (foreground color: #7b888e, background color: #ffffff, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".collector-action-cell > span > small"
+              ],
+              "html": "<small>1 \u63a5\u6536 \u00b7 \u5355\u9875\u5b8c\u6210</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.64 (foreground color: #7b888e, background color: #ffffff, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "#radix-_r_7_-trigger-existing"
+              ],
+              "html": "<button type=\"button\" role=\"tab\" aria-selected=\"false\" aria-controls=\"radix-_r_7_-content-...\" data-state=\"inactive\" id=\"radix-_r_7_-trigger-...\" data-slot=\"tabs-trigger\" class=\"relative inline-flex...\" tabindex=\"-1\" data-orientation=\"horizontal\" data-radix-collectio...=\"\">",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.17 (foreground color: #6d7578, background color: #eef2f3, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".form-readiness"
+              ],
+              "html": "<span class=\"form-readiness\">\u5b8c\u6210\u5f52\u5c5e\u9700\u6c42\u540e\u5373\u53ef\u521b\u5efa</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.49 (foreground color: #6b7980, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "count": 7
+        },
+        {
+          "id": "color-contrast",
+          "count": 3
+        }
+      ],
+      "passes": 25,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "collector",
+      "language": "zh",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-collector-zh-1440.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".topbar-trail > a[data-discover=\"true\"]"
+              ],
+              "html": "<a class=\"\" href=\"/collections/collection_x_695f8fba07b9457cab0b9a9c4b7ea9a1?section=sources\" data-discover=\"true\">\u91c7\u96c6\u9700\u6c42</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.35 (foreground color: #6e7b82, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".collector-phase"
+              ],
+              "html": "<span class=\"collector-phase\">\u5f53\u524d\u9636\u6bb5\uff1a<strong>\u5df2\u53d1\u5e03</strong></span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.44 (foreground color: #7a878d, background color: #f5f7f8, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".schedule-summary-grid > span:nth-child(1) > small"
+              ],
+              "html": "<small>\u72b6\u6001</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".schedule-summary-grid > span:nth-child(2) > small"
+              ],
+              "html": "<small>\u9891\u7387</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".schedule-summary-grid > span:nth-child(3) > small"
+              ],
+              "html": "<small>\u4e0b\u6b21\u8fd0\u884c</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".schedule-summary-grid > span:nth-child(4) > small"
+              ],
+              "html": "<small>\u8fd0\u884c\u51b2\u7a81</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "section[aria-label=\"\u91c7\u96c6\u8303\u56f4\u4e0e\u589e\u91cf\u7b56\u7565\"] > .policy-summary-grid > span:nth-child(1) > small"
+              ],
+              "html": "<small>\u9996\u6b21\u7a97\u53e3</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "section[aria-label=\"\u91c7\u96c6\u8303\u56f4\u4e0e\u589e\u91cf\u7b56\u7565\"] > .policy-summary-grid > span:nth-child(2) > small"
+              ],
+              "html": "<small>\u589e\u91cf\u56de\u770b</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "section[aria-label=\"\u91c7\u96c6\u8303\u56f4\u4e0e\u589e\u91cf\u7b56\u7565\"] > .policy-summary-grid > span:nth-child(3) > small"
+              ],
+              "html": "<small>\u505c\u6b62\u6761\u4ef6</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "section[aria-label=\"\u91c7\u96c6\u8303\u56f4\u4e0e\u589e\u91cf\u7b56\u7565\"] > .policy-summary-grid > span:nth-child(4) > small"
+              ],
+              "html": "<small>\u8fd0\u884c\u4e0a\u9650</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        }
+      ],
+      "passes": 27,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "run",
+      "language": "zh",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-run-zh-1440.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".topbar-trail > a"
+              ],
+              "html": "<a class=\"\" href=\"/collectors/collector_x_127_0_0_1_43fe411c?returnTo=%2Fcollections%2Fcollection_x_695f8fba07b9457cab0b9a9c4b7ea9a1%3Fsection%3Dsources&amp;section=overview\" data-discover=\"true\">\u91c7\u96c6\u6765\u6e90</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.35 (foreground color: #6e7b82, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".run-header-meta"
+              ],
+              "html": "<span class=\"run-header-meta\">2026/10/06 16:38 \u5f00\u59cb \u00b7 0.6s \u00b7 \u9996\u6b21\u8fd0\u884c</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.37 (foreground color: #67767d, background color: #f5f7f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(1) > dt"
+              ],
+              "html": "<dt>\u63a5\u6536</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > dt"
+              ],
+              "html": "<dt>\u62d2\u7edd</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(3) > dt"
+              ],
+              "html": "<dt>\u65b0\u589e</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(4) > dt"
+              ],
+              "html": "<dt>\u66f4\u65b0</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(5) > dt"
+              ],
+              "html": "<dt>\u672a\u53d8\u5316</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(6) > dt"
+              ],
+              "html": "<dt>\u8017\u65f6</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "header > div:nth-child(1) > p"
+              ],
+              "html": "<p>1 \u6761\u63a5\u6536 \u00b7 0 \u6761\u62d2\u7edd</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.08 (foreground color: #718087, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "small"
+              ],
+              "html": "<small>\u65b0\u589e \u00b7 \u53d1\u5e03\u65f6\u95f4 \u5b57\u6bb5\u7f3a\u5931 \u00b7 \u91c7\u96c6\u65f6\u95f4 2026-10-06 16:38</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.07 (foreground color: #728087, background color: #ffffff, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "ai-run",
+      "language": "zh",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-ai-run-zh-1440.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".topbar-trail > a[href=\"/runs?view=ai\"]"
+              ],
+              "html": "<a class=\"\" href=\"/runs?view=ai\" data-discover=\"true\">\u8fd0\u884c</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.35 (foreground color: #6e7b82, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".run-header-meta"
+              ],
+              "html": "<span class=\"run-header-meta\">\u9996\u6b21\u89c4\u5219\u751f\u6210 \u00b7 2026/10/06 16:38:19 \u5f00\u59cb</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.37 (foreground color: #67767d, background color: #f5f7f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".run-result-facts > div:nth-child(1) > dt"
+              ],
+              "html": "<dt>\u6a21\u578b\u8c03\u7528</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".run-result-facts > div:nth-child(2) > dt"
+              ],
+              "html": "<dt>Token</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(3) > dt"
+              ],
+              "html": "<dt>\u6837\u672c\u901a\u8fc7</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(4) > dt"
+              ],
+              "html": "<dt>\u6837\u672c\u62d2\u7edd</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(5) > dt"
+              ],
+              "html": "<dt>\u8b66\u544a</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(6) > dt"
+              ],
+              "html": "<dt>\u8017\u65f6</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "header > div > p"
+              ],
+              "html": "<p>\u5019\u9009\u89c4\u5219\u5df2\u5b8c\u6210\u4eba\u5de5\u5ba1\u6838\u5e76\u53d1\u5e03\u3002</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.08 (foreground color: #718087, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "items",
+      "language": "zh",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-items-zh-1440.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                "span:nth-child(2) > small"
+              ],
+              "html": "<small>127.0.0.1</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.91 (foreground color: #75838a, background color: #ffffff, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".item-change-cell > small"
+              ],
+              "html": "<small>Revision 1 \u00b7 2 \u6b21\u89c2\u5bdf</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.64 (foreground color: #7b888e, background color: #ffffff, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        }
+      ],
+      "passes": 24,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "item",
+      "language": "zh",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-item-zh-1440.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".topbar-trail > a[href$=\"items\"][data-discover=\"true\"]"
+              ],
+              "html": "<a class=\"\" href=\"/items\" data-discover=\"true\">\u6570\u636e</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.35 (foreground color: #6e7b82, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".run-header-meta"
+              ],
+              "html": "<span class=\"run-header-meta\">\u53d1\u5e03 \u5b57\u6bb5\u7f3a\u5931 \u00b7 Revision 1</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.37 (foreground color: #67767d, background color: #f5f7f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(1) > dt"
+              ],
+              "html": "<dt>\u53d1\u5e03\u65f6\u95f4</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > dt"
+              ],
+              "html": "<dt>\u6700\u8fd1\u91c7\u96c6</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(3) > dt"
+              ],
+              "html": "<dt>\u5f53\u524d\u7248\u672c</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(4) > dt"
+              ],
+              "html": "<dt>\u89c2\u5bdf\u6b21\u6570</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "header > div > p"
+              ],
+              "html": "<p>\u5f53\u524d\u89c4\u8303\u5316\u5b57\u6bb5\u4e0e\u6b63\u6587</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.08 (foreground color: #718087, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".item-body-reading > p"
+              ],
+              "html": "<p>\u672a\u63d0\u53d6\u6b63\u6587</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "settings",
+      "language": "zh",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-settings-zh-1440.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                "#radix-_r_0_-trigger-models"
+              ],
+              "html": "<button type=\"button\" role=\"tab\" aria-selected=\"false\" aria-controls=\"radix-_r_0_-content-...\" data-state=\"inactive\" id=\"radix-_r_0_-trigger-...\" data-slot=\"tabs-trigger\" class=\"relative inline-flex...\" tabindex=\"-1\" data-orientation=\"horizontal\" data-radix-collectio...=\"\">",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.24 (foreground color: #70777a, background color: #f5f7f8, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".muted"
+              ],
+              "html": "<span class=\"settings-status muted\">\u5df2\u505c\u7528</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.6 (foreground color: #7c898f, background color: #ffffff, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        }
+      ],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "models",
+      "language": "zh",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-models-zh-1440.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                "#radix-_r_0_-trigger-system"
+              ],
+              "html": "<button type=\"button\" role=\"tab\" aria-selected=\"false\" aria-controls=\"radix-_r_0_-content-...\" data-state=\"inactive\" id=\"radix-_r_0_-trigger-...\" data-slot=\"tabs-trigger\" class=\"relative inline-flex...\" tabindex=\"-1\" data-orientation=\"horizontal\" data-radix-collectio...=\"\">",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.24 (foreground color: #70777a, background color: #f5f7f8, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "small[title=\"https://127.0.0.1:65023/v1\"]"
+              ],
+              "html": "<small title=\"https://127.0.0.1:65023/v1\">OpenAI \u00b7 https://127.0.0.1:65023/v1</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".settings-provider-count"
+              ],
+              "html": "<span class=\"settings-provider-count\">1 \u4e2a\u6a21\u578b</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.08 (foreground color: #718087, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".settings-model-identity > small"
+              ],
+              "html": "<small>\u9ed8\u8ba4\u6a21\u578b</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 3
+        }
+      ],
+      "passes": 24,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "home",
+      "language": "zh",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-home-zh-1024.png",
+      "violations": [
+        {
+          "id": "aria-prohibited-attr",
+          "impact": "serious",
+          "description": "Ensure ARIA attributes are not prohibited for an element's role",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/aria-prohibited-attr?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".overview-quality-bar"
+              ],
+              "html": "<div class=\"overview-quality-bar\" aria-label=\"2 \u6210\u529f\uff0c0 \u90e8\u5206\u6210\u529f\uff0c0 \u5931\u8d25\"><i class=\"success\" style=\"width: 100%;\"></i><i class=\"warning\" style=\"width: 0%;\"></i><i class=\"danger\" style=\"width: 0%;\"></i></div>",
+              "failureSummary": "Fix all of the following:\n  aria-label attribute cannot be used on a div with no valid role attribute."
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".overview-trend-header > div:nth-child(1) > p"
+              ],
+              "html": "<p>\u6700\u8fd1 14 \u5929 \u00b7 \u63a5\u6536\u4e0e\u62d2\u7edd\u6570\u636e</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "button[type=\"button\"]:nth-child(2)"
+              ],
+              "html": "<button aria-pressed=\"false\" class=\"\" type=\"button\">\u6309\u5468</button>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.3 (foreground color: #66767d, background color: #f2f5f6, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "button[type=\"button\"]:nth-child(3)"
+              ],
+              "html": "<button aria-pressed=\"false\" class=\"\" type=\"button\">\u6309\u6708</button>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.3 (foreground color: #66767d, background color: #f2f5f6, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".overview-quality-panel > .overview-panel-header > div > p"
+              ],
+              "html": "<p>\u6700\u8fd1 14 \u5929</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".overview-quality-stats > span:nth-child(1)"
+              ],
+              "html": "<span><i class=\"success\"></i>\u6210\u529f <strong>2</strong></span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.01 (foreground color: #738188, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".overview-quality-stats > span:nth-child(2)"
+              ],
+              "html": "<span><i class=\"warning\"></i>\u90e8\u5206\u6210\u529f <strong>0</strong></span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.01 (foreground color: #738188, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "span:nth-child(3)"
+              ],
+              "html": "<span><i class=\"danger\"></i>\u5931\u8d25 <strong>0</strong></span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.01 (foreground color: #738188, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".overview-quality-foot > span"
+              ],
+              "html": "<span>\u6570\u636e\u901a\u8fc7\u7387</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.24 (foreground color: #6f7d84, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".overview-board-attention > .overview-panel-header > div > p"
+              ],
+              "html": "<p>\u5f53\u524d\u6765\u6e90\u5217\u8868\u672a\u53d1\u73b0\u5f85\u5904\u7406\u9879</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "span > small"
+              ],
+              "html": "<small>\u5f53\u524d\u5df2\u8bfb\u53d6\u7684\u6765\u6e90\u4e0e\u6700\u8fd1\u8fd0\u884c\u4e2d\uff0c\u6ca1\u6709\u9700\u8981\u4eba\u5de5\u5904\u7406\u7684\u4e8b\u9879\u3002</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 15
+        }
+      ],
+      "passes": 22,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "collections",
+      "language": "zh",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-collections-zh-1024.png",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        }
+      ],
+      "passes": 25,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "long-content",
+      "language": "zh",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-long-content-zh-1024.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".topbar-trail > a[href$=\"collections\"]"
+              ],
+              "html": "<a class=\"\" href=\"/collections\" data-discover=\"true\">\u91c7\u96c6\u9700\u6c42</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.35 (foreground color: #6e7b82, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "#radix-_r_0_-trigger-sources"
+              ],
+              "html": "<button type=\"button\" role=\"tab\" aria-selected=\"false\" aria-controls=\"radix-_r_0_-content-...\" data-state=\"inactive\" id=\"radix-_r_0_-trigger-...\" data-slot=\"tabs-trigger\" class=\"relative inline-flex...\" tabindex=\"-1\" data-orientation=\"horizontal\" data-radix-collectio...=\"\">",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.24 (foreground color: #70777a, background color: #f5f7f8, font size: 9.8pt (13px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        }
+      ],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "new-collector",
+      "language": "zh",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-new-collector-zh-1024.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".topbar-trail > a[href$=\"collectors\"]"
+              ],
+              "html": "<a class=\"\" href=\"/collectors\" data-discover=\"true\">\u91c7\u96c6\u6765\u6e90</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.35 (foreground color: #6e7b82, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".object-primary > span:nth-child(2) > small"
+              ],
+              "html": "<small>127.0.0.1 / notice</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.91 (foreground color: #75838a, background color: #ffffff, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".collector-list-collection > small"
+              ],
+              "html": "<small>colver_collection_x_695f8fba07b9457cab0b9a9c4b7ea9a1_v1</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.64 (foreground color: #7b888e, background color: #ffffff, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "span[title=\"rule_x_127_0_0_1_43fe411c_v1\"] > small"
+              ],
+              "html": "<small>\u7b56\u7565 v1</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.64 (foreground color: #7b888e, background color: #ffffff, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".collector-list-fact:nth-child(4) > small"
+              ],
+              "html": "<small>1 \u63a5\u6536 \u00b7 0 \u62d2\u7edd</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.64 (foreground color: #7b888e, background color: #ffffff, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".collector-action-cell > span > small"
+              ],
+              "html": "<small>1 \u63a5\u6536 \u00b7 \u5355\u9875\u5b8c\u6210</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.64 (foreground color: #7b888e, background color: #ffffff, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "#radix-_r_7_-trigger-existing"
+              ],
+              "html": "<button type=\"button\" role=\"tab\" aria-selected=\"false\" aria-controls=\"radix-_r_7_-content-...\" data-state=\"inactive\" id=\"radix-_r_7_-trigger-...\" data-slot=\"tabs-trigger\" class=\"relative inline-flex...\" tabindex=\"-1\" data-orientation=\"horizontal\" data-radix-collectio...=\"\">",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.17 (foreground color: #6d7578, background color: #eef2f3, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".form-readiness"
+              ],
+              "html": "<span class=\"form-readiness\">\u5b8c\u6210\u5f52\u5c5e\u9700\u6c42\u540e\u5373\u53ef\u521b\u5efa</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.49 (foreground color: #6b7980, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "count": 7
+        },
+        {
+          "id": "color-contrast",
+          "count": 3
+        }
+      ],
+      "passes": 25,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "collector",
+      "language": "zh",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-collector-zh-1024.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".topbar-trail > a[data-discover=\"true\"]"
+              ],
+              "html": "<a class=\"\" href=\"/collections/collection_x_695f8fba07b9457cab0b9a9c4b7ea9a1?section=sources\" data-discover=\"true\">\u91c7\u96c6\u9700\u6c42</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.35 (foreground color: #6e7b82, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".collector-phase"
+              ],
+              "html": "<span class=\"collector-phase\">\u5f53\u524d\u9636\u6bb5\uff1a<strong>\u5df2\u53d1\u5e03</strong></span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.44 (foreground color: #7a878d, background color: #f5f7f8, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".schedule-summary-grid > span:nth-child(1) > small"
+              ],
+              "html": "<small>\u72b6\u6001</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".schedule-summary-grid > span:nth-child(2) > small"
+              ],
+              "html": "<small>\u9891\u7387</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".schedule-summary-grid > span:nth-child(3) > small"
+              ],
+              "html": "<small>\u4e0b\u6b21\u8fd0\u884c</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".schedule-summary-grid > span:nth-child(4) > small"
+              ],
+              "html": "<small>\u8fd0\u884c\u51b2\u7a81</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "section[aria-label=\"\u91c7\u96c6\u8303\u56f4\u4e0e\u589e\u91cf\u7b56\u7565\"] > .policy-summary-grid > span:nth-child(1) > small"
+              ],
+              "html": "<small>\u9996\u6b21\u7a97\u53e3</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "section[aria-label=\"\u91c7\u96c6\u8303\u56f4\u4e0e\u589e\u91cf\u7b56\u7565\"] > .policy-summary-grid > span:nth-child(2) > small"
+              ],
+              "html": "<small>\u589e\u91cf\u56de\u770b</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "section[aria-label=\"\u91c7\u96c6\u8303\u56f4\u4e0e\u589e\u91cf\u7b56\u7565\"] > .policy-summary-grid > span:nth-child(3) > small"
+              ],
+              "html": "<small>\u505c\u6b62\u6761\u4ef6</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "section[aria-label=\"\u91c7\u96c6\u8303\u56f4\u4e0e\u589e\u91cf\u7b56\u7565\"] > .policy-summary-grid > span:nth-child(4) > small"
+              ],
+              "html": "<small>\u8fd0\u884c\u4e0a\u9650</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        }
+      ],
+      "passes": 27,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "run",
+      "language": "zh",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-run-zh-1024.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".topbar-trail > a"
+              ],
+              "html": "<a class=\"\" href=\"/collectors/collector_x_127_0_0_1_43fe411c?returnTo=%2Fcollections%2Fcollection_x_695f8fba07b9457cab0b9a9c4b7ea9a1%3Fsection%3Dsources&amp;section=overview\" data-discover=\"true\">\u91c7\u96c6\u6765\u6e90</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.35 (foreground color: #6e7b82, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".run-header-meta"
+              ],
+              "html": "<span class=\"run-header-meta\">2026/10/06 16:38 \u5f00\u59cb \u00b7 0.6s \u00b7 \u9996\u6b21\u8fd0\u884c</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.37 (foreground color: #67767d, background color: #f5f7f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(1) > dt"
+              ],
+              "html": "<dt>\u63a5\u6536</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > dt"
+              ],
+              "html": "<dt>\u62d2\u7edd</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(3) > dt"
+              ],
+              "html": "<dt>\u65b0\u589e</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(4) > dt"
+              ],
+              "html": "<dt>\u66f4\u65b0</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(5) > dt"
+              ],
+              "html": "<dt>\u672a\u53d8\u5316</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(6) > dt"
+              ],
+              "html": "<dt>\u8017\u65f6</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "header > div:nth-child(1) > p"
+              ],
+              "html": "<p>1 \u6761\u63a5\u6536 \u00b7 0 \u6761\u62d2\u7edd</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.08 (foreground color: #718087, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "small"
+              ],
+              "html": "<small>\u65b0\u589e \u00b7 \u53d1\u5e03\u65f6\u95f4 \u5b57\u6bb5\u7f3a\u5931 \u00b7 \u91c7\u96c6\u65f6\u95f4 2026-10-06 16:38</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.07 (foreground color: #728087, background color: #ffffff, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "ai-run",
+      "language": "zh",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-ai-run-zh-1024.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".topbar-trail > a[href=\"/runs?view=ai\"]"
+              ],
+              "html": "<a class=\"\" href=\"/runs?view=ai\" data-discover=\"true\">\u8fd0\u884c</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.35 (foreground color: #6e7b82, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".run-header-meta"
+              ],
+              "html": "<span class=\"run-header-meta\">\u9996\u6b21\u89c4\u5219\u751f\u6210 \u00b7 2026/10/06 16:38:19 \u5f00\u59cb</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.37 (foreground color: #67767d, background color: #f5f7f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".run-result-facts > div:nth-child(1) > dt"
+              ],
+              "html": "<dt>\u6a21\u578b\u8c03\u7528</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".run-result-facts > div:nth-child(2) > dt"
+              ],
+              "html": "<dt>Token</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(3) > dt"
+              ],
+              "html": "<dt>\u6837\u672c\u901a\u8fc7</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(4) > dt"
+              ],
+              "html": "<dt>\u6837\u672c\u62d2\u7edd</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(5) > dt"
+              ],
+              "html": "<dt>\u8b66\u544a</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(6) > dt"
+              ],
+              "html": "<dt>\u8017\u65f6</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "header > div > p"
+              ],
+              "html": "<p>\u5019\u9009\u89c4\u5219\u5df2\u5b8c\u6210\u4eba\u5de5\u5ba1\u6838\u5e76\u53d1\u5e03\u3002</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.08 (foreground color: #718087, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "items",
+      "language": "zh",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-items-zh-1024.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                "span:nth-child(2) > small"
+              ],
+              "html": "<small>127.0.0.1</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.91 (foreground color: #75838a, background color: #ffffff, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".item-change-cell > small"
+              ],
+              "html": "<small>Revision 1 \u00b7 2 \u6b21\u89c2\u5bdf</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.64 (foreground color: #7b888e, background color: #ffffff, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        }
+      ],
+      "passes": 25,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "item",
+      "language": "zh",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-item-zh-1024.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".topbar-trail > a[href$=\"items\"][data-discover=\"true\"]"
+              ],
+              "html": "<a class=\"\" href=\"/items\" data-discover=\"true\">\u6570\u636e</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.35 (foreground color: #6e7b82, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".run-header-meta"
+              ],
+              "html": "<span class=\"run-header-meta\">\u53d1\u5e03 \u5b57\u6bb5\u7f3a\u5931 \u00b7 Revision 1</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.37 (foreground color: #67767d, background color: #f5f7f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(1) > dt"
+              ],
+              "html": "<dt>\u53d1\u5e03\u65f6\u95f4</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > dt"
+              ],
+              "html": "<dt>\u6700\u8fd1\u91c7\u96c6</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(3) > dt"
+              ],
+              "html": "<dt>\u5f53\u524d\u7248\u672c</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(4) > dt"
+              ],
+              "html": "<dt>\u89c2\u5bdf\u6b21\u6570</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "header > div > p"
+              ],
+              "html": "<p>\u5f53\u524d\u89c4\u8303\u5316\u5b57\u6bb5\u4e0e\u6b63\u6587</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.08 (foreground color: #718087, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".item-body-reading > p"
+              ],
+              "html": "<p>\u672a\u63d0\u53d6\u6b63\u6587</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "settings",
+      "language": "zh",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-settings-zh-1024.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                "#radix-_r_0_-trigger-models"
+              ],
+              "html": "<button type=\"button\" role=\"tab\" aria-selected=\"false\" aria-controls=\"radix-_r_0_-content-...\" data-state=\"inactive\" id=\"radix-_r_0_-trigger-...\" data-slot=\"tabs-trigger\" class=\"relative inline-flex...\" tabindex=\"-1\" data-orientation=\"horizontal\" data-radix-collectio...=\"\">",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.24 (foreground color: #70777a, background color: #f5f7f8, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".muted"
+              ],
+              "html": "<span class=\"settings-status muted\">\u5df2\u505c\u7528</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.6 (foreground color: #7c898f, background color: #ffffff, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        }
+      ],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "models",
+      "language": "zh",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "zh-CN"
+      },
+      "screenshot": "audit-models-zh-1024.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                "#radix-_r_0_-trigger-system"
+              ],
+              "html": "<button type=\"button\" role=\"tab\" aria-selected=\"false\" aria-controls=\"radix-_r_0_-content-...\" data-state=\"inactive\" id=\"radix-_r_0_-trigger-...\" data-slot=\"tabs-trigger\" class=\"relative inline-flex...\" tabindex=\"-1\" data-orientation=\"horizontal\" data-radix-collectio...=\"\">",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.24 (foreground color: #70777a, background color: #f5f7f8, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "small[title=\"https://127.0.0.1:65023/v1\"]"
+              ],
+              "html": "<small title=\"https://127.0.0.1:65023/v1\">OpenAI \u00b7 https://127.0.0.1:65023/v1</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".settings-provider-count"
+              ],
+              "html": "<span class=\"settings-provider-count\">1 \u4e2a\u6a21\u578b</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.08 (foreground color: #718087, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".settings-model-identity > small"
+              ],
+              "html": "<small>\u9ed8\u8ba4\u6a21\u578b</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 3
+        }
+      ],
+      "passes": 24,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "home",
+      "language": "en",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "en"
+      },
+      "screenshot": "audit-home-en-1440.png",
+      "violations": [
+        {
+          "id": "aria-prohibited-attr",
+          "impact": "serious",
+          "description": "Ensure ARIA attributes are not prohibited for an element's role",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/aria-prohibited-attr?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".overview-quality-bar"
+              ],
+              "html": "<div class=\"overview-quality-bar\" aria-label=\"2 succeeded, 0 partially succeeded, 0 failed\"><i class=\"success\" style=\"width: 100%;\"></i><i class=\"warning\" style=\"width: 0%;\"></i><i class=\"danger\" style=\"width: 0%;\"></i></div>",
+              "failureSummary": "Fix all of the following:\n  aria-label attribute cannot be used on a div with no valid role attribute."
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".overview-trend-header > div:nth-child(1) > p"
+              ],
+              "html": "<p>Last 14 days \u00b7 accepted vs rejected data</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "button[type=\"button\"]:nth-child(2)"
+              ],
+              "html": "<button aria-pressed=\"false\" class=\"\" type=\"button\">Weekly</button>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.3 (foreground color: #66767d, background color: #f2f5f6, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "button[type=\"button\"]:nth-child(3)"
+              ],
+              "html": "<button aria-pressed=\"false\" class=\"\" type=\"button\">Monthly</button>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.3 (foreground color: #66767d, background color: #f2f5f6, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".overview-quality-panel > .overview-panel-header > div > p"
+              ],
+              "html": "<p>Last 14 days</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".overview-quality-stats > span:nth-child(1)"
+              ],
+              "html": "<span><i class=\"success\"></i>Succeeded <strong>2</strong></span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.01 (foreground color: #738188, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".overview-quality-stats > span:nth-child(2)"
+              ],
+              "html": "<span><i class=\"warning\"></i>Partial <strong>0</strong></span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.01 (foreground color: #738188, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "span:nth-child(3)"
+              ],
+              "html": "<span><i class=\"danger\"></i>Failed <strong>0</strong></span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.01 (foreground color: #738188, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".overview-quality-foot > span"
+              ],
+              "html": "<span>Data pass rate</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.24 (foreground color: #6f7d84, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".overview-board-attention > .overview-panel-header > div > p"
+              ],
+              "html": "<p>No pending actions in the current source list</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "span > small"
+              ],
+              "html": "<small>The loaded sources and latest runs have no items requiring manual handling.</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 15
+        }
+      ],
+      "passes": 22,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "collections",
+      "language": "en",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "en"
+      },
+      "screenshot": "audit-collections-en-1440.png",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        }
+      ],
+      "passes": 25,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "long-content",
+      "language": "en",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "en"
+      },
+      "screenshot": "audit-long-content-en-1440.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".topbar-trail > a[href$=\"collections\"]"
+              ],
+              "html": "<a class=\"\" href=\"/collections\" data-discover=\"true\">Requirements</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.35 (foreground color: #6e7b82, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "#radix-_r_0_-trigger-sources"
+              ],
+              "html": "<button type=\"button\" role=\"tab\" aria-selected=\"false\" aria-controls=\"radix-_r_0_-content-...\" data-state=\"inactive\" id=\"radix-_r_0_-trigger-...\" data-slot=\"tabs-trigger\" class=\"relative inline-flex...\" tabindex=\"-1\" data-orientation=\"horizontal\" data-radix-collectio...=\"\">",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.24 (foreground color: #70777a, background color: #f5f7f8, font size: 9.8pt (13px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        }
+      ],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "new-collector",
+      "language": "en",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "en"
+      },
+      "screenshot": "audit-new-collector-en-1440.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".topbar-trail > a[href$=\"collectors\"]"
+              ],
+              "html": "<a class=\"\" href=\"/collectors\" data-discover=\"true\">Sources</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.35 (foreground color: #6e7b82, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".object-primary > span:nth-child(2) > small"
+              ],
+              "html": "<small>127.0.0.1 / notice</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.91 (foreground color: #75838a, background color: #ffffff, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".collector-list-collection > small"
+              ],
+              "html": "<small>colver_collection_x_695f8fba07b9457cab0b9a9c4b7ea9a1_v1</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.64 (foreground color: #7b888e, background color: #ffffff, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "span[title=\"rule_x_127_0_0_1_43fe411c_v1\"] > small"
+              ],
+              "html": "<small>Policy v1</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.64 (foreground color: #7b888e, background color: #ffffff, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".collector-list-fact:nth-child(4) > small"
+              ],
+              "html": "<small>1 accepted \u00b7 0 rejected</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.64 (foreground color: #7b888e, background color: #ffffff, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".collector-action-cell > span > small"
+              ],
+              "html": "<small>1 accepted \u00b7 Single page completed</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.64 (foreground color: #7b888e, background color: #ffffff, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "#radix-_r_7_-trigger-existing"
+              ],
+              "html": "<button type=\"button\" role=\"tab\" aria-selected=\"false\" aria-controls=\"radix-_r_7_-content-...\" data-state=\"inactive\" id=\"radix-_r_7_-trigger-...\" data-slot=\"tabs-trigger\" class=\"relative inline-flex...\" tabindex=\"-1\" data-orientation=\"horizontal\" data-radix-collectio...=\"\">",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.17 (foreground color: #6d7578, background color: #eef2f3, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".form-readiness"
+              ],
+              "html": "<span class=\"form-readiness\">Complete the requirement before creating sources</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.49 (foreground color: #6b7980, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "count": 7
+        },
+        {
+          "id": "color-contrast",
+          "count": 3
+        }
+      ],
+      "passes": 25,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "collector",
+      "language": "en",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "en"
+      },
+      "screenshot": "audit-collector-en-1440.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".topbar-trail > a[data-discover=\"true\"]"
+              ],
+              "html": "<a class=\"\" href=\"/collections/collection_x_695f8fba07b9457cab0b9a9c4b7ea9a1?section=sources\" data-discover=\"true\">Requirements</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.35 (foreground color: #6e7b82, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".collector-phase"
+              ],
+              "html": "<span class=\"collector-phase\">Current phase: <strong>Published</strong></span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.44 (foreground color: #7a878d, background color: #f5f7f8, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".schedule-summary-grid > span:nth-child(1) > small"
+              ],
+              "html": "<small>Status</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".schedule-summary-grid > span:nth-child(2) > small"
+              ],
+              "html": "<small>Frequency</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".schedule-summary-grid > span:nth-child(3) > small"
+              ],
+              "html": "<small>Next run</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".schedule-summary-grid > span:nth-child(4) > small"
+              ],
+              "html": "<small>Run conflicts</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".collection-policy-panel > .policy-summary-grid > span:nth-child(1) > small"
+              ],
+              "html": "<small>Initial window</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".collection-policy-panel > .policy-summary-grid > span:nth-child(2) > small"
+              ],
+              "html": "<small>Increment lookback</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".collection-policy-panel > .policy-summary-grid > span:nth-child(3) > small"
+              ],
+              "html": "<small>Stop condition</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".collection-policy-panel > .policy-summary-grid > span:nth-child(4) > small"
+              ],
+              "html": "<small>Run limits</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        }
+      ],
+      "passes": 27,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "run",
+      "language": "en",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "en"
+      },
+      "screenshot": "audit-run-en-1440.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".topbar-trail > a"
+              ],
+              "html": "<a class=\"\" href=\"/collectors/collector_x_127_0_0_1_43fe411c?returnTo=%2Fcollections%2Fcollection_x_695f8fba07b9457cab0b9a9c4b7ea9a1%3Fsection%3Dsources&amp;section=overview\" data-discover=\"true\">Sources</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.35 (foreground color: #6e7b82, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".run-header-meta"
+              ],
+              "html": "<span class=\"run-header-meta\">Started 06/10/2026, 16:38 \u00b7 0.6s \u00b7 Initial run</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.37 (foreground color: #67767d, background color: #f5f7f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(1) > dt"
+              ],
+              "html": "<dt>Accepted</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > dt"
+              ],
+              "html": "<dt>Rejected</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(3) > dt"
+              ],
+              "html": "<dt>New</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(4) > dt"
+              ],
+              "html": "<dt>Updated</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(5) > dt"
+              ],
+              "html": "<dt>Unchanged</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(6) > dt"
+              ],
+              "html": "<dt>Duration</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "header > div:nth-child(1) > p"
+              ],
+              "html": "<p>1 accepted \u00b7 0 rejected</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.08 (foreground color: #718087, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "small"
+              ],
+              "html": "<small>New \u00b7 Published Not provided \u00b7 Collected 2026-10-06 16:38</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.07 (foreground color: #728087, background color: #ffffff, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "ai-run",
+      "language": "en",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "en"
+      },
+      "screenshot": "audit-ai-run-en-1440.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".topbar-trail > a[href=\"/runs?view=ai\"]"
+              ],
+              "html": "<a class=\"\" href=\"/runs?view=ai\" data-discover=\"true\">Runs</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.35 (foreground color: #6e7b82, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".run-header-meta"
+              ],
+              "html": "<span class=\"run-header-meta\">First rule generation \u00b7 started 2026/10/06 16:38:19</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.37 (foreground color: #67767d, background color: #f5f7f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".run-result-facts > div:nth-child(1) > dt"
+              ],
+              "html": "<dt>Model invocations</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".run-result-facts > div:nth-child(2) > dt"
+              ],
+              "html": "<dt>Token</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(3) > dt"
+              ],
+              "html": "<dt>Samples passed</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(4) > dt"
+              ],
+              "html": "<dt>Samples rejected</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(5) > dt"
+              ],
+              "html": "<dt>Warnings</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(6) > dt"
+              ],
+              "html": "<dt>Duration</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "header > div > p"
+              ],
+              "html": "<p>The candidate rule passed manual review and was published.</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.08 (foreground color: #718087, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "items",
+      "language": "en",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "en"
+      },
+      "screenshot": "audit-items-en-1440.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                "span:nth-child(2) > small"
+              ],
+              "html": "<small>127.0.0.1</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.91 (foreground color: #75838a, background color: #ffffff, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".item-change-cell > small"
+              ],
+              "html": "<small>Revision 1 \u00b7 2 observations</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.64 (foreground color: #7b888e, background color: #ffffff, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        }
+      ],
+      "passes": 24,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "item",
+      "language": "en",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "en"
+      },
+      "screenshot": "audit-item-en-1440.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".topbar-trail > a[href$=\"items\"][data-discover=\"true\"]"
+              ],
+              "html": "<a class=\"\" href=\"/items\" data-discover=\"true\">Data</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.35 (foreground color: #6e7b82, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".run-header-meta"
+              ],
+              "html": "<span class=\"run-header-meta\">Published Not provided \u00b7 Revision 1</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.37 (foreground color: #67767d, background color: #f5f7f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(1) > dt"
+              ],
+              "html": "<dt>Published</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > dt"
+              ],
+              "html": "<dt>Last collected</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(3) > dt"
+              ],
+              "html": "<dt>Current revision</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(4) > dt"
+              ],
+              "html": "<dt>Observations</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "header > div > p"
+              ],
+              "html": "<p>Current normalized fields and body text</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.08 (foreground color: #718087, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".item-body-reading > p"
+              ],
+              "html": "<p>Body text not extracted</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "settings",
+      "language": "en",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "en"
+      },
+      "screenshot": "audit-settings-en-1440.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                "#radix-_r_0_-trigger-models"
+              ],
+              "html": "<button type=\"button\" role=\"tab\" aria-selected=\"false\" aria-controls=\"radix-_r_0_-content-...\" data-state=\"inactive\" id=\"radix-_r_0_-trigger-...\" data-slot=\"tabs-trigger\" class=\"relative inline-flex...\" tabindex=\"-1\" data-orientation=\"horizontal\" data-radix-collectio...=\"\">",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.24 (foreground color: #70777a, background color: #f5f7f8, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".muted"
+              ],
+              "html": "<span class=\"settings-status muted\">Disabled</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.6 (foreground color: #7c898f, background color: #ffffff, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        }
+      ],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "models",
+      "language": "en",
+      "width": 1440,
+      "geometry": {
+        "width": 1440,
+        "scrollWidth": 1440,
+        "lang": "en"
+      },
+      "screenshot": "audit-models-en-1440.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                "#radix-_r_0_-trigger-system"
+              ],
+              "html": "<button type=\"button\" role=\"tab\" aria-selected=\"false\" aria-controls=\"radix-_r_0_-content-...\" data-state=\"inactive\" id=\"radix-_r_0_-trigger-...\" data-slot=\"tabs-trigger\" class=\"relative inline-flex...\" tabindex=\"-1\" data-orientation=\"horizontal\" data-radix-collectio...=\"\">",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.24 (foreground color: #70777a, background color: #f5f7f8, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "small[title=\"https://127.0.0.1:65023/v1\"]"
+              ],
+              "html": "<small title=\"https://127.0.0.1:65023/v1\">OpenAI \u00b7 https://127.0.0.1:65023/v1</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".settings-provider-count"
+              ],
+              "html": "<span class=\"settings-provider-count\">1 model</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.08 (foreground color: #718087, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".settings-model-identity > small"
+              ],
+              "html": "<small>Default model</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 3
+        }
+      ],
+      "passes": 24,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "home",
+      "language": "en",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "en"
+      },
+      "screenshot": "audit-home-en-1024.png",
+      "violations": [
+        {
+          "id": "aria-prohibited-attr",
+          "impact": "serious",
+          "description": "Ensure ARIA attributes are not prohibited for an element's role",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/aria-prohibited-attr?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".overview-quality-bar"
+              ],
+              "html": "<div class=\"overview-quality-bar\" aria-label=\"2 succeeded, 0 partially succeeded, 0 failed\"><i class=\"success\" style=\"width: 100%;\"></i><i class=\"warning\" style=\"width: 0%;\"></i><i class=\"danger\" style=\"width: 0%;\"></i></div>",
+              "failureSummary": "Fix all of the following:\n  aria-label attribute cannot be used on a div with no valid role attribute."
+            }
+          ]
+        },
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".overview-trend-header > div:nth-child(1) > p"
+              ],
+              "html": "<p>Last 14 days \u00b7 accepted vs rejected data</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "button[type=\"button\"]:nth-child(2)"
+              ],
+              "html": "<button aria-pressed=\"false\" class=\"\" type=\"button\">Weekly</button>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.3 (foreground color: #66767d, background color: #f2f5f6, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "button[type=\"button\"]:nth-child(3)"
+              ],
+              "html": "<button aria-pressed=\"false\" class=\"\" type=\"button\">Monthly</button>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.3 (foreground color: #66767d, background color: #f2f5f6, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".overview-quality-panel > .overview-panel-header > div > p"
+              ],
+              "html": "<p>Last 14 days</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".overview-quality-stats > span:nth-child(1)"
+              ],
+              "html": "<span><i class=\"success\"></i>Succeeded <strong>2</strong></span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.01 (foreground color: #738188, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".overview-quality-stats > span:nth-child(2)"
+              ],
+              "html": "<span><i class=\"warning\"></i>Partial <strong>0</strong></span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.01 (foreground color: #738188, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "span:nth-child(3)"
+              ],
+              "html": "<span><i class=\"danger\"></i>Failed <strong>0</strong></span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.01 (foreground color: #738188, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".overview-quality-foot > span"
+              ],
+              "html": "<span>Data pass rate</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.24 (foreground color: #6f7d84, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".overview-board-attention > .overview-panel-header > div > p"
+              ],
+              "html": "<p>No pending actions in the current source list</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "span > small"
+              ],
+              "html": "<small>The loaded sources and latest runs have no items requiring manual handling.</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 6.8pt (9px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 15
+        }
+      ],
+      "passes": 22,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "collections",
+      "language": "en",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "en"
+      },
+      "screenshot": "audit-collections-en-1024.png",
+      "violations": [],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        }
+      ],
+      "passes": 25,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "long-content",
+      "language": "en",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "en"
+      },
+      "screenshot": "audit-long-content-en-1024.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".topbar-trail > a[href$=\"collections\"]"
+              ],
+              "html": "<a class=\"\" href=\"/collections\" data-discover=\"true\">Requirements</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.35 (foreground color: #6e7b82, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "#radix-_r_0_-trigger-sources"
+              ],
+              "html": "<button type=\"button\" role=\"tab\" aria-selected=\"false\" aria-controls=\"radix-_r_0_-content-...\" data-state=\"inactive\" id=\"radix-_r_0_-trigger-...\" data-slot=\"tabs-trigger\" class=\"relative inline-flex...\" tabindex=\"-1\" data-orientation=\"horizontal\" data-radix-collectio...=\"\">",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.24 (foreground color: #70777a, background color: #f5f7f8, font size: 9.8pt (13px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        }
+      ],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "new-collector",
+      "language": "en",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "en"
+      },
+      "screenshot": "audit-new-collector-en-1024.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".topbar-trail > a[href$=\"collectors\"]"
+              ],
+              "html": "<a class=\"\" href=\"/collectors\" data-discover=\"true\">Sources</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.35 (foreground color: #6e7b82, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".object-primary > span:nth-child(2) > small"
+              ],
+              "html": "<small>127.0.0.1 / notice</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.91 (foreground color: #75838a, background color: #ffffff, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".collector-list-collection > small"
+              ],
+              "html": "<small>colver_collection_x_695f8fba07b9457cab0b9a9c4b7ea9a1_v1</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.64 (foreground color: #7b888e, background color: #ffffff, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "span[title=\"rule_x_127_0_0_1_43fe411c_v1\"] > small"
+              ],
+              "html": "<small>Policy v1</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.64 (foreground color: #7b888e, background color: #ffffff, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".collector-list-fact:nth-child(4) > small"
+              ],
+              "html": "<small>1 accepted \u00b7 0 rejected</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.64 (foreground color: #7b888e, background color: #ffffff, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".collector-action-cell > span > small"
+              ],
+              "html": "<small>1 accepted \u00b7 Single page completed</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.64 (foreground color: #7b888e, background color: #ffffff, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "#radix-_r_7_-trigger-existing"
+              ],
+              "html": "<button type=\"button\" role=\"tab\" aria-selected=\"false\" aria-controls=\"radix-_r_7_-content-...\" data-state=\"inactive\" id=\"radix-_r_7_-trigger-...\" data-slot=\"tabs-trigger\" class=\"relative inline-flex...\" tabindex=\"-1\" data-orientation=\"horizontal\" data-radix-collectio...=\"\">",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.17 (foreground color: #6d7578, background color: #eef2f3, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".form-readiness"
+              ],
+              "html": "<span class=\"form-readiness\">Complete the requirement before creating sources</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.49 (foreground color: #6b7980, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-hidden-focus",
+          "count": 7
+        },
+        {
+          "id": "color-contrast",
+          "count": 3
+        }
+      ],
+      "passes": 25,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "collector",
+      "language": "en",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "en"
+      },
+      "screenshot": "audit-collector-en-1024.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".topbar-trail > a[data-discover=\"true\"]"
+              ],
+              "html": "<a class=\"\" href=\"/collections/collection_x_695f8fba07b9457cab0b9a9c4b7ea9a1?section=sources\" data-discover=\"true\">Requirements</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.35 (foreground color: #6e7b82, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".collector-phase"
+              ],
+              "html": "<span class=\"collector-phase\">Current phase: <strong>Published</strong></span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.44 (foreground color: #7a878d, background color: #f5f7f8, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".schedule-summary-grid > span:nth-child(1) > small"
+              ],
+              "html": "<small>Status</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".schedule-summary-grid > span:nth-child(2) > small"
+              ],
+              "html": "<small>Frequency</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".schedule-summary-grid > span:nth-child(3) > small"
+              ],
+              "html": "<small>Next run</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".schedule-summary-grid > span:nth-child(4) > small"
+              ],
+              "html": "<small>Run conflicts</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".collection-policy-panel > .policy-summary-grid > span:nth-child(1) > small"
+              ],
+              "html": "<small>Initial window</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".collection-policy-panel > .policy-summary-grid > span:nth-child(2) > small"
+              ],
+              "html": "<small>Increment lookback</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".collection-policy-panel > .policy-summary-grid > span:nth-child(3) > small"
+              ],
+              "html": "<small>Stop condition</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".collection-policy-panel > .policy-summary-grid > span:nth-child(4) > small"
+              ],
+              "html": "<small>Run limits</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #66767e, background color: #f5f8f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        }
+      ],
+      "passes": 27,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "run",
+      "language": "en",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "en"
+      },
+      "screenshot": "audit-run-en-1024.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".topbar-trail > a"
+              ],
+              "html": "<a class=\"\" href=\"/collectors/collector_x_127_0_0_1_43fe411c?returnTo=%2Fcollections%2Fcollection_x_695f8fba07b9457cab0b9a9c4b7ea9a1%3Fsection%3Dsources&amp;section=overview\" data-discover=\"true\">Sources</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.35 (foreground color: #6e7b82, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".run-header-meta"
+              ],
+              "html": "<span class=\"run-header-meta\">Started 06/10/2026, 16:38 \u00b7 0.6s \u00b7 Initial run</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.37 (foreground color: #67767d, background color: #f5f7f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(1) > dt"
+              ],
+              "html": "<dt>Accepted</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > dt"
+              ],
+              "html": "<dt>Rejected</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(3) > dt"
+              ],
+              "html": "<dt>New</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(4) > dt"
+              ],
+              "html": "<dt>Updated</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(5) > dt"
+              ],
+              "html": "<dt>Unchanged</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(6) > dt"
+              ],
+              "html": "<dt>Duration</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "header > div:nth-child(1) > p"
+              ],
+              "html": "<p>1 accepted \u00b7 0 rejected</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.08 (foreground color: #718087, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "small"
+              ],
+              "html": "<small>New \u00b7 Published Not provided \u00b7 Collected 2026-10-06 16:38</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.07 (foreground color: #728087, background color: #ffffff, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "ai-run",
+      "language": "en",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "en"
+      },
+      "screenshot": "audit-ai-run-en-1024.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".topbar-trail > a[href=\"/runs?view=ai\"]"
+              ],
+              "html": "<a class=\"\" href=\"/runs?view=ai\" data-discover=\"true\">Runs</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.35 (foreground color: #6e7b82, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".run-header-meta"
+              ],
+              "html": "<span class=\"run-header-meta\">First rule generation \u00b7 started 2026/10/06 16:38:19</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.37 (foreground color: #67767d, background color: #f5f7f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".run-result-facts > div:nth-child(1) > dt"
+              ],
+              "html": "<dt>Model invocations</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".run-result-facts > div:nth-child(2) > dt"
+              ],
+              "html": "<dt>Token</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(3) > dt"
+              ],
+              "html": "<dt>Samples passed</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(4) > dt"
+              ],
+              "html": "<dt>Samples rejected</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(5) > dt"
+              ],
+              "html": "<dt>Warnings</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(6) > dt"
+              ],
+              "html": "<dt>Duration</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "header > div > p"
+              ],
+              "html": "<p>The candidate rule passed manual review and was published.</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.08 (foreground color: #718087, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "items",
+      "language": "en",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "en"
+      },
+      "screenshot": "audit-items-en-1024.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                "span:nth-child(2) > small"
+              ],
+              "html": "<small>127.0.0.1</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.91 (foreground color: #75838a, background color: #ffffff, font size: 8.3pt (11px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".item-change-cell > small"
+              ],
+              "html": "<small>Revision 1 \u00b7 2 observations</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.64 (foreground color: #7b888e, background color: #ffffff, font size: 7.5pt (10px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 2
+        }
+      ],
+      "passes": 25,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "item",
+      "language": "en",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "en"
+      },
+      "screenshot": "audit-item-en-1024.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                ".topbar-trail > a[href$=\"items\"][data-discover=\"true\"]"
+              ],
+              "html": "<a class=\"\" href=\"/items\" data-discover=\"true\">Data</a>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.35 (foreground color: #6e7b82, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".run-header-meta"
+              ],
+              "html": "<span class=\"run-header-meta\">Published Not provided \u00b7 Revision 1</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.37 (foreground color: #67767d, background color: #f5f7f8, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(1) > dt"
+              ],
+              "html": "<dt>Published</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(2) > dt"
+              ],
+              "html": "<dt>Last collected</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(3) > dt"
+              ],
+              "html": "<dt>Current revision</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "div:nth-child(4) > dt"
+              ],
+              "html": "<dt>Observations</dt>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "header > div > p"
+              ],
+              "html": "<p>Current normalized fields and body text</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.08 (foreground color: #718087, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".item-body-reading > p"
+              ],
+              "html": "<p>Body text not extracted</p>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        },
+        {
+          "id": "color-contrast",
+          "count": 1
+        }
+      ],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "settings",
+      "language": "en",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "en"
+      },
+      "screenshot": "audit-settings-en-1024.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                "#radix-_r_0_-trigger-models"
+              ],
+              "html": "<button type=\"button\" role=\"tab\" aria-selected=\"false\" aria-controls=\"radix-_r_0_-content-...\" data-state=\"inactive\" id=\"radix-_r_0_-trigger-...\" data-slot=\"tabs-trigger\" class=\"relative inline-flex...\" tabindex=\"-1\" data-orientation=\"horizontal\" data-radix-collectio...=\"\">",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.24 (foreground color: #70777a, background color: #f5f7f8, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".muted"
+              ],
+              "html": "<span class=\"settings-status muted\">Disabled</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.6 (foreground color: #7c898f, background color: #ffffff, font size: 7.5pt (10px), font weight: bold). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 1
+        }
+      ],
+      "passes": 26,
+      "axeVersion": "4.13.0"
+    },
+    {
+      "surface": "models",
+      "language": "en",
+      "width": 1024,
+      "geometry": {
+        "width": 1024,
+        "scrollWidth": 1024,
+        "lang": "en"
+      },
+      "screenshot": "audit-models-en-1024.png",
+      "violations": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+          "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=axeAPI",
+          "nodes": [
+            {
+              "target": [
+                "#radix-_r_0_-trigger-system"
+              ],
+              "html": "<button type=\"button\" role=\"tab\" aria-selected=\"false\" aria-controls=\"radix-_r_0_-content-...\" data-state=\"inactive\" id=\"radix-_r_0_-trigger-...\" data-slot=\"tabs-trigger\" class=\"relative inline-flex...\" tabindex=\"-1\" data-orientation=\"horizontal\" data-radix-collectio...=\"\">",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.24 (foreground color: #70777a, background color: #f5f7f8, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                "small[title=\"https://127.0.0.1:65023/v1\"]"
+              ],
+              "html": "<small title=\"https://127.0.0.1:65023/v1\">OpenAI \u00b7 https://127.0.0.1:65023/v1</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".settings-provider-count"
+              ],
+              "html": "<span class=\"settings-provider-count\">1 model</span>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.08 (foreground color: #718087, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            },
+            {
+              "target": [
+                ".settings-model-identity > small"
+              ],
+              "html": "<small>Default model</small>",
+              "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 3.69 (foreground color: #7a878d, background color: #ffffff, font size: 9.0pt (12px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ],
+      "incomplete": [
+        {
+          "id": "aria-prohibited-attr",
+          "count": 3
+        }
+      ],
+      "passes": 24,
+      "axeVersion": "4.13.0"
+    }
+  ],
+  "behaviors": [
+    {
+      "case": "wrong-password-visible-error",
+      "status": "passed"
+    },
+    {
+      "case": "html-content-inert",
+      "language": "zh",
+      "width": 1440,
+      "status": "passed"
+    },
+    {
+      "case": "html-content-inert",
+      "language": "zh",
+      "width": 1024,
+      "status": "passed"
+    },
+    {
+      "case": "html-content-inert",
+      "language": "en",
+      "width": 1440,
+      "status": "passed"
+    },
+    {
+      "case": "html-content-inert",
+      "language": "en",
+      "width": 1024,
+      "status": "passed"
+    }
+  ],
+  "pageErrors": [],
+  "overflow": [],
+  "violationInstances": 45
+}

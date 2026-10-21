@@ -58,6 +58,7 @@ describe('HomePage operational dashboard', () => {
     expect(within(metrics).getByText('本月有效数据')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: '采集产出趋势' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: '运行质量' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: '0 成功，1 部分成功，0 失败' })).toHaveClass('overview-quality-bar')
     expect(screen.getByRole('heading', { name: '需要关注' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: '系统状态' })).not.toBeInTheDocument()
     expect(screen.queryByText('当前最优先')).not.toBeInTheDocument()
@@ -72,6 +73,13 @@ describe('HomePage operational dashboard', () => {
     expect(screen.queryByText('所有采集来源均已发布')).not.toBeInTheDocument()
     expect(screen.queryByText('运行正常')).not.toBeInTheDocument()
     expect(screen.queryByText('0 次运行 · 0 条拒绝')).not.toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: /成功/ })).not.toBeInTheDocument()
+  })
+
+  it('does not expose zero quality counts before overview data has loaded', () => {
+    vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(() => {})))
+    renderPage()
+    expect(screen.queryByRole('img', { name: /成功/ })).not.toBeInTheDocument()
   })
 
   it('uses an aggregated trend and a short exception list without exposing technical IDs', async () => {
@@ -79,6 +87,7 @@ describe('HomePage operational dashboard', () => {
 
     const trend = await screen.findByRole('group', { name: /最近 14 天 1 次运行/ })
     expect(trend.querySelectorAll('.overview-chart-point')).toHaveLength(14)
+    expect(within(trend).getAllByRole('img')).toHaveLength(14)
     const attention = screen.getByRole('region', { name: '需要关注' })
     expect(within(attention).getByRole('link', { name: /处理部分成功运行.*上海政府采购公告/ })).toHaveAttribute('href', '/runs/run_0842')
     expect(screen.queryByText('run_0842')).not.toBeInTheDocument()

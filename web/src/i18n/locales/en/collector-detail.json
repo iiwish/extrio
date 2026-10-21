@@ -362,6 +362,9 @@
     "customCron": "Custom cron · {{cron}}"
   },
   "policy": {
+    "checkpointMode": "Checkpoint basis",
+    "observedMode": "Collection coverage with quality backlog",
+    "acceptedMode": "Advance only after acceptance",
     "panelAria": "Collection scope and incremental policy",
     "title": "Collection scope and increments",
     "description": "The first run looks back over a time window; later runs look back from the successful checkpoint while pagination stays pinned by the published rule.",

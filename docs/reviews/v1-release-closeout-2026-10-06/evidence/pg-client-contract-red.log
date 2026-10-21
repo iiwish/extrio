@@ -1,0 +1,16 @@
+F.                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_backend_image_pins_a_supported_debian_generation_and_matching_pg_repository _
+
+    def test_backend_image_pins_a_supported_debian_generation_and_matching_pg_repository():
+        source = DOCKERFILE.read_text()
+        assert re.search(r"^FROM ghcr\.io/astral-sh/uv:python3\.12-trixie-slim@sha256:[0-9a-f]{64}$", source, re.MULTILINE)
+        assert "trixie-pgdg main" in source
+        assert "bookworm" not in source
+>       assert "postgresql-client-16" in source
+E       assert 'postgresql-client-16' in 'FROM ghcr.io/astral-sh/uv:python3.12-trixie-slim@sha256:28d570c06d150303b39adfa731ada20956c63fc86b1277d7ff2ad63185974... /var/lib/extrio \\\n    && chown -R extrio:extrio /var/lib/extrio\n\nUSER extrio\nEXPOSE 8000\n\nCMD ["extrio-api"]\n'
+
+backend/tests/test_backend_image_contract.py:12: AssertionError
+=========================== short test summary info ============================
+FAILED backend/tests/test_backend_image_contract.py::test_backend_image_pins_a_supported_debian_generation_and_matching_pg_repository
+1 failed, 1 passed in 0.02s

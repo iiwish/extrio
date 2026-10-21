@@ -11,13 +11,12 @@ import threading
 import uuid
 from collections.abc import Iterator
 from contextlib import asynccontextmanager, suppress
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any, TextIO
 from urllib.parse import urlparse
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import uvicorn
-from bs4 import BeautifulSoup
 from fastapi import Depends, FastAPI, Header, Query, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -105,6 +104,17 @@ async def schedule_dispatch_loop() -> None:
                     logger.exception("Schedule occurrence dispatch failed: %s", occurrence["occurrenceKey"])
         except Exception:  # noqa: BLE001
             logger.exception("Schedule dispatch failed")
+        await asyncio.sleep(settings.schedule_poll_seconds)
+
+
+async def recovery_dispatch_loop() -> None:
+    from extrio.bounded_recovery import tick
+
+    while True:
+        try:
+            tick(store, create_run_operation)
+        except Exception:
+            logger.exception('Bounded recovery dispatch failed; no success inferred')
         await asyncio.sleep(settings.schedule_poll_seconds)
 
 
@@ -557,12 +567,16 @@ async def active_lifespan(_app: FastAPI):
                     action="rule.integrity_bootstrapped",
                 )
     schedule_task = asyncio.create_task(schedule_dispatch_loop())
+    recovery_task = asyncio.create_task(recovery_dispatch_loop())
     try:
         yield
     finally:
         schedule_task.cancel()
+        recovery_task.cancel()
         with suppress(asyncio.CancelledError):
             await schedule_task
+        with suppress(asyncio.CancelledError):
+            await recovery_task
 
 
 @asynccontextmanager
@@ -985,7 +999,12 @@ def request_audit(request):
 @app.exception_handler(LifecycleError)
 async def lifecycle_error(request: Request, exc: LifecycleError):
     code = str(exc)
-    return platform_error(request, code, code, 404 if code in {"COLLECTOR_NOT_FOUND", "COLLECTION_NOT_FOUND"} else 409)
+    messages = {'SOURCE_RECOVERY_ACTIVE': '该来源主机已有有限恢复批次，冷却或执行结束前不能叠加请求',
+        'RECOVERY_ALREADY_EXISTS': '该限流运行已有恢复批次，请查看既有记录',
+        'RECOVERY_SEED_INVALID': '仅可从当前规则和策略下最新的限流运行及有效续跑进度创建恢复批次',
+        'RECOVERY_NOT_FOUND': '恢复批次不存在', 'RUN_NOT_FOUND': '运行不存在'}
+    return platform_error(request, code, messages.get(code, code),
+                          404 if code in {'COLLECTOR_NOT_FOUND', 'COLLECTION_NOT_FOUND', 'RECOVERY_NOT_FOUND', 'RUN_NOT_FOUND'} else 409)
 
 
 @app.get("/api/v1/collectors/{collector_id}/lifecycle")
@@ -1597,11 +1616,12 @@ def _validate_candidate_against_latest_samples(
             raise ValueError("详情链接 selector 的发现结果与最近探索样本不一致")
         detail_files = sorted(artifact_dir.glob("detail-*.html"))
         detail_urls = candidate["discovery"].get("detailUrlSamples", [])
-        samples = [
-            (detail_urls[index] if index < len(detail_urls) else records[index]["detailUrl"], path.read_text(encoding="utf-8"))
-            for index, path in enumerate(detail_files)
-            if index < len(records)
-        ]
+        samples = []
+        for path in detail_files:
+            index = int(path.stem.removeprefix('detail-')) - 1
+            if not 0 <= index < len(detail_urls):
+                raise ValueError('详情证据文件缺少对应的采样 URL，不使用列表行序号推断来源')
+            samples.append((detail_urls[index], path.read_text(encoding='utf-8')))
     else:
         samples = [(collector["sourceUrl"], list_html)]
     if not samples:
@@ -1618,14 +1638,14 @@ def _validate_candidate_against_latest_samples(
         reason = preview_items[0].get("rejectionReason") or "输出字段未通过质量门"
         raise ValueError(f"手工规则未通过最近样本验证：{reason}")
 
-    evidence_html = samples[0][1]
-    soup = BeautifulSoup(evidence_html, "html.parser")
+    accepted_index = next(index for index, item in enumerate(preview_items) if item['decision'] == 'accepted')
+    evidence_url, evidence_html = samples[accepted_index]
+    from extrio.harvest import field_evidence
+
     for field in candidate["fields"]:
-        field["sample"] = str(accepted.get(field["key"]) or "字段缺失")[:240]
-        selector = field["selector"]
-        if selector.startswith("css:"):
-            node = soup.select_one(selector.removeprefix("css:").split("::", 1)[0])
-            field["evidence"] = str(node)[:500] if node else "最近样本未定位到 DOM 节点"
+        sample = accepted.get("extractedData", {}).get(field["key"], accepted.get(field["key"]))
+        field["sample"] = "字段缺失" if sample is None else str(sample)[:240]
+        field['evidence'] = field_evidence(candidate['gatherSpec'], field['key'], list_html, evidence_url, evidence_html)
         field["confidence"] = max(float(field.get("confidence", 0)), 0.9)
     return preview_items
 
@@ -1639,7 +1659,7 @@ async def update_candidate_rule(
     if error := require_idempotency(request, idempotency_key):
         return error
     required = {"listSelector", "detailLinkSelector", "pagination", "fields"}
-    allowed = required | {"listFields"}
+    allowed = required | {"listFields", 'listDateSelector', 'officialResolutionVersion'}
     try:
         body = await request.json()
     except Exception:  # noqa: BLE001
@@ -1674,7 +1694,8 @@ async def update_candidate_rule(
         detail_link_selector = body.get("detailLinkSelector")
         if mode == "single" and (detail_link_selector is not None or pagination["type"] != "none"):
             return platform_error(request, "VALIDATION_FAILED", "单阶段规则不能配置详情链接或分页", 422)
-        if mode == "list_detail" and (not _valid_selector(detail_link_selector) or pagination["type"] == "none"):
+        disabling_pagination = pagination["type"] == "none" and candidate["pagination"]["type"] != "none"
+        if mode == "list_detail" and (not _valid_selector(detail_link_selector) or disabling_pagination):
             return platform_error(request, "VALIDATION_FAILED", "两阶段规则必须配置详情链接与分页", 422)
 
         field_inputs = body.get("fields")
@@ -1694,6 +1715,22 @@ async def update_candidate_rule(
             return platform_error(request, "VALIDATION_FAILED", "fields 必须完整覆盖候选输出字段", 422, pointer="/fields")
 
         spec = copy.deepcopy(candidate["gatherSpec"])
+        if 'listDateSelector' in body:
+            if mode != 'list_detail' or not _valid_selector(body['listDateSelector']):
+                return platform_error(request, 'VALIDATION_FAILED', '列表日期必须是有效的两阶段 selector', 422)
+            spec['collect']['list']['fields']['listPublishedAt'] = {
+                'label': '列表日期', 'selector': body['listDateSelector'], 'valueType': 'string',
+                'required': False, 'onError': 'null', 'multipleMatchPolicy': 'first', 'transforms': ['trim']}
+            spec['contract'].setdefault('fieldBindings', {})['listPublishedAt'] = 'list.listPublishedAt'
+        if 'officialResolutionVersion' in body:
+            from extrio.official_documents import supports_resolution
+
+            if (body['officialResolutionVersion'] not in {'official_notice_v2', 'official_notice_v3'}
+                    or (body['officialResolutionVersion'] == 'official_notice_v3' and collector['sourceHost'] != 'www.gdebidding.com')
+                    or not supports_resolution(collector['sourceUrl'])
+                    or not spec['collect'].get('detail', {}).get('resolution')):
+                return platform_error(request, 'VALIDATION_FAILED', '官方解析版本不适用于此来源', 422)
+            spec['collect']['detail']['resolution'] = body['officialResolutionVersion']
         list_field_inputs = body.get("listFields")
         if mode == "list_detail" and list_field_inputs is not None:
             expected_list_keys = list(spec["collect"]["list"]["fields"])
@@ -1752,11 +1789,25 @@ async def update_candidate_rule(
         spec["collect"]["budget"]["maxPages"] = pagination.get("maxPages", 1)
         if mode == "list_detail":
             spec["collect"]["list"]["fields"]["detailUrl"]["selector"] = detail_link_selector
-            output_fields = spec["collect"]["detail"]["fields"]
-        else:
-            output_fields = spec["collect"]["list"]["fields"]
+        bindings = spec.get("contract", {}).get("fieldBindings", {})
         for key, selector in selectors.items():
-            output_fields[key]["selector"] = selector
+            binding = bindings.get(key)
+            default_stage = "list" if (
+                key in spec["collect"]["list"]["fields"]
+                and key not in spec["collect"].get("detail", {}).get("fields", {})
+            ) else ("detail" if mode == "list_detail" else "list")
+            stage, field_key = (
+                binding.split(".", 1) if isinstance(binding, str) and "." in binding
+                else (default_stage, key)
+            )
+            stage_fields = spec["collect"].get(stage, {}).get("fields", {})
+            if field_key not in stage_fields:
+                return platform_error(request, "VALIDATION_FAILED", "输出字段未绑定到有效的采集阶段", 422, pointer="/fields")
+            if stage == "list" and field_key == "detailUrl" and selector != detail_link_selector:
+                return platform_error(request, "VALIDATION_FAILED", "公告链接 selector 必须与详情交接链接一致", 422, pointer="/fields")
+            if mode == "list_detail" and stage == "list" and list_field_inputs is not None and list_selectors.get(field_key) != selector:
+                return platform_error(request, "VALIDATION_FAILED", "输出字段与列表字段的 selector 不一致", 422, pointer="/fields")
+            stage_fields[field_key]["selector"] = selector
         override = {
             "overrideId": stable_id("override", uuid.uuid4().hex),
             "digest": digest_value(body),
@@ -1810,7 +1861,7 @@ async def save_collection_policy(
     if error := require_idempotency(request, idempotency_key):
         return error
     required = {"mode", "initialWindowDays", "lookbackDays", "consecutiveOlderPages", "maxPages", "maxItems", "timezone"}
-    body, body_error = await read_contract_body(request, required=required)
+    body, body_error = await read_contract_body(request, required=required, optional={'checkpointMode'})
     if body_error:
         return body_error
     with mutation_lock:
@@ -1882,8 +1933,9 @@ async def create_collector(request: Request, response: Response, idempotency_key
         return platform_error(request, exc.code, str(exc), 422, pointer="/sourceUrl")
     if store.source_exists(source_url):
         return platform_error(request, "SOURCE_ALREADY_EXISTS", "该 Source URL 已存在", 409, pointer="/sourceUrl")
-    if not str(body.get("name", "")).strip() or not str(body.get("intent", "")).strip():
-        return platform_error(request, "VALIDATION_FAILED", "name 与 intent 不能为空", 422)
+    for field in ("name", "intent"):
+        if not isinstance(body[field], str) or not body[field].strip():
+            return platform_error(request, "VALIDATION_FAILED", f"{field} 必须是非空字符串", 422, pointer=f"/{field}")
     collection_name = body["name"].strip()
     collector = store.create_collector(
         collection_name,
@@ -2305,7 +2357,8 @@ class RunStartError(Exception):
         self.status_code = status_code
 
 
-def create_run_operation(collector_id: str, connection: DialectConnection | None = None) -> dict[str, Any]:
+def create_run_operation(collector_id: str, connection: DialectConnection | None = None, *, retry_rejected: bool = False,
+                         recovery_batch_id: str | None = None, request_limit: int | None = None) -> dict[str, Any]:
     collector = store.get_collector(collector_id, connection)
     if not collector:
         raise RunStartError("COLLECTOR_NOT_FOUND", "Collector 不存在", 404)
@@ -2323,7 +2376,24 @@ def create_run_operation(collector_id: str, connection: DialectConnection | None
         raise RunStartError("RUN_ALREADY_ACTIVE", "Collector 已有进行中的 Run")
     collector = store.ensure_collection_policy(collector_id, connection)
     policy = collector["collectionPolicy"]
+    from extrio.coverage import valid_progress
+
+    observed = policy.get('checkpointMode') == 'observed'
+    progress = collector.get('coverageProgress')
+    if not observed or not valid_progress(progress, integrity['ruleDigest'], policy['id']):
+        progress = None
+    retry_records = None
+    if retry_rejected:
+        _, rejected = store.rejected_entities(collector_id, connection, limit=min(
+            policy['maxItems'], collector['candidate']['gatherSpec']['collect']['budget']['maxItems']))
+        if not rejected:
+            raise RunStartError('NO_REJECTED_ITEMS', '没有待重新处理的拒收项')
+        retry_records = [item['lineage'].get('listRecord') or {
+            'detailUrl': item['extractedData'].get('detailUrl') or item['sourceUrl'], 'listTitle': item['listTitle']}
+            for item in rejected]
     checkpoint = store.get_checkpoint(collector_id, connection)
+    if observed and checkpoint and checkpoint.get('ruleDigest') != integrity['ruleDigest']:
+        checkpoint = None
     if checkpoint and checkpoint.get("policyVersionId") == policy["id"]:
         execution_mode = "incremental"
         checkpoint_before = copy.deepcopy(checkpoint)
@@ -2333,6 +2403,8 @@ def create_run_operation(collector_id: str, connection: DialectConnection | None
         checkpoint_before = None
         local_today = datetime.now(ZoneInfo(policy["timezone"])).date()
         window_start = local_today - timedelta(days=policy["initialWindowDays"])
+    if progress and not retry_rejected:
+        window_start = date.fromisoformat(progress['windowStart'])
     run_id = stable_id("run", uuid.uuid4().hex)
     run = {
         "id": run_id,
@@ -2372,6 +2444,10 @@ def create_run_operation(collector_id: str, connection: DialectConnection | None
         "summary": "等待 Crawlee Worker 执行。",
         "recoveryAction": "无需操作。",
         "items": [],
+        **({'coverageMode': 'observed', 'coverageProgressBefore': progress, 'coverageProgressAfter': None,
+            'pendingQualityCount': store.rejected_entities(collector_id, connection, limit=1)[0]} if observed else {}),
+        **({'runPurpose': 'retry_rejected'} if retry_rejected else {}),
+        **({'recoveryBatchId': recovery_batch_id, 'sourceRequestLimit': request_limit} if recovery_batch_id else {}),
     }
     operation = store.create_async_command(
         kind="run",
@@ -2386,11 +2462,56 @@ def create_run_operation(collector_id: str, connection: DialectConnection | None
             "policyVersionId": policy["id"],
             "policyDigest": policy["digest"],
             "checkpointBefore": checkpoint_before,
+            **({'retryRecords': retry_records} if retry_records is not None else {}),
+            **({'recoveryBatchId': recovery_batch_id, 'maxJobAttempts': 1} if recovery_batch_id else {}),
         },
         run=run,
         connection=connection,
     )
     return operation
+
+
+@app.get('/api/v1/runs/{run_id}/recovery')
+def run_recovery(run_id: str, request: Request):
+    from extrio.bounded_recovery import for_run, public
+
+    if not store.get_run(run_id):
+        return platform_error(request, 'RUN_NOT_FOUND', '运行不存在', 404)
+    return public(for_run(store, run_id))
+
+
+@app.get('/api/v1/recovery-batches/{batch_id}')
+def recovery_detail(batch_id: str, request: Request):
+    from extrio.bounded_recovery import get, public
+
+    value = get(store, batch_id)
+    return public(value) if value else platform_error(request, 'RECOVERY_NOT_FOUND', '恢复批次不存在', 404)
+
+
+async def recovery_command(request, key, *, run_id=None, batch_id=None):
+    from extrio.bounded_recovery import public, request_stop, start
+
+    if error := require_idempotency(request, key):
+        return error
+    _, error = await read_contract_body(request, required=set(), optional=set())
+    if error:
+        return error
+    audit = {'tenantId': settings.tenant_id, 'actorId': request.state.auth_user['id'], 'requestId': request.state.request_id}
+    try:
+        status, value, replayed = (start(store, run_id, key, audit) if run_id else request_stop(store, batch_id, key, audit))
+    except IdempotencyConflict:
+        return platform_error(request, 'IDEMPOTENCY_KEY_REUSED', '幂等键已被其他请求占用', 409)
+    return JSONResponse(public(value), status_code=status, headers={'Idempotency-Replayed': str(replayed).lower()})
+
+
+@app.post('/api/v1/runs/{run_id}/recovery', dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
+async def start_recovery(run_id: str, request: Request, idempotency_key: str | None = Header(None, alias='Idempotency-Key')):
+    return await recovery_command(request, idempotency_key, run_id=run_id)
+
+
+@app.post('/api/v1/recovery-batches/{batch_id}/cancel', dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
+async def cancel_recovery(batch_id: str, request: Request, idempotency_key: str | None = Header(None, alias='Idempotency-Key')):
+    return await recovery_command(request, idempotency_key, batch_id=batch_id)
 
 
 @app.post("/api/v1/collectors/{collector_id}/runs", status_code=202, dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
@@ -2417,6 +2538,24 @@ def _start_run(collector_id: str, request: Request, response: Response, idempote
     response.headers["Location"] = operation["statusUrl"]
     remember(scope, idempotency_key, body, 202, operation)
     return operation
+
+
+@app.post('/api/v1/collectors/{collector_id}/reprocess-rejected', status_code=202, dependencies=[require_roles(*ENGINEER_OR_ADMIN)])
+def reprocess_rejected(collector_id: str, request: Request, response: Response,
+                       idempotency_key: str | None = Header(None, alias='Idempotency-Key')):
+    if error := require_idempotency(request, idempotency_key):
+        return error
+    with mutation_lock:
+        scope, body = f'POST:/collectors/{collector_id}/reprocess-rejected', {'collectorId': collector_id}
+        if found := replay(scope, idempotency_key, body, request):
+            return found
+        try:
+            operation = create_run_operation(collector_id, retry_rejected=True)
+        except RunStartError as exc:
+            return platform_error(request, exc.code, str(exc), exc.status_code)
+        response.headers['Location'] = operation['statusUrl']
+        remember(scope, idempotency_key, body, 202, operation)
+        return operation
 
 
 @app.get("/api/v1/overview")
