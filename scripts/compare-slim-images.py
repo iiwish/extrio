@@ -43,6 +43,14 @@ def test_counts(path):
     return count
 
 
+def verify_image_identity(report, image):
+    metadata = report.get('Metadata', {})
+    if (metadata.get('ImageID') != image.get('Id') or metadata.get('DiffIDs') != image.get('RootFS', {}).get('Layers')
+            or report.get('ArtifactName') not in image.get('RepoTags', [])):
+        raise ValueError('scan image identity does not match the verified runtime image')
+    return image['Id']
+
+
 def compare(root):
     def read(variant, name):
         return json.loads((root / variant / name).read_text())
@@ -57,6 +65,8 @@ def compare(root):
               'llvmRemoval': llvm, 'variants': {}}
     for variant in ('baseline', 'headless'):
         runtime = read(variant, 'runtime.json')
+        scan = read(variant, 'vulnerabilities.json')
+        image_id = verify_image_identity(scan, read(variant, 'image.json')[0])
         compare_capabilities(baseline['probe'], runtime['probe'])
         if test_counts(root / variant / 'tests.xml') != count:
             raise ValueError('image test count changed')
@@ -65,8 +75,8 @@ def compare(root):
         if variant == 'headless' and ('libcups2t64' in names or runtime['fullChromiumPresent']):
             raise ValueError('full Chromium/CUPS remained installed')
         result['variants'][variant] = {
-            'testsPassed': count, 'capabilitiesMatch': True, 'pruning': pruning,
-            'scan': scan_delta(inventory, read(variant, 'vulnerabilities.json'), set(pruning['removedPackages'])),
+            'imageId': image_id, 'testsPassed': count, 'capabilitiesMatch': True, 'pruning': pruning,
+            'scan': scan_delta(inventory, scan, set(pruning['removedPackages'])),
         }
     return result
 

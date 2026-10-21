@@ -1,0 +1,29 @@
+{
+  "sourceSha": "271e1944a16926808e3655f7e592cc75765febae",
+  "workflowRun": "https://github.com/iiwish/extrio/actions/runs/39540258071",
+  "scope": "independent headless-only candidate; default image unchanged; no publication or risk acceptance",
+  "llvmRemoval": "blocked before mutation because the plan removes required libgbm1",
+  "testsPerArchitecturePerVariant": 246,
+  "failedOrSkipped": 0,
+  "baselineFindings": {"CRITICAL": 1, "HIGH": 63, "MEDIUM": 154, "LOW": 174, "UNKNOWN": 8},
+  "candidateFindings": {"CRITICAL": 1, "HIGH": 61, "MEDIUM": 137, "LOW": 170, "UNKNOWN": 4},
+  "removedPackage": "libcups2t64",
+  "removedRecords": 27,
+  "addedRecords": 0,
+  "amd64": {
+    "artifact": "image-slim-ubuntu-latest",
+    "baselineImageId": "sha256:1341b95d920192c486e262db6013a434497bf5922ea4e78c19141f9358728b58",
+    "baselineReportSha256": "b60973c86e4d70be40acac5ebdafccc600ae9329448a611be1ce0f1fab98a00e",
+    "candidateImageId": "sha256:1e65f1fe04b4bce1609671d5cdac9f33d68fc0bb352ab7bfab69b85ef5f0588a",
+    "candidateReportSha256": "41ea03bbfaeb4a78fe70574d5f6a007a69d1e6931832e164cc4c1b6e9f8ce858",
+    "candidateRuntimeSha256": "6387b332be87594b5ebc134d5bd27ba07d041906999d4a6a81a0b6f252e7a226"
+  },
+  "arm64": {
+    "artifact": "image-slim-ubuntu-24.04-arm",
+    "baselineImageId": "sha256:7eea4c1260c9a12ac44d000ece876b21b3470e910fb014003297a647e8ea0c85",
+    "baselineReportSha256": "d12d46089496e482a8160b1ba780eef2cdea385a2f4711df1e2c187467a71992",
+    "candidateImageId": "sha256:99d933df0223ea76f3fdc3df4d014394ba146b5127644fa5424e37eca180284e",
+    "candidateReportSha256": "3c746e0e3e1bab5e27ea3eae5ef31a407d7dbb7799d85f7e8177bcb3f6df4a65",
+    "candidateRuntimeSha256": "f396a34ab9684c756233386918a5572390b9d2e5a91741c66a31b8c22ed1042d"
+  }
+}

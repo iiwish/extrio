@@ -42,3 +42,5 @@ RC1 schema 013 升级到 schema 014 保留既有迁移时间、规则、签名�
 提交仅含代码、迁移、测试、契约、说明和 URL 目录。Git 属性保留 CSV 的 UTF-8 BOM/工作区 CRLF，索引规范化换行；原始采集轮次和回执由忽略规则排除。Git 索引导出 secret 扫描为零。
 
 发行安全状态与完整高等级清单见 [security.md](security.md) 和 [security-inventory.json](security-inventory.json)。用户未接受该风险，发布授权已暂缓，不进入合并/标签/镜像发布阶段。新增只读镜像诊断独立验证，不把诊断结果冒充漏洞已修复。
+
+独立镜像精简的[对照、完整扫描及剩余边界](image-pruning.md)单独登记：默认构建保持不变，LLVM 路径因必需 GBM 依赖不采用，仅 headless/CUPS 实验通过双架构镜像内各 246 项定向回归。对应提交的完整主 CI 为后端 1088 / 前端 278，通过不代表所有安全风险解除；普通容器验证的 Alpine 仓库 TLS 失败保留，最终提交仍须重新通过原有流程。

@@ -110,3 +110,13 @@ def test_comparison_fails_on_graphics_regression_or_new_high_findings():
     fixable = {**vuln, 'FixedVersion': '2'}
     with pytest.raises(ValueError, match='fixable high'):
         module['scan_delta'](inventory([fixable]), inventory([fixable]), set())
+
+
+def test_inventory_identity_matches_image_config_not_trivy_cache_id():
+    verify = runpy.run_path(str(ROOT / 'scripts/compare-slim-images.py'))['verify_image_identity']
+    image = {'Id': 'sha256:image', 'RepoTags': ['fixture:headless'], 'RootFS': {'Layers': ['sha256:layer']}}
+    report = {'ArtifactID': 'sha256:trivy-cache', 'ArtifactName': 'fixture:headless',
+              'Metadata': {'ImageID': 'sha256:image', 'DiffIDs': ['sha256:layer']}}
+    assert verify(report, image) == 'sha256:image'
+    with pytest.raises(ValueError, match='image identity'):
+        verify({**report, 'Metadata': {'ImageID': 'sha256:another', 'DiffIDs': []}}, image)

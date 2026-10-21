@@ -24,7 +24,7 @@ cleanup() {
     fi
   fi
   if [[ -n "$PG_ID" ]] && [[ "$(docker inspect --format '{{index .Config.Labels "extrio.image-slim"}}' "$PG_ID")" == "$PROJECT" ]]; then
-    docker rm -f "$PG_ID"
+    docker rm -fv "$PG_ID"
   fi
   if [[ -n "$NETWORK_ID" ]] && [[ "$(docker network inspect --format '{{index .Labels "extrio.image-slim"}}' "$NETWORK_ID")" == "$PROJECT" ]]; then
     docker network rm "$NETWORK_ID"
