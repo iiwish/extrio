@@ -5,12 +5,17 @@ VARIANT="${1:?baseline, llvm, headless, noble or resolute required}"
 OUT="${2:?receipt directory required}"
 case "$VARIANT" in
   baseline|llvm|headless) DOCKERFILE=backend-slim.Dockerfile; BUILD_ARG="PRUNE_VARIANT=$VARIANT" ;;
-  noble|resolute) DOCKERFILE=backend-ubuntu.Dockerfile; BUILD_ARG="UBUNTU_SUITE=$VARIANT" ;;
+  noble) DOCKERFILE=backend.Dockerfile; BUILD_ARG="UBUNTU_SUITE=noble" ;;
+  resolute) DOCKERFILE=backend-ubuntu.Dockerfile; BUILD_ARG="UBUNTU_SUITE=resolute" ;;
   *) exit 2 ;;
 esac
 PROJECT="extrio-image-slim-${VARIANT}-$(date +%s)-$$"
 mkdir -p "$OUT"
 OUT="$(cd "$OUT" && pwd)"
+mkdir -p "$OUT/release-sources"
+for commit in 86ebcc4b570f8b5b5acf3f1c6ba0f70ac7ed42f7 1e02dbbddd273bda7a7023b8824d0bb58f3db5d6 c2fc06f420c31aaf5bbbea53332ef4af2b48804e; do
+  git -C "$ROOT" archive "$commit" backend docs/contracts > "$OUT/release-sources/$commit.tar"
+done
 if [[ -n "$(docker ps -aq --filter "label=extrio.image-slim=$PROJECT")" ]] || \
    [[ -n "$(docker network ls -q --filter "label=extrio.image-slim=$PROJECT")" ]]; then
   printf 'Refusing to adopt existing test resources\n' >&2
@@ -59,6 +64,8 @@ TEST_ID="$(docker create --network "$NETWORK_ID" --label "extrio.image-slim=$PRO
   --mount "type=bind,source=$ROOT/backend/pyproject.toml,target=/workspace/backend/pyproject.toml,readonly" \
   --mount "type=bind,source=$ROOT/docs/contracts,target=/workspace/docs/contracts,readonly" \
   --mount "type=bind,source=$ROOT/scripts,target=/workspace/scripts,readonly" \
+  --mount "type=bind,source=$OUT/release-sources,target=/release-sources,readonly" \
+  -e EXTRIO_TEST_RELEASE_ARCHIVES=/release-sources \
   -w /workspace -e EXTRIO_TEST_DATABASE_URL=postgresql://postgres:extrio_test@fixture-pg:5432/postgres \
   --entrypoint /opt/extrio/bin/python "extrio/backend:slim-$VARIANT-tests" \
   -m pytest -c backend/pyproject.toml -p no:cacheprovider --junitxml=/tmp/image-tests.xml \
@@ -67,5 +74,6 @@ TEST_ID="$(docker create --network "$NETWORK_ID" --label "extrio.image-slim=$PRO
   backend/tests/test_public_pagination.py \
   backend/tests/test_pagination_navigation.py backend/tests/test_nltk_boundary.py \
   backend/tests/test_lxml_boundary.py backend/tests/test_full_backup.py backend/tests/test_store_pg.py \
-  backend/tests/test_tender_source_adapters.py backend/tests/test_benchmark.py)"
+  backend/tests/test_tender_source_adapters.py backend/tests/test_benchmark.py \
+  backend/tests/test_release_upgrade.py)"
 docker start -a "$TEST_ID"

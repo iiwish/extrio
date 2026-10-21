@@ -18,8 +18,10 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Build unchanged baseline
-        run: docker build -f docker/backend.Dockerfile -t extrio/backend:slim-original .
+        with:
+          fetch-depth: 0
+      - name: Build historical Debian research control, not the release image
+        run: docker build -f docker/backend-debian-control.Dockerfile -t extrio/backend:slim-original .
       - name: Verify baseline capabilities and isolated dual-database regression
         run: bash scripts/verify-slim-image.sh baseline image-slim/baseline
       - name: Record blocked LLVM plan without removing required browser libraries
@@ -57,6 +59,8 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: image-slim-${{ matrix.runner }}
-          path: image-slim/
+          path: |
+            image-slim/
+            !image-slim/**/release-sources/**
           if-no-files-found: warn
           retention-days: 30

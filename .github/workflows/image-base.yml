@@ -1,7 +1,13 @@
-name: Supported alternative base images
+name: Default native image verification
 
 on:
   workflow_dispatch:
+    inputs:
+      suite:
+        description: Default noble or rejected resolute research reproduction
+        type: choice
+        options: [noble, resolute]
+        default: noble
   pull_request:
 
 permissions:
@@ -14,13 +20,15 @@ jobs:
       fail-fast: false
       matrix:
         runner: [ubuntu-latest, ubuntu-24.04-arm]
-        suite: [noble, resolute]
+        suite: ["${{ inputs.suite || 'noble' }}"]
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Build unchanged Debian baseline
-        run: docker build -f docker/backend.Dockerfile -t extrio/backend:slim-original .
+        with:
+          fetch-depth: 0
+      - name: Build historical Debian research control, not the release image
+        run: docker build -f docker/backend-debian-control.Dockerfile -t extrio/backend:slim-original .
       - name: Retain verified headless and CUPS control
         run: bash scripts/verify-slim-image.sh headless image-base/headless
       - name: Verify supported Ubuntu candidate and isolated dual-database regression
@@ -52,6 +60,8 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: image-base-${{ matrix.runner }}-${{ matrix.suite }}
-          path: image-base/
+          path: |
+            image-base/
+            !image-base/**/release-sources/**
           if-no-files-found: warn
           retention-days: 30

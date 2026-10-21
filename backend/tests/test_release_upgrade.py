@@ -27,31 +27,44 @@ ROOT = Path(__file__).resolve().parents[2]
 FIXTURE = Path(__file__).parent / "fixtures" / "release_baseline.py"
 
 
-@pytest.fixture
-def baseline(tmp_path):
-    result = subprocess.run(["git", "archive", BASELINE, "backend", "docs/contracts"], cwd=ROOT, capture_output=True, check=True)
-    target = tmp_path / "baseline"
-    with tarfile.open(fileobj=io.BytesIO(result.stdout)) as archive:
+def test_preexported_upgrade_sources_do_not_invoke_git(tmp_path, monkeypatch):
+    exports = tmp_path / "exports"
+    exports.mkdir()
+    with tarfile.open(exports / f"{RC_RELEASE}.tar", "w") as archive:
+        info = tarfile.TarInfo("backend/fixture.txt")
+        info.size = 7
+        archive.addfile(info, io.BytesIO(b"fixture"))
+    monkeypatch.setenv("EXTRIO_TEST_RELEASE_ARCHIVES", str(exports))
+    monkeypatch.setattr(subprocess, "run", lambda *_args, **_kwargs: pytest.fail("git was invoked"))
+    target = archived_release(RC_RELEASE, tmp_path / "restored-source")
+    assert (target / "backend/fixture.txt").read_text() == "fixture"
+
+
+def archived_release(commit, target):
+    if exported := os.environ.get("EXTRIO_TEST_RELEASE_ARCHIVES"):
+        source = tarfile.open(Path(exported) / f"{commit}.tar")
+    else:
+        result = subprocess.run(["git", "archive", commit, "backend", "docs/contracts"],
+                                cwd=ROOT, capture_output=True, check=True)
+        source = tarfile.open(fileobj=io.BytesIO(result.stdout))
+    with source as archive:
         archive.extractall(target, filter="data")
     return target
+
+
+@pytest.fixture
+def baseline(tmp_path):
+    return archived_release(BASELINE, tmp_path / "baseline")
 
 
 @pytest.fixture
 def alpha_release(tmp_path):
-    result = subprocess.run(["git", "archive", ALPHA_RELEASE, "backend", "docs/contracts"], cwd=ROOT, capture_output=True, check=True)
-    target = tmp_path / "alpha-release"
-    with tarfile.open(fileobj=io.BytesIO(result.stdout)) as archive:
-        archive.extractall(target, filter="data")
-    return target
+    return archived_release(ALPHA_RELEASE, tmp_path / "alpha-release")
 
 
 @pytest.fixture
 def rc_release(tmp_path):
-    result = subprocess.run(["git", "archive", RC_RELEASE, "backend", "docs/contracts"], cwd=ROOT, capture_output=True, check=True)
-    target = tmp_path / "rc-release"
-    with tarfile.open(fileobj=io.BytesIO(result.stdout)) as archive:
-        archive.extractall(target, filter="data")
-    return target
+    return archived_release(RC_RELEASE, tmp_path / "rc-release")
 
 
 @pytest.fixture(params=["sqlite", "postgresql"])

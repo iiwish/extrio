@@ -90,6 +90,7 @@ def test_runtime_harness_never_adopts_existing_resources_or_publisher_samples():
     assert 'test_full_backup.py' in source and 'test_official_documents.py' in source
     assert 'pg_isready -h 127.0.0.1 -U postgres' in source
     assert 'test_official_v2.py' in source and 'test_source_samples.py' in source
+    assert 'test_release_upgrade.py' in source and 'EXTRIO_TEST_RELEASE_ARCHIVES=/release-sources' in source
 
 
 def test_comparison_fails_on_graphics_regression_or_new_high_findings():

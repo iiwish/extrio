@@ -35,6 +35,14 @@ contains the versioned contract bundle required by both processes. The primary
 deployment artifact is the OCI image in `docker/backend.Dockerfile`; Compose
 starts the same image once as the API and once as the worker.
 
+The default Linux image uses digest-pinned Ubuntu 24.04 LTS, the Ubuntu-maintained
+Python 3.12 security packages, Playwright headless-shell and the official PGDG
+PostgreSQL 16 client. It retains LLVM/GBM and excludes full Chromium, CUPS and
+Python development tools. Container user-space libraries belong to this image;
+Docker still depends on its host or VM kernel. Changing the base image does not
+upgrade the host OS or migrate an existing database. Full scan findings and the
+remaining NLTK risk are tracked in the RC2 security review, not implicitly waived.
+
 The current package is a self-hosted public alpha with first-run administrator
 setup, local users, and role-based access control. It is not a hardened
 multi-tenant service: keep the API and worker behind the bundled web proxy and
