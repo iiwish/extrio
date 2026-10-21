@@ -63,6 +63,7 @@ def test_alternative_dockerfile_is_pinned_isolated_and_preserves_browser_depende
     assert 'VERSION_CODENAME' in source and '${UBUNTU_SUITE}-pgdg' in source
     assert '--frozen --no-dev' in source and 'FROM runtime AS verification' in source
     assert '--force' not in source and 'autoremove' not in source
+    assert 'pip uninstall --system' not in source and '--break-system-packages' not in source
     assert 'libgbm' not in source and 'libllvm' not in source
 
 

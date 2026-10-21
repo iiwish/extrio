@@ -46,7 +46,6 @@ COPY backend/src backend/src
 COPY backend/migrations backend/migrations
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --project backend --python 3.12.15 --frozen --no-dev \
-    && uv pip uninstall --system --python "$(uv python find 3.12.15)" pip \
     && useradd --create-home --uid 10001 extrio \
     && mkdir -p /var/lib/extrio && chown extrio:extrio /var/lib/extrio
 ENV PATH="/opt/extrio/bin:${PATH}"
