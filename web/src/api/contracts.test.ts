@@ -11,6 +11,15 @@ const openapi = YAML.parse(readFileSync(resolve(contracts, 'openapi.yaml'), 'utf
 const gatherSpecSchema = JSON.parse(readFileSync(resolve(contracts, 'gather-spec.schema.json'), 'utf8'))
 
 describe('frozen machine contracts', () => {
+  it('permits an absent requirement identity only as an explicit null batch result', () => {
+    const schema = openapi.components.schemas.BatchCollectorImportResult
+    const ajv = new Ajv2020({allErrors:true,strict:true})
+    const validate = ajv.compile({...schema,properties:{...schema.properties,results:{type:'array',maxItems:0}}})
+    const result = {collectionId:null,collectionName:'Rejected batch',collectionVersion:null,total:1,createdCount:0,rejectedCount:1,results:[]}
+    expect(validate(result), JSON.stringify(validate.errors)).toBe(true)
+    const {collectionId: _collectionId,...missingIdentity} = result
+    expect(validate(missingIdentity)).toBe(false)
+  })
   it('pins the browser API to v1 and durable asynchronous commands', () => {
     expect(openapi.openapi).toBe('3.1.0')
     expect(openapi['x-contract-id']).toBe('extrio.control-plane.v1')

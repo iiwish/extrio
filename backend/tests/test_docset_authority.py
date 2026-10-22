@@ -4,6 +4,7 @@ import runpy
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+RC2_COMMIT = "cd60804a60aaa7bbbcbd4a07ec7a3738b0699c75"
 
 
 def test_product_contract_defers_scope_and_ux_policy_to_ssot() -> None:
@@ -48,6 +49,13 @@ def test_current_contracts_distinguish_published_rc_from_unpublished_stable() ->
         assert "`Needs_Review`" in document
         assert "v1.0.0.md" in document
         assert "`v1.0.0-rc.1`（未发布）" not in document
+        assert re.search(r"已发布.*v1\.0\.0-rc\.2", document)
+        assert RC2_COMMIT in document
+        assert "本轮修复尚未发布" in document
+        assert "既有实例未升级" in document
+        assert "不部署生产或启用来源调度" in document
+        assert "测试候选版草稿" not in document
+        assert "暂缓发布" not in document
 
     rc = (ROOT / "docs/releases/v1.0-rc.1.md").read_text()
     assert "https://github.com/iiwish/extrio/releases/tag/v1.0.0-rc.1" in rc
@@ -65,11 +73,38 @@ def test_stable_handoff_covers_all_acceptance_items_and_preserves_release_gates(
     assert "72 小时观测" in handoff
     assert "不计为通过" in handoff
     assert "禁止创建正式 `v1.0.0` tag 或生产部署，不启用来源调度" in handoff
-    assert "明确授权在检查通过后合入 main 并仅发布 `v1.0.0-rc.2`" in handoff
+    assert RC2_COMMIT in handoff
+    assert "已发布" in handoff and "v1.0.0-rc.2" in handoff
+    assert "本轮修复尚未发布" in handoff
+    assert "既有实例未升级" in handoff
     assert "不构成历史或新增高危风险接受" in handoff
     assert "稳定版安全结论和验收结果仍须呈交用户，再取得相应发布授权" in handoff
     assert 'release-closeout.md' in handoff
     assert 'v1.0-rc.2.md' in handoff
+
+
+def test_release_status_uses_rc2_evidence_without_promoting_local_fixes_or_old_risks() -> None:
+    handoff = (ROOT / "docs/releases/v1.0.0.md").read_text()
+    assert "0 CRITICAL / 0 HIGH / 30 MEDIUM / 16 LOW" in handoff
+    assert "无补丁 NLTK" not in handoff
+    assert "安全决策待完成：NLTK" not in handoff
+    assert "当前68条高等级记录" not in handoff
+    assert "2026-10-21" in handoff
+
+    rc2 = (ROOT / "docs/releases/v1.0-rc.2.md").read_text()
+    assert RC2_COMMIT in rc2
+    assert "已发布" in rc2 and "预发布版" in rc2
+    for run_id in ("39564528241", "39564528254", "39564627060", "39565800203"):
+        assert f"https://github.com/iiwish/extrio/actions/runs/{run_id}" in rc2
+    assert "本轮修复尚未发布" in rc2
+    assert "既有实例未升级" in rc2
+
+    for path in ("README.md", "README.zh-CN.md", "ROADMAP.md"):
+        document = (ROOT / path).read_text()
+        assert "v1.0.0-rc.2" in document
+        assert "docs/releases/v1.0-rc.2.md" in document
+        assert "crawl4ai-setup" not in document
+        assert "Status-Public_Alpha" not in document
 
 
 def test_manifest_generator_tracks_unpublished_stable_handoff_without_mutating_input() -> None:

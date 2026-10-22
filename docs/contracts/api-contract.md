@@ -92,7 +92,7 @@ Run 仍是领域聚合，并固化 `collectionMode` 与 `operationId`；Operatio
 
 所有写请求必须携带 `Idempotency-Key`。同一 Tenant、actor、HTTP method、规范化资源目标和 key 的重试返回同一逻辑结果；相同 key 携带不同 payload 返回 `IDEMPOTENCY_KEY_REUSED`。当前版本禁止同一 Collector 存在重叠非终态 Run，并返回 `RUN_ALREADY_ACTIVE`；探索冲突返回 `OPERATION_ALREADY_ACTIVE`。
 
-批量 Source 导入以一次逻辑命令处理。`POST /collectors/batch` 的 `sources` 每项包含必填 `entryUrl`，可选 `mode`、`name` 与 `scopeHint`；`mode` 省略时默认为 `exact`，当前拒绝其他模式。`exact` 入口必须是具体列表页或单页，站点根目录以 `EXACT_ENTRY_REQUIRED` 逐项拒绝。合法项独立提交，非法项进入逐项 `error`；业务部分失败仍返回 `200`，不使用 WebDAV `207 Multi-Status`。传输或命令级失败才返回非 2xx PlatformError。
+批量 Source 导入以一次逻辑命令处理。`POST /collectors/batch` 的 `sources` 每项包含必填 `entryUrl`，可选 `mode`、`name` 与 `scopeHint`；`mode` 省略时默认为 `exact`，当前拒绝其他模式。`exact` 入口必须是具体列表页或单页，站点根目录以 `EXACT_ENTRY_REQUIRED` 逐项拒绝。合法项独立提交，非法项进入逐项 `error`；业务部分失败或全部逐项拒绝仍返回 `200`，不使用 WebDAV `207 Multi-Status`。传输或命令级失败才返回非 2xx PlatformError。客户端对相同逻辑提交及响应丢失后的不确定重试复用同一 Idempotency-Key；修改提交内容或在确定结果后发起另一批导入时使用新 key。
 
 Source URL 只接受 `http` 与 `https`。匿名公共 HTTP 生产默认关闭；仅当部署配置明确允许且 TenantAdmin 保持采集策略开启时可用。携带 AccessProfile 或凭据的 Source 必须使用 HTTPS。`HTTPS_REQUIRED` 同时表示凭据传输不安全或当前部署/租户不允许匿名 HTTP，`INVALID_URL` 表示协议或 URL 结构不受支持。
 
@@ -132,7 +132,7 @@ Run、AI Run、Operation、Item 的读取投影可包含只读 collectorDeleted=
 
 旧历史不随当前来源重新归属。Run、AI Run、Operation、Item 可返回只读 `collectionAttribution={collectionId,collectionName,collectionVersion}`，由独立不可变归属记录生成，不写回旧规则、运行或 Item 原始 payload。运行归属只从存量归属或不可变规则解析；无法可靠还原时不猜测，预览列出具体 type/id，并以 `HISTORY_OWNERSHIP_UNRESOLVED` 阻断调整。实体合并和采集增量比较隔离不同历史需求；旧 Webhook 配置及历史投递 payload 保留。MCP 来源摘要明确 lifecycle，历史查询携带同一归属语义，执行走同一核心保护。
 
-Collector 列表与详情响应必须包含稳定 `collectionId`、`collectionName` 与 `collectionVersion`。`POST /collectors/batch` 为一次需求导入生成一个 Collection 身份，并把同一身份写入每个成功 Collector 和批量结果；逐项失败不改变已成功对象的归属。`name` 是 Source 级 Collector 展示名，`collectionName` 是共享业务需求名称，两者不得在客户端混用。可选 `scopeHint` 是 Source 特定的规则编译提示，不改变 CollectionVersion 的输出语义；模型发现、首次编译和修复均使用该提示，确定性 Run 不读取它。
+Collector 列表与详情响应必须包含稳定 `collectionId`、`collectionName` 与 `collectionVersion`。`POST /collectors/batch` 为新需求中至少一个成功来源生成一个 Collection 身份，并把同一身份写入每个成功 Collector 和批量结果；逐项失败不改变已成功对象的归属。新需求批次全部拒绝时不创建空需求，批量结果的 `collectionId` 与 `collectionVersion` 明确为 `null`，`collectionName` 保留请求名称，逐项错误保持可读；客户端不得生成需求详情链接或宣称已创建来源。选择既有需求的批次即使全部拒绝，也返回真实既有需求身份与版本，不修改该需求定义。`name` 是 Source 级 Collector 展示名，`collectionName` 是共享业务需求名称，两者不得在客户端混用。可选 `scopeHint` 是 Source 特定的规则编译提示，不改变 CollectionVersion 的输出语义；模型发现、首次编译和修复均使用该提示，确定性 Run 不读取它。
 
 `PATCH /collectors/{collectorId}/candidate-rule` 只编辑候选规则，不更新 RuleVersion。请求完整覆盖列表 Item selector、分页和当前输出字段 selector；`list_detail` 客户端通过可选的 `listFields` 完整覆盖全部列表阶段字段 selector，并保持其中 `detailUrl` 与兼容字段 `detailLinkSelector` 一致。服务端将编辑记录为编译 `overrideRefs`、重算候选 digest 和 GatherSpec `ruleDigest`、执行 Schema 校验，并使用最近一次成功探索的 sampled HTML 验证列表发现和必填字段。缺省 `listFields` 的 v1 客户端继续只更新 `detailUrl`；未知或不完整的列表字段集合被拒绝。验证失败返回 `CANDIDATE_VALIDATION_FAILED`，没有样本返回同一稳定错误；成功后 Collector 进入 `ready_review`，旧审核决定清空。发布仍通过独立命令创建新的不可变 RuleVersion。
 

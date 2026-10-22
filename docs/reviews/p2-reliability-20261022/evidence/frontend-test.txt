@@ -1,0 +1,11 @@
+$ vitest run
+
+ RUN  v4.1.11 /Users/iiwish/self/extrio/web
+
+Not implemented: navigation to another Document
+Not implemented: navigation to another Document
+
+ Test Files  43 passed (43)
+      Tests  286 passed (286)
+   Start at  15:59:06
+   Duration  51.96s (transform 4.79s, setup 16.64s, import 26.12s, tests 92.35s, environment 52.53s)

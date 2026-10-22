@@ -3,7 +3,13 @@
 The roadmap communicates direction, not a delivery promise. Accepted work is tracked through
 issues and release milestones.
 
-## v0.6 public alpha
+## Current release: v1.0.0-rc.2
+
+[v1.0.0-rc.2](docs/releases/v1.0-rc.2.md) is a published prerelease from
+`cd60804a60aaa7bbbcbd4a07ec7a3738b0699c75`. Stable `v1.0.0` remains unpublished and
+`Needs_Review`; see the [stable acceptance handoff](docs/releases/v1.0.0.md).
+Reliability fixes after the release commit are unreleased. Existing instances are not upgraded,
+and publishing, production deployment, or enabling source schedules requires separate authorization.
 
 - Self-hosted data-operations workflow for public and authorized list/detail sources.
 - Constrained AI rule generation and repair with one-run operator guidance.
@@ -12,12 +18,28 @@ issues and release milestones.
   evidence, item lineage, Webhook delivery, and governed MCP access.
 - Local multi-user roles, Docker Compose evaluation, and signed release artifacts.
 
+## Stable acceptance priorities
+
+- Bounded-recovery dispatch rejection handling and uncertain-result source-creation retries have
+  completed source fixes and engineering verification, including failing regression controls,
+  SQLite/PostgreSQL coverage, and desktop journeys. [User review remains pending](docs/reviews/p2-reliability-20261022/verification.md);
+  these fixes are unreleased and are not included in the published RC2 artifacts.
+- Keep release status, source commits, and frozen evidence consistent; independently verify each
+  changed candidate rather than reusing the RC2 result.
+- Define the six-source support matrix and quality exclusions. The procurement site's first
+  historical window and real incremental coverage remain incomplete; the 1480-source directory
+  is not a compatibility claim. Any further source experiment needs a bounded, authorized plan.
+- Complete independent target-user acceptance before a stable-release decision. Existing
+  observation waivers are not evidence of a long-running SLA.
+- After design confirmation, prioritize requirement-scoped data, version-bound sample evidence,
+  and partial-failure workflows using the existing frontend and backend contracts.
+
 ## Product validation
 
 These items turn repository evidence into evidence that prospective users can inspect. They are not
 claims about the current release.
 
-- Publish a hosted evaluation environment after the local workflow is stable enough for unattended use.
+- Consider a separately authorized hosted evaluation environment after the self-hosted workflow is validated.
 - Build a curated corpus of representative tender, regulatory, and public-notice sources with declared
   support boundaries and repeatable success criteria.
 - Measure first-valid-sample time, no-code publication rate, rule durability, and recovery time with

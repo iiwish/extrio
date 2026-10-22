@@ -3,7 +3,7 @@
   "docsetVersion": "v0.46.0",
   "productVersion": "v1.0.0",
   "status": "Ready_For_User_Review",
-  "generatedAt": "2026-10-21T07:36:31.756Z",
+  "generatedAt": "2026-10-22T07:04:43.284Z",
   "repositoryState": {
     "kind": "git_repository",
     "defaultBranch": "main"
@@ -12,12 +12,12 @@
     {
       "path": "docs/SSOT.md",
       "version": "v0.46.0",
-      "sha256": "ccda576a35688e1efc1fdea9932216177b21778bad14e24730996447aa0ec581"
+      "sha256": "dc0ed0f9cd5bb68348eba680c6d1bcab7fa1d87a1d4b11b98fbdc2dbaa0ae0ae"
     },
     {
       "path": "docs/product-contract.md",
       "version": "v0.46.0",
-      "sha256": "cbfe270f22ad0811550599d949587c09ad248e747371e156ea742f9d70d36704"
+      "sha256": "3fc99abc5eae49c831b026d07833741f8f1b39ff969944e48e899844d2951e51"
     },
     {
       "path": "docs/domain-model.md",
@@ -92,12 +92,12 @@
     {
       "path": "docs/contracts/openapi.yaml",
       "version": "extrio.control-plane.v1",
-      "sha256": "df3d2b0d71438128eb8b7d0c6725f84ced8af0ba607f8b8aa8c61f21368dea78"
+      "sha256": "9566e0c4680a514d43d6ed7dcc489281d3380a5072005db7976c53ad0c0deb42"
     },
     {
       "path": "docs/contracts/api-contract.md",
       "version": "v1.16.0",
-      "sha256": "37732eb654f478c7d348ef0904bd82314df18b8e36175febdba75d19c5ac73e6"
+      "sha256": "bad8e57bc4353302c37f639cb98e29ad7381d81e43d6a814b9c57635f8905154"
     },
     {
       "path": "docs/runtime-contract.md",
@@ -132,7 +132,7 @@
     {
       "path": "docs/frontend-prototype.md",
       "version": "v1.38.1",
-      "sha256": "4e4c804831b1f80453c4a1fd02855841d5da516c2301527fe7cc3c27fe287440"
+      "sha256": "dc9b75f054361c984544184d91976e21d9ae22d87988ed21de991cd05fb15cd7"
     },
     {
       "path": "docs/backend-vertical-slice.md",
@@ -152,7 +152,7 @@
     {
       "path": "docs/releases/v0.2-acceptance.md",
       "version": "v0.46.0",
-      "sha256": "e887e317c5b963d30f40f248bf9147078164819b9cc2f49a13f74acccf4f8fbd"
+      "sha256": "a20b23bc6eccc0ffb7be2948752895fedfe43c377fa2bca66550a410aa9dc53f"
     },
     {
       "path": "docs/planning/v1.0-scope-matrix.md",
@@ -172,12 +172,12 @@
     {
       "path": "docs/releases/v1.0.0.md",
       "version": "v1.0.0",
-      "sha256": "abd7b87a5334c3354a81fcc94acb6e8ab00156d64456dea823adbd7566a6b051"
+      "sha256": "2df86981c6703c6046a14e69fe40f802f120043ee88c6c710b96ed34e2f75888"
     },
     {
       "path": "docs/releases/v1.0-rc.2.md",
       "version": "v1.0.0-rc.2",
-      "sha256": "11b8950812baddcf006a9667c8cc917e1d0c1a53769d85c9ead1b0cbc41829f8"
+      "sha256": "994ad76a482355d8f38b1817c7c51a80ae46bae656cbe4f527a589fbc8b7869b"
     },
     {
       "path": "docs/benchmarks.md",

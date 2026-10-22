@@ -10,7 +10,7 @@ AI-assisted rule creation. Human-reviewed publication. Deterministic execution.
 
 [![CI](https://github.com/iiwish/extrio/actions/workflows/ci.yml/badge.svg)](https://github.com/iiwish/extrio/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Status: Public Alpha](https://img.shields.io/badge/Status-Public_Alpha-orange.svg)](docs/releases/public-alpha-readiness.md)
+[![Status: RC2 Prerelease](https://img.shields.io/badge/Status-RC2_Prerelease-orange.svg)](docs/releases/v1.0-rc.2.md)
 
 </div>
 
@@ -22,7 +22,7 @@ Built around tender, regulatory, and public-notice workflows, Extrio helps teams
 
 *Local acceptance instance with demonstration data, not a hosted trial. [Explore the console walkthrough](docs/showcase.md).*
 
-> **Public alpha.** The self-hosted workflow is implemented and backed by repository-local tests and review evidence. Arbitrary-site compatibility, production-scale capacity, hardened multi-tenancy, and a production SLA are not claimed. Read the [security policy](SECURITY.md) before deployment.
+> **RC2 prerelease.** [v1.0.0-rc.2](docs/releases/v1.0-rc.2.md) is published from `cd60804a60aaa7bbbcbd4a07ec7a3738b0699c75`; stable `v1.0.0` remains unpublished and awaits product and technical acceptance. Reliability fixes after that commit are unreleased, and existing instances are not upgraded automatically. Arbitrary-site compatibility, production-scale capacity, hardened multi-tenancy, and a production SLA are not claimed. Read the [security policy](SECURITY.md) before deployment.
 
 ## Why Extrio
 

@@ -3,20 +3,27 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from test_api import ready_review_collector
 from test_collection_versions import client as client
 
 import extrio.app as app_module
 from extrio import bounded_recovery as recovery
+from extrio.harvest import build_candidate
 from extrio.store import DEFAULT_COLLECTION_POLICY
 
 NOW = datetime(2026, 10, 20, 1, tzinfo=UTC)
 AUDIT = {'tenantId': 'local', 'actorId': 'test', 'requestId': 'recovery-test'}
 
 
-def seed(client):
+def seed(client, *, host='example.com'):
     store = app_module.store
-    source = ready_review_collector(store)
+    source = store.create_collector('Source', 'Collect', f'https://{host}/list', host)
+    source.update(status='ready_review', candidate=build_candidate(
+        source, app_module.contracts,
+        '<ul class="notice-list"><li><a class="notice-title" href="/detail/1">A</a></li></ul>',
+        [(f'https://{host}/detail/1', '<h1 class="notice-title">A</h1><div class="meta">'
+          '<span data-field="buyer">B</span><time datetime="2026-08-31T00:00:00Z"></time></div>')],
+    ))
+    store.save_collector(source)
     store.create_collection_policy(source['id'], {**DEFAULT_COLLECTION_POLICY, 'maxPages': 3, 'maxItems': 50,
                                                  'checkpointMode': 'observed'})
     decisions = {f['key']: 'risk_accepted' if f['key'] == 'budget' else 'approved' for f in source['candidate']['fields']}
@@ -25,8 +32,8 @@ def seed(client):
     operation = app_module.create_run_operation(source['id'])
     run = store.get_run(operation['resourceId'])
     progress = {'ruleDigest': run['ruleDigest'], 'policyVersionId': run['policyVersion'],
-        'windowStart': '2026-09-19', 'resumeUrl': 'https://example.com/list?page=99', 'pageIndex': 98,
-        'anchorUrl': 'https://example.com/a', 'processedUrls': ['https://example.com/a'], 'olderPagesBefore': 0}
+        'windowStart': '2026-09-19', 'resumeUrl': f'https://{host}/list?page=99', 'pageIndex': 98,
+        'anchorUrl': f'https://{host}/a', 'processedUrls': [f'https://{host}/a'], 'olderPagesBefore': 0}
     run.update(status='failed', paginationStopReason='source_rate_limited', windowStart='2026-09-19',
                coverageProgressBefore=progress, coverageProgressAfter=progress, finishedAtIso=NOW.isoformat())
     with store.transaction() as connection:
@@ -81,6 +88,66 @@ def test_persistent_cooldown_idempotency_and_one_resumed_run(client):
     assert completed['status'] == 'recovered' and completed['reason'] == 'continuation_verified'
     assert store.get_checkpoint(cid) is None
     assert store.get_run(old['id']) == before
+
+
+@pytest.mark.parametrize('key_status', ['retired', 'compromised'])
+def test_untrusted_signing_key_stops_recovery_without_reserving_a_run(client, key_status):
+    store, cid, old = seed(client)
+    before = copy.deepcopy(store.get_run(old['id']))
+    batch = start(store, old)
+    store.update_signing_key_status(old['signingKeyId'], key_status, actor_id='test', request_id='recovery-key-status')
+
+    assert recovery.tick(store, app_module.create_run_operation, now=NOW + timedelta(minutes=31)) == 0
+    stopped = recovery.get(store, batch['id'])
+    assert stopped['status'] == 'needs_attention' and stopped['reason'] == 'dispatch_rejected'
+    assert stopped['nextAttemptAt'] is None and stopped['finishedAt'] is not None
+    assert stopped['activeRunId'] is None and stopped['attemptRunIds'] == [] and stopped['reservedRequests'] == 0
+    assert not store.has_active_run(cid)
+    assert store.get_collector(cid)['coverageProgress'] == old['coverageProgressAfter']
+    assert store.get_collector(cid)['schedule']['enabled'] is False
+    assert store.get_run(old['id']) == before
+    assert store.get_signing_key(old['signingKeyId'])['status'] == key_status
+
+    assert recovery.tick(store, app_module.create_run_operation, now=NOW + timedelta(minutes=32)) == 0
+    assert recovery.get(store, batch['id']) == stopped
+
+
+@pytest.mark.parametrize('key_status', ['retired', 'compromised'])
+def test_signing_rejection_does_not_block_another_valid_recovery(client, monkeypatch, tmp_path, key_status):
+    store, cid, old = seed(client)
+    rejected = start(store, old)
+    monkeypatch.setattr(app_module, 'rule_signer', app_module.LocalEd25519Signer(tmp_path / 'valid.pem', 'signing_valid'))
+    _, other_cid, other = seed(client, host='other.example')
+    valid = start(store, other, key='recovery-valid-002', now=NOW + timedelta(seconds=1))
+    before = {run['id']: copy.deepcopy(store.get_run(run['id'])) for run in (old, other)}
+    store.update_signing_key_status(old['signingKeyId'], key_status, actor_id='test', request_id='recovery-key-status')
+
+    assert recovery.tick(store, app_module.create_run_operation, now=NOW + timedelta(minutes=31)) == 1
+    assert recovery.get(store, rejected['id'])['status'] == 'needs_attention'
+    assert not store.has_active_run(cid)
+    running = recovery.get(store, valid['id'])
+    assert running['status'] == 'running' and len(running['attemptRunIds']) == 1 and running['reservedRequests'] == 120
+    resumed = store.get_run(running['activeRunId'])
+    assert resumed['collectorId'] == other_cid and resumed['integrityStatus'] == 'verified'
+    assert resumed['signingKeyId'] == 'signing_valid' and resumed['sourceRequestLimit'] == 120
+    assert resumed['coverageProgressBefore'] == other['coverageProgressAfter']
+    assert resumed['recoveryBatchId'] == valid['id']
+    assert all(store.get_run(identifier) == snapshot for identifier, snapshot in before.items())
+
+    assert recovery.tick(store, app_module.create_run_operation, now=NOW + timedelta(minutes=32)) == 0
+    assert recovery.get(store, valid['id']) == running
+
+
+def test_unknown_dispatch_error_remains_visible_and_rolls_back(client):
+    store, _, old = seed(client)
+    batch = start(store, old)
+
+    def broken_dispatch(*args, **kwargs):
+        raise KeyError('unexpected_dispatch_failure')
+
+    with pytest.raises(KeyError, match='unexpected_dispatch_failure'):
+        recovery.tick(store, broken_dispatch, now=NOW + timedelta(minutes=31))
+    assert recovery.get(store, batch['id']) == batch
 
 
 def test_rate_limit_backoff_exhaustion_is_not_reset_by_restart_or_new_command(client):

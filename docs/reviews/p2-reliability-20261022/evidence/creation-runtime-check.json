@@ -1,0 +1,20 @@
+{
+  "result": "PASS",
+  "apiUrl": "http://127.0.0.1:8056",
+  "proxyEventCountObserved": 4,
+  "firstResponseDroppedAfterCommit": true,
+  "retryReplayed": true,
+  "sameNonemptyKeyHash": true,
+  "sameBodyHash": true,
+  "sameCollectionId": true,
+  "sameCollectorIds": true,
+  "collectionId": "collection_p2_lost_response_qa_a2ce49bba489",
+  "collectorId": "collector_x_127_0_0_1_e316c0aa",
+  "sourceCountInRequirement": 1,
+  "matchingSourceUrlCountInInstance": 1,
+  "allRejectedCollectionId": null,
+  "allRejectedEmptyRequirementPresent": false,
+  "instanceRequirementCountObserved": 2,
+  "instanceCollectorCountObserved": 2,
+  "limitations": "Read-only API object/count verification and captured proxy receipts; no inference that the whole instance contains only one object."
+}

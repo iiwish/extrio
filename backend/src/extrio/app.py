@@ -2055,9 +2055,9 @@ async def create_collectors_batch(request: Request, idempotency_key: str | None 
             )
     created = sum(item["status"] == "created" for item in results)
     value = {
-        "collectionId": collection_id,
+        "collectionId": collection_id if created or requested_collection_id else None,
         "collectionName": collection_name,
-        "collectionVersion": collection_version,
+        "collectionVersion": collection_version if created or requested_collection_id else None,
         "total": len(results),
         "createdCount": created,
         "rejectedCount": len(results) - created,
@@ -2350,7 +2350,7 @@ def _publish_rule(collector_id: str, request: Request, idempotency_key: str, bod
     return published
 
 
-class RunStartError(Exception):
+class RunStartError(RuntimeError):
     def __init__(self, code: str, message: str, status_code: int = 409):
         super().__init__(message)
         self.code = code

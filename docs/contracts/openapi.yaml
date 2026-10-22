@@ -3898,11 +3898,13 @@ components:
       required: [collectionId, collectionName, collectionVersion, total, createdCount, rejectedCount, results]
       properties:
         collectionId:
-          type: string
+          type: [string, 'null']
+          description: Existing or created requirement identity; null when a new-requirement batch creates no sources.
         collectionName:
           type: string
         collectionVersion:
-          type: string
+          type: [string, 'null']
+          description: Requirement version reference; null when no requirement was created or selected.
         total:
           type: integer
         createdCount:

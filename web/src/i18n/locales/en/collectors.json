@@ -248,6 +248,8 @@
   },
   "result": {
     "title": "Source import complete",
+    "noneCreated": "No sources created",
+    "noRequirementCreated": "No requirement created",
     "continue": "Import more",
     "contextAria": "Collection requirement",
     "requirementLabel": "Requirement",
