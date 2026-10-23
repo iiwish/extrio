@@ -53,7 +53,51 @@ PDF/OCR 参数与普通运行相同。复核条目不通过重试自动放行。
 
 URL 身份用于测试窗口内去重，不代表已经实现跨站项目/标段/公告类型去重。更正、结果和招标公告不合并为同一条记录。
 
-## 边界
+## CSV 全清单核验
+
+`scripts/test-tender-catalog.py` 对显式传入的 CSV 做匿名、静态、限量核验，不使用六站脚本的分页或 `--all-discovered` 模式。主表每行最多一页列表、两条本页发现的详情；待复核表默认只诊断一页列表，不抓详情。授权包含详情采样时，仅显式 opt-in 的待复核 ID 可采最多两条详情，原输入组和 ID 不变。没有付费模型、受限浏览器、PDF/OCR、附件下载、业务库、投递或来源调度。
+
+```bash
+backend/.venv/bin/python scripts/test-tender-catalog.py \
+  --main-csv test-data/tender-sources/tender-source-lists.csv \
+  --review-csv test-data/tender-sources/tender-source-lists-review.csv \
+  --output /private/tmp/tender-catalog-example --dry-run
+
+backend/.venv/bin/python scripts/test-tender-catalog.py \
+  --main-csv test-data/tender-sources/tender-source-lists.csv \
+  --review-csv test-data/tender-sources/tender-source-lists-review.csv \
+  --output /private/tmp/tender-catalog-example --resume --group main --limit 20
+```
+
+后续保持两份输入和输出目录相同，使用 `--resume --group main` 处理剩余主表，再使用 `--resume --group review` 完成待复核诊断。`--limit` 限制本次处理行数，不改变完整输入分母。输出已存在时必须显式恢复；输入、实现指纹或限制变化拒绝混跑。已完成行和终态主机阻断不重跑，不能靠恢复重置预算。目录采用 POSIX 单进程锁，不可同时运行两个写入者。
+
+待复核详情采样必须同时提供 `--entry-id "$REVIEW_ENTRY_ID" --sample-review-entry-id "$REVIEW_ENTRY_ID"`；仅接受 manifest 中真实的 review ID，不能省略本次显式选择、改成 main 或未知 ID。策略和策略 SHA 持久化；恢复时省略策略参数沿用原策略，显式改动拒绝。默认诊断不会隐式升级为详情采样。
+
+- 同主机共享串行、至少 2 秒请求间隔、robots 缓存和熔断；最多 4 个不同主机并发。不自动信任 CSV 的样本详情 URL，也不扩大跨站主机或端口范围。
+- 主表和显式 opt-in 的待复核详情采样每行最多 12 个底层请求，普通待复核诊断每行最多 3 个；每行 60 秒、单响应 2MB；全批累计最多 8000 个底层请求、1GB、90 分钟。robots、跳转与受控 TLS 兼容请求均计数，恢复不清零。
+- 登录、限流、验证码、robots 拒绝或无法核验的 robots HTML 停止该主机；网络故障不反复重试。后续同站行明确标为继承阻断，而非声称逐页已验证。历史限制与本轮实际响应分别记录。
+- `sample_readable` 只表示本轮静态样本通过标题、日期及主体门槛；`candidate_list` 只表示发现候选。未知模板、JS 壳、跨站原文、PDF及正文不完整保持待适配，不代表已签名规则、控制台原生采集、历史覆盖或增量验收通过。
+- 高校、河南三站和浙师大模板采用精确主机、已证栏目路径及 DOM 结构提取，保留公共质量门槛；河南列表的独立标题字段与日期分离，不使用通用日期截断或放宽标题一致性。未知栏目不盲套模板。模板和实际网络/解析依赖均纳入代码指纹。
+- 每项 JSON/CSV 保留输入组、行号、原始 URL、历史日期、实际请求和原因；完整分母包含未执行项。完成处理与采集成功分别统计，中断或预算耗尽不报完整采样完成。
+- `ledger.json`、`rows.jsonl`、`matrix.csv`、`summary.json` 及请求 trace/私人样本写在仓库外的规范绝对路径，目录 0700、文件 0600。拒绝软链接路径和仓库内输出；macOS 使用 `/private/tmp` 而不是软链接 `/tmp`。CSV 对公式前缀做安全显示转义，原值保留于 JSON。
+
+完整响应和正文可能包含公开联系人信息，不进入 Git 或发行包。robots 未发布、页面匿名可读均不是商业授权或全文再分发许可。全清单首轮范围见 [执行包](../../docs/reviews/catalog-validation-20261023/packet.md)，首轮原始矩阵口径及工具错误见 [首轮记录](../../docs/reviews/catalog-validation-20261023/verification.md)。处理完成不代表全部入口已采通。
+
+## 复验矩阵合并
+
+不同实现版本使用独立运行账本，原账本和样本不覆盖。本地合并器只读取 manifest 与真实逐行终态，不读取正文、不发送请求；没有新结果的入口保留原证据。基线、复验及模板批次的 SHA、代码、采样范围和历史判断均保留。
+
+```bash
+backend/.venv/bin/python scripts/merge-tender-catalog.py \
+  --baseline /private/tmp/original-run/ledger.json \
+  --overlay /private/tmp/retest-run/ledger.json \
+  --overlay /private/tmp/template-run/ledger.json \
+  --output /private/tmp/catalog-matrix-example
+```
+
+合并目标必须是仓库外全新的规范绝对路径，采用 0700/0600 权限。输入 manifest/ID、计数、终态和批次顺序须一致，未执行行不能覆盖已有结果。衍生 `matrix.csv` 区分 `baselineStatus`、`latestStatus` 和最新证据；`summary.json` 记录原始物理请求总量与最新归因请求数，不将它们混作“新增采集量”。143 入口复验及三包适配范围见[后续执行包](../../docs/reviews/catalog-followup-20261023/packet.md)，当前矩阵统计和验收边界见[复验结果](../../docs/reviews/catalog-followup-20261023/verification.md)。
+
+## 六站脚本边界
 
 每站串行、请求至少间隔2秒；每次最多240个底层请求、600秒、80MB总响应字节，单响应5MB，最多2跳重定向。嵌入正文PDF每源最多10个，每个最多40页；OCR最多10页并设独立进程超时。源站401/403/429、robots拒绝或明显访问挑战会停止该来源。没有代理轮换、登录、验证码、付费、CA、未公开接口探测或广泛子域名通配。
 
@@ -63,6 +107,13 @@ robots未发布不等于明确授权。匿名可读、业务投标、附件权�
 
 ```bash
 backend/.venv/bin/python -m pytest -q -c backend/pyproject.toml \
+  backend/tests/test_catalog_template_university.py \
+  backend/tests/test_catalog_template_henan.py \
+  backend/tests/test_catalog_template_zjnu.py \
+  backend/tests/test_catalog_followup.py \
+  backend/tests/test_catalog_merge.py \
+  backend/tests/test_tender_catalog.py \
+  backend/tests/test_tender_catalog_network.py \
   backend/tests/test_tender_source_adapters.py \
   backend/tests/test_source_network.py \
   backend/tests/test_pagination_navigation.py \
