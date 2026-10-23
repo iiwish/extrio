@@ -22,7 +22,7 @@ Built around tender, regulatory, and public-notice workflows, Extrio helps teams
 
 *Local acceptance instance with demonstration data, not a hosted trial. [Explore the console walkthrough](docs/showcase.md).*
 
-> **RC2 prerelease.** [v1.0.0-rc.2](docs/releases/v1.0-rc.2.md) is published from `cd60804a60aaa7bbbcbd4a07ec7a3738b0699c75`; stable `v1.0.0` remains unpublished and awaits product and technical acceptance. Reliability fixes after that commit are unreleased, and existing instances are not upgraded automatically. Arbitrary-site compatibility, production-scale capacity, hardened multi-tenancy, and a production SLA are not claimed. Read the [security policy](SECURITY.md) before deployment.
+> **RC3 candidate preparation.** [v1.0.0-rc.3](docs/releases/v1.0-rc.3.md) is in preparation and is not published. The published prerelease is [v1.0.0-rc.2](docs/releases/v1.0-rc.2.md), from `cd60804a60aaa7bbbcbd4a07ec7a3738b0699c75`; stable `v1.0.0` remains unpublished and awaits product and technical acceptance. The candidate includes reliability fixes and bounded catalog-validation tools, not production rules for the entire catalog. Existing instances are not upgraded. This work does not authorize deployment or source schedules. Arbitrary-site compatibility, production-scale capacity, hardened multi-tenancy, and a production SLA are not claimed. Read the [security policy](SECURITY.md) before deployment.
 
 ## Why Extrio
 

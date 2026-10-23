@@ -51,6 +51,9 @@ def test_current_contracts_distinguish_published_rc_from_unpublished_stable() ->
         assert "`v1.0.0-rc.1`（未发布）" not in document
         assert re.search(r"已发布.*v1\.0\.0-rc\.2", document)
         assert RC2_COMMIT in document
+        assert "v1.0.0-rc.3" in document
+        assert "v1.0-rc.3.md" in document
+        assert "准备中" in document
         assert "本轮修复尚未发布" in document
         assert "既有实例未升级" in document
         assert "不部署生产或启用来源调度" in document
@@ -81,6 +84,9 @@ def test_stable_handoff_covers_all_acceptance_items_and_preserves_release_gates(
     assert "稳定版安全结论和验收结果仍须呈交用户，再取得相应发布授权" in handoff
     assert 'release-closeout.md' in handoff
     assert 'v1.0-rc.2.md' in handoff
+    assert "v1.0.0-rc.3" in handoff and "准备中" in handoff
+    assert "v1.0-rc.3.md" in handoff
+    assert "双架构制品" in handoff
 
 
 def test_release_status_uses_rc2_evidence_without_promoting_local_fixes_or_old_risks() -> None:
@@ -103,6 +109,8 @@ def test_release_status_uses_rc2_evidence_without_promoting_local_fixes_or_old_r
         document = (ROOT / path).read_text()
         assert "v1.0.0-rc.2" in document
         assert "docs/releases/v1.0-rc.2.md" in document
+        assert "v1.0.0-rc.3" in document
+        assert "docs/releases/v1.0-rc.3.md" in document
         assert "crawl4ai-setup" not in document
         assert "Status-Public_Alpha" not in document
 
@@ -119,4 +127,25 @@ def test_manifest_generator_tracks_unpublished_stable_handoff_without_mutating_i
     stable_entries = [entry for entry in entries if entry["path"] == "docs/releases/v1.0.0.md"]
     assert len(stable_entries) == 1
     assert len(stable_entries[0]["sha256"]) == 64
+    rc3_entries = [entry for entry in entries if entry["path"] == "docs/releases/v1.0-rc.3.md"]
+    assert len(rc3_entries) == 1
+    assert rc3_entries[0]["version"] == "v1.0.0-rc.3"
+    assert len(rc3_entries[0]["sha256"]) == 64
     assert generator["expected_manifest"](expected) == expected
+
+
+def test_rc3_preparation_preserves_publication_and_scope_boundaries() -> None:
+    rc3 = (ROOT / "docs/releases/v1.0-rc.3.md").read_text()
+    assert "准备中" in rc3
+    assert "尚未发布" in rc3
+    assert "1.0.0rc3" in rc3 and "1.0.0-rc.3" in rc3
+    assert "schema 014" in rc3
+    assert "HIGH/CRITICAL" in rc3 and "未修复项" in rc3
+    assert "MEDIUM/LOW" in rc3
+    assert "签名" in rc3 and "provenance" in rc3
+    assert "release-verification.json" in rc3 and "vulnerability-inventory.json" in rc3
+    assert "106" in rc3 and "1364" in rc3
+    assert "68" in rc3 and "生产规则" in rc3
+    assert "Needs_Review" in rc3
+    assert "不部署" in rc3 and "不启用来源调度" in rc3
+    assert "零付费模型" in rc3 and "不写现有业务库" in rc3
