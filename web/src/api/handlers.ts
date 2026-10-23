@@ -931,9 +931,9 @@ export const handlers = [
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), sourceCount: createdCount, publishedSourceCount: 0,
     })
     return successResponse({
-      collectionId,
+      collectionId: createdCount > 0 || existingCollection ? collectionId : null,
       collectionName,
-      collectionVersion,
+      collectionVersion: createdCount > 0 || existingCollection ? collectionVersion : null,
       total: results.length,
       createdCount,
       rejectedCount: results.length - createdCount,

@@ -1,0 +1,32 @@
+{
+  "result": "PASS",
+  "apiUrl": "http://127.0.0.1:8056",
+  "runId": "run_de236f0d54f14a58",
+  "status": "succeeded",
+  "acceptedCount": 1,
+  "rejectedCount": 0,
+  "title": "G4 public fixture notice",
+  "entityKey": "6df45c12ebc7826dd31b",
+  "collectionVersion": "colver_collection_x_93475b760872420c81652bf54199f28f_v1",
+  "integrityStatus": "verified",
+  "policyContextStatus": "fixed",
+  "ruleVersion": "rule_x_127_0_0_1_87fca72d_v1",
+  "ruleAttestationId": "attestation_504e505971b247f88c30c456723799a4",
+  "signingKeyId": "signingkey_local_dev_001",
+  "trustRevision": 1,
+  "sourceUrl": "http://127.0.0.1:59007/notice?case=full-journey",
+  "sourcePinnedToOwnedFixture": true,
+  "receiverRecords": 1,
+  "receiverAllValid": true,
+  "syntheticModelRecordsBefore": 2,
+  "syntheticModelRecordsAfter": 2,
+  "syntheticModelPhases": [
+    "discover",
+    "compile"
+  ],
+  "modelCallsPrecedeRunStart": true,
+  "csvRows": 1,
+  "jsonlRows": 1,
+  "exportsMatchTitleEntityAndDecision": true,
+  "limitations": "Read-only API integrity/lineage/source and fixture HMAC receiver checks; no independent Ed25519 verification. Synthetic model protocol fixture is not real-model quality evidence."
+}

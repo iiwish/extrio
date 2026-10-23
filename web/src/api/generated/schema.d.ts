@@ -1804,9 +1804,11 @@ export interface components {
             error: components["schemas"]["PlatformError"] | null;
         };
         BatchCollectorImportResult: {
-            collectionId: string;
+            /** @description Existing or created requirement identity; null when a new-requirement batch creates no sources. */
+            collectionId: string | null;
             collectionName: string;
-            collectionVersion: string;
+            /** @description Requirement version reference; null when no requirement was created or selected. */
+            collectionVersion: string | null;
             total: number;
             createdCount: number;
             rejectedCount: number;

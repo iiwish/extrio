@@ -10,7 +10,7 @@ AI 辅助生成规则 · 人工审核发布 · 确定性执行
 
 [![CI](https://github.com/iiwish/extrio/actions/workflows/ci.yml/badge.svg)](https://github.com/iiwish/extrio/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Status: Public Alpha](https://img.shields.io/badge/Status-Public_Alpha-orange.svg)](docs/releases/public-alpha-readiness.md)
+[![Status: RC2 Prerelease](https://img.shields.io/badge/Status-RC2_Prerelease-orange.svg)](docs/releases/v1.0-rc.2.md)
 
 </div>
 
@@ -22,7 +22,7 @@ Extrio 是面向数据运营团队的**自托管网页数据采集平台**。它
 
 *截图来自使用演示数据的本地验收实例，不代表在线试用服务。[查看控制台导览](docs/showcase.md)。*
 
-> **公开 Alpha 阶段。** 自托管工作流已实现，并有仓库内测试与评审证据支持；不承诺任意网站兼容、生产级处理规模、多租户安全隔离或生产 SLA。部署前请阅读[安全政策](SECURITY.md)。
+> **RC2 预发布阶段。** 已发布的 [v1.0.0-rc.2](docs/releases/v1.0-rc.2.md)绑定提交 `cd60804a60aaa7bbbcbd4a07ec7a3738b0699c75`；正式 `v1.0.0` 未发布，仍待产品与技术签收。本轮修复尚未发布，既有实例未升级，不部署生产或启用来源调度。不承诺任意网站兼容、生产级处理规模、多租户安全隔离或生产 SLA。部署前请阅读[安全政策](SECURITY.md)。
 
 ## 为什么选择 Extrio
 
@@ -90,7 +90,7 @@ docker compose down
 
 ```bash
 uv sync --project backend --locked --python 3.12
-uv run --project backend crawl4ai-setup
+uv run --project backend python -m playwright install --with-deps --only-shell chromium
 pnpm --dir web install --frozen-lockfile
 ./scripts/dev.sh
 ```

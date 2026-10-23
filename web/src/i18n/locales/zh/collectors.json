@@ -248,6 +248,8 @@
   },
   "result": {
     "title": "Source 导入完成",
+    "noneCreated": "未创建采集来源",
+    "noRequirementCreated": "未创建采集需求",
     "continue": "继续导入",
     "contextAria": "采集需求归属",
     "requirementLabel": "采集需求",

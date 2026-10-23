@@ -115,6 +115,21 @@ describe('asynchronous HTTP contract', () => {
     expect(result.results[0].collector?.intent).not.toBe('不会覆盖已有采集意图')
   })
 
+  it('returns no collection identity for an entirely rejected new-collection batch', async () => {
+    const response = await fetch('http://localhost/api/v1/collectors/batch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() },
+      body: JSON.stringify({ collectionName: 'Rejected batch', intent: 'Collect notices', sources: [{entryUrl:'https://rejected.example.com/'}] }),
+    })
+    const result = await response.json() as BatchCollectorImportResult
+    expect(response.status).toBe(200)
+    expect(result.createdCount).toBe(0)
+    expect(result.rejectedCount).toBe(1)
+    expect(result.collectionId).toBeNull()
+    expect(result.collectionVersion).toBeNull()
+    expect(result.results[0].error?.code).toBe('EXACT_ENTRY_REQUIRED')
+  })
+
   it('saves model metadata without accepting a plaintext credential', async () => {
     const response = await fetch('http://localhost/api/v1/settings/model', {
       method: 'PUT',

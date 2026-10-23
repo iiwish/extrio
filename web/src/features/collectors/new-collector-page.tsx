@@ -115,6 +115,7 @@ export function NewCollectorPage() {
   const [formErrors, setFormErrors] = useState<{ collection?: string; intent?: string; sources?: string }>({})
   const [importResult, setImportResult] = useState<BatchCollectorImportResult | null>(null)
   const submittedRef = useRef(false)
+  const submission = useRef<{ body: string; key: string } | null>(null)
   const dirty = Boolean(sourceInput.trim() || importedSources.length || collectionName.trim() || intent.trim())
   const blocker = useBlocker(({currentLocation,nextLocation}) => !submittedRef.current && dirty && `${currentLocation.pathname}${currentLocation.search}` !== `${nextLocation.pathname}${nextLocation.search}`)
   useBeforeUnload(event => { if (dirty && !submittedRef.current) { event.preventDefault(); event.returnValue = '' } })
@@ -143,7 +144,11 @@ export function NewCollectorPage() {
   const requirementReady = useExistingCollection || Boolean(collectionName.trim() && intent.trim())
 
   const mutation = useMutation({
-    mutationFn: (input: CreateCollectorsInput) => api.createCollectors(input),
+    mutationFn: (input: CreateCollectorsInput) => {
+      const body = JSON.stringify(input)
+      if (submission.current?.body !== body) submission.current = { body, key: crypto.randomUUID() }
+      return api.createCollectors(input, submission.current.key)
+    },
     onSuccess: (result) => {
       submittedRef.current = true
       queryClient.invalidateQueries({ queryKey: ['collectors'] })
@@ -243,6 +248,7 @@ export function NewCollectorPage() {
   if (importResult) {
     return <ImportResult result={importResult} onContinue={() => {
       submittedRef.current = false
+      submission.current = null
       setImportResult(null)
       setSourceInput('')
       setImportedSources([])
@@ -352,8 +358,8 @@ export function NewCollectorPage() {
 function ImportResult({ result, onContinue }: { result: BatchCollectorImportResult; onContinue: () => void }) {
   const { t } = useTranslation('collectors')
   return <div className="page-frame narrow-page">
-    <header className="page-header"><div><span className="eyebrow">BATCH IMPORT RESULT</span><h1>{t('result.title')}</h1><p>{result.collectionName} · {result.collectionVersion}</p></div><Button variant="outline" onClick={onContinue}><ListPlus />{t('result.continue')}</Button></header>
-    <section className="import-collection-context" aria-label={t('result.contextAria')}><span className="collection-mark"><Layers3 /></span><div><small>{t('result.requirementLabel')}</small><strong>{result.collectionName}</strong><code>{result.collectionVersion}</code></div><span><small>{t('result.individualCollectors')}</small><strong>{result.createdCount}</strong></span></section>
+    <header className="page-header"><div><span className="eyebrow">BATCH IMPORT RESULT</span><h1>{t(result.createdCount > 0 ? 'result.title' : 'result.noneCreated')}</h1><p>{result.collectionName}{result.collectionVersion && ` · ${result.collectionVersion}`}</p></div><Button variant="outline" onClick={onContinue}><ListPlus />{t('result.continue')}</Button></header>
+    <section className="import-collection-context" aria-label={t('result.contextAria')}><span className="collection-mark"><Layers3 /></span><div><small>{t(result.collectionId ? 'result.requirementLabel' : 'result.noRequirementCreated')}</small><strong>{result.collectionName}</strong>{result.collectionVersion && <code>{result.collectionVersion}</code>}</div><span><small>{t('result.individualCollectors')}</small><strong>{result.createdCount}</strong></span></section>
     <div className="import-result-summary"><span><small>{t('result.total')}</small><strong>{result.total}</strong></span><span className="success"><small>{t('result.created')}</small><strong>{result.createdCount}</strong></span><span className={result.rejectedCount > 0 ? 'danger' : ''}><small>{t('result.rejected')}</small><strong>{result.rejectedCount}</strong></span></div>
     <section className="import-result-card" aria-label={t('result.perItemAria')}>
       {result.results.map((item, index) => <div className="import-result-row" key={`${item.sourceUrl}-${index}`}>
@@ -363,6 +369,6 @@ function ImportResult({ result, onContinue }: { result: BatchCollectorImportResu
         {item.collector ? <Button asChild size="sm" variant="outline"><Link to={`/collectors/${item.collector.id}`}>{t('result.startExploring')}<ArrowRight /></Link></Button> : <span />}
       </div>)}
     </section>
-    <div className="form-actions"><Button asChild><Link to={`/collections/${encodeURIComponent(result.collectionId)}`}>{t('result.viewCollectors')}<ArrowRight /></Link></Button></div>
+    {result.collectionId && <div className="form-actions"><Button asChild><Link to={`/collections/${encodeURIComponent(result.collectionId)}`}>{t('result.viewCollectors')}<ArrowRight /></Link></Button></div>}
   </div>
 }
