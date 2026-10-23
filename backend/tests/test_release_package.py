@@ -20,8 +20,8 @@ def test_release_version_metadata_is_consistent():
     lock = tomllib.loads((root / "backend/uv.lock").read_text())
     locked_project = next(package for package in lock["package"] if package["name"] == "extrio-backend")
     web = json.loads((root / "web/package.json").read_text())
-    assert project["project"]["version"] == locked_project["version"] == __version__ == "1.0.0rc2"
-    assert web['version'] == '1.0.0-rc.2'
+    assert project["project"]["version"] == locked_project["version"] == __version__ == "1.0.0rc3"
+    assert web['version'] == '1.0.0-rc.3'
     assert Version(web['version']) == Version(__version__)
 
 
