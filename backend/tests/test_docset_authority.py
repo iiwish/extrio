@@ -8,6 +8,18 @@ RC2_COMMIT = "cd60804a60aaa7bbbcbd4a07ec7a3738b0699c75"
 RC3_COMMIT = "4f3929202d65601ced4ace3656eb726c64287459"
 
 
+def test_rc3_snapshot_does_not_clear_unpublished_dependency_security_fixes() -> None:
+    for name in ("v1.0-rc.3.md", "v1.0.0.md"):
+        document = (ROOT / "docs/releases" / name).read_text()
+        assert "CVE-2026-112940" in document
+        assert "CVE-2026-115572" in document
+        assert "CVE-2026-115580" in document
+        assert "CVE-2026-115585" in document
+        assert "依赖安全修复不包含在已发布 RC3 中" in document
+        assert "dependency-security-20261026/packet.md" in document
+        assert "2026-10-23" in document and "2026-10-26" in document
+
+
 def test_product_contract_defers_scope_and_ux_policy_to_ssot() -> None:
     product_contract = (ROOT / "docs/product-contract.md").read_text()
     ssot = (ROOT / "docs/SSOT.md").read_text()
