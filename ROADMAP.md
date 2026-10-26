@@ -3,16 +3,18 @@
 The roadmap communicates direction, not a delivery promise. Accepted work is tracked through
 issues and release milestones.
 
-## Candidate: v1.0.0-rc.3
+## Current release: v1.0.0-rc.3
 
-[v1.0.0-rc.2](docs/releases/v1.0-rc.2.md) is a published prerelease from
-`cd60804a60aaa7bbbcbd4a07ec7a3738b0699c75`. Stable `v1.0.0` remains unpublished and
+[v1.0.0-rc.3](docs/releases/v1.0-rc.3.md) is a published prerelease from
+`4f3929202d65601ced4ace3656eb726c64287459`. Stable `v1.0.0` remains unpublished and
 `Needs_Review`; see the [stable acceptance handoff](docs/releases/v1.0.0.md).
-[v1.0.0-rc.3](docs/releases/v1.0-rc.3.md) is in preparation and is not published. Its scope includes
+Its scope includes
 bounded-recovery and source-creation reliability fixes, bounded catalog validation, and three
-offline extraction-template packs. Publication is authorized only after the candidate's existing
-checks and artifact gates pass. Existing instances are not upgraded; production deployment and
-source schedules are not authorized.
+offline extraction-template packs. Exact-source CI, native dual-architecture verification,
+published-artifact security and signature/provenance checks, and isolated SQLite/PostgreSQL 16
+installation of the published digests passed. Digest installation was on `linux/arm64`, separate
+from the native dual-architecture tests. Existing instances are not upgraded; production deployment
+and source schedules are not authorized.
 
 - Self-hosted data-operations workflow for public and authorized list/detail sources.
 - Constrained AI rule generation and repair with one-run operator guidance.
@@ -26,10 +28,10 @@ source schedules are not authorized.
 - Bounded-recovery dispatch rejection handling and uncertain-result source-creation retries have
   completed source fixes and engineering verification, including failing regression controls,
   SQLite/PostgreSQL coverage, and desktop journeys. [User review remains pending](docs/reviews/p2-reliability-20261022/verification.md);
-  these fixes are included in the unpublished RC3 candidate, not the published RC2 artifacts.
+  these fixes are included in the published RC3, not the frozen RC2 artifacts.
 - Keep release status, source commits, and frozen evidence consistent; independently verify each
-  changed candidate rather than reusing the RC2 result. RC3 requires its own dual-architecture
-  artifact assessment, signature/provenance checks, and published-digest installation results.
+  changed candidate rather than reusing the RC3 result. RC3's independent artifact and installation
+  evidence is limited to its exact source and published digests, not a future stable candidate.
 - Define the six-source support matrix and quality exclusions. The procurement site's first
   historical window and real incremental coverage remain incomplete; the 1480-source directory
   is not a compatibility claim. Any further source experiment needs a bounded, authorized plan.

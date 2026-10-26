@@ -5,6 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 RC2_COMMIT = "cd60804a60aaa7bbbcbd4a07ec7a3738b0699c75"
+RC3_COMMIT = "4f3929202d65601ced4ace3656eb726c64287459"
 
 
 def test_product_contract_defers_scope_and_ux_policy_to_ssot() -> None:
@@ -49,12 +50,12 @@ def test_current_contracts_distinguish_published_rc_from_unpublished_stable() ->
         assert "`Needs_Review`" in document
         assert "v1.0.0.md" in document
         assert "`v1.0.0-rc.1`（未发布）" not in document
-        assert re.search(r"已发布.*v1\.0\.0-rc\.2", document)
-        assert RC2_COMMIT in document
+        assert re.search(r"已发布.*v1\.0\.0-rc\.3", document)
+        assert RC3_COMMIT in document
         assert "v1.0.0-rc.3" in document
         assert "v1.0-rc.3.md" in document
-        assert "准备中" in document
-        assert "本轮修复尚未发布" in document
+        assert "准备中" not in document
+        assert "本轮修复尚未发布" not in document
         assert "既有实例未升级" in document
         assert "不部署生产或启用来源调度" in document
         assert "测试候选版草稿" not in document
@@ -76,20 +77,20 @@ def test_stable_handoff_covers_all_acceptance_items_and_preserves_release_gates(
     assert "72 小时观测" in handoff
     assert "不计为通过" in handoff
     assert "禁止创建正式 `v1.0.0` tag 或生产部署，不启用来源调度" in handoff
-    assert RC2_COMMIT in handoff
-    assert "已发布" in handoff and "v1.0.0-rc.2" in handoff
-    assert "本轮修复尚未发布" in handoff
+    assert RC3_COMMIT in handoff
+    assert "已发布" in handoff and "v1.0.0-rc.3" in handoff
+    assert "本轮修复尚未发布" not in handoff
     assert "既有实例未升级" in handoff
     assert "不构成历史或新增高危风险接受" in handoff
     assert "稳定版安全结论和验收结果仍须呈交用户，再取得相应发布授权" in handoff
     assert 'release-closeout.md' in handoff
     assert 'v1.0-rc.2.md' in handoff
-    assert "v1.0.0-rc.3" in handoff and "准备中" in handoff
+    assert "准备中" not in handoff
     assert "v1.0-rc.3.md" in handoff
     assert "双架构制品" in handoff
 
 
-def test_release_status_uses_rc2_evidence_without_promoting_local_fixes_or_old_risks() -> None:
+def test_release_status_preserves_frozen_rc2_without_promoting_rc3_to_stable() -> None:
     handoff = (ROOT / "docs/releases/v1.0.0.md").read_text()
     assert "0 CRITICAL / 0 HIGH / 30 MEDIUM / 16 LOW" in handoff
     assert "无补丁 NLTK" not in handoff
@@ -107,10 +108,13 @@ def test_release_status_uses_rc2_evidence_without_promoting_local_fixes_or_old_r
 
     for path in ("README.md", "README.zh-CN.md", "ROADMAP.md"):
         document = (ROOT / path).read_text()
-        assert "v1.0.0-rc.2" in document
-        assert "docs/releases/v1.0-rc.2.md" in document
         assert "v1.0.0-rc.3" in document
         assert "docs/releases/v1.0-rc.3.md" in document
+        assert RC3_COMMIT in document
+        if path == "ROADMAP.md":
+            assert "published prerelease" in document
+        else:
+            assert "RC3_Prerelease" in document
         assert "crawl4ai-setup" not in document
         assert "Status-Public_Alpha" not in document
 
@@ -134,16 +138,58 @@ def test_manifest_generator_tracks_unpublished_stable_handoff_without_mutating_i
     assert generator["expected_manifest"](expected) == expected
 
 
-def test_rc3_preparation_preserves_publication_and_scope_boundaries() -> None:
+def test_rc3_publication_preserves_exact_artifact_and_scope_boundaries() -> None:
     rc3 = (ROOT / "docs/releases/v1.0-rc.3.md").read_text()
-    assert "准备中" in rc3
-    assert "尚未发布" in rc3
+    assert "状态：已发布 `v1.0.0-rc.3` 预发布版" in rc3
+    assert "准备中" not in rc3
+    assert RC3_COMMIT in rc3
+    assert "19:33:33" in rc3
     assert "1.0.0rc3" in rc3 and "1.0.0-rc.3" in rc3
     assert "schema 014" in rc3
     assert "HIGH/CRITICAL" in rc3 and "未修复项" in rc3
     assert "MEDIUM/LOW" in rc3
     assert "签名" in rc3 and "provenance" in rc3
     assert "release-verification.json" in rc3 and "vulnerability-inventory.json" in rc3
+    assert "security-assessment.json" in rc3
+    assert "验证快照为 2026-10-23" in rc3
+    assert "2026-10-26" in rc3
+    assert "三份附件已公开，并已重新下载核对 SHA256" in rc3
+    assert "附件上传及重新下载哈希核对待完成" not in rc3
+    asset_base = "https://github.com/iiwish/extrio/releases/download/v1.0.0-rc.3"
+    for name, sha256 in {
+        "release-verification.json": "6f65c98b764ec31242058aa3c058ad574557e0cfdfaa94c35847b2397dfcf6eb",
+        "vulnerability-inventory.json": "2b507fccf2aa2f5a3b1e17ade455f6cc80dca23b0961c920fc1fa672ad8fab5f",
+        "security-assessment.json": "8beffd3cb70ab0c89015d068d692708f5738e6afe7c948468a77d6bc3e933121",
+    }.items():
+        assert f"| [{name}]({asset_base}/{name}) | `{sha256}` |" in rc3
+    handoff = (ROOT / "docs/releases/v1.0.0.md").read_text()
+    assert "回执附件已公开并完成重新下载哈希核对" in handoff
+    assert "回执附件上传和重新下载哈希核对待完成" not in handoff
+    assert "回执附件上传及下载哈希核对待完成" not in handoff
+    for run_id in ("39936649256", "39936649414", "39936691181", "39938028391"):
+        assert f"https://github.com/iiwish/extrio/actions/runs/{run_id}" in rc3
+    assert "1523" in rc3 and "286" in rc3 and "258" in rc3
+    assert "发布摘要安装平台为 `linux/arm64`" in rc3
+    assert "不表示两架构各执行两库安装" in rc3
+    assert "c35097886b6640f725c60686a4d9050b8db0885a8888cb2bb876e5ff2c66f10c" in rc3
+    assert "9c477c019548d08b67d1f9e90faa3908af82e9132d7d86b16cb58a2b9076abb5" in rc3
+    upgrade = (ROOT / "docs/releases/v0.7-upgrade.md").read_text()
+    assert "[RC3 release record](v1.0-rc.3.md)" in upgrade
+    assert "public verification attachments are published" in upgrade
+    assert "downloaded again to verify their SHA256 hashes" in upgrade
+    assert "public verification attachments await disclosure approval" not in upgrade
+    assert "do not replace independent signature and provenance verification" in upgrade
+    assert "digests verified from its Release attachment" not in upgrade
+    for image in ("backend", "web"):
+        published = re.findall(rf"\| `ghcr\.io/iiwish/extrio-{image}` \| `(sha256:[0-9a-f]{{64}})` \|", rc3)
+        executable = re.findall(
+            rf"EXTRIO_{image.upper()}_IMAGE='ghcr\.io/iiwish/extrio-{image}@(sha256:[0-9a-f]{{64}})'", upgrade
+        )
+        assert len(published) == 1
+        assert executable == published
+    assert "bash scripts/verify-compose.sh --image-only" in upgrade
+    assert "CVE-2026-88648" in rc3
+    assert "7.4" in rc3 and "3.7" in rc3 and "fix deferred" in rc3
     assert "106" in rc3 and "1364" in rc3
     assert "68" in rc3 and "生产规则" in rc3
     assert "Needs_Review" in rc3

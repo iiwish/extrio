@@ -10,7 +10,7 @@ AI-assisted rule creation. Human-reviewed publication. Deterministic execution.
 
 [![CI](https://github.com/iiwish/extrio/actions/workflows/ci.yml/badge.svg)](https://github.com/iiwish/extrio/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Status: RC2 Prerelease](https://img.shields.io/badge/Status-RC2_Prerelease-orange.svg)](docs/releases/v1.0-rc.2.md)
+[![Status: RC3 Prerelease](https://img.shields.io/badge/Status-RC3_Prerelease-orange.svg)](docs/releases/v1.0-rc.3.md)
 
 </div>
 
@@ -22,7 +22,7 @@ Built around tender, regulatory, and public-notice workflows, Extrio helps teams
 
 *Local acceptance instance with demonstration data, not a hosted trial. [Explore the console walkthrough](docs/showcase.md).*
 
-> **RC3 candidate preparation.** [v1.0.0-rc.3](docs/releases/v1.0-rc.3.md) is in preparation and is not published. The published prerelease is [v1.0.0-rc.2](docs/releases/v1.0-rc.2.md), from `cd60804a60aaa7bbbcbd4a07ec7a3738b0699c75`; stable `v1.0.0` remains unpublished and awaits product and technical acceptance. The candidate includes reliability fixes and bounded catalog-validation tools, not production rules for the entire catalog. Existing instances are not upgraded. This work does not authorize deployment or source schedules. Arbitrary-site compatibility, production-scale capacity, hardened multi-tenancy, and a production SLA are not claimed. Read the [security policy](SECURITY.md) before deployment.
+> **RC3 prerelease.** [v1.0.0-rc.3](docs/releases/v1.0-rc.3.md) is published from `4f3929202d65601ced4ace3656eb726c64287459`, including reliability fixes and bounded catalog-validation tools, not production rules for the entire catalog. Exact-source CI, dual-architecture artifact checks, signatures/provenance, and isolated SQLite/PostgreSQL 16 installation of the published digests passed; installation was on `linux/arm64`. Stable `v1.0.0` remains unpublished and awaits product and technical acceptance. Existing instances are not upgraded. This work does not authorize deployment or source schedules. Arbitrary-site compatibility, production-scale capacity, hardened multi-tenancy, and a production SLA are not claimed. Read the [security policy](SECURITY.md) before deployment.
 
 ## Why Extrio
 
