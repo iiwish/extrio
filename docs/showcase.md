@@ -1,8 +1,8 @@
-# Extrio public-alpha walkthrough
+# Extrio console walkthrough
 
-Extrio is a desktop, self-hosted collection console. This demonstration targets
-1440x900 and uses local or explicitly authorized data. It does not demonstrate
-multi-tenant isolation, production-scale throughput or a hosted service.
+Extrio is a desktop, self-hosted collection console. This walkthrough targets 1440x900 and uses
+local or explicitly authorized data. It does not demonstrate multi-tenant isolation,
+production-scale throughput, or a hosted service.
 
 ## Three-minute sequence
 
@@ -21,18 +21,20 @@ data in screenshots or recordings.
 
 ## Screenshot tour
 
-![Requirements](reviews/unified-list-pagination/collections-1440.png)
+![Requirements](assets/screenshots/requirements.png)
 
-![Requirement output fields](reviews/collection-detail-polish/fields-1440.png)
+![Requirement output fields](assets/screenshots/requirement-fields.png)
 
-![Sources](reviews/unified-list-pagination/collectors-1440.png)
+![Sources](assets/screenshots/sources.png)
 
-![Run history](reviews/unified-list-pagination/runs-1440.png)
+![Rule workspace](assets/screenshots/rule-workspace.png)
 
-![Results](reviews/unified-list-pagination/items-1440.png)
+![Run history](assets/screenshots/runs.png)
 
-These are local desktop acceptance screenshots. This document is a walkthrough,
-not a video recording or evidence of external adoption.
+![Results](assets/screenshots/items.png)
+
+These screenshots come from a local instance with demonstration data, with the console set to
+Chinese. The console also supports English.
 
 ## Reproducible execution
 
@@ -40,11 +42,3 @@ Follow the root README for locked installation and startup. The disposable
 `scripts/benchmark.py --collectors 1 --pages 1` path executes a fixed signed rule
 through the worker without model charges, external scraping or writes to an
 existing instance. AI onboarding is a separate validation boundary.
-
-## Resume positioning
-
-Describe the project as an open-source, self-hosted public alpha: a React and
-TypeScript operations console, Python control plane, human-reviewed AI rule
-generation, deterministic execution, and item-level evidence. Cite measured test
-and fixture results with their scope. Do not claim production adoption, arbitrary
-website compatibility, commercial availability or a completed 72-hour soak test.

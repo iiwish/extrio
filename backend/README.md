@@ -44,7 +44,7 @@ upgrade the host OS or migrate an existing database. Browser rendering uses the
 direct Playwright SDK; Crawl4AI and NLTK are not runtime dependencies. Full scan
 findings and exact-build evidence are tracked in the RC2 security review.
 
-The current package is a self-hosted public alpha with first-run administrator
+The current package is a self-hosted 1.0 release candidate with first-run administrator
 setup, local users, and role-based access control. It is not a hardened
 multi-tenant service: keep the API and worker behind the bundled web proxy and
 review [SECURITY.md](../SECURITY.md) before deployment. Do not bind it to an
