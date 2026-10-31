@@ -1,13 +1,23 @@
 version: 2
 updates:
-  - package-ecosystem: pip
+  # The backend is locked with uv; the pip ecosystem only edits pyproject.toml
+  # and leaves backend/uv.lock stale, which fails `uv sync --locked` in CI.
+  - package-ecosystem: uv
     directory: /backend
     schedule:
       interval: weekly
+    ignore:
+      # MCP SDK 2.x removed mcp.server.fastmcp; upgrade with a planned migration.
+      - dependency-name: mcp
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: npm
     directory: /web
     schedule:
       interval: weekly
+    ignore:
+      # Node type definitions follow the Node runtime major used by CI and images.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
