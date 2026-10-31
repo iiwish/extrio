@@ -11,10 +11,12 @@ Stable `v1.0.0` remains unpublished and `Needs_Review`; see the
 
 ### Security
 
-- Update `filelock` to 4.2.1 and `pypdf` to 6.21.2 to address HIGH findings
-  (CVE-2026-112940; CVE-2026-115572, CVE-2026-115580, CVE-2026-115585) reported for
-  rebuilt images after RC3 was published. The published RC3 images still contain the
-  affected versions.
+- Update `filelock` to 4.2.1 to address HIGH finding CVE-2026-112940, reported for
+  rebuilt images after RC3 was published.
+- Update `pypdf` to 6.21.4 to address HIGH findings CVE-2026-115572, CVE-2026-115580,
+  and CVE-2026-115585, plus the denial-of-service advisories CVE-2026-119203 through
+  CVE-2026-119209 published on 2026-10-29.
+- The published RC3 images still contain the affected versions.
 
 ### Documentation
 

@@ -155,7 +155,7 @@ uv run --project backend extrio-mcp --transport http --host 127.0.0.1 --port 881
 **当前版本：[v1.0.0-rc.3](docs/releases/v1.0-rc.3.md)**（预发布），源提交 `4f3929202d65601ced4ace3656eb726c64287459`。
 
 - **已验证：** 单组织自托管，支持 SQLite 和 PostgreSQL 16；`linux/amd64` 与 `linux/arm64` 镜像均已签名，并附带 provenance 和 SBOM 证明。
-- **已知问题：** 发布后的扫描在 `filelock 3.32.4` 和 `pypdf 6.21.1` 中发现 HIGH 级漏洞公告，RC3 镜像包含这两个版本。修复会将它们升级到 `filelock 4.2.1` 和 `pypdf 6.21.2`，并随下一个候选版本发布。请勿将 RC3 视为可用于生产。
+- **已知问题：** 发布后的扫描在 `filelock 3.32.4` 和 `pypdf 6.21.1` 中发现 HIGH 级漏洞公告，RC3 镜像包含这两个版本。修复会将它们升级到 `filelock 4.2.1` 和 `pypdf 6.21.4`，并随下一个候选版本发布。请勿将 RC3 视为可用于生产。
 - **尚未稳定：** 正式版 `v1.0.0` 仍在等待产品与技术验收，见[稳定版交接记录](docs/releases/v1.0.0.md)。
 - **不做承诺：** 不承诺兼容任意网站、生产级处理规模或 SLA。内置来源目录中列出的网站不代表已经适配。
 

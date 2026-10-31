@@ -192,7 +192,7 @@ commit `4f3929202d65601ced4ace3656eb726c64287459`.
   `linux/amd64` and `linux/arm64` images that carry provenance and SBOM attestations.
 - **Known issue:** scans after publication flagged HIGH advisories in `filelock 3.32.4` and
   `pypdf 6.21.1`, which the RC3 images include. The fix moves to `filelock 4.2.1` and
-  `pypdf 6.21.2` and will ship in the next candidate. Do not treat RC3 as cleared for production.
+  `pypdf 6.21.4` and will ship in the next candidate. Do not treat RC3 as cleared for production.
 - **Not yet stable:** `v1.0.0` awaits product and technical acceptance; see the
   [stable handoff](docs/releases/v1.0.0.md).
 - **Not claimed:** compatibility with arbitrary websites, production-scale capacity, or an SLA. A
