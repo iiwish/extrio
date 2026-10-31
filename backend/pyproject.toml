@@ -24,7 +24,7 @@ dependencies = [
   "limits>=5.8,<6",
   "mcp>=1.30,<2",
   "tiktoken>=0.14,<1",
-  "pypdf>=6.21.2,<7",
+  "pypdf>=6.21.4,<7",
   "playwright>=1.62,<1.63",
   "pillow>=13,<14",
 ]

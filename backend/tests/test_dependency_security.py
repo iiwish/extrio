@@ -12,7 +12,7 @@ from packaging.version import Version
 ROOT = Path(__file__).resolve().parents[2]
 SECURITY_RANGES = {
     "filelock": SpecifierSet(">=4.2.1,<5"),
-    "pypdf": SpecifierSet(">=6.21.2,<7"),
+    "pypdf": SpecifierSet(">=6.21.4,<7"),
 }
 
 
@@ -80,7 +80,7 @@ def test_security_floor_rejects_missing_or_vulnerable_declarations(change):
         assert_declared_security_floor(project, name)
 
 
-@pytest.mark.parametrize(("name", "old_version"), [("filelock", "3.32.4"), ("pypdf", "6.21.1")])
+@pytest.mark.parametrize(("name", "old_version"), [("filelock", "3.32.4"), ("pypdf", "6.21.1"), ("pypdf", "6.21.2")])
 def test_security_version_gate_rejects_vulnerable_versions(name, old_version):
     with pytest.raises(AssertionError, match="Unpatched or unsupported"):
         assert_secure_locked_version(name, old_version)
