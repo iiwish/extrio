@@ -3,7 +3,7 @@
   "docsetVersion": "v0.46.0",
   "productVersion": "v1.0.0",
   "status": "Ready_For_User_Review",
-  "generatedAt": "2026-10-31T10:34:03.653Z",
+  "generatedAt": "2026-10-31T14:30:43.514Z",
   "repositoryState": {
     "kind": "git_repository",
     "defaultBranch": "main"
@@ -12,7 +12,7 @@
     {
       "path": "docs/SSOT.md",
       "version": "v0.46.0",
-      "sha256": "8239af8da47a303dffc6228b526de550b7bbffa4575d8327dd29b18572fe5bf1"
+      "sha256": "5bbc60b6492405c1ec66671d4580e7e265c4daa40235752659ac364c7c1aa890"
     },
     {
       "path": "docs/product-contract.md",
@@ -152,12 +152,12 @@
     {
       "path": "docs/releases/v0.2-acceptance.md",
       "version": "v0.46.0",
-      "sha256": "75499c1a93bdf753dc2c04f1e4e08735a1c44a4930cd98b39561f744058ad587"
+      "sha256": "8f87176512d237612be6ea22ed136637f7930325f0b2131c607da3755316c756"
     },
     {
       "path": "docs/planning/v1.0-scope-matrix.md",
       "version": "v1.0.0",
-      "sha256": "2acab6caf8b5ebe9f2c56bf1f78374c2d1eefa0cb37db3705ba38183589f3fab"
+      "sha256": "3a58d0db2b022050ed2a908a8189306c2ba0728ed0165c8e2bac5a2df67d63ce"
     },
     {
       "path": "docs/releases/v0.7-upgrade.md",
@@ -172,7 +172,7 @@
     {
       "path": "docs/releases/v1.0.0.md",
       "version": "v1.0.0",
-      "sha256": "627878c2cbb7ff32ce567492cf30319b249603f9d743633db92f4977839a68de"
+      "sha256": "52b2e890b47805548317fdc8e9fbce489e6697360d04b5f60c9715a321a5e83d"
     },
     {
       "path": "docs/releases/v1.0-rc.2.md",
