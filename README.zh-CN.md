@@ -10,7 +10,7 @@ AI 辅助生成规则 · 人工审核发布 · 确定性执行
 
 [![CI](https://github.com/iiwish/extrio/actions/workflows/ci.yml/badge.svg)](https://github.com/iiwish/extrio/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Status: RC2 Prerelease](https://img.shields.io/badge/Status-RC2_Prerelease-orange.svg)](docs/releases/v1.0-rc.2.md)
+[![Status: RC3 Prerelease](https://img.shields.io/badge/Status-RC3_Prerelease-orange.svg)](docs/releases/v1.0-rc.3.md)
 
 </div>
 
@@ -22,7 +22,7 @@ Extrio 是面向数据运营团队的**自托管网页数据采集平台**。它
 
 *截图来自使用演示数据的本地验收实例，不代表在线试用服务。[查看控制台导览](docs/showcase.md)。*
 
-> **RC3 候选准备中。** [v1.0.0-rc.3](docs/releases/v1.0-rc.3.md)尚未发布，候选包含可靠性修复及有界目录核验工具，不表示整份目录已有生产规则。已发布的 [v1.0.0-rc.2](docs/releases/v1.0-rc.2.md)绑定提交 `cd60804a60aaa7bbbcbd4a07ec7a3738b0699c75`；正式 `v1.0.0` 未发布，仍待产品与技术签收。既有实例未升级，不部署生产或启用来源调度。不承诺任意网站兼容、生产级处理规模、多租户安全隔离或生产 SLA。部署前请阅读[安全政策](SECURITY.md)。
+> **RC3 预发布阶段。** 已发布的 [v1.0.0-rc.3](docs/releases/v1.0-rc.3.md)绑定提交 `4f3929202d65601ced4ace3656eb726c64287459`，包含可靠性修复及有界目录核验工具，不表示整份目录已有生产规则。精确源提交 CI、双架构制品验证、签名/provenance 和发布摘要 SQLite/PG16 隔离安装通过；摘要安装平台为 `linux/arm64`。正式 `v1.0.0` 未发布，仍待产品与技术签收。既有实例未升级，不部署生产或启用来源调度。不承诺任意网站兼容、生产级处理规模、多租户安全隔离或生产 SLA。部署前请阅读[安全政策](SECURITY.md)。
 
 ## 为什么选择 Extrio
 

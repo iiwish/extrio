@@ -3,7 +3,7 @@
   "docsetVersion": "v0.46.0",
   "productVersion": "v1.0.0",
   "status": "Ready_For_User_Review",
-  "generatedAt": "2026-10-23T09:50:18.691Z",
+  "generatedAt": "2026-10-31T10:34:03.653Z",
   "repositoryState": {
     "kind": "git_repository",
     "defaultBranch": "main"
@@ -12,12 +12,12 @@
     {
       "path": "docs/SSOT.md",
       "version": "v0.46.0",
-      "sha256": "576667aea23e63549e778c1fdeeaf71c250a5c6e5b3793ac5fabc2ea3e73465c"
+      "sha256": "8239af8da47a303dffc6228b526de550b7bbffa4575d8327dd29b18572fe5bf1"
     },
     {
       "path": "docs/product-contract.md",
       "version": "v0.46.0",
-      "sha256": "31ca643eed9771b93ba3181740b8f457d241c181b4a32142824a4d85a235525b"
+      "sha256": "8f7013d6402b9deede812639750d1136e70f70e46d2e22ef47a22bf2de8d714a"
     },
     {
       "path": "docs/domain-model.md",
@@ -132,7 +132,7 @@
     {
       "path": "docs/frontend-prototype.md",
       "version": "v1.38.1",
-      "sha256": "68dec5ef2a8811c08bac6a086cdaa8b162d77ac2a1791c7e262140c0b96be853"
+      "sha256": "11363172b62fdfb68075ffd40722d1166e89de8536bc0254b85be87974e9d1d1"
     },
     {
       "path": "docs/backend-vertical-slice.md",
@@ -152,7 +152,7 @@
     {
       "path": "docs/releases/v0.2-acceptance.md",
       "version": "v0.46.0",
-      "sha256": "d9bd07e553359158645092b40044ab5f647e0bde2ffa8160e6bd48110f3874d5"
+      "sha256": "75499c1a93bdf753dc2c04f1e4e08735a1c44a4930cd98b39561f744058ad587"
     },
     {
       "path": "docs/planning/v1.0-scope-matrix.md",
@@ -162,7 +162,7 @@
     {
       "path": "docs/releases/v0.7-upgrade.md",
       "version": "v1.0.0",
-      "sha256": "b2d1956e032a61370d45e99f72e65cf114c9ce0019e004044b1956fda340b121"
+      "sha256": "486c8cdcc80110bb83d7c68e6bb864de1924d23a5e2aef08e40d79f0ea68ffd0"
     },
     {
       "path": "docs/releases/v1.0-rc.1.md",
@@ -172,7 +172,7 @@
     {
       "path": "docs/releases/v1.0.0.md",
       "version": "v1.0.0",
-      "sha256": "149543f59efc979de722ceaacbac7e9c72c3127ed9a801d6b3958c6743f190ae"
+      "sha256": "627878c2cbb7ff32ce567492cf30319b249603f9d743633db92f4977839a68de"
     },
     {
       "path": "docs/releases/v1.0-rc.2.md",
@@ -182,7 +182,7 @@
     {
       "path": "docs/releases/v1.0-rc.3.md",
       "version": "v1.0.0-rc.3",
-      "sha256": "55795002e199ee0a3dc6c991f5e64e04f797c6bdc52d1126ac79c8855d50f8dc"
+      "sha256": "9206795cadf6a2d1e3396f8005700d7a102ea2ddd9a080f7d36626bb5ba21439"
     },
     {
       "path": "docs/benchmarks.md",

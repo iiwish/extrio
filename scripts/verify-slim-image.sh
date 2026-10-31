@@ -76,5 +76,6 @@ TEST_ID="$(docker create --network "$NETWORK_ID" --label "extrio.image-slim=$PRO
   backend/tests/test_pagination_navigation.py backend/tests/test_nltk_boundary.py backend/tests/test_playwright_browser.py \
   backend/tests/test_lxml_boundary.py backend/tests/test_full_backup.py backend/tests/test_store_pg.py \
   backend/tests/test_tender_source_adapters.py backend/tests/test_benchmark.py \
+  backend/tests/test_dependency_security.py backend/tests/test_dependency_compatibility.py \
   backend/tests/test_release_upgrade.py)"
 docker start -a "$TEST_ID"

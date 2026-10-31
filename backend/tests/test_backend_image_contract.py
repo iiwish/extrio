@@ -37,3 +37,9 @@ def test_historical_debian_control_is_not_the_default_build():
         assert "-f docker/backend-debian-control.Dockerfile" in workflow
     harness = (root / "scripts/verify-slim-image.sh").read_text()
     assert "noble) DOCKERFILE=backend.Dockerfile" in harness
+
+
+def test_native_images_run_security_floors_and_cache_lock_compatibility():
+    harness = (DOCKERFILE.parents[1] / "scripts/verify-slim-image.sh").read_text()
+    for test in ("test_dependency_security.py", "test_dependency_compatibility.py"):
+        assert f"backend/tests/{test}" in harness
