@@ -6,19 +6,65 @@ All notable changes to Extrio are documented in this file. The project follows
 
 ## Unreleased
 
-### 1.0.0 Stable Candidate
+Stable `v1.0.0` remains unpublished and `Needs_Review`; see the
+[stable handoff](docs/releases/v1.0.0.md).
 
-- Prepare matching Python and Web `1.0.0` source metadata; the stable candidate is
-  unpublished and remains `Needs_Review`, without final product or technical acceptance.
-- Add the published RC commit to the SQLite/PostgreSQL upgrade and full-backup
-  restore/rollback matrix, and support verification of published images by immutable
-  digest without rebuilding them. Current execution evidence is tracked in the
-  [stable handoff](docs/releases/v1.0.0.md).
-- Add dynamic NLTK boundary regression evidence and retain the open no-fix dependency
-  advisory. RC risk acceptance does not authorize stable release; neither scans nor
-  untested paths are marked safe by this closeout.
-- Keep the approved 72-hour observation waiver separate from a passing test result.
-  Merge, tag, release, image publication and production deployment require separate approval.
+### Security
+
+- Update `filelock` to 4.2.1 and `pypdf` to 6.21.2 to address HIGH findings
+  (CVE-2026-112940; CVE-2026-115572, CVE-2026-115580, CVE-2026-115585) reported for
+  rebuilt images after RC3 was published. The published RC3 images still contain the
+  affected versions.
+
+### Documentation
+
+- Record the published RC3 artifact verification and its public receipts.
+- Rewrite the English and Chinese READMEs around the review-then-run workflow, a
+  comparison with other approaches, and a concise project status. Move development
+  details into CONTRIBUTING and README screenshots into `docs/assets/screenshots/`.
+- Replace outdated alpha and Crawl4AI references in CONTRIBUTING, SUPPORT, SECURITY,
+  the console walkthrough, the backend README, and the rules guide.
+
+## 1.0.0-rc.3 - 2026-10-23
+
+Published prerelease: [v1.0.0-rc.3](https://github.com/iiwish/extrio/releases/tag/v1.0.0-rc.3),
+commit `4f3929202d65601ced4ace3656eb726c64287459`. Python `1.0.0rc3`, Web `1.0.0-rc.3`;
+the database stays at schema 014 and the API contract is unchanged. See the
+[release record](docs/releases/v1.0-rc.3.md) for verification and known limitations.
+
+- When a bounded-recovery batch is rejected at start because its signature check fails,
+  finish that batch and continue with the remaining batches
+  ([#50](https://github.com/iiwish/extrio/pull/50)).
+- Retry source creation idempotently when the response is lost
+  ([#50](https://github.com/iiwish/extrio/pull/50)).
+- Link from a run to the complete list of its rejected records
+  ([#50](https://github.com/iiwish/extrio/pull/50)).
+- Add bounded, isolated validation for CSV source catalogs with a traceable result matrix,
+  plus three offline extraction-template packs. Readable catalog samples are not production
+  rules or compatibility claims ([#51](https://github.com/iiwish/extrio/pull/51)).
+
+## 1.0.0-rc.2 - 2026-10-21
+
+Published prerelease: [v1.0.0-rc.2](https://github.com/iiwish/extrio/releases/tag/v1.0.0-rc.2),
+commit `cd60804a60aaa7bbbcbd4a07ec7a3738b0699c75`. Python `1.0.0rc2`, Web `1.0.0-rc.2`,
+database schema 014. See the [release record](docs/releases/v1.0-rc.2.md).
+
+- Render pages with a restricted browser built directly on Playwright 1.62 instead of
+  Crawl4AI. Crawl4AI, NLTK, and 51 other packages leave the lockfile; no other locked
+  versions change ([#49](https://github.com/iiwish/extrio/pull/49)).
+- Keep the browser behind the existing network guard (anonymous GET, robots, DNS/IP
+  pinning, redirects, rate and request budgets), and block WebSockets, service workers,
+  and downloads.
+- Build the default backend image on digest-pinned Ubuntu 24.04 LTS with the Playwright
+  headless shell and the PGDG PostgreSQL 16 client.
+- Ship six-source tender collection with field evidence, original text, PDF and EPS
+  handling, separate coverage and quality checkpoints, and bounded cooldown recovery
+  (migration 014).
+- Stop filtering unfixed HIGH and CRITICAL findings out of the container and release
+  scans.
+- Add the published RC1 commit to the SQLite/PostgreSQL upgrade and full-backup
+  restore/rollback matrix, and verify published images by immutable digest without
+  rebuilding them ([#34](https://github.com/iiwish/extrio/pull/34)).
 
 ## 1.0.0-rc.1 - 2026-09-27
 
@@ -64,6 +110,22 @@ dual-architecture scans, signatures and provenance passed; see the
   untrusted input to the constrained compiler and does not weaken validation or human review.
 - Clarify Extrio's initial data-operations positioning, current evidence level, experimental
   boundaries, and validation roadmap without claiming hosted or large-scale proof.
+
+## 0.7.0-alpha.1 - 2026-09-15
+
+Published prerelease: [v0.7.0-alpha.1](https://github.com/iiwish/extrio/releases/tag/v0.7.0-alpha.1),
+commit `1e02dbbddd273bda7a7023b8824d0bb58f3db5d6`. See the
+[v0.7 upgrade guide](docs/releases/v0.7-upgrade.md).
+
+- Add a digest-only Compose deployment profile with resource limits, loopback ingress, and
+  separate migration and runtime database credentials
+  ([#21](https://github.com/iiwish/extrio/pull/21)).
+- Support explicit PostgreSQL environment configuration and schema validation without
+  runtime DDL.
+- Mark prerelease tags as GitHub prereleases and align package versions.
+- Install Chromium before backend tests, patch `js-yaml` and `qs`, and run the required
+  Compose check on every pull request ([#19](https://github.com/iiwish/extrio/pull/19),
+  [#20](https://github.com/iiwish/extrio/pull/20)).
 
 ## 0.6.0 - 2026-09-03
 
