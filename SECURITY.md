@@ -2,8 +2,18 @@
 
 ## Supported versions
 
-Extrio is a self-hosted public alpha. Security fixes are applied to the latest commit on the default
-branch; no older release line is supported yet.
+Extrio is in its 1.0 release-candidate phase. Security fixes land on the default branch and ship in
+the next release candidate; earlier prereleases are not patched. No stable release line exists
+yet.
+
+| Version | Receives security fixes |
+| --- | --- |
+| `main` | Yes |
+| `v1.0.0-rc.3` and earlier prereleases | No; upgrade to the next candidate |
+
+The published `v1.0.0-rc.3` images include `filelock 3.32.4` and `pypdf 6.21.1`, which have HIGH
+advisories reported after release. See the
+[RC3 release record](docs/releases/v1.0-rc.3.md) for the current status.
 
 ## Deployment boundary
 
